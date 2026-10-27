@@ -1,0 +1,238 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  acceptsRudderInput, advanceDate, consumeDailyFood, encounterRoll, foodDays, harborAttempt,
+  merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
+  dividePlunder, startNewExpedition,
+  approximateDistance, cloudCountForMonth, targetSailingSpeed,
+  turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
+  nearestCloudDistancePixels, applyProvisionalBattleOutcome, stepSailingSpeed,
+  capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
+} from '../src/mechanics.mjs';
+import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
+
+const fixedRng = ({ integer = 0, unit = 0 } = {}) => ({ int: () => integer, unit: () => unit });
+
+test('relative heading uses sixteen compass sectors', () => {
+  assert.equal(relativeHeadingSector(192, 192), 0);
+  assert.equal(relativeHeadingSector(64, 192), 8);
+  assert.equal(relativeHeadingSector(176, 192), 15);
+});
+
+test('rudder input follows the binary tick-bit gate', () => {
+  assert.deepEqual(Array.from({ length: 8 }, (_, tick) => acceptsRudderInput(tick)), [true, true, true, true, false, false, false, false]);
+});
+
+test('documented wind table produces the unclamped sailing target', () => {
+  assert.equal(targetSailingSpeed({ heading: 192, wind: 192, speedRow: SPEED_TABLE_1560.Barque, difficulty: 1, hasNavigation: true }), 18);
+  assert.equal(targetSailingSpeed({ heading: 64, wind: 192, speedRow: SPEED_TABLE_1560.Galleon, difficulty: 3, hasNavigation: false }), 0);
+});
+
+test('cloud distance uses the decoded diagonal approximation', () => {
+  assert.equal(approximateDistance(80, 40), 100);
+  assert.equal(approximateDistance(-40, -80), 100);
+});
+
+test('clouds modify the unclamped wind target', () => {
+  const sailing = { heading: 64, wind: 192, speedRow: SPEED_TABLE_1560.Sloop, difficulty: 2, hasNavigation: false };
+  assert.equal(targetSailingSpeed(sailing), 9);
+  assert.equal(targetSailingSpeed({ ...sailing, cloudDistancePixels: 99 }), 9);
+  assert.equal(targetSailingSpeed({ ...sailing, cloudDistancePixels: 100 }), 4);
+  assert.equal(targetSailingSpeed({ ...sailing, cloudDistancePixels: 128 }), 9);
+});
+
+test('a fair-weather cloud can lift a slow square-rigger above minimum speed', () => {
+  const sailing = { heading: 64, wind: 192, speedRow: SPEED_TABLE_1560.Galleon, difficulty: 0, hasNavigation: false };
+  assert.equal(targetSailingSpeed(sailing), 3);
+  assert.equal(targetSailingSpeed({ ...sailing, cloudDistancePixels: 99 }), 6);
+});
+
+test('season fixes zero to three clouds for a voyage', () => {
+  assert.deepEqual(Array.from({ length: 12 }, (_, month) => cloudCountForMonth(month)), [3, 2, 2, 1, 1, 0, 1, 1, 2, 2, 3, 3]);
+});
+
+test('a close cloud turns the heading one sector downwind', () => {
+  assert.equal(turnHeadingDownwind(64, 192), 48);
+  assert.equal(turnHeadingDownwind(224, 192), 208);
+  assert.equal(turnHeadingDownwind(192, 192), 192);
+});
+
+test('wind shift follows the documented mean-reverting sector formula', () => {
+  assert.equal(shiftWind(192, fixedRng({ integer: 0 })), 176);
+  assert.equal(shiftWind(192, fixedRng({ integer: 7 })), 224);
+});
+
+test('clouds use one voyage shape and documented drift rates', () => {
+  const rng = { int: () => 2, unit: () => .5 };
+  const clouds = createVoyageClouds({ count: 3, playerX: 100, playerY: 100, rng });
+  assert.deepEqual(clouds.map((cloud) => cloud.shape), [2, 2, 2]);
+  const drifted = driftClouds({ clouds, playerX: 100, playerY: 100, wind: 192, rng });
+  assert.deepEqual(drifted.map((cloud) => cloud.x), [99.90625, 99.84375, 99.78125]);
+  assert.equal(nearestCloudDistancePixels(drifted, 100, 100), 1.5);
+});
+
+test('a provisional sinking preserves a capacity-safe playable fleet', () => {
+  const player = {
+    ships: ['Galleon'], crew: 200, cannon: 30, goods: 30, foodFixed: 30 * 256,
+    partyGold: 1000, reputation: 0,
+  };
+  const result = applyProvisionalBattleOutcome(player, { ship: 'Sloop', flag: 'Spain' }, 'sunk', SHIPS);
+  assert.deepEqual(result.player.ships, ['Pinnace']);
+  assert.equal(result.player.crew, 64);
+  assert.equal(result.player.cannon, 8);
+  assert.equal(result.player.goods, 20);
+  assert.equal(result.player.foodFixed, 0);
+  assert.equal(result.player.partyGold, 500);
+  assert.deepEqual(player.ships, ['Galleon']);
+});
+
+test('provisional capture, defeat, escape, and enemy sinking have distinct outcomes', () => {
+  const player = { ships: ['Sloop'], crew: 40, cannon: 8, goods: 0, foodFixed: 0, partyGold: 1000, reputation: 0 };
+  const enemy = { ship: 'Barque', flag: 'pirate' };
+  assert.deepEqual(applyProvisionalBattleOutcome(player, enemy, 'captured', SHIPS).player.ships, ['Sloop', 'Barque']);
+  assert.equal(applyProvisionalBattleOutcome(player, enemy, 'lost', SHIPS).player.crew, 30);
+  assert.equal(applyProvisionalBattleOutcome(player, enemy, 'escaped', SHIPS).player.reputation, 0);
+  assert.equal(applyProvisionalBattleOutcome(player, enemy, 'enemy-sunk', SHIPS).player.reputation, 1);
+});
+
+test('captured ship plunder follows the decoded gold and cargo bounds', () => {
+  const calls = [];
+  const rng = { int: (limit) => { calls.push(limit); return Math.max(0, limit - 1); }, unit: () => 0 };
+  const loot = capturedShipPlunder({
+    enemy: { ship: 'Barque', crew: 9, guns: 4, gold: 25, cargo: 25 },
+    nearbyTownGrowth: 100, shipStats: SHIPS, rng,
+  });
+  assert.equal(loot.gold, 2490);
+  assert.equal(loot.cannon, 4);
+  assert.ok(loot.food + loot.goods + Math.floor(loot.cannon / 2) <= SHIPS.Barque.cargo);
+  assert.deepEqual(calls.slice(0, 3), [250, 0x7fff, 0x7fff]);
+});
+
+test('captured cargo preserves the binary two-stage fixed-point rounding', () => {
+  const results = [0, 26755, 0];
+  const loot = capturedShipPlunder({
+    enemy: { ship: 'Barque', crew: 0, guns: 0, gold: 1, cargo: 3 },
+    nearbyTownGrowth: 0, shipStats: SHIPS, rng: { int: () => results.shift() },
+  });
+  assert.equal(loot.goods, 0);
+});
+
+test('town capture computes plunder before damaging the town economy', () => {
+  const town = { gold: 40, growth: 80, alert: 0, forts: 2, mood: 1 };
+  const loot = capturedTownPlunder({ town, rng: fixedRng({ integer: 7 }) });
+  assert.deepEqual(loot, { gold: 40000, food: 7, goods: 14, cannon: 12, treasuryLoss: 80 });
+  assert.deepEqual(applyTownCapture(town, loot), { gold: 0, growth: 60, alert: 0, forts: 2, mood: -2 });
+});
+
+test('captured sailors volunteer only when the offer fits fleet capacity', () => {
+  assert.equal(capturedShipRecruits({ enemyCrew: 40, reputation: 1, crew: 50, capacity: 100, rng: fixedRng({ integer: 12 }) }), 12);
+  assert.equal(capturedShipRecruits({ enemyCrew: 40, reputation: 1, crew: 95, capacity: 100, rng: fixedRng({ integer: 12 }) }), 0);
+});
+
+test('sailing speed steps by two, clamps, then applies reduced sail', () => {
+  assert.equal(stepSailingSpeed(4, 12, 'full'), 6);
+  assert.equal(stepSailingSpeed(10, 30, 'full'), 12);
+  assert.equal(stepSailingSpeed(5, 9, 'full'), 7);
+  assert.equal(stepSailingSpeed(8, 9, 'full'), 10);
+  assert.equal(stepSailingSpeed(8, 12, 'battle'), 5);
+  assert.equal(stepSailingSpeed(5, 12, 'battle'), 3);
+  assert.equal(stepSailingSpeed(8, 12, 'furled'), 0);
+});
+
+test('cloud multipliers change speed when the unclamped wind target has room', () => {
+  const sailing = { heading: 64, wind: 192, speedRow: SPEED_TABLE_1560.Galleon, difficulty: 0, hasNavigation: false };
+  const clearTarget = targetSailingSpeed(sailing);
+  const cloudTarget = targetSailingSpeed({ ...sailing, cloudDistancePixels: 99 });
+  assert.equal(stepSailingSpeed(4, clearTarget, 'full'), 4);
+  assert.equal(stepSailingSpeed(4, cloudTarget, 'full'), 6);
+});
+
+test('food is stored in 8.8 fixed point', () => {
+  const remaining = consumeDailyFood(20 * 256, 80);
+  assert.equal(remaining, 5040);
+  assert.equal(foodDays(remaining, 80), 63);
+});
+
+test('far-sea encounter chance uses a 4-in-64 roll', () => {
+  assert.equal(encounterRoll(40, 0, fixedRng({ integer: 3 })).sighted, true);
+  assert.equal(encounterRoll(40, 0, fixedRng({ integer: 4 })).sighted, false);
+});
+
+test('approaching a town without forts always succeeds', () => {
+  assert.deepEqual(harborAttempt({ favour: -100, governorMood: -3, crew: 500, forts: 0, rng: fixedRng({ unit: 1 }) }), { admitted: true, fired: false, shipLost: false });
+});
+
+test('fort fire thresholds follow the decoded approach formula', () => {
+  assert.deepEqual(harborAttempt({ favour: 0, governorMood: 0, crew: 200, forts: 1, rng: fixedRng({ unit: .75 }) }), { admitted: false, fired: true, shipLost: true });
+});
+
+test('Havana food prices match the reverse-engineering example', () => {
+  assert.equal(merchantFoodPrice({ growth: 130, month: 6, producesFood: true }), 45);
+  assert.equal(merchantFoodPrice({ growth: 130, month: 0, producesFood: true }), 75);
+});
+
+test('tavern offer respects fleet capacity', () => {
+  assert.equal(tavernRecruits({ townPopulation: 50, reputation: 4, difficulty: 1, crew: 190, capacity: 192, rng: fixedRng({ integer: 20 }) }), 2);
+});
+
+test('morale declines with time at sea and difficulty', () => {
+  assert.equal(morale({ partyGold: 1000, crew: 100, monthsAtSea: 0, difficulty: 0 }), 6);
+  assert.equal(morale({ partyGold: 1000, crew: 100, monthsAtSea: 6, difficulty: 3 }), -3);
+});
+
+test('dividing plunder follows the decoded shares and starts a fresh expedition', () => {
+  assert.deepEqual(dividePlunder({
+    partyGold: 10000, crew: 80, reputation: 2, difficulty: 1, flagshipSizeClass: 2,
+  }), {
+    crewShare: 100,
+    satisfaction: 0,
+    reputation: 6,
+    captainTake: 1000,
+    officerShares: 4,
+    expeditionGold: 1000,
+    crew: 22,
+    cannon: 10,
+    foodFixed: 3840,
+    monthsAtSea: -16,
+  });
+});
+
+test('plunder satisfaction and captain share are capped at documented values', () => {
+  const result = dividePlunder({
+    partyGold: 200000, crew: 1, reputation: -10, difficulty: 3, flagshipSizeClass: 0,
+  });
+  assert.equal(result.satisfaction, 3);
+  assert.equal(result.captainTake, 40000);
+  assert.equal(result.officerShares, 8);
+  assert.equal(result.expeditionGold, 20000);
+  assert.equal(result.reputation, -61);
+  assert.equal(result.crew, 1);
+});
+
+test('a new expedition retains only the flagship and banks the captain share', () => {
+  const player = {
+    ships: ['Barque', 'Pinnace'], crew: 80, cannon: 12, foodFixed: 40 * 256,
+    goods: 20, partyGold: 10000, personalWealth: 500, reputation: 2,
+    monthsAtSea: 8, capturedCaptains: [{ nation: 'Spain' }], heading: 64,
+  };
+  const division = dividePlunder({
+    partyGold: player.partyGold, crew: player.crew, reputation: player.reputation,
+    difficulty: 1, flagshipSizeClass: 2,
+  });
+  const next = startNewExpedition(player, division);
+  assert.deepEqual(next.ships, ['Barque']);
+  assert.equal(next.personalWealth, 1500);
+  assert.equal(next.partyGold, 1000);
+  assert.equal(next.crew, 22);
+  assert.equal(next.cannon, 10);
+  assert.equal(next.foodFixed, 15 * 256);
+  assert.equal(next.goods, 0);
+  assert.deepEqual(next.capturedCaptains, []);
+  assert.equal(next.heading, 64);
+  assert.deepEqual(player.ships, ['Barque', 'Pinnace']);
+});
+
+test('the calendar uses thirty-day months and 360-day years', () => {
+  assert.deepEqual(advanceDate({ day: 29, month: 0, year: 1560 }), { day: 0, month: 1, year: 1560, newMonth: true });
+  assert.deepEqual(advanceDate({ day: 29, month: 11, year: 1560 }), { day: 0, month: 0, year: 1561, newMonth: true });
+});

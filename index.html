@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102f3a">
+  <title>Fortune &amp; Freedom</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <canvas id="game" aria-label="Caribbean sailing map"></canvas>
+    <section id="hud" class="hidden" aria-label="Voyage status">
+      <div class="hud-block identity"><strong id="captain-label">Captain</strong><span id="date-label"></span></div>
+      <div class="hud-block voyage">
+        <span><small>Speed</small><b id="speed-label">0</b></span>
+        <span><small>Wind</small><b id="wind-label">W</b></span>
+        <span><small>Sails</small><b id="sails-label">High</b></span>
+        <span><small>Food</small><b id="food-label">0 days</b></span>
+      </div>
+      <div class="hud-block company">
+        <span><small>Crew</small><b id="crew-label">0</b></span>
+        <span><small>Gold</small><b id="gold-label">0</b></span>
+        <span><small>Nearest</small><b id="nearest-label">—</b></span>
+      </div>
+    </section>
+    <aside id="log" class="hidden" aria-live="polite" aria-label="Captain's log"></aside>
+    <nav id="controls" class="hidden" aria-label="Sailing controls">
+      <button data-hold="left" aria-label="Turn to port">↶ <span>Port</span></button>
+      <button id="lower-sails-button" aria-label="Lower sails">↓ <span>Sails</span></button>
+      <button id="raise-sails-button" aria-label="Raise sails">↑ <span>Sails</span></button>
+      <button data-hold="right" aria-label="Turn to starboard">↷ <span>Starboard</span></button>
+      <button id="zoom-out-button" aria-label="Zoom map out">− <span>Zoom</span></button>
+      <button id="pause-button" aria-label="Pause voyage">Ⅱ <span>Pause</span></button>
+      <button id="dock-button" aria-label="Approach nearest town" disabled>⚓ <span>Approach</span></button>
+      <button id="zoom-in-button" aria-label="Zoom map in">+ <span>Zoom</span></button>
+    </nav>
+    <section id="start-screen" class="screen-panel">
+      <div class="crest" aria-hidden="true">☠</div>
+      <p id="start-era-label" class="eyebrow">The Caribbean · 1680</p>
+      <h1>Fortune <i>&amp;</i> Freedom</h1>
+      <p class="lede">Take command of a small corsair fleet. Read the wind, visit the ports of the Spanish Main, and build a name worth remembering.</p>
+      <form id="new-game-form">
+        <label>Captain's name<input id="captain-name" name="captain" value="Jordi" maxlength="24" autocomplete="name"></label>
+        <label>Starting era<select id="era" name="era"><option value="1560">1560 · Early explorers</option><option value="1600">1600 · Merchant expansion</option><option value="1620">1620 · New colonies</option><option value="1640">1640 · Privateer wars</option><option value="1660">1660 · Buccaneer age</option><option value="1680" selected>1680 · Pirate age</option></select></label>
+        <label>Captain's flag<select id="nationality" name="nationality"><option value="England">English</option><option value="France" selected>French</option><option value="Holland">Dutch</option><option value="Spain">Spanish</option></select></label>
+        <label>Difficulty<select id="difficulty" name="difficulty"><option value="0">Apprentice</option><option value="1" selected>Journeyman</option><option value="2">Adventurer</option><option value="3">Swashbuckler</option></select></label>
+        <label>Special ability<select id="ability" name="ability"><option value="navigation" selected>Navigation</option><option value="fencing">Fencing</option><option value="charm">Wit and charm</option><option value="gunnery">Gunnery</option><option value="medicine">Medicine</option></select></label>
+        <button class="primary" type="submit">Begin the voyage</button>
+        <button id="continue-button" class="secondary hidden" type="button">Continue saved voyage</button>
+      </form>
+      <p class="fine-print">Original code and artwork. Mechanics reconstructed from the 1993 game.</p>
+    </section>
+    <dialog id="event-dialog">
+      <p id="dialog-kicker" class="eyebrow"></p>
+      <h2 id="dialog-title"></h2>
+      <div id="dialog-body"></div>
+      <div id="dialog-actions"></div>
+    </dialog>
+  </main>
+  <script type="module" src="src/game.mjs"></script>
+</body>
+</html>
