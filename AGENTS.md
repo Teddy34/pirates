@@ -33,7 +33,24 @@ the document's cited routines before treating an ambiguity as unresolved.
 
 Treat confirmed formulas and decoded data as the authority for mechanics. Preserve qualifications such as “likely,” “guess,” and “unconfirmed”; do not silently promote them to facts. When the documentation leaves a gap, choose the smallest playable interpretation and record the assumption near the implementation.
 
-Do not copy or commit proprietary game binaries, extracted artwork, music, sound, or other copyrighted assets. Mechanics, factual data, and measurements may guide the implementation. Create original assets and presentation unless the user supplies material with suitable rights.
+## Non-negotiable asset rule
+
+Never commit proprietary game binaries or proprietary artwork. This ban also
+covers extracted, converted, re-encoded, cropped, traced, or renamed material
+from the original game: executables, disk and CD images, archives, PCX files,
+sprites, tiles, fonts, music, and sound. Changing a file's format does not make
+it safe to commit.
+
+The repository may contain original project assets, material the user supplies
+with suitable rights, and generated data that records mechanics, factual
+values, or measurements. The packed four-class navigation masks are generated
+data, not copies of the original tiles or artwork. Document the provenance and
+generation command for any such derived data.
+
+Before every commit or push, inspect all newly tracked binary, image, audio,
+font, archive, and data files. If a file's rights or provenance are uncertain,
+leave it untracked and ask the user. Never commit it on the assumption that it
+is acceptable.
 
 ## Current repository
 
