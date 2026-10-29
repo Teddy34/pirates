@@ -5,6 +5,20 @@ playable ship-to-ship battle based on the decoded *Pirates! Gold* rules in
 `../../piratesgold/docs/sea_battles.md`. It deliberately separates confirmed
 mechanics from presentation choices and unresolved reverse-engineering work.
 
+## Implementation progress
+
+The browser port now includes the first playable release: fixed-step movement,
+flagship choice, battle and full sails, wind shifts, broadsides, delayed shot
+landing, damage, enemy tactics, surrender, sinking, escape, provisional boarding
+outcomes, capture aftermath, and persistent flagship damage. Version 4 saves
+migrate older ship-name fleets to damage-bearing ship records.
+
+The next naval-combat pass should add coastal terrain and shallows, refine the
+assumed frame timing against direct evidence, persist battles in progress, and
+replace provisional boarding outcomes with interactive sword fighting. The
+player rudder now follows the traced battle loop: 16 angle units every eight
+frames (`battle_engine.asm` at `0x7E97`–`0x7EB8`).
+
 ## Outcome
 
 The first complete release should let the player:
@@ -17,10 +31,10 @@ The first complete release should let the player:
 5. carry surviving crew, cannon, ship damage, captured ships, reputation, and
    nearby-town alert back into the campaign.
 
-Boarding initially resolves through a deterministic crew-combat summary. The
-interactive sword-fight system should be a separate vertical slice, because it
-has its own controls, animation timing, morale model, and test surface. Fort
-battles should reuse the finished naval engine in a later milestone.
+Boarding currently opens an explicit provisional outcome menu. The interactive
+sword-fight system remains a separate vertical slice because it has its own
+controls, animation timing, morale model, and test surface. Fort battles should
+reuse the finished naval engine in a later milestone.
 
 ## Evidence boundary
 
@@ -34,6 +48,8 @@ battles should reuse the finished naval engine in a later milestone.
 - Broadsides choose the side facing the enemy. Range is automatic; the player
   aims by putting the target on the beam and firing at the right time.
 - Battle sails halve incoming hull damage. Full sails give 1.5 times speed.
+- Player rudder input changes heading by 16 angle units every eight battle
+  frames (`battle_engine.asm` at `0x7E97`–`0x7EB8`).
 - The enemy reconsiders its tactic every 64 battle frames.
 - A battle ends on sinking, boarding contact, surrender, separation, sunset,
   or the player hitting land.
@@ -44,9 +60,6 @@ battles should reuse the finished naval engine in a later milestone.
 
 ### Open points that must stay explicit
 
-- The exact player rudder-rate table at binary address `0x4C852` is not yet
-  decoded. Start with a named provisional function and tune it only against
-  binary evidence or direct observation.
 - Terrain class 1 shallows are not fully mapped to original palette indices.
   The current four-class navigation mask can supply water, shallows, and land,
   but this mapping needs a focused verification pass.
@@ -250,34 +263,18 @@ Implement capture atomically: calculate capacity, transfer the prize, crew,
 cannon, gold, and any known cargo, then show one summary before returning to
 sailing. Never partially mutate campaign state while a result dialog is open.
 
-### 6. Boarding bridge
+### 6. Boarding fallback
 
-For the first sea-combat release, implement the documented boarding inputs and
-a deterministic summarized result using the crew-battle morale and attrition
-formulas from `sword_fights.md`:
+Until interactive sword fighting exists, boarding opens a provisional outcome
+menu. The player chooses victory and capture, a driven-back withdrawal, or
+defeat and ransom. Each choice updates campaign state and the captain's log,
+then returns to a valid mode.
 
-- player quality `7 - playerDamage / 16`;
-- enemy quality `kind - enemyDamage / 16`;
-- crew-clash roll every simulated 16 frames;
-- win, driven-back, defeated, and survivor accounting;
-- driven-back consequences: nearby alert `+16`, reputation `-2`, and
-  withdrawal;
-- defeated consequences: hand off to the future prison/ransom system, with a
-  clearly marked interim campaign result until that system exists.
-
-Because the summarized version has no leader duel to move the morale balance,
-keep morale at its documented initial weighted split. Mark that as `ASSUMED`;
-the interactive sword-fight replacement will update morale through sword hits.
-
-Keep its API compatible with a future interactive sword-fight module:
-
-```js
-resolveBoarding({ playerMen, playerQuality, enemyMen, enemyQuality, rng })
-// -> { outcome: 'won' | 'driven-back' | 'defeated', playerMen, enemyMen }
-```
-
-Later, the interactive implementation can return the same result shape without
-changing naval aftermath.
+The driven-back and defeated choices apply the documented `+16` nearby alert
+and `-2` reputation consequences. Defeat also removes one quarter of the
+embarked crew and ten percent of party gold as an explicit interim assumption.
+Replace this menu when the sword-fight slice can model morale, casualties,
+yielding, prison, and ransom.
 
 ### 7. Fort reuse
 
@@ -352,7 +349,7 @@ Each milestone ends in a runnable build:
 3. **Enemy captain** — close/duel/flee/strike AI, collision, escape, sunset,
    and terrain.
 4. **Campaign integration** — flagship choice, save migration, capture and all
-   aftermath paths, summarized boarding.
+   aftermath paths, and provisional boarding outcomes.
 5. **Polish and verification** — touch controls, accessibility, effects,
    balance observation, and comparison against the installed binary.
 6. **Follow-ons** — interactive sword fighting, then fort attack and land
@@ -361,7 +358,7 @@ Each milestone ends in a runnable build:
 ## Definition of done for the first release
 
 - Every ordinary ship encounter can enter and finish tactical combat without a
-  placeholder or dead end.
+  dead end. Unfinished boarding presents explicit provisional outcomes.
 - The documented ship setup, movement, gunnery, AI, and outcome rules above are
   covered by deterministic tests.
 - Campaign resources and fleet damage remain consistent after every result.

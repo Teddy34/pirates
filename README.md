@@ -42,6 +42,9 @@ effect; closed sail lets the fleet stop.
 - fixed-point food consumption and starvation
 - three-stage ship encounters, event-based Ship's News, and a documented
   post-capture sequence for prizes, cargo, captives, and volunteers
+- fixed-step tactical sea battles with flagship choice, steering, sail changes,
+  broadsides, damage, enemy tactics, surrender, sinking, escape, and provisional
+  boarding outcomes
 - open and clandestine town entry
 - governor amnesty, tavern recruiting, and food trading
 - division of plunder, including crew satisfaction, captain wealth, reputation,
@@ -49,11 +52,12 @@ effect; closed sail lets the fleet stop.
 - provisional town assaults with treasury plunder, cargo transfer, and the
   documented governor-installation check
 - responsive keyboard, pointer, and touch controls
-- versioned browser saves with migration from the original format
+- versioned browser saves with migration from ship-name fleets to persistent
+  ship-damage records
 
 The map presentation and interface are original. Coast geometry, mechanics, and scenario values come from the installed game and the reverse-engineering notes in `../piratesgold`; no original tile artwork is included.
 
-The implementation plan for playable naval battles is in
+The implementation record and remaining naval-battle work are in
 [`docs/tactical-sea-combat-plan.md`](docs/tactical-sea-combat-plan.md).
 The complete feature inventory and backlog are in
 [`docs/implementation-status.md`](docs/implementation-status.md).

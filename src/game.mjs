@@ -5,16 +5,26 @@ import {
   TICKS_PER_DAY, TICKS_PER_HALF_DAY, TICKS_PER_WIND_SHIFT,
   clamp, createRng, targetSailingSpeed, stepSailingSpeed,
   shiftWind, cloudCountForMonth, navigationSkill, turnHeadingDownwind,
-  createVoyageClouds, driftClouds, nearestCloudDistancePixels, applyProvisionalBattleOutcome,
+  createVoyageClouds, driftClouds, nearestCloudDistancePixels, cloudWrapOpacity,
+  applyProvisionalBoardingOutcome,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
   acceptsRudderInput,
   consumeDailyFood, foodDays, encounterRoll, chooseEncounterTier,
   harborAttempt, sneakAttempt, tavernRecruits, morale, dividePlunder, startNewExpedition,
-  merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
+  diplomaticBriefing, tavernSpecialEncounters,
+  merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
+  merchantCommodityPrice, merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
 } from './mechanics.mjs';
+import {
+  BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
+  createBattle, damageLevel, shipName, shipRecord, stepBattle,
+} from './battle-mechanics.mjs';
+import { renderBattle } from './battle-renderer.mjs';
 
-const SAVE_KEY = 'fortune-and-freedom-save-v1';
-const SAVE_VERSION = 3;
+const SAVE_KEY = 'fortune-and-freedom-save-v5';
+const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
+const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
+const SAVE_VERSION = 5;
 const TICK_SECONDS = 0.125;
 const ZOOM_STEP = 4;
 const MIN_ZOOM = 16;
@@ -54,6 +64,9 @@ const labels = {
 let state = null;
 let rng = createRng();
 let accumulator = 0;
+let battleAccumulator = 0;
+let previousSailingPose = null;
+let previousSailingClouds = null;
 let lastFrame = performance.now();
 let viewWidth = innerWidth;
 let viewHeight = innerHeight;
@@ -63,7 +76,64 @@ let scenarios = null;
 let cameraZoom = MIN_ZOOM;
 let wheelZoomDelta = 0;
 const mapCache = new Map();
-const input = { left: false, right: false };
+const input = {
+  left: false, right: false, firePressed: false,
+  raiseSailsPressed: false, lowerSailsPressed: false,
+};
+
+function sailingPose() {
+  return state?.player
+    ? { x: state.player.x, y: state.player.y, heading: state.player.heading, sails: state.player.sails }
+    : null;
+}
+
+function resetSailingInterpolation() {
+  previousSailingPose = sailingPose();
+  previousSailingClouds = state?.clouds?.map((cloud) => ({ ...cloud })) ?? null;
+  accumulator = 0;
+}
+
+function sailingInterpolationProgress() {
+  return state.paused || state.mode !== 'sailing' || dialog.open
+    ? 1
+    : clamp(accumulator / TICK_SECONDS, 0, 1);
+}
+
+function interpolatedSailingPose() {
+  const current = sailingPose();
+  if (!current || !previousSailingPose) return current;
+  const progress = sailingInterpolationProgress();
+  const headingDelta = ((current.heading - previousSailingPose.heading + 128) & 0xff) - 128;
+  return {
+    x: previousSailingPose.x + (current.x - previousSailingPose.x) * progress,
+    y: previousSailingPose.y + (current.y - previousSailingPose.y) * progress,
+    heading: (previousSailingPose.heading + headingDelta * progress + 256) % 256,
+    sails: current.sails,
+  };
+}
+
+function interpolatedSailingClouds() {
+  const current = state.clouds ?? [];
+  if (!previousSailingClouds?.length) return current;
+  const progress = sailingInterpolationProgress();
+  return current.map((cloud, index) => {
+    const previous = previousSailingClouds[index];
+    // A large jump is the documented edge wrap. Drawing the new endpoint
+    // avoids sliding the cloud across the entire viewport between ticks.
+    if (!previous || Math.abs(cloud.x - previous.x) > 2 || Math.abs(cloud.y - previous.y) > 2) return cloud;
+    return {
+      ...cloud,
+      x: previous.x + (cloud.x - previous.x) * progress,
+      y: previous.y + (cloud.y - previous.y) * progress,
+    };
+  });
+}
+
+const statsFor = (ship) => SHIPS[shipName(ship)];
+const describeShip = (ship) => {
+  const record = shipRecord(ship);
+  return `${record.type}${record.damage ? ` (${record.damage / 16} damage)` : ''}`;
+};
 
 function newState(options) {
   const era = String(options.era || 1680);
@@ -78,6 +148,8 @@ function newState(options) {
   const diplomacy = Object.fromEntries(NATION_ORDER.map((nation, row) => [
     nation, Object.fromEntries(NATION_ORDER.map((other, column) => [other, start.diplomacy[row][column]])),
   ]));
+  const logs = ['A westward trade wind fills the sails.', `The ${start.name} expedition begins.`];
+  if (favour[nationality] >= 2) logs.push(`Your ${nationality} letter of marque is in good standing.`);
   return {
     version: SAVE_VERSION,
     era,
@@ -91,16 +163,19 @@ function newState(options) {
     calendar: { day: 0, month: 0, year: Number(era) },
     player: {
       x: startX, y: startY, heading: 128, speed: 4, wind: 192, sails: 'full',
-      ships: [...start.ships], crew: start.crew, cannon: start.cannon,
-      foodFixed: start.food * 256, goods: start.goods, partyGold: start.gold,
+      ships: start.ships.map(shipRecord), crew: start.crew, cannon: start.cannon,
+      foodFixed: start.food * 256, goods: start.goods, specialGoods: 0, partyGold: start.gold,
       personalWealth: 0, reputation: 0, monthsAtSea: -16,
+      barmaidRapport: {}, barmaidInformants: [],
       favour, ranks,
     },
     towns: scenario.towns.map((town) => ({ ...town, alert: 0 })),
     nearestTownIndex: 0,
     diplomacy,
     worldNews: initialDiplomacyNews(diplomacy),
-    logs: ['A westward trade wind fills the sails.', `The ${start.name} expedition begins.`],
+    treasureMap: { pieces: 0, clueTownIndex: null },
+    portTrade: { townIndex: null, merchantCash: null, shipwrightCash: null },
+    logs,
     visit: null,
   };
 }
@@ -129,8 +204,14 @@ async function startGame(nextState) {
   state.nationality ??= 'France';
   state.player.favour.pirate ??= 0;
   state.player.sails ??= 'full';
+  state.player.ships = state.player.ships.map(shipRecord);
   state.diplomacy ??= newState({ era: state.era, captain: state.captain, nationality: state.nationality, difficulty: state.difficulty, ability: state.ability }).diplomacy;
   state.worldNews ??= initialDiplomacyNews(state.diplomacy);
+  state.treasureMap ??= { pieces: 0, clueTownIndex: null };
+  state.player.barmaidRapport ??= {};
+  state.player.barmaidInformants ??= [];
+  state.player.specialGoods ??= 0;
+  state.portTrade ??= { townIndex: null, merchantCash: null, shipwrightCash: null };
   await loadWorldMap(state.era);
   movePlayerToNavigableCell();
   rng = createRng(state.seed);
@@ -141,6 +222,7 @@ async function startGame(nextState) {
   setupClouds();
   state.paused = false;
   state.mode = 'sailing';
+  resetSailingInterpolation();
   startScreen.classList.add('hidden');
   hud.classList.remove('hidden');
   controls.classList.remove('hidden');
@@ -151,7 +233,7 @@ async function startGame(nextState) {
 }
 
 function saveGame(showMessage = true) {
-  if (!state) return;
+  if (!state || state.mode === 'battle') return;
   state.rngState = rng.state;
   localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   if (showMessage) addLog('Voyage saved in this browser.');
@@ -159,10 +241,11 @@ function saveGame(showMessage = true) {
 
 function loadGame() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (![1, 2, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
-    // Version 2 added voyage cloud state; version 3 adds captain nationality.
-    // Older saves used the French career and migrate to that flag in startGame.
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(PREVIOUS_SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY));
+    if (![1, 2, 3, 4, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
+    // Version 4 stores fleet ships as damage-bearing records. The old storage
+    // key remains readable so existing browser voyages are not discarded.
+    saved.player.ships = saved.player.ships.map(shipRecord);
     saved.version = SAVE_VERSION;
     return saved;
   } catch {
@@ -281,16 +364,46 @@ function updateNearestTown() {
 }
 
 function fleetCapacity() {
-  return state.player.ships.reduce((sum, ship) => sum + SHIPS[ship].capacity, 0);
+  return state.player.ships.reduce((sum, ship) => sum + statsFor(ship).capacity, 0);
 }
 
 function cargoCapacity() {
-  return state.player.ships.reduce((sum, ship) => sum + SHIPS[ship].cargo, 0);
+  return state.player.ships.reduce((sum, ship) => sum + statsFor(ship).cargo, 0);
+}
+
+function cargoUsed() {
+  return Math.floor(state.player.foodFixed / 256) + state.player.goods
+    + state.player.specialGoods + Math.floor(state.player.cannon / 2);
 }
 
 function cargoRoom() {
-  return Math.max(0, cargoCapacity() - Math.floor(state.player.foodFixed / 256)
-    - state.player.goods - Math.floor(state.player.cannon / 2));
+  return Math.max(0, cargoCapacity() - cargoUsed());
+}
+
+function showOverfullHold(done) {
+  const excess = cargoUsed() - cargoCapacity();
+  if (excess <= 0) {
+    done();
+    return;
+  }
+  const actions = [];
+  const food = Math.floor(state.player.foodFixed / 256);
+  if (food > 0) actions.push({ label: 'Jettison 1 ton of food', run: () => { state.player.foodFixed -= 256; showOverfullHold(done); } });
+  if (state.player.goods > 0) actions.push({ label: 'Jettison 1 ton of goods', run: () => { state.player.goods -= 1; showOverfullHold(done); } });
+  if (state.player.specialGoods > 0) actions.push({ label: `Jettison 1 ton of ${specialGoodsName().toLowerCase()}`, run: () => { state.player.specialGoods -= 1; showOverfullHold(done); } });
+  if (state.player.cannon > 0) actions.push({ label: 'Jettison 1 cannon', run: () => { state.player.cannon -= 1; showOverfullHold(done); } });
+  showDialog({
+    kicker: 'Overloaded fleet', title: `${excess} ton${excess === 1 ? '' : 's'} over capacity`,
+    body: '<p>The sold ship’s hold is gone. Choose exactly what to throw overboard before leaving the yard.</p>',
+    actions,
+  });
+}
+
+function specialGoodsName() {
+  const year = Number(state.era);
+  if (year <= 1600) return 'Hides';
+  if (year <= 1640) return 'Tobacco';
+  return 'Sugar';
 }
 
 function propagateFavour(nation, delta) {
@@ -310,7 +423,7 @@ function propagateFavour(nation, delta) {
 
 function fleetSpeedRow() {
   return state.player.ships.reduce((slowest, ship) =>
-    SHIPS[ship].sizeClass > SHIPS[slowest].sizeClass ? ship : slowest, state.player.ships[0]);
+    statsFor(ship).sizeClass > statsFor(slowest).sizeClass ? ship : slowest, state.player.ships[0]);
 }
 
 function setupClouds() {
@@ -329,6 +442,8 @@ function setupClouds() {
 function stepSimulation() {
   if (!state || state.paused || state.mode !== 'sailing') return;
   const player = state.player;
+  previousSailingPose = sailingPose();
+  previousSailingClouds = state.clouds.map((cloud) => ({ ...cloud }));
   state.tick += 1;
   player.voyageTick = (player.voyageTick ?? 63) + 1;
 
@@ -342,7 +457,7 @@ function stepSimulation() {
 
   const windTarget = targetSailingSpeed({
     heading: player.heading, wind: player.wind,
-    speedRow: scenarios[state.era].speeds[fleetSpeedRow()],
+    speedRow: scenarios[state.era].speeds[shipName(fleetSpeedRow())],
     difficulty: state.difficulty, hasNavigation: state.ability === 'navigation',
     cloudDistancePixels,
   });
@@ -540,29 +655,160 @@ function hailForNews(enemy) {
 }
 
 function closeForBattle(enemy) {
+  const choices = state.player.ships.map((ship, index) => ({
+    label: `Command ${describeShip(ship)}${index === 0 ? ' (flagship)' : ''}`,
+    run: () => beginTacticalBattle(enemy, index),
+  }));
   showDialog({
     kicker: 'Battle stations', title: `Closing with the ${enemy.ship}`,
-    body: '<p>Tactical sea combat is not playable yet. Choose a provisional outcome; it will be applied to this voyage and entered in the captain’s log.</p>',
+    body: `<p>Choose the ship you will command. Eight hands remain aboard every reserve ship.</p><p>Steer with Left/Right or A/D, fire with Space, and change sail with Up/Down.</p>`,
+    actions: choices,
+  });
+}
+
+function beginTacticalBattle(enemy, flagshipIndex) {
+  state.battle = createBattle({
+    player: state.player,
+    enemy,
+    flagshipIndex,
+    speedRows: scenarios[state.era].speeds,
+    difficulty: state.difficulty,
+    ability: state.ability,
+    playerFlag: state.nationality,
+    crewMorale: morale({ ...state.player, difficulty: state.difficulty }),
+    rng,
+  });
+  state.player.ships = state.battle.fleet.map(shipRecord);
+  state.mode = 'battle';
+  state.paused = false;
+  battleAccumulator = 0;
+  input.firePressed = false;
+  input.raiseSailsPressed = false;
+  input.lowerSailsPressed = false;
+  canvas.setAttribute('aria-label', 'Tactical sea battle');
+  addLog(`Battle joined with the ${enemy.flag} ${enemy.ship}.`);
+  updateInterface();
+}
+
+function applyBattleSurvivors(battle) {
+  state.player.crew = Math.max(1, battle.player.men + battle.player.reserveMen);
+  state.player.cannon = Math.max(0, battle.player.guns + battle.player.reserveGuns);
+  const damage = Math.min(48, battle.player.damage & 0xf0);
+  state.player.ships = battle.fleet.map(shipRecord);
+  if (state.player.ships.length) state.player.ships[0] = { ...state.player.ships[0], damage };
+  const town = nearestTown();
+  const distance = Math.floor(Math.abs(state.player.x - town.x) + Math.abs(state.player.y - town.y));
+  if (distance < 12) town.alert += 24 - 2 * distance;
+}
+
+function capacitySafeFleet() {
+  if (state.player.ships.length === 0) {
+    // ASSUMED recovery bridge until capture/prison and career-ending states exist.
+    state.player.ships.push({ type: 'Pinnace', damage: 0 });
+  }
+  state.player.crew = Math.min(state.player.crew, fleetCapacity());
+  state.player.cannon = Math.min(state.player.cannon, state.player.ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0));
+  const hold = Math.max(0, cargoCapacity() - Math.floor(state.player.cannon / 2));
+  state.player.goods = Math.min(state.player.goods, hold);
+  state.player.specialGoods = Math.min(state.player.specialGoods, Math.max(0, hold - state.player.goods));
+  state.player.foodFixed = Math.min(state.player.foodFixed, Math.max(0, hold - state.player.goods - state.player.specialGoods) * 256);
+}
+
+function endBattleToSailing(message) {
+  state.battle = null;
+  state.mode = 'sailing';
+  state.paused = false;
+  canvas.setAttribute('aria-label', 'Caribbean sailing map');
+  addLog(message);
+  saveGame(false);
+  resumeAfterEncounter();
+}
+
+function finishTacticalBattle() {
+  const battle = state.battle;
+  if (!battle?.event || state.paused) return;
+  state.paused = true;
+  applyBattleSurvivors(battle);
+  const enemy = {
+    ...battle.encounter,
+    crew: Math.max(1, Math.ceil(battle.enemy.men / 4)),
+    guns: battle.enemy.guns,
+  };
+
+  if (battle.event === 'enemy-struck') {
+    state.battle = null;
+    state.mode = 'sailing';
+    addLog(`The ${enemy.ship} struck her colors.`);
+    beginShipCapture(enemy);
+    return;
+  }
+  if (battle.event === 'boarding') {
+    offerProvisionalBoarding(enemy);
+    return;
+  }
+  if (battle.event === 'player-sunk') {
+    state.player.ships.shift();
+    state.player.wounds = (state.player.wounds ?? 0) + 1;
+    state.player.crew = Math.max(1, Math.floor(state.player.crew / 2));
+    capacitySafeFleet();
+    endBattleToSailing('Your flagship sank; survivors were taken aboard the remaining fleet.');
+    return;
+  }
+  if (battle.event === 'enemy-sunk') {
+    state.player.reputation += 1;
+    // Likely trade-loss target per sea_battles.md; the nearest-town pointer is not fully confirmed.
+    nearestTown().growth = Math.max(0, nearestTown().growth - 10);
+    endBattleToSailing(`The ${enemy.ship} exploded and sank. No prize remained.`);
+    return;
+  }
+  if ((battle.event === 'escaped' || battle.event === 'sunset') && state.player.ships.length > 1
+      && battle.enemy.damage < 16 && battle.enemy.tactic !== 'flee') {
+    let slowest = 1;
+    for (let index = 2; index < state.player.ships.length; index += 1) {
+      if (statsFor(state.player.ships[index]).type > statsFor(state.player.ships[slowest]).type) slowest = index;
+    }
+    const [lost] = state.player.ships.splice(slowest, 1);
+    capacitySafeFleet();
+    endBattleToSailing(`The enemy overtook and captured your reserve ${shipName(lost)} during the escape.`);
+    return;
+  }
+  const messages = {
+    escaped: battle.enemy.tactic === 'flee' ? `The ${enemy.ship} escaped.` : 'Your flagship sailed out of range.',
+    sunset: 'The sun set after a long chase; both ships withdrew.',
+    beached: 'The flagship touched land and withdrew from the engagement.',
+  };
+  if (battle.event === 'beached') state.player.reputation -= 1;
+  endBattleToSailing(messages[battle.event] ?? 'The battle ended.');
+}
+
+function offerProvisionalBoarding(enemy) {
+  showDialog({
+    kicker: 'Ships grappled', title: `Boarding the ${enemy.ship}`,
+    body: '<p>Interactive boarding and sword fighting are not playable yet. Choose the provisional outcome; it will update the voyage and captain’s log.</p>',
     actions: [
-      { label: 'Victory — capture her', run: () => resolveProvisionalBattle(enemy, 'captured') },
-      { label: 'Lose the fight', run: () => resolveProvisionalBattle(enemy, 'lost') },
-      { label: 'Our ship is sunk', run: () => resolveProvisionalBattle(enemy, 'sunk') },
-      { label: 'Escape the battle', secondary: true, run: () => resolveProvisionalBattle(enemy, 'escaped') },
-      { label: `Sink the ${enemy.ship}`, run: () => resolveProvisionalBattle(enemy, 'enemy-sunk') },
+      { label: 'Win and capture the ship', run: () => resolveProvisionalBoarding(enemy, 'won') },
+      { label: 'Be driven back', secondary: true, run: () => resolveProvisionalBoarding(enemy, 'driven-back') },
+      { label: 'Lose and pay ransom', run: () => resolveProvisionalBoarding(enemy, 'defeated') },
     ],
   });
 }
 
-function resolveProvisionalBattle(enemy, outcome) {
-  if (outcome === 'captured') {
+function resolveProvisionalBoarding(enemy, outcome) {
+  if (outcome === 'won') {
+    state.battle = null;
+    state.mode = 'sailing';
+    addLog(`Provisional boarding victory: captured the ${enemy.ship}.`);
     beginShipCapture(enemy);
     return;
   }
-  const result = applyProvisionalBattleOutcome(state.player, enemy, outcome, SHIPS);
+  const result = applyProvisionalBoardingOutcome(state.player, state.battle.player.men, outcome);
   state.player = result.player;
-  addLog(result.message);
-  saveGame(false);
-  resumeAfterEncounter();
+  nearestTown().alert += 16;
+  if (outcome === 'defeated') {
+    endBattleToSailing(`Provisional boarding defeat: lost ${result.casualties} crew and paid ${result.ransom} gold in ransom.`);
+    return;
+  }
+  endBattleToSailing('Provisional boarding result: the boarding party was driven back and broke away.');
 }
 
 function beginShipCapture(enemy) {
@@ -581,7 +827,7 @@ function beginShipCapture(enemy) {
 function keepPrizeShip(enemy) {
   if (state.player.ships.length < 8) {
     const slotIndex = state.player.ships.length;
-    state.player.ships.push(enemy.ship);
+    state.player.ships.push({ type: enemy.ship, damage: 0 });
     state.player.crew = Math.max(state.player.crew, slotIndex * 8);
     addLog(`Sent a prize crew aboard the captured ${enemy.ship}.`);
     finishPrizeDecision(enemy, true);
@@ -591,10 +837,10 @@ function keepPrizeShip(enemy) {
     kicker: 'Fleet at capacity', title: 'Choose a ship to abandon',
     body: '<p>The fleet can carry no more than eight ships. Choose one vessel to strip and replace with the prize.</p>',
     actions: state.player.ships.map((ship, index) => ({
-      label: `Abandon ${ship} (${index + 1})`,
+      label: `Abandon ${describeShip(ship)} (${index + 1})`,
       run: () => {
-        state.player.ships[index] = enemy.ship;
-        addLog(`Abandoned a ${ship} and kept the captured ${enemy.ship}.`);
+        state.player.ships[index] = { type: enemy.ship, damage: 0 };
+        addLog(`Abandoned a ${shipName(ship)} and kept the captured ${enemy.ship}.`);
         finishPrizeDecision(enemy, true);
       },
     })),
@@ -669,28 +915,72 @@ function offerCapturedRecruits(enemy) {
 function beginPlunderTransfer(title, loot, done) {
   state.player.partyGold += loot.gold;
   if (loot.gold > 0) addLog(`Took ${loot.gold} gold in plunder.`);
-  const remaining = { food: loot.food, goods: loot.goods, cannon: loot.cannon };
+  const remaining = {
+    food: loot.food,
+    goods: loot.goods,
+    specialGoods: loot.specialGoods ?? 0,
+    cannon: loot.cannon,
+  };
+
+  const stowCargo = (kind, requested) => {
+    const amount = Math.min(requested, remaining[kind], cargoRoom());
+    if (kind === 'food') state.player.foodFixed += amount * 256;
+    else state.player[kind] += amount;
+    remaining[kind] -= amount;
+    showTransfer();
+  };
+
+  const jettisonCargo = (kind, requested) => {
+    const aboard = kind === 'food' ? Math.floor(state.player.foodFixed / 256) : state.player[kind];
+    const amount = Math.min(requested, aboard);
+    if (kind === 'food') state.player.foodFixed -= amount * 256;
+    else state.player[kind] -= amount;
+    showTransfer();
+  };
+
+  const mountCannon = (requested) => {
+    const room = cargoRoom();
+    const gunRoom = Math.max(0, state.player.ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0) - state.player.cannon);
+    const cannonByHold = room * 2 + (state.player.cannon % 2 === 0 ? 1 : 0);
+    const amount = Math.min(requested, remaining.cannon, gunRoom, cannonByHold);
+    state.player.cannon += amount;
+    remaining.cannon -= amount;
+    showTransfer();
+  };
 
   function showTransfer() {
     const food = Math.floor(state.player.foodFixed / 256);
     const room = cargoRoom();
-    const gunRoom = Math.max(0, state.player.ships.reduce((sum, ship) => sum + SHIPS[ship].guns, 0) - state.player.cannon);
+    const gunRoom = Math.max(0, state.player.ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0) - state.player.cannon);
     const actions = [];
-    if (remaining.food > 0 && room > 0) actions.push({ label: `Stow food (${Math.min(room, remaining.food)})`, run: () => { const amount = Math.min(room, remaining.food); state.player.foodFixed += amount * 256; remaining.food -= amount; showTransfer(); } });
-    if (remaining.goods > 0 && room > 0) actions.push({ label: `Stow goods (${Math.min(room, remaining.goods)})`, run: () => { const amount = Math.min(room, remaining.goods); state.player.goods += amount; remaining.goods -= amount; showTransfer(); } });
+    for (const [kind, label] of [['food', 'food'], ['goods', 'goods'], ['specialGoods', specialGoodsName().toLowerCase()]]) {
+      const maximum = Math.min(room, remaining[kind]);
+      if (maximum > 0) {
+        actions.push({ label: `Take 1 ton of ${label}`, run: () => stowCargo(kind, 1) });
+        if (maximum > 1) actions.push({ label: `Take all ${label} (${maximum})`, run: () => stowCargo(kind, maximum) });
+      }
+    }
     const cannonByHold = room * 2 + (state.player.cannon % 2 === 0 ? 1 : 0);
     const cannonAmount = Math.min(gunRoom, remaining.cannon, cannonByHold);
-    if (cannonAmount > 0) actions.push({ label: `Mount cannon (${cannonAmount})`, run: () => { state.player.cannon += cannonAmount; remaining.cannon -= cannonAmount; showTransfer(); } });
-    if (food > 0 && room === 0 && remaining.goods > 0) actions.push({ label: `Jettison food (${Math.min(10, food)})`, secondary: true, run: () => { state.player.foodFixed -= Math.min(10, food) * 256; showTransfer(); } });
-    if (state.player.goods > 0 && room === 0 && remaining.food > 0) actions.push({ label: `Jettison goods (${Math.min(10, state.player.goods)})`, secondary: true, run: () => { state.player.goods -= Math.min(10, state.player.goods); showTransfer(); } });
+    if (cannonAmount > 0) {
+      actions.push({ label: 'Mount 1 cannon', run: () => mountCannon(1) });
+      if (cannonAmount > 1) actions.push({ label: `Mount all cannon (${cannonAmount})`, run: () => mountCannon(cannonAmount) });
+    }
+    if (room === 0) {
+      for (const [kind, label] of [['food', 'food'], ['goods', 'goods'], ['specialGoods', specialGoodsName().toLowerCase()]]) {
+        const aboard = kind === 'food' ? food : state.player[kind];
+        if (aboard > 0) actions.push({ label: `Jettison 1 ton of ${label}`, secondary: true, run: () => jettisonCargo(kind, 1) });
+      }
+      if (state.player.cannon > 0) actions.push({ label: 'Jettison 1 cannon', secondary: true, run: () => { state.player.cannon -= 1; showTransfer(); } });
+    }
     actions.push({ label: 'Finish looting', secondary: true, run: () => {
-      const left = remaining.food + remaining.goods + remaining.cannon;
+      const left = remaining.food + remaining.goods + remaining.specialGoods + remaining.cannon;
       addLog(left > 0 ? `Left ${left} units of plunder behind.` : 'Transferred all useful plunder.');
       done();
     } });
     showDialog({
       kicker: 'Prizes and plunder', title,
-      body: `<p>Gold is taken automatically. Choose what the fleet will carry and what will be left behind.</p><dl><dt>Gold taken</dt><dd>${loot.gold}</dd><dt>Food aboard / available</dt><dd>${food} / ${remaining.food}</dd><dt>Goods aboard / available</dt><dd>${state.player.goods} / ${remaining.goods}</dd><dt>Cannon aboard / available</dt><dd>${state.player.cannon} / ${remaining.cannon}</dd><dt>Free hold</dt><dd>${room} tons</dd></dl>`,
+      body: `<p>Gold is taken automatically. Move cargo one ton at a time, or use the fast actions to take everything that fits.</p><dl><dt>Gold taken</dt><dd>${loot.gold}</dd><dt>Food aboard / available</dt><dd>${food} / ${remaining.food}</dd><dt>Goods aboard / available</dt><dd>${state.player.goods} / ${remaining.goods}</dd><dt>${specialGoodsName()} aboard / available</dt><dd>${state.player.specialGoods} / ${remaining.specialGoods}</dd><dt>Cannon aboard / available</dt><dd>${state.player.cannon} / ${remaining.cannon}</dd><dt>Free hold</dt><dd>${room} tons</dd></dl>`,
       actions,
     });
   }
@@ -791,7 +1081,7 @@ function tryHarbor(town) {
   if (result.admitted) { enterTown(town, false); return; }
   if (result.shipLost && state.player.ships.length > 1) {
     const lost = state.player.ships.splice(rng.int(state.player.ships.length), 1)[0];
-    showNotice('The fort opens fire', `An accurate salvo sinks your ${lost}. The fleet withdraws to open water.`);
+    showNotice('The fort opens fire', `An accurate salvo sinks your ${shipName(lost)}. The fleet withdraws to open water.`);
   } else {
     showNotice('The fort opens fire', 'Cannon fire throws up columns of water. The fleet withdraws beyond range.');
   }
@@ -813,16 +1103,23 @@ function enterTown(town, sneaking) {
     addLog(`${deserters} crewmen deserted at ${town.name}.`);
   }
   state.visit = { townIndex: state.nearestTownIndex, sneaking, recruited: false, merchant: null };
+  if (state.portTrade.townIndex !== state.nearestTownIndex) {
+    state.portTrade = { townIndex: state.nearestTownIndex, merchantCash: null, shipwrightCash: null };
+  }
   addLog(`Made port at ${town.name}.`);
   showTownMenu();
 }
 
 function showTownMenu() {
   const town = state.towns[state.visit.townIndex];
+  const commission = state.player.favour[town.nation] >= 2
+    ? `${town.nation} letter of marque`
+    : 'None';
   const actions = [
     { label: 'Governor', run: showGovernor },
     { label: 'Tavern', run: showTavern },
-    { label: 'Merchant', run: showMerchant },
+    { label: 'Merchant', run: openMerchant },
+    { label: 'Shipwright', run: showShipwright },
     { label: 'Divide the plunder', run: showPlunderDivision },
     { label: 'Save voyage', secondary: true, run: () => { saveGame(); showTownMenu(); } },
     { label: 'Put to sea', secondary: true, run: leaveTown },
@@ -830,7 +1127,7 @@ function showTownMenu() {
   if (state.visit.sneaking) actions.splice(2, 1);
   showDialog({
     kicker: `${town.nation} port`, title: town.name,
-    body: `<p>${state.visit.sneaking ? 'You move through the streets under a borrowed name.' : 'Your ships lie safely at anchor.'}</p><dl><dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
+    body: `<p>${state.visit.sneaking ? 'You move through the streets under a borrowed name.' : 'Your ships lie safely at anchor.'}</p><dl><dt>Standing</dt><dd>${commission}</dd><dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
     actions,
   });
 }
@@ -843,7 +1140,7 @@ function showPlunderDivision() {
     crew: player.crew,
     reputation: player.reputation,
     difficulty: state.difficulty,
-    flagshipSizeClass: SHIPS[flagship].sizeClass,
+    flagshipSizeClass: statsFor(flagship).sizeClass,
   });
   const satisfaction = ['angry', 'unhappy', 'pleased', 'happy'][division.satisfaction];
   const actions = [
@@ -859,7 +1156,7 @@ function showPlunderDivision() {
 
   showDialog({
     kicker: 'The counting house', title: 'Divide the plunder?',
-    body: `<p>Ending this expedition will disperse the crew and divide every ship, cannon, and cargo except your flagship.</p><dl><dt>Each crew member receives</dt><dd>${division.crewShare.toLocaleString()} gold</dd><dt>Crew reaction</dt><dd>${satisfaction}</dd><dt>Your share (${division.officerShares} portions)</dt><dd>${division.captainTake.toLocaleString()} gold</dd><dt>Funds for the next voyage</dt><dd>${division.expeditionGold.toLocaleString()} gold</dd><dt>Flagship retained</dt><dd>${flagship}</dd></dl>`,
+    body: `<p>Ending this expedition will disperse the crew and divide every ship, cannon, and cargo except your flagship.</p><dl><dt>Each crew member receives</dt><dd>${division.crewShare.toLocaleString()} gold</dd><dt>Crew reaction</dt><dd>${satisfaction}</dd><dt>Your share (${division.officerShares} portions)</dt><dd>${division.captainTake.toLocaleString()} gold</dd><dt>Funds for the next voyage</dt><dd>${division.expeditionGold.toLocaleString()} gold</dd><dt>Flagship retained</dt><dd>${describeShip(flagship)}</dd></dl>`,
     actions,
   });
 }
@@ -886,6 +1183,10 @@ function finishPlunderDivision(division, nextDifficulty) {
 function showGovernor() {
   const town = state.towns[state.visit.townIndex];
   const favour = state.player.favour[town.nation];
+  const briefing = diplomaticBriefing(state.diplomacy, town.nation);
+  const briefingBody = briefing.length
+    ? `<p>The governor describes the present affairs of the Crown:</p><ul class="ship-news">${briefing.map(({ message }) => `<li>${message}</li>`).join('')}</ul>`
+    : `<p>The governor reports that ${town.nation} is at peace with every European power in the Caribbean.</p>`;
   if (state.visit.sneaking) {
     showDialog({ kicker: 'Governor’s residence', title: 'The doors stay shut', body: '<p>The governor will not receive a visitor who slipped past his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
     return;
@@ -898,7 +1199,7 @@ function showGovernor() {
     const price = 200 * (4 - favour ** 3);
     showDialog({
       kicker: `${town.nation} governor`, title: 'A chance for amnesty',
-      body: `<p>The governor offers a letter of marque for ${price} gold pieces.</p>`,
+      body: `<p>The governor offers a letter of marque for ${price} gold pieces.</p>${briefingBody}`,
       actions: [
         { label: 'Buy the commission', run: () => { if (state.player.partyGold >= price) { state.player.partyGold -= price; state.player.favour[town.nation] = Math.min(favour + 2, 2); addLog(`${town.nation} granted you a letter of marque.`); } else addLog('You cannot afford the commission.'); showTownMenu(); } },
         { label: 'Decline', secondary: true, run: showTownMenu },
@@ -906,13 +1207,55 @@ function showGovernor() {
     });
     return;
   }
-  showDialog({ kicker: `${town.nation} governor`, title: 'A cordial audience', body: `<p>The governor welcomes a proven friend of ${town.nation} and shares the latest court gossip.</p>`, actions: [{ label: 'Return to town', run: showTownMenu }] });
+  showDialog({ kicker: `${town.nation} governor`, title: 'A cordial audience', body: `<p>The governor welcomes a proven friend of ${town.nation}. Your letter of marque remains in good standing.</p>${briefingBody}`, actions: [{ label: 'Return to town', run: showTownMenu }] });
 }
 
 function showTavern() {
   const town = state.towns[state.visit.townIndex];
+  if (!state.visit.tavernEncounters) {
+    state.visit.tavernEncounters = tavernSpecialEncounters({ mapPieces: state.treasureMap.pieces, rng })
+      .map((encounter) => ({
+        ...encounter,
+        resolved: false,
+        townIndex: encounter.kind === 'traveller'
+          ? (state.visit.townIndex + 1 + rng.int(state.towns.length - 1)) % state.towns.length
+          : null,
+      }));
+  }
+  const encounters = state.visit.tavernEncounters.filter(({ resolved }) => !resolved);
+  const map = state.treasureMap;
+  const actions = [];
+  if (!state.visit.recruited) actions.push({ label: 'Speak with unemployed sailors', run: showTavernRecruits });
+  actions.push(
+    { label: 'Ask the bartender for news', run: showBartenderNews },
+    { label: 'Talk to the barmaid', run: showBarmaid },
+  );
+  for (const encounter of encounters) {
+    actions.push({
+      label: encounter.kind === 'map-seller' ? 'Approach the map seller' : 'Speak with the traveller',
+      run: () => showTavernSpecialEncounter(encounter),
+    });
+  }
+  if (map.pieces >= 1) actions.push({ label: 'Study the treasure map', run: showTreasureMap });
+  actions.push({ label: 'Return to town', secondary: true, run: showTownMenu });
+
+  const visitor = encounters.length
+    ? encounters.map(({ kind }) => kind === 'map-seller'
+      ? 'A weather-beaten pirate guards a scrap of parchment in a shadowed booth.'
+      : 'A traveller watches the room, waiting for someone willing to buy information.').join(' ')
+    : 'No unusual visitors draw your attention tonight.';
+  showDialog({
+    kicker: `The tavern · ${town.name}`,
+    title: 'Rumours, recruits, and strong drink',
+    body: `<p>${visitor}</p><dl><dt>Sailors</dt><dd>${state.visit.recruited ? 'Already approached' : 'Available'}</dd><dt>Treasure map</dt><dd>${map.pieces}/4 pieces</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd></dl>`,
+    actions,
+  });
+}
+
+function showTavernRecruits() {
+  const town = state.towns[state.visit.townIndex];
   if (state.visit.recruited) {
-    showDialog({ kicker: 'The tavern', title: 'No more volunteers', body: '<p>Every willing sailor in the room has already heard your offer.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
+    showDialog({ kicker: 'The tavern', title: 'No more volunteers', body: '<p>Every willing sailor in the room has already heard your offer.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
     return;
   }
   const recruits = tavernRecruits({ townPopulation: town.population, reputation: state.player.reputation, difficulty: state.difficulty, crew: state.player.crew, capacity: fleetCapacity(), rng });
@@ -921,10 +1264,304 @@ function showTavern() {
     kicker: 'The tavern', title: `${recruits} sailors volunteer`,
     body: '<p>They will join for a share of future plunder.</p>',
     actions: [
-      { label: 'Welcome them aboard', run: () => { state.player.crew += recruits; addLog(`${recruits} sailors joined the crew.`); showTownMenu(); } },
-      { label: 'Leave them drinking', secondary: true, run: showTownMenu },
+      { label: 'Welcome them aboard', run: () => { state.player.crew += recruits; addLog(`${recruits} sailors joined the crew.`); showTavern(); } },
+      { label: 'Leave them drinking', secondary: true, run: showTavern },
     ],
   });
+}
+
+function newsBody(items, emptyMessage = 'There is no fresh news.') {
+  return items.length
+    ? `<ul class="ship-news">${items.map((item) => `<li>${item}</li>`).join('')}</ul>`
+    : `<p>${emptyMessage}</p>`;
+}
+
+function showBartenderNews() {
+  const items = state.worldNews.slice(0, 6);
+  showDialog({
+    kicker: 'The bartender', title: 'News from across the Caribbean',
+    body: newsBody(items, 'The bartender has heard nothing of consequence.'),
+    actions: [{ label: 'Return to the tavern', run: showTavern }],
+  });
+}
+
+function showBarmaid() {
+  const town = state.towns[state.visit.townIndex];
+  const key = String(state.visit.townIndex);
+  const isInformant = state.player.barmaidInformants.includes(key);
+  if (isInformant) {
+    showDialog({
+      kicker: `The barmaid · ${town.name}`, title: 'Your informant has been listening',
+      body: newsBody(state.worldNews.slice(0, 4), 'Even your informant has heard nothing new.'),
+      actions: [{ label: 'Return to the tavern', run: showTavern }],
+    });
+    return;
+  }
+  const rapport = state.player.barmaidRapport[key] ?? 0;
+  showDialog({
+    kicker: `The barmaid · ${town.name}`, title: '“What would you be looking for, Captain?”',
+    body: `<p>Buy a drink, or spend the evening earning the trust of someone who hears every conversation in the room.</p><dl><dt>Trust</dt><dd>${rapport}/10</dd></dl>`,
+    actions: [
+      { label: `Buy a drink${state.player.partyGold ? ' · 1 gold' : ''}`, run: () => spendEveningWithBarmaid(Math.min(1, state.player.partyGold), 0) },
+      { label: 'A drink and company · 5 gold', run: () => spendEveningWithBarmaid(5, 1) },
+      { label: 'Nothing, thanks', secondary: true, run: showTavern },
+    ],
+  });
+}
+
+function spendEveningWithBarmaid(cost, rapportGain) {
+  if (state.player.partyGold < cost) {
+    showDialog({ kicker: 'An empty purse', title: 'No drinks on credit', body: '<p>The barmaid points you back toward your ship.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    return;
+  }
+  state.player.partyGold -= cost;
+  const key = String(state.visit.townIndex);
+  const rapport = Math.min(10, (state.player.barmaidRapport[key] ?? 0) + rapportGain);
+  state.player.barmaidRapport[key] = rapport;
+  let title = 'A useful conversation';
+  if (rapport >= 10 && !state.player.barmaidInformants.includes(key)) {
+    state.player.barmaidInformants.push(key);
+    title = 'A trusted informant';
+    addLog(`Won the trust of an informant in ${state.towns[state.visit.townIndex].name}.`);
+  }
+  showDialog({
+    kicker: 'The barmaid', title,
+    body: '<p>You share a pleasant conversation while sailors trade rumours around you.</p>',
+    actions: [{ label: 'Return to the tavern', run: showTavern }],
+  });
+}
+
+function showTavernSpecialEncounter(encounter) {
+  if (!encounter || encounter.resolved) {
+    showTavern();
+    return;
+  }
+  if (encounter.kind === 'traveller') {
+    showDialog({
+      kicker: 'A far-travelled stranger', title: 'Information has its price',
+      body: `<p>The traveller offers reports gathered in distant ports for ${encounter.price} gold pieces.</p>`,
+      actions: [
+        { label: `Pay ${encounter.price} gold`, run: () => buyTravellerNews(encounter) },
+        { label: 'Decline', secondary: true, run: () => declineTavernEncounter(encounter) },
+      ],
+    });
+    return;
+  }
+  showDialog({
+    kicker: 'A map seller', title: 'A scrap of an old treasure map',
+    body: `<p>The seller asks ${encounter.price} gold pieces for one fragment. Four pieces reveal the cache.</p>`,
+    actions: [
+      { label: `Buy it · ${encounter.price} gold`, run: () => buyTreasureMapPiece(encounter) },
+      { label: 'Decline', secondary: true, run: () => declineTavernEncounter(encounter) },
+    ],
+  });
+}
+
+function declineTavernEncounter(encounter) {
+  encounter.resolved = true;
+  showTavern();
+}
+
+function buyTravellerNews(encounter) {
+  if (state.player.partyGold < encounter.price) {
+    showDialog({ kicker: 'The traveller', title: 'Information is not free', body: '<p>Your purse cannot meet the traveller’s price.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    return;
+  }
+  state.player.partyGold -= encounter.price;
+  encounter.resolved = true;
+  addLog(`Bought intelligence in ${state.towns[state.visit.townIndex].name} for ${encounter.price} gold.`);
+  const reportedTown = state.towns[encounter.townIndex];
+  // ASSUMED: prominent-person quests are not implemented yet, so the paid
+  // traveller report exposes useful facts about the same remote town instead.
+  showDialog({
+    kicker: 'The traveller’s report', title: `Intelligence from ${reportedTown.name}`,
+    body: `<dl><dt>Flag</dt><dd>${reportedTown.nation}</dd><dt>Prosperity</dt><dd>${prosperity(reportedTown.growth)}</dd><dt>Garrison</dt><dd>${reportedTown.soldiers}</dd><dt>Forts</dt><dd>${reportedTown.forts}</dd></dl>${newsBody(state.worldNews.slice(0, 3), 'No wider news reached the traveller.')}`,
+    actions: [{ label: 'Return to the tavern', run: showTavern }],
+  });
+}
+
+function buyTreasureMapPiece(encounter) {
+  if (state.player.partyGold < encounter.price) {
+    showDialog({ kicker: 'The map seller', title: 'No bargain', body: '<p>The seller snatches the parchment back when he sees your purse.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    return;
+  }
+  state.player.partyGold -= encounter.price;
+  encounter.resolved = true;
+  const map = state.treasureMap;
+  if (map.clueTownIndex === null) {
+    map.clueTownIndex = (state.visit.townIndex + 1 + rng.int(state.towns.length - 1)) % state.towns.length;
+  }
+  map.pieces = state.difficulty === 0 ? 4 : Math.min(4, map.pieces + 1);
+  const clueTown = state.towns[map.clueTownIndex];
+  addLog(`Bought treasure-map piece ${map.pieces}/4 near ${clueTown.name}.`);
+  showDialog({
+    kicker: 'The treasure map', title: map.pieces >= 4 ? 'The route is complete' : `Fragment ${map.pieces} of 4`,
+    body: `<p>The markings point toward the countryside somewhere near ${clueTown.name}.</p>`,
+    actions: [{ label: 'Return to the tavern', run: showTavern }],
+  });
+}
+
+function showTreasureMap() {
+  const clueTown = state.towns[state.treasureMap.clueTownIndex];
+  showDialog({
+    kicker: state.treasureMap.pieces >= 4 ? 'Completed treasure map' : 'Partial treasure map', title: `Somewhere near ${clueTown.name}`,
+    body: '<p>The original permits a search with even one fragment. Overland searching is not yet simulated, so choose whether to resolve the expedition provisionally now or keep collecting pieces.</p>',
+    actions: [
+      { label: 'Find the cache · provisional', run: resolveTreasureMap },
+      { label: 'Keep the map', secondary: true, run: showTavern },
+    ],
+  });
+}
+
+function resolveTreasureMap() {
+  const clueTown = state.towns[state.treasureMap.clueTownIndex];
+  const gold = (5 + rng.int(9)) * 1000;
+  state.player.partyGold += gold;
+  state.treasureMap = { pieces: 0, clueTownIndex: null };
+  addLog(`Found a provisional treasure cache near ${clueTown.name}: ${gold} gold.`);
+  showDialog({
+    kicker: 'Provisional treasure outcome', title: `${gold.toLocaleString()} gold recovered`,
+    body: '<p>Your party follows the completed clues, recovers the cache, and returns safely to port.</p>',
+    actions: [{ label: 'Return to the tavern', run: showTavern }],
+  });
+}
+
+function showShipwright() {
+  const town = state.towns[state.visit.townIndex];
+  if (town.nation === 'Spain' && 25 * state.player.ranks.Spain + scenarios[state.era].merchantThreshold < town.growth) {
+    showDialog({ kicker: 'The shipwright', title: '“We do not trade with pirates!”', body: '<p>The shipwright dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
+    return;
+  }
+  state.portTrade.shipwrightCash ??= shipwrightCash({
+    month: state.calendar.month,
+    population: town.population,
+    growth: town.growth,
+  });
+  const damaged = state.player.ships.filter((ship) => ship.damage > 0).length;
+  showDialog({
+    kicker: `The shipwright · ${town.name}`, title: 'What business brings you to the yard?',
+    body: `<dl><dt>Your fleet</dt><dd>${state.player.ships.length} ship${state.player.ships.length === 1 ? '' : 's'}</dd><dt>Damaged</dt><dd>${damaged}</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd><dt>Shipwright’s cash</dt><dd>${state.portTrade.shipwrightCash}</dd></dl>`,
+    actions: [
+      { label: 'Repair a ship', run: showRepairShips },
+      { label: 'Sell a ship', run: showSellShips },
+      { label: 'Sell cannon', run: showSellCannon },
+      { label: 'Part company', secondary: true, run: showTownMenu },
+    ],
+  });
+}
+
+function showRepairShips() {
+  const damaged = state.player.ships
+    .map((ship, index) => ({ ship, index }))
+    .filter(({ ship }) => ship.damage > 0);
+  if (!damaged.length) {
+    showDialog({ kicker: 'The shipwright', title: 'Nothing needs repair', body: '<p>The shipwright finds no damage worth his attention.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    return;
+  }
+  showDialog({
+    kicker: 'The shipwright', title: 'Choose a ship to repair',
+    body: '<p>The quoted price clears all recorded damage from the selected ship.</p>',
+    actions: [
+      ...damaged.map(({ ship, index }) => {
+        const price = shipRepairPrice({ type: statsFor(ship).type, damage: ship.damage });
+        return { label: `${ship.type} · ${damageLevel(ship.damage)} · ${price} gold`, run: () => repairShip(index, price) };
+      }),
+      { label: 'None, thanks', secondary: true, run: showShipwright },
+    ],
+  });
+}
+
+function repairShip(index, price) {
+  if (state.player.partyGold <= price) {
+    showDialog({ kicker: 'The shipwright', title: 'You cannot afford the work', body: `<p>The repair costs ${price} gold, and the shipwright insists you keep something in your purse.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    return;
+  }
+  const ship = state.player.ships[index];
+  state.player.partyGold -= price;
+  state.portTrade.shipwrightCash += price;
+  state.player.ships[index] = { ...ship, damage: 0 };
+  addLog(`Repaired the ${ship.type} at ${state.towns[state.visit.townIndex].name} for ${price} gold.`);
+  showShipwright();
+}
+
+function showSellShips() {
+  if (state.player.ships.length < 2) {
+    showDialog({ kicker: 'The shipwright', title: 'Your only ship', body: '<p>The shipwright will not leave you stranded ashore.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    return;
+  }
+  showDialog({
+    kicker: 'The shipwright', title: 'Choose a ship to sell',
+    body: '<p>Crew, cannon, and cargo remain with your fleet. You cannot sell your last ship.</p>',
+    actions: [
+      ...state.player.ships.map((ship, index) => {
+        const price = shipSalePrice({ type: statsFor(ship).type, damage: ship.damage });
+        return { label: `${describeShip(ship)} · ${price} gold`, run: () => sellShip(index, price) };
+      }),
+      { label: 'None, thanks', secondary: true, run: showShipwright },
+    ],
+  });
+}
+
+function sellShip(index, price) {
+  if (state.player.ships.length < 2) {
+    showShipwright();
+    return;
+  }
+  if (state.portTrade.shipwrightCash < price) {
+    showDialog({ kicker: 'The shipwright', title: 'The yard lacks the cash', body: `<p>The shipwright cannot cover the ${price}-gold price.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    return;
+  }
+  const [ship] = state.player.ships.splice(index, 1);
+  state.player.partyGold += price;
+  state.portTrade.shipwrightCash -= price;
+  addLog(`Sold the ${ship.type} at ${state.towns[state.visit.townIndex].name} for ${price} gold.`);
+  if (cargoUsed() > cargoCapacity()) showOverfullHold(showShipwright);
+  else showShipwright();
+}
+
+function showSellCannon() {
+  const available = Math.max(0, state.player.cannon - 1);
+  const affordable = Math.min(available, Math.floor(state.portTrade.shipwrightCash / 50));
+  if (available === 0) {
+    showDialog({ kicker: 'The shipwright', title: 'Your only cannon', body: '<p>The shipwright refuses to buy the last gun protecting your fleet.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    return;
+  }
+  if (affordable === 0) {
+    showDialog({ kicker: 'The shipwright', title: 'The yard lacks the cash', body: '<p>The shipwright cannot afford another cannon.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    return;
+  }
+  showDialog({
+    kicker: 'The shipwright', title: 'Cannon fetch 50 gold apiece',
+    body: `<p>The yard can buy up to ${affordable}. At least one cannon must remain with your fleet.</p>`,
+    actions: [
+      { label: 'Sell one cannon · 50 gold', run: () => sellCannon(1) },
+      ...(affordable > 1 ? [{ label: `Sell ${affordable} cannon · ${affordable * 50} gold`, run: () => sellCannon(affordable) }] : []),
+      { label: 'Keep them', secondary: true, run: showShipwright },
+    ],
+  });
+}
+
+function sellCannon(amount) {
+  state.player.cannon -= amount;
+  state.player.partyGold += amount * 50;
+  state.portTrade.shipwrightCash -= amount * 50;
+  addLog(`Sold ${amount} cannon for ${amount * 50} gold.`);
+  showShipwright();
+}
+
+function openMerchant() {
+  state.visit.merchant = null;
+  showMerchant();
+}
+
+function finishMerchantVisit() {
+  const town = state.towns[state.visit.townIndex];
+  const market = state.visit.merchant;
+  if (market && Math.abs(state.player.partyGold - market.startingGold) > 20) {
+    town.growth = Math.min(255, Math.floor((town.growth * 19) / 20) + 12);
+  }
+  state.visit.merchant = null;
+  showTownMenu();
 }
 
 function showMerchant() {
@@ -933,35 +1570,71 @@ function showMerchant() {
     showDialog({ kicker: 'The merchant', title: '“We do not trade with pirates!”', body: '<p>The merchant dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
     return;
   }
-  if (!state.visit.merchant) {
+  if (!state.visit.merchant?.prices) {
+    const common = { growth: town.growth, month: state.calendar.month };
     state.visit.merchant = {
-      price: merchantFoodPrice({ growth: town.growth, month: state.calendar.month, producesFood: Boolean(town.flags & 0x08) }),
-      stock: merchantStock({ growth: town.growth, population: town.population, month: state.calendar.month, rng }),
+      prices: {
+        food: merchantFoodPrice({ ...common, producesFood: Boolean(town.flags & 0x08) }),
+        goods: merchantCommodityPrice({ ...common, kind: 'goods', produces: Boolean(town.flags & 0x04) }),
+        specialGoods: merchantCommodityPrice({ ...common, kind: 'special', produces: Boolean(town.flags & 0x02), demand: Boolean(town.flags & 0x10) }),
+      },
+      stocks: {
+        food: merchantStock({ ...common, population: town.population, rng }),
+        goods: merchantStock({ ...common, population: town.population, rng }),
+        specialGoods: merchantStock({ ...common, population: town.population, rng }),
+      },
+      cash: state.portTrade.merchantCash ?? merchantCash({ ...common, population: town.population }),
+      startingGold: state.player.partyGold,
     };
+    state.portTrade.merchantCash = state.visit.merchant.cash;
   }
   const market = state.visit.merchant;
   const food = Math.floor(state.player.foodFixed / 256);
-  const room = Math.max(0, cargoCapacity() - food - state.player.goods);
-  const canBuy = market.stock > 0 && room > 0 && state.player.partyGold >= market.price;
+  const room = cargoRoom();
+  const amounts = { food, goods: state.player.goods, specialGoods: state.player.specialGoods };
+  const labels = { food: 'food', goods: 'goods', specialGoods: specialGoodsName().toLowerCase() };
+  const actions = [];
+  for (const kind of ['food', 'goods', 'specialGoods']) {
+    const price = market.prices[kind];
+    const buyMaximum = Math.min(market.stocks[kind], room, Math.floor(state.player.partyGold / price));
+    const sellMaximum = Math.min(amounts[kind], Math.floor(market.cash / price));
+    if (buyMaximum > 0) {
+      actions.push({ label: `Buy 1 ton of ${labels[kind]} · ${price}`, run: () => tradeWithMerchant(kind, 1, 1) });
+      if (buyMaximum > 1) actions.push({ label: `Buy max ${labels[kind]} (${buyMaximum})`, run: () => tradeWithMerchant(kind, 1, buyMaximum) });
+    }
+    if (sellMaximum > 0) {
+      actions.push({ label: `Sell 1 ton of ${labels[kind]} · ${price}`, run: () => tradeWithMerchant(kind, -1, 1) });
+      if (sellMaximum > 1) actions.push({ label: `Sell max ${labels[kind]} (${sellMaximum})`, run: () => tradeWithMerchant(kind, -1, sellMaximum) });
+    }
+  }
+  actions.push({ label: 'Return to town', secondary: true, run: finishMerchantVisit });
   showDialog({
-    kicker: 'The merchant', title: `${market.price} gold per ton of food`,
-    body: `<p>The warehouse holds ${market.stock} tons. Your fleet has room for ${room} more.</p><dl><dt>Your food</dt><dd>${food}</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd></dl>`,
-    actions: [
-      ...(canBuy ? [{ label: 'Buy one ton', run: () => buyFood(1) }, { label: 'Buy up to ten', run: () => buyFood(10) }] : []),
-      { label: 'Return to town', secondary: true, run: showTownMenu },
-    ],
+    kicker: `The merchant · ${town.name}`, title: 'Buy or sell by the ton',
+    body: `<p>Use one-ton trades for an exact manifest, or the maximum shortcuts for speed.</p><dl><dt>Food: aboard / stock / price</dt><dd>${food} / ${market.stocks.food} / ${market.prices.food}</dd><dt>Goods: aboard / stock / price</dt><dd>${state.player.goods} / ${market.stocks.goods} / ${market.prices.goods}</dd><dt>${specialGoodsName()}: aboard / stock / price</dt><dd>${state.player.specialGoods} / ${market.stocks.specialGoods} / ${market.prices.specialGoods}</dd><dt>Free hold</dt><dd>${room} tons</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd><dt>Merchant cash</dt><dd>${market.cash}</dd></dl>`,
+    actions,
   });
 }
 
-function buyFood(requested) {
+function tradeWithMerchant(kind, direction, requested) {
   const market = state.visit.merchant;
-  const food = Math.floor(state.player.foodFixed / 256);
-  const room = Math.max(0, cargoCapacity() - food - state.player.goods);
-  const amount = Math.min(requested, market.stock, room, Math.floor(state.player.partyGold / market.price));
-  state.player.partyGold -= amount * market.price;
-  state.player.foodFixed += amount * 256;
-  market.stock -= amount;
-  if (amount > 0) addLog(`Bought ${amount} ton${amount === 1 ? '' : 's'} of food.`);
+  const price = market.prices[kind];
+  const aboard = kind === 'food' ? Math.floor(state.player.foodFixed / 256) : state.player[kind];
+  const amount = direction > 0
+    ? Math.min(requested, market.stocks[kind], cargoRoom(), Math.floor(state.player.partyGold / price))
+    : Math.min(requested, aboard, Math.floor(market.cash / price));
+  if (amount <= 0) {
+    showMerchant();
+    return;
+  }
+  const delta = direction * amount;
+  if (kind === 'food') state.player.foodFixed += delta * 256;
+  else state.player[kind] += delta;
+  market.stocks[kind] -= delta;
+  state.player.partyGold -= delta * price;
+  market.cash += delta * price;
+  state.portTrade.merchantCash = market.cash;
+  const label = kind === 'specialGoods' ? specialGoodsName().toLowerCase() : kind;
+  addLog(`${direction > 0 ? 'Bought' : 'Sold'} ${amount} ton${amount === 1 ? '' : 's'} of ${label}.`);
   showMerchant();
 }
 
@@ -1006,14 +1679,23 @@ function showDialog({ kicker, title, body, actions }) {
 function resumeSailing() {
   state.paused = false;
   state.mode = 'sailing';
+  state.battle = null;
+  resetSailingInterpolation();
+  canvas.setAttribute('aria-label', 'Caribbean sailing map');
   updateInterface();
 }
 
 function togglePause() {
-  if (!state || state.mode !== 'sailing') return;
+  if (!state || !['sailing', 'battle'].includes(state.mode) || dialog.open) return;
   state.paused = !state.paused;
+  if (state.paused) {
+    input.firePressed = false;
+    input.raiseSailsPressed = false;
+    input.lowerSailsPressed = false;
+  }
+  if (!state.paused && state.mode === 'sailing') resetSailingInterpolation();
   pauseButton.firstChild.textContent = state.paused ? '▶ ' : 'Ⅱ ';
-  addLog(state.paused ? 'Voyage paused.' : 'Voyage resumed.');
+  addLog(state.paused ? `${state.mode === 'battle' ? 'Battle' : 'Voyage'} paused.` : `${state.mode === 'battle' ? 'Battle' : 'Voyage'} resumed.`);
 }
 
 function addLog(message) {
@@ -1037,6 +1719,28 @@ function prosperity(growth) {
 function updateInterface() {
   if (!state) return;
   const player = state.player;
+  const inBattle = state.mode === 'battle' && state.battle;
+  dockButton.querySelector('span').textContent = inBattle ? 'Fire' : 'Approach';
+  dockButton.setAttribute('aria-label', inBattle ? 'Fire loaded broadside' : 'Approach nearest town');
+  dockButton.firstChild.textContent = inBattle ? '● ' : '⚓ ';
+  zoomOutButton.disabled = Boolean(inBattle);
+  zoomInButton.disabled = Boolean(inBattle);
+  if (inBattle) {
+    const battle = state.battle;
+    labels.captain.textContent = `Captain ${state.captain} · Battle`;
+    labels.date.textContent = `Engaging ${battle.encounter.flag} ${battle.enemy.name}`;
+    labels.speed.textContent = `${Math.abs(battle.player.speed ?? 0)} battle speed`;
+    labels.wind.textContent = `${WIND_NAMES[(battle.wind.direction >> 4) & 15]} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
+    labels.sails.textContent = battle.player.sailTransition
+      ? `${battle.player.targetSails === 'full' ? 'Raising' : 'Lowering'} · ${Math.round((1 - battle.player.sailTransition / BATTLE_SAIL_TRANSITION_FRAMES) * 100)}%`
+      : battle.player.sails === 'full' ? 'Full' : 'Battle';
+    labels.food.textContent = 'Clock stopped';
+    labels.crew.textContent = `${battle.player.men} aboard`;
+    labels.gold.textContent = battle.player.reload > 0 ? `Reload ${battle.player.reload}` : 'Loaded';
+    labels.nearest.textContent = `${battle.enemy.men} crew · ${battle.enemy.guns} guns`;
+    dockButton.disabled = state.paused || battle.player.reload > 0 || battle.player.guns <= 0;
+    return;
+  }
   const town = nearestTown();
   const distance = Math.round(Math.abs(player.x - town.x) + Math.abs(player.y - town.y));
   labels.captain.textContent = `Captain ${state.captain} · ${state.nationality}`;
@@ -1049,6 +1753,8 @@ function updateInterface() {
   labels.gold.textContent = player.partyGold.toLocaleString();
   labels.nearest.textContent = `${town.name} · ${distance}`;
   dockButton.disabled = distance > 7 || state.paused;
+  zoomOutButton.disabled = false;
+  zoomInButton.disabled = false;
 }
 
 function render() {
@@ -1059,13 +1765,20 @@ function render() {
   sea.addColorStop(0, '#1a5969'); sea.addColorStop(1, '#0d3c4b');
   ctx.fillStyle = sea; ctx.fillRect(0, 0, width, height);
   if (!state) return;
+  if (state.mode === 'battle' && state.battle) {
+    renderBattle(ctx, state.battle, width, height);
+    if (state.paused && !dialog.open) drawPaused(width, height, 'Battle paused');
+    return;
+  }
 
+  const playerPose = interpolatedSailingPose();
+  const clouds = interpolatedSailingClouds();
   const zoom = cameraZoom;
   const visibleWidth = width / zoom;
   const visibleHeight = height / zoom;
   const camera = {
-    x: visibleWidth >= WORLD.width ? WORLD.width / 2 : clamp(state.player.x, visibleWidth / 2, WORLD.width - visibleWidth / 2),
-    y: visibleHeight >= WORLD.height ? WORLD.height / 2 : clamp(state.player.y, visibleHeight / 2, WORLD.height - visibleHeight / 2),
+    x: visibleWidth >= WORLD.width ? WORLD.width / 2 : clamp(playerPose.x, visibleWidth / 2, WORLD.width - visibleWidth / 2),
+    y: visibleHeight >= WORLD.height ? WORLD.height / 2 : clamp(playerPose.y, visibleHeight / 2, WORLD.height - visibleHeight / 2),
   };
   ctx.save();
   ctx.translate(width / 2, height / 2);
@@ -1078,17 +1791,20 @@ function render() {
     drawSeaTexture(camera, visibleWidth, visibleHeight);
     drawLand();
   }
-  drawClouds(zoom);
+  drawClouds(zoom, playerPose, clouds);
   drawTowns(zoom);
-  drawShip(zoom);
+  drawShip(zoom, playerPose);
   ctx.restore();
-  drawMinimap(width, height, camera, zoom);
-  if (state.paused && state.mode === 'sailing' && !dialog.open) drawPaused(width, height);
+  drawMinimap(width, height, camera, zoom, playerPose);
+  if (state.paused && state.mode === 'sailing' && !dialog.open) drawPaused(width, height, 'Voyage paused');
 }
 
-function drawClouds(zoom) {
-  for (const cloud of state.clouds ?? []) {
+function drawClouds(zoom, playerPose, clouds) {
+  for (const cloud of clouds) {
+    const opacity = cloudWrapOpacity(cloud, playerPose.x, playerPose.y);
+    if (opacity <= 0) continue;
     ctx.save();
+    ctx.globalAlpha = opacity;
     ctx.translate(cloud.x, cloud.y);
     ctx.scale(1 / zoom, 1 / zoom);
 
@@ -1192,8 +1908,7 @@ function drawTownSprite(town, nation, zoom, x, y) {
   ctx.restore();
 }
 
-function drawShip(zoom) {
-  const player = state.player;
+function drawShip(zoom, player) {
   ctx.save();
   ctx.translate(player.x, player.y);
   ctx.rotate(player.heading / 256 * Math.PI * 2);
@@ -1220,7 +1935,7 @@ function drawShipSails(sailState) {
   ctx.fillStyle = '#d5c18e'; ctx.beginPath(); ctx.moveTo(-.4, -2.7); ctx.lineTo(-3.3 * spread, 1.7); ctx.lineTo(-.4, 2.5); ctx.closePath(); ctx.fill();
 }
 
-function drawMinimap(width, height, camera, zoom) {
+function drawMinimap(width, height, camera, zoom, playerPose) {
   const compact = width <= 1100;
   const mapWidth = compact ? 128 : 192;
   const mapHeight = mapWidth * .75;
@@ -1236,15 +1951,15 @@ function drawMinimap(width, height, camera, zoom) {
     ctx.fillStyle = '#7d835a';
     LAND_SHAPES.forEach((points) => { ctx.beginPath(); points.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); ctx.fill(); });
   }
-  ctx.fillStyle = '#f3e5c5'; ctx.beginPath(); ctx.arc(state.player.x, state.player.y, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f3e5c5'; ctx.beginPath(); ctx.arc(playerPose.x, playerPose.y, 5, 0, Math.PI * 2); ctx.fill();
   const visibleWidth = width / zoom, visibleHeight = height / zoom;
   ctx.strokeStyle = '#d6a447'; ctx.lineWidth = 2.5; ctx.strokeRect(camera.x - visibleWidth / 2, camera.y - visibleHeight / 2, visibleWidth, visibleHeight);
   ctx.restore();
 }
 
-function drawPaused(width, height) {
+function drawPaused(width, height, message) {
   ctx.fillStyle = 'rgba(4,18,23,.45)'; ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = '#f3e5c5'; ctx.textAlign = 'center'; ctx.font = '32px "IM Fell English", Georgia, serif'; ctx.fillText('Voyage paused', width / 2, height / 2);
+  ctx.fillStyle = '#f3e5c5'; ctx.textAlign = 'center'; ctx.font = '32px "IM Fell English", Georgia, serif'; ctx.fillText(message, width / 2, height / 2);
   ctx.textAlign = 'start';
 }
 
@@ -1258,7 +1973,10 @@ form.addEventListener('submit', async (event) => {
 
 continueButton.addEventListener('click', async () => { const saved = loadGame(); if (saved && scenarios) await startGame(saved); });
 pauseButton.addEventListener('click', togglePause);
-dockButton.addEventListener('click', approachTown);
+dockButton.addEventListener('click', () => {
+  if (state?.mode === 'battle') input.firePressed = true;
+  else approachTown();
+});
 zoomOutButton.addEventListener('click', () => changeZoom(-ZOOM_STEP));
 zoomInButton.addEventListener('click', () => changeZoom(ZOOM_STEP));
 lowerSailsButton.addEventListener('click', () => changeSails(-1));
@@ -1266,11 +1984,18 @@ raiseSailsButton.addEventListener('click', () => changeSails(1));
 dialog.addEventListener('cancel', (event) => event.preventDefault());
 
 function changeZoom(delta) {
+  if (state?.mode === 'battle') return;
   cameraZoom = clamp(cameraZoom + delta, MIN_ZOOM, MAX_ZOOM);
 }
 
 function changeSails(delta) {
-  if (!state || state.paused || state.mode !== 'sailing') return;
+  if (!state || state.paused) return;
+  if (state.mode === 'battle') {
+    if (delta > 0) input.raiseSailsPressed = true;
+    if (delta < 0) input.lowerSailsPressed = true;
+    return;
+  }
+  if (state.mode !== 'sailing') return;
   const states = ['furled', 'battle', 'full'];
   const next = clamp(states.indexOf(state.player.sails) + delta, 0, states.length - 1);
   if (states[next] === state.player.sails) return;
@@ -1294,11 +2019,15 @@ addEventListener('keydown', (event) => {
   if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = true;
   if (event.key === 'ArrowUp' && !event.repeat) changeSails(1);
   if (event.key === 'ArrowDown' && !event.repeat) changeSails(-1);
-  if (event.key === ' ' && !event.repeat) togglePause();
+  if (event.key === ' ' && !event.repeat) {
+    if (state?.mode === 'battle' && !state.paused) input.firePressed = true;
+    else togglePause();
+  }
+  if ((event.key === 'Escape' || event.key.toLowerCase() === 'p') && !event.repeat) togglePause();
   if (event.key.toLowerCase() === 'e' && !dockButton.disabled) approachTown();
   if (event.key === '+' || event.key === '=') changeZoom(ZOOM_STEP);
   if (event.key === '-' || event.key === '_') changeZoom(-ZOOM_STEP);
-  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(event.key)) event.preventDefault();
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'].includes(event.key)) event.preventDefault();
 });
 addEventListener('keyup', (event) => {
   if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = false;
@@ -1327,11 +2056,36 @@ document.querySelector('#era').addEventListener('change', (event) => {
   updateNationalityOptions();
 });
 
+function stepBattleSimulation() {
+  if (!state?.battle || state.paused || state.mode !== 'battle') return;
+  state.battle = stepBattle(state.battle, {
+    turn: Number(input.right) - Number(input.left),
+    firePressed: input.firePressed,
+    raiseSailsPressed: input.raiseSailsPressed,
+    lowerSailsPressed: input.lowerSailsPressed,
+  }, rng);
+  input.firePressed = false;
+  input.raiseSailsPressed = false;
+  input.lowerSailsPressed = false;
+  if (state.battle.event) finishTacticalBattle();
+}
+
 function frame(now) {
   const elapsed = Math.min(.25, (now - lastFrame) / 1000);
   lastFrame = now;
-  accumulator += elapsed;
-  while (accumulator >= TICK_SECONDS) { stepSimulation(); accumulator -= TICK_SECONDS; }
+  if (state?.mode === 'battle') {
+    battleAccumulator += elapsed;
+    let catchup = 0;
+    while (battleAccumulator >= BATTLE_FRAME_SECONDS && catchup < 8) {
+      stepBattleSimulation();
+      battleAccumulator -= BATTLE_FRAME_SECONDS;
+      catchup += 1;
+    }
+    if (catchup === 8) battleAccumulator = 0;
+  } else {
+    accumulator += elapsed;
+    while (accumulator >= TICK_SECONDS) { stepSimulation(); accumulator -= TICK_SECONDS; }
+  }
   updateInterface();
   render();
   requestAnimationFrame(frame);

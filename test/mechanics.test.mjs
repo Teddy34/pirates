@@ -2,11 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   acceptsRudderInput, advanceDate, consumeDailyFood, encounterRoll, foodDays, harborAttempt,
-  merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
+  merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
+  diplomaticBriefing, tavernSpecialEncounters,
+  merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   dividePlunder, startNewExpedition,
   approximateDistance, cloudCountForMonth, targetSailingSpeed,
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
-  nearestCloudDistancePixels, applyProvisionalBattleOutcome, stepSailingSpeed,
+  nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
+  applyProvisionalBoardingOutcome,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
 } from '../src/mechanics.mjs';
 import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
@@ -71,6 +74,13 @@ test('clouds use one voyage shape and documented drift rates', () => {
   assert.equal(nearestCloudDistancePixels(drifted, 100, 100), 1.5);
 });
 
+test('clouds fade across their fixed-view wrap so browser zoom cannot expose a jump', () => {
+  assert.equal(cloudWrapOpacity({ x: 100, y: 100 }, 100, 100), 1);
+  assert.equal(cloudWrapOpacity({ x: 118, y: 100 }, 100, 100), 0.5);
+  assert.equal(cloudWrapOpacity({ x: 120, y: 100 }, 100, 100), 0);
+  assert.equal(cloudWrapOpacity({ x: 100, y: 115 }, 100, 100), 0);
+});
+
 test('a provisional sinking preserves a capacity-safe playable fleet', () => {
   const player = {
     ships: ['Galleon'], crew: 200, cannon: 30, goods: 30, foodFixed: 30 * 256,
@@ -80,7 +90,7 @@ test('a provisional sinking preserves a capacity-safe playable fleet', () => {
   assert.deepEqual(result.player.ships, ['Pinnace']);
   assert.equal(result.player.crew, 64);
   assert.equal(result.player.cannon, 8);
-  assert.equal(result.player.goods, 20);
+  assert.equal(result.player.goods, 16);
   assert.equal(result.player.foodFixed, 0);
   assert.equal(result.player.partyGold, 500);
   assert.deepEqual(player.ships, ['Galleon']);
@@ -95,6 +105,16 @@ test('provisional capture, defeat, escape, and enemy sinking have distinct outco
   assert.equal(applyProvisionalBattleOutcome(player, enemy, 'enemy-sunk', SHIPS).player.reputation, 1);
 });
 
+test('provisional boarding choices apply distinct, capacity-safe consequences', () => {
+  const player = { crew: 40, partyGold: 1000, reputation: 3 };
+  assert.deepEqual(applyProvisionalBoardingOutcome(player, 32, 'won').player, player);
+  assert.deepEqual(applyProvisionalBoardingOutcome(player, 32, 'driven-back').player, { ...player, reputation: 1 });
+  assert.deepEqual(applyProvisionalBoardingOutcome(player, 32, 'defeated'), {
+    player: { crew: 32, partyGold: 900, reputation: 1 }, casualties: 8, ransom: 100,
+  });
+  assert.equal(applyProvisionalBoardingOutcome({ ...player, crew: 1 }, 32, 'defeated').player.crew, 1);
+});
+
 test('captured ship plunder follows the decoded gold and cargo bounds', () => {
   const calls = [];
   const rng = { int: (limit) => { calls.push(limit); return Math.max(0, limit - 1); }, unit: () => 0 };
@@ -104,7 +124,7 @@ test('captured ship plunder follows the decoded gold and cargo bounds', () => {
   });
   assert.equal(loot.gold, 2490);
   assert.equal(loot.cannon, 4);
-  assert.ok(loot.food + loot.goods + Math.floor(loot.cannon / 2) <= SHIPS.Barque.cargo);
+  assert.ok(loot.food + loot.goods + loot.specialGoods + Math.floor(loot.cannon / 2) <= SHIPS.Barque.cargo);
   assert.deepEqual(calls.slice(0, 3), [250, 0x7fff, 0x7fff]);
 });
 
@@ -115,12 +135,13 @@ test('captured cargo preserves the binary two-stage fixed-point rounding', () =>
     nearbyTownGrowth: 0, shipStats: SHIPS, rng: { int: () => results.shift() },
   });
   assert.equal(loot.goods, 0);
+  assert.equal(loot.specialGoods, 0);
 });
 
 test('town capture computes plunder before damaging the town economy', () => {
   const town = { gold: 40, growth: 80, alert: 0, forts: 2, mood: 1 };
   const loot = capturedTownPlunder({ town, rng: fixedRng({ integer: 7 }) });
-  assert.deepEqual(loot, { gold: 40000, food: 7, goods: 14, cannon: 12, treasuryLoss: 80 });
+  assert.deepEqual(loot, { gold: 40000, food: 7, goods: 7, specialGoods: 7, cannon: 12, treasuryLoss: 80 });
   assert.deepEqual(applyTownCapture(town, loot), { gold: 0, growth: 60, alert: 0, forts: 2, mood: -2 });
 });
 
@@ -171,8 +192,45 @@ test('Havana food prices match the reverse-engineering example', () => {
   assert.equal(merchantFoodPrice({ growth: 130, month: 0, producesFood: true }), 75);
 });
 
+test('merchant prices distinguish ordinary and era-specific goods', () => {
+  assert.equal(merchantCommodityPrice({ growth: 130, month: 6, kind: 'goods' }), 75);
+  assert.equal(merchantCommodityPrice({ growth: 130, month: 6, kind: 'special', demand: true }), 240);
+});
+
 test('tavern offer respects fleet capacity', () => {
   assert.equal(tavernRecruits({ townPopulation: 50, reputation: 4, difficulty: 1, crew: 190, capacity: 192, rng: fixedRng({ integer: 20 }) }), 2);
+});
+
+test('governor briefing reports current wars and alliances for that nation', () => {
+  const diplomacy = {
+    France: { Spain: -1, England: -1, France: 0, Holland: 1 },
+  };
+  assert.deepEqual(diplomaticBriefing(diplomacy, 'France'), [
+    { nation: 'Spain', relation: -1, message: 'France is at war with Spain.' },
+    { nation: 'England', relation: -1, message: 'France is at war with England.' },
+    { nation: 'Holland', relation: 1, message: 'France is allied with Holland.' },
+  ]);
+});
+
+test('tavern prepares traveller and map seller independently in decoded order', () => {
+  const rolls = [3, 0];
+  assert.deepEqual(tavernSpecialEncounters({ mapPieces: 0, rng: { int: () => rolls.shift() } }), [
+    { kind: 'traveller', price: 80 },
+    { kind: 'map-seller', price: 500 },
+  ]);
+  assert.deepEqual(tavernSpecialEncounters({ mapPieces: 4, rng: fixedRng({ integer: 0 }) }), []);
+  assert.deepEqual(tavernSpecialEncounters({ mapPieces: 0, rng: fixedRng({ integer: 4 }) }), [
+    { kind: 'traveller', price: 90 },
+  ]);
+});
+
+test('shipwright prices account for type, damage, season, and town size', () => {
+  assert.equal(shipRepairPrice({ type: 2, damage: 32 }), 300);
+  assert.equal(shipSalePrice({ type: 2, damage: 32 }), 1200);
+  assert.equal(shipwrightCash({ month: 6, population: 20, growth: 150 }), 18000);
+  assert.equal(shipwrightCash({ month: 6, population: 20, growth: 131 }), 15600);
+  assert.equal(merchantCash({ month: 6, population: 20, growth: 131 }), 15600);
+  assert.equal(shipwrightCash({ month: 0, population: 100, growth: 255 }), 50000);
 });
 
 test('morale declines with time at sea and difficulty', () => {

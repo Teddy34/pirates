@@ -103,6 +103,18 @@ export function nearestCloudDistancePixels(clouds, playerX, playerY) {
   }, Infinity);
 }
 
+export function cloudWrapOpacity(cloud, playerX, playerY) {
+  const halfWidth = 320 / SAILING_PIXELS_PER_CELL;
+  const halfHeight = 240 / SAILING_PIXELS_PER_CELL;
+  const distanceToEdge = Math.min(
+    halfWidth - Math.abs(cloud.x - playerX),
+    halfHeight - Math.abs(cloud.y - playerY),
+  );
+  // The original wraps clouds at the edge of a fixed 640×480 view. Browser
+  // zoom can expose both endpoints, so fade the sprite through that edge.
+  return clamp(distanceToEdge / 4, 0, 1);
+}
+
 export function applyProvisionalBattleOutcome(player, enemy, outcome, shipStats) {
   const next = { ...player, ships: [...player.ships] };
   let message;
@@ -126,8 +138,10 @@ export function applyProvisionalBattleOutcome(player, enemy, outcome, shipStats)
     const cargoCapacity = next.ships.reduce((sum, ship) => sum + shipStats[ship].cargo, 0);
     next.crew = Math.min(crewCapacity, Math.max(1, Math.floor(next.crew / 2)));
     next.cannon = Math.min(next.cannon, next.ships.reduce((sum, ship) => sum + shipStats[ship].guns, 0));
-    next.goods = Math.min(next.goods, cargoCapacity);
-    next.foodFixed = Math.min(next.foodFixed, Math.max(0, cargoCapacity - next.goods) * 256);
+    const cargoAfterCannon = Math.max(0, cargoCapacity - Math.floor(next.cannon / 2));
+    next.goods = Math.min(next.goods, cargoAfterCannon);
+    next.specialGoods = Math.min(next.specialGoods ?? 0, Math.max(0, cargoAfterCannon - next.goods));
+    next.foodFixed = Math.min(next.foodFixed, Math.max(0, cargoAfterCannon - next.goods - next.specialGoods) * 256);
     next.partyGold = Math.floor(next.partyGold / 2);
     message = `Provisional disaster: the ${lostShip} sank; ${next.crew} survivors continue the voyage.`;
   } else if (outcome === 'enemy-sunk') {
@@ -137,6 +151,24 @@ export function applyProvisionalBattleOutcome(player, enemy, outcome, shipStats)
     message = `Provisional escape: broke away from the ${enemy.ship}.`;
   }
   return { player: next, message };
+}
+
+export function applyProvisionalBoardingOutcome(player, embarkedMen, outcome) {
+  const next = { ...player };
+  if (outcome === 'won') {
+    return { player: next, casualties: 0, ransom: 0 };
+  }
+  next.reputation -= 2;
+  if (outcome === 'driven-back') {
+    return { player: next, casualties: 0, ransom: 0 };
+  }
+  // ASSUMED interim defeat: prison and ransom are not playable yet, so defeat
+  // costs one quarter of the embarked crew and ten percent of party gold.
+  const casualties = Math.min(next.crew - 1, Math.max(1, Math.floor(embarkedMen / 4)));
+  const ransom = Math.floor(next.partyGold / 10);
+  next.crew -= casualties;
+  next.partyGold -= ransom;
+  return { player: next, casualties, ransom };
 }
 
 function triangularCargoRoll(limit, rng) {
@@ -156,7 +188,7 @@ export function capturedShipPlunder({ enemy, nearbyTownGrowth, shipStats, rng })
 
   // The aftermath routine cycles through cargo piles according to the running
   // excess total; it does not draw more random numbers here. Cannon occupy half
-  // a ton apiece. The web port's two commodity piles are combined afterwards.
+  // a ton apiece.
   let total = food + firstGoods + secondGoods + Math.floor(cannon / 2);
   while (total > prizeCapacity) {
     const category = total % 3;
@@ -169,7 +201,8 @@ export function capturedShipPlunder({ enemy, nearbyTownGrowth, shipStats, rng })
   return {
     gold,
     food,
-    goods: firstGoods + secondGoods,
+    goods: firstGoods,
+    specialGoods: secondGoods,
     cannon,
   };
 }
@@ -177,14 +210,14 @@ export function capturedShipPlunder({ enemy, nearbyTownGrowth, shipStats, rng })
 export function capturedTownPlunder({ town, rng }) {
   const baseGold = Math.floor((town.gold * 1500) / (town.alert + 15));
   const food = rng.int(town.growth);
-  const goods = rng.int(town.growth) + rng.int(town.growth);
+  const goods = rng.int(town.growth);
+  const specialGoods = rng.int(town.growth);
   rng.int(town.growth); // The fourth decoded pile is overwritten by fort guns.
   return {
     gold: baseGold * 10,
     food,
-    // ASSUMED economy bridge: the web port has not split European goods from
-    // hides/tobacco/sugar yet, so both documented town piles become goods.
     goods,
+    specialGoods,
     cannon: town.forts * 6,
     treasuryLoss: Math.floor(baseGold / 50),
   };
@@ -277,6 +310,49 @@ export function tavernRecruits({ townPopulation, reputation, difficulty, crew, c
   return recruits;
 }
 
+export function tavernSpecialEncounters({ mapPieces = 0, rng }) {
+  // These are prepared in the original order when the tavern opens. A roll of
+  // 50 suppresses the traveller; the map seller has a separate 1-in-5 roll.
+  const travellerPrice = (rng.int(10) + 5) * 10;
+  const encounters = travellerPrice === 50
+    ? []
+    : [{ kind: 'traveller', price: travellerPrice }];
+  if (mapPieces < 4 && rng.int(5) === 0) encounters.push({ kind: 'map-seller', price: 500 });
+  return encounters;
+}
+
+export function diplomaticBriefing(diplomacy, nation) {
+  return Object.entries(diplomacy[nation] ?? {})
+    .filter(([other, relation]) => other !== nation && relation !== 0)
+    .map(([other, relation]) => ({
+      nation: other,
+      relation,
+      message: relation < 0
+        ? `${nation} is at war with ${other}.`
+        : `${nation} is allied with ${other}.`,
+    }));
+}
+
+export function shipRepairPrice({ type, damage = 0 }) {
+  return 50 * (type + 1) * Math.floor(damage / 16);
+}
+
+export function shipSalePrice({ type, damage = 0 }) {
+  return 50 * (type + 1) * (10 - Math.floor(damage / 16));
+}
+
+export function shipwrightCash({ month, population, growth }) {
+  const season = Math.abs(6 - month) + 6;
+  const seasonalGrowth = Math.trunc((season * growth) / 6);
+  return Math.min(50000, 600 * Math.trunc(((population + 10) * seasonalGrowth) / 150));
+}
+
+export function merchantCash({ month, population, growth }) {
+  const season = 6 + Math.abs(6 - month);
+  const quantity = Math.trunc((growth * season * (population + 10)) / (6 * 150));
+  return Math.min(50000, quantity * 600);
+}
+
 export function morale({ partyGold, crew, monthsAtSea, difficulty }) {
   if (crew <= 0) return -99;
   return Math.floor(2 * Math.sqrt(partyGold / 10 / crew)) + 4 - monthsAtSea - difficulty;
@@ -318,17 +394,23 @@ export function startNewExpedition(player, division) {
     cannon: division.cannon,
     foodFixed: division.foodFixed,
     goods: 0,
+    specialGoods: 0,
     monthsAtSea: division.monthsAtSea,
     capturedCaptains: [],
   };
 }
 
 export function merchantFoodPrice({ growth, month, producesFood, familyDiscount = false }) {
+  return merchantCommodityPrice({ growth, month, kind: 'food', produces: producesFood, familyDiscount });
+}
+
+export function merchantCommodityPrice({ growth, month, kind, produces = false, demand = false, familyDiscount = false }) {
   const season = (6 + Math.abs(6 - month)) / 6;
   const effectiveGrowth = growth * season;
-  let price = Math.floor(effectiveGrowth / 50 + 3);
-  if (producesFood) price = Math.floor(price / 2) + 1;
-  price = Math.floor(price * 10 * 1.5);
+  let price = Math.floor(effectiveGrowth / 50 + (kind === 'special' ? 2 : 3));
+  if (produces) price = Math.floor(price / 2) + 1;
+  if (kind === 'special' && demand) price *= 2;
+  price = Math.floor(price * 10 * (kind === 'special' ? 3 : 1.5));
   if (familyDiscount) price = Math.max(1, Math.floor(price * 0.75));
   return price;
 }

@@ -58,10 +58,12 @@ for future work.
   hostile intent in stages.
 - Hail eligible ships and receive current world news.
 - Sail away and apply the decoded town-alert consequence.
-- Resolve the unfinished tactical battle through explicit provisional capture,
-  defeat, player-sunk, escape, or enemy-sunk outcomes that update campaign
-  state and the captain's log. Captures continue through prize-ship choice,
-  named-captain handling, transferable plunder, and possible volunteers.
+- Fight tactical battles on a fixed-step clock with flagship choice, steering,
+  sail changes, broadsides, damage, enemy tactics, surrender, sinking, escape,
+  and explicit provisional boarding outcomes.
+- Carry surviving crew, cannon, flagship damage, captured ships, reputation,
+  and nearby-town alert back into the campaign. Captures continue through
+  prize-ship choice, named-captain handling, plunder, and volunteers.
 
 ### Ports
 
@@ -71,6 +73,12 @@ for future work.
 - Sneak into hostile towns and resolve the recognition check.
 - Apply port desertion from low morale.
 - Visit the governor, tavern, and merchant through dialog menus.
+- Receive current war and alliance briefings from governors.
+- Ask tavern staff for news, cultivate barmaid informants, recruit sailors,
+  buy traveller reports, and meet conditional treasure-map sellers.
+- Repair damaged ships, sell surplus ships, and sell cannon at the shipwright.
+- Trade food, goods, and the era-specific commodity one ton at a time or with
+  maximum-quantity shortcuts; use the same fine controls while looting prizes.
 - Buy basic amnesty or a letter of marque from eligible governors.
 - Recruit tavern volunteers within fleet capacity.
 - Buy food using seasonal prices, town production, stock, available gold, and
@@ -86,39 +94,38 @@ for future work.
 - Scale the interface for desktop and narrow screens, including two-row mobile
   controls and a compact minimap.
 - Keep deterministic mechanics separate from canvas and DOM code.
-- Verify the current mechanics and map data with 15 automated tests.
+- Verify the current mechanics, battle rules, renderer sizes, and map data with
+  54 automated tests.
 
 ## Partially implemented
 
 | System | Present | Still needed |
 | --- | --- | --- |
-| Sailing | Heading, wind, fleet speed, sails, collision, calendar, and food | Clouds, cloud effects, storms, exact reduced-sail behavior, and more faithful movement feedback |
-| Encounters | Sighting stages, template selection, identification, news, escape, and capture aftermath | Quest overrides, treasure fleet encounters, named-captain identities, and tactical outcomes |
-| Diplomacy | Initial relations, monthly changes, favour, and news | Full privateering consequences, promotions, titles, missions, pardons, and nation-specific rewards |
-| Towns | Entry, sneaking, governor, recruitment, food market, and departure | Shipwright, full commodity market, goods sales, cannon transactions, rumors, missions, and richer governor actions |
-| Economy | Food prices and stock, town growth, treasury, population, soldiers, and captured cargo transfer | Separate third-good trading, fleet upkeep, complete production rules, and treasure movements |
+| Sailing | Heading, wind, fleet speed, sails, collision, calendar, food, and seasonal clouds | Storms, exact reduced-sail behavior, and more faithful movement feedback |
+| Encounters | Sighting stages, identification, news, escape, tactical combat, provisional boarding outcomes, and capture aftermath | Quest overrides, treasure fleet encounters, named-captain identities, coastal battle terrain, and interactive sword fights |
+| Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, promotions, titles, missions, pardons, and nation-specific rewards |
+| Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure | Missions and richer governor actions |
+| Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, and treasure movements |
 | Morale | Morale calculation, desertion, low-morale warning, and plunder division with crew satisfaction | Persistent crew mood, mutiny checks, and mutiny combat |
-| Persistence | One versioned browser save slot | Save migration, multiple slots, battle-state persistence, and import/export |
+| Persistence | One versioned browser save slot and v1-v4 save migration | Multiple slots, battle-state persistence, and import/export |
 | Accessibility | Keyboard and touch controls, visible labels, focus styles, and text HUD | Complete keyboard dialog navigation testing, screen-reader alternatives for the canvas, and configurable controls |
 
 ## Missing gameplay systems
 
 The following systems have no complete playable implementation:
 
-- tactical ship-to-ship combat, including flagship choice, battle sailing,
-  broadsides, damage, enemy tactics, surrender, sinking, escape, and capture;
-- boarding and sword fighting;
+- interactive boarding and sword fighting;
 - fort bombardment, land battles, town assaults, capture, and plunder;
-- ship damage persistence, repairs, ship sales, purchases, and prize management;
-- full cargo trading and cannon management;
-- treasure fleets, silver trains, treasure maps, and named pirates;
+- ship purchases and complete prize management;
+- complete cannon management;
+- treasure fleets, silver trains, overland treasure-map searching, and named pirates;
 - lost relatives, villains, rumors, and rescue quests;
 - courtship, rival suitors, marriage, and family benefits;
 - wounds, aging, illness, medicine effects, prison, ransom, and escape;
 - retirement, land grants, final score, and career ending;
 - music, sound effects, and a complete original art set.
 
-The tactical naval-combat design is ready in
+The tactical naval-combat implementation record and remaining fidelity work are in
 [`tactical-sea-combat-plan.md`](tactical-sea-combat-plan.md).
 The ordered campaign roadmap outside tactical battles is in
 [`non-battle-feature-plan.md`](non-battle-feature-plan.md).
@@ -144,7 +151,7 @@ fallback dialog when the real system becomes playable.
 ## Suggested implementation order
 
 1. Build the tactical naval-combat slice in the existing combat plan.
-2. Add summarized boarding, capture, ship damage, and naval aftermath.
+2. Replace provisional boarding outcomes with interactive sword fighting.
 3. Complete the merchant and shipwright loops, then add mutiny.
 4. Add sword fighting, fort battles, land battles, and town capture.
 5. Add missions, treasure systems, relatives, romance, aging, and retirement
