@@ -175,7 +175,7 @@ function newState(options) {
     towns: scenario.towns.map((town) => ({ ...town, alert: 0 })),
     nearestTownIndex: 0,
     diplomacy,
-    worldNews: initialDiplomacyNews(diplomacy),
+    worldNews: initialDiplomacyNews(diplomacy, { month: 0, year: Number(era) }),
     treasureMap: { pieces: 0, clueTownIndex: null },
     portTrade: { townIndex: null, merchantCash: null, shipwrightCash: null },
     logs,
@@ -183,15 +183,15 @@ function newState(options) {
   };
 }
 
-function initialDiplomacyNews(diplomacy) {
+function initialDiplomacyNews(diplomacy, calendar) {
   const news = [];
   for (let first = 0; first < NATION_ORDER.length; first += 1) {
     for (let second = first + 1; second < NATION_ORDER.length; second += 1) {
       const nationA = NATION_ORDER[first];
       const nationB = NATION_ORDER[second];
       const relation = diplomacy[nationA][nationB];
-      if (relation === -1) news.push(`${nationA} is at war with ${nationB}.`);
-      if (relation === 1) news.push(`${nationA} is allied with ${nationB}.`);
+      if (relation === -1) news.push({ message: `${nationA} is at war with ${nationB}.`, ...calendar });
+      if (relation === 1) news.push({ message: `${nationA} is allied with ${nationB}.`, ...calendar });
     }
   }
   return news;
@@ -209,7 +209,7 @@ async function startGame(nextState) {
   state.player.sails ??= 'full';
   state.player.ships = state.player.ships.map(shipRecord);
   state.diplomacy ??= newState({ era: state.era, captain: state.captain, nationality: state.nationality, difficulty: state.difficulty, ability: state.ability }).diplomacy;
-  state.worldNews ??= initialDiplomacyNews(state.diplomacy);
+  state.worldNews ??= initialDiplomacyNews(state.diplomacy, state.calendar);
   state.treasureMap ??= { pieces: 0, clueTownIndex: null };
   state.player.barmaidRapport ??= {};
   state.player.barmaidInformants ??= [];
@@ -535,7 +535,7 @@ function monthlyUpdate() {
 }
 
 function addWorldNews(message) {
-  state.worldNews.unshift(message);
+  state.worldNews.unshift({ message, month: state.calendar.month, year: state.calendar.year });
   state.worldNews = state.worldNews.slice(0, 24);
 }
 
@@ -656,9 +656,7 @@ function hailForNews(enemy) {
   const items = state.worldNews.slice(0, 6);
   showDialog({
     kicker: 'Ship’s News', title: 'News from across the Caribbean',
-    body: items.length
-      ? `<ul class="ship-news">${items.map((item) => `<li>${item}</li>`).join('')}</ul>`
-      : '<p>The other captain has heard nothing of consequence.</p>',
+    body: newsBody(items, 'The other captain has heard nothing of consequence.'),
     actions: [{ label: 'Continue the voyage', run: () => { addLog(`Exchanged news with a ${enemy.flag} ${enemy.ship}.`); resumeAfterEncounter(); } }],
   });
 }
@@ -930,7 +928,6 @@ function showConvoyReport(kind, next) {
   const message = report.location
     ? `The ${label} was last reported at ${report.location}${report.next ? `, bound next for ${report.next}` : ''}.`
     : `The ${label} has completed its Caribbean run and sailed for Spain.`;
-  addWorldNews(message);
   addLog(message);
   showDialog({
     kicker: 'Intelligence from a prisoner', title: report.location ?? 'Gone to Spain',
@@ -1439,7 +1436,10 @@ function showTavernRecruits() {
 
 function newsBody(items, emptyMessage = 'There is no fresh news.') {
   return items.length
-    ? `<ul class="ship-news">${items.map((item) => `<li>${item}</li>`).join('')}</ul>`
+    ? `<ul class="ship-news">${items.map((item) => {
+      if (typeof item === 'string') return `<li>${item}</li>`;
+      return `<li><time>${MONTHS[item.month]} ${item.year}</time> — ${item.message}</li>`;
+    }).join('')}</ul>`
     : `<p>${emptyMessage}</p>`;
 }
 
@@ -2284,6 +2284,19 @@ loadScenarios().then(() => {
       state.paused = true;
       state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
       showGovernor();
+    });
+    return;
+  }
+  if (preview === 'news' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.calendar = { day: 12, month: 9, year: 1680 };
+      addWorldNews('A new gold mine has opened at Havana.');
+      showDialog({
+        kicker: 'The bartender', title: 'News from across the Caribbean',
+        body: newsBody(state.worldNews.slice(0, 6)),
+        actions: [{ label: 'Return to the tavern', run: () => {} }],
+      });
     });
     return;
   }
