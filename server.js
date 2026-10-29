@@ -39,5 +39,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, HOST, () => {
   const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
-  console.log(`Fortune & Freedom is running at http://${displayHost}:${PORT}`);
+  console.log(`Pirate's legacy! is running at http://${displayHost}:${PORT}`);
 });

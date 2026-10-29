@@ -13,9 +13,14 @@ Search it before guessing about original behavior or starting new reverse
 engineering. In particular, inspect `../piratesgold/evidence/binary/disasm/`
 when a focused document does not answer an implementation question, and trace
 the document's cited routines before treating an ambiguity as unresolved.
+Check the focused document and `docs/porting_guide.md` first: many systems
+already have implementation-ready rules, UI flows, and known gaps. Do not
+repeat reverse engineering that the archive has already documented.
 
 - `../piratesgold/README.md` is the main reverse-engineering report and data-layout reference.
 - `../piratesgold/docs/README.md` indexes the focused mechanics documents.
+- `../piratesgold/docs/porting_guide.md` collects implementation-ready flows,
+  priorities, and cross-references for the web port.
 - `../piratesgold/docs/sailing.md` covers time, wind, fleet speed, movement, clouds, and food.
 - `../piratesgold/docs/encounters.md` covers encounter timing and ship selection.
 - `../piratesgold/docs/entering_towns.md` and `town_attack_and_plunder.md` cover town arrival and capture.
@@ -72,7 +77,7 @@ The simulation uses the documented 640×480 world coordinate space. Coast geomet
 Start the game with:
 
 ```sh
-node server.js
+make serve
 ```
 
 Then open `http://localhost:8000`. Stop any server you started when verification is complete.
@@ -80,11 +85,16 @@ Then open `http://localhost:8000`. Stop any server you started when verification
 For every JavaScript change, run:
 
 ```sh
-node --check src/game.mjs
-node --check server.js
+make syntax
 ```
 
-Run `node --test` for the deterministic mechanics suite. Add rule tests with Node's built-in `node:test`; avoid adding a package manager or framework solely for basic tests. Verify visible or input-related changes in a browser at both a desktop size and a narrow viewport.
+Run `make test` for the deterministic mechanics suite and `make test-browser`
+for the browser interaction smoke test. `make check` runs the complete
+automated set. Use `make serve-test` for manual browser checks on isolated
+port 8011. Add rule tests with Node's built-in `node:test`; avoid adding a
+package manager or framework solely for basic tests. Verify visible or
+input-related changes in a browser at both a desktop size and a narrow
+viewport.
 
 ## Engineering direction
 

@@ -77,7 +77,7 @@ export function createVoyageClouds({ count, playerX, playerY, rng }) {
   }));
 }
 
-export function driftClouds({ clouds, playerX, playerY, wind, rng }) {
+export function driftClouds({ clouds, playerX, playerY, playerDeltaX = 0, playerDeltaY = 0, wind, rng }) {
   const angle = wind / 256 * Math.PI * 2;
   const halfWidth = 320 / SAILING_PIXELS_PER_CELL;
   const halfHeight = 240 / SAILING_PIXELS_PER_CELL;
@@ -86,10 +86,21 @@ export function driftClouds({ clouds, playerX, playerY, wind, rng }) {
     let x = cloud.x + Math.sin(angle) * pixelsPerTick / SAILING_PIXELS_PER_CELL;
     let y = cloud.y - Math.cos(angle) * pixelsPerTick / SAILING_PIXELS_PER_CELL;
     if (Math.abs(x - playerX) > halfWidth || Math.abs(y - playerY) > halfHeight) {
-      // The original always returns an escaped cloud at the right edge, even
-      // during the rare easterly wind that may immediately carry it out again.
-      x = playerX + halfWidth;
-      y = playerY + (rng.unit() * 2 - 1) * halfHeight;
+      const cloudDeltaX = Math.sin(angle) * pixelsPerTick / SAILING_PIXELS_PER_CELL;
+      const cloudDeltaY = -Math.cos(angle) * pixelsPerTick / SAILING_PIXELS_PER_CELL;
+      const relativeDeltaX = cloudDeltaX - playerDeltaX;
+      const relativeDeltaY = cloudDeltaY - playerDeltaY;
+      // The original always uses the right edge. In a camera-centered browser
+      // view, a faster ship can outrun the cloud and force it to wrap again
+      // every tick. Use the upstream edge of the dominant relative movement
+      // so the wrapped cloud travels into view instead.
+      if (Math.abs(relativeDeltaX) >= Math.abs(relativeDeltaY)) {
+        x = playerX + (relativeDeltaX > 0 ? -halfWidth : halfWidth);
+        y = playerY + (rng.unit() * 2 - 1) * halfHeight;
+      } else {
+        x = playerX + (rng.unit() * 2 - 1) * halfWidth;
+        y = playerY + (relativeDeltaY > 0 ? -halfHeight : halfHeight);
+      }
     }
     return { ...cloud, x, y };
   });
@@ -408,6 +419,40 @@ export function pirateCaptainTerms(value = 7) {
     // modest bounty makes handing over a pirate a visible, useful transaction.
     bounty: 250 * favourGain,
   };
+}
+
+export function governorPromotion({ favour, rank, governorMood }) {
+  const nextRank = rank + 1;
+  if (nextRank > 9) return null;
+  const threshold = nextRank ** 2 + 2;
+  const excess = favour - threshold;
+  if (excess < 0) return null;
+  return {
+    rank: nextRank,
+    favour: threshold,
+    excess,
+    landUnits: Math.max(0, excess + governorMood),
+  };
+}
+
+export function convoyReport({ kind, route, towns, calendar, eraIndex }) {
+  const dayOfYear = calendar.month * 30 + calendar.day;
+  // ASSUMED: full monthly convoy state is not simulated yet. Advancing one
+  // route stop every 15 days is the deterministic midpoint of the documented
+  // one-or-two-stop monthly movement and preserves the decoded restart dates.
+  let position = Math.floor(dayOfYear / 15) + (kind === 'treasureFleet' ? -18 : -6) + 2 * (eraIndex & 1);
+  if (position < 0) position += 24;
+  while (position < route.length) {
+    const location = towns.find(town => town.name === route[position]);
+    if (location?.nation === 'Spain') {
+      const next = route.slice(position + 1)
+        .map(name => towns.find(town => town.name === name))
+        .find(town => town?.nation === 'Spain');
+      return { location: location.name, next: next?.name ?? null };
+    }
+    position += 1;
+  }
+  return { location: null, next: null };
 }
 
 export function merchantFoodPrice({ growth, month, producesFood, familyDiscount = false }) {

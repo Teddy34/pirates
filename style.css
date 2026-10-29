@@ -62,7 +62,7 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 .plunder-cell { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .plunder-cell strong { min-width:2ch; text-align:center; font-size:18px; }
 .plunder-arrow,.plunder-take-all,.plunder-take-everything { min-height:40px; border:1px solid #8f713e; border-radius:2px; background:var(--brass); color:#1d1710; font-weight:700; cursor:pointer; }
-.plunder-arrow { min-width:42px; padding:5px 10px; font-size:20px; }
+.plunder-arrow { min-width:42px; padding:5px 10px; font-size:20px; touch-action:none; user-select:none; }
 .plunder-take-all { min-width:84px; padding:7px 12px; }
 .plunder-take-everything { width:100%; min-height:46px; padding:9px 16px; }
 .plunder-arrow:disabled,.plunder-take-all:disabled,.plunder-take-everything:disabled { cursor:default; opacity:.38; }

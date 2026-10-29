@@ -13,6 +13,7 @@ const towns = await readJson('towns_by_era.json');
 const speeds = await readJson('speed_tables.json');
 const templates = await readJson('ship_templates.json');
 const starts = await readJson('start_records.json');
+const convoyRoutes = await readJson('fleet_train_routes.json');
 const eras = {};
 const eraOrder = Object.keys(speeds);
 const shipNames = ['Pinnace', 'Sloop', 'Barque', 'Cargo fluyt', 'Merchantman', 'Frigate', 'War galleon', 'Galleon'];
@@ -37,6 +38,10 @@ for (const [eraIndex, era] of eraOrder.entries()) {
   eras[era] = {
     diplomacyK: templates[era].diplomacy_K,
     merchantThreshold: templates[era].byte_0xF9,
+    convoyRoutes: {
+      treasureFleet: convoyRoutes[era].treasure_fleet,
+      silverTrain: convoyRoutes[era].silver_train,
+    },
     starts: eraStarts,
     towns: towns
       .filter((entry) => String(entry.era) === era && entry.name !== 'Florida Channel')
@@ -57,5 +62,5 @@ for (const [eraIndex, era] of eraOrder.entries()) {
 }
 
 await mkdir(path.dirname(destination), { recursive: true });
-await writeFile(destination, `${JSON.stringify({ version: 3, eras })}\n`);
+await writeFile(destination, `${JSON.stringify({ version: 4, eras })}\n`);
 console.log(`wrote ${Object.keys(eras).length} eras to ${destination}`);

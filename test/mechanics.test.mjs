@@ -5,7 +5,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
-  dividePlunder, startNewExpedition, pirateCaptainTerms,
+  dividePlunder, startNewExpedition, pirateCaptainTerms, governorPromotion, convoyReport,
   approximateDistance, cloudCountForMonth, targetSailingSpeed,
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
@@ -81,6 +81,44 @@ test('clouds fade across their fixed-view wrap so browser zoom cannot expose a j
   assert.equal(cloudWrapOpacity({ x: 100, y: 115 }, 100, 100), 0);
 });
 
+test('a fast westbound ship wraps an outrun cloud to the upstream edge only once', () => {
+  const playerX = 99.8125;
+  const [cloud] = driftClouds({
+    clouds: [{ x: 120, y: 100, shape: 0, index: 0 }],
+    playerX, playerY: 100, playerDeltaX: -0.1875, wind: 192,
+    rng: { unit: () => 0.5 },
+  });
+  assert.equal(cloud.x, playerX - 20);
+  assert.equal(cloud.y, 100);
+
+  const [next] = driftClouds({
+    clouds: [cloud], playerX: playerX - 0.1875, playerY: 100,
+    playerDeltaX: -0.1875, wind: 192, rng: { unit: () => 0.1 },
+  });
+  assert.ok(next.x > playerX - 0.1875 - 20);
+  assert.equal(next.y, 100);
+});
+
+test('a fast northbound ship wraps an outrun cloud to the upstream vertical edge', () => {
+  const playerY = 99.8125;
+  const [cloud] = driftClouds({
+    clouds: [{ x: 100, y: 115, shape: 1, index: 0 }],
+    playerX: 100, playerY, playerDeltaX: 0, playerDeltaY: -0.1875,
+    wind: 0, rng: { unit: () => 0.5 },
+  });
+  assert.equal(cloud.x, 100);
+  assert.equal(cloud.y, playerY - 15);
+
+  const nextPlayerY = playerY - 0.1875;
+  const [next] = driftClouds({
+    clouds: [cloud], playerX: 100, playerY: nextPlayerY,
+    playerDeltaX: 0, playerDeltaY: -0.1875,
+    wind: 0, rng: { unit: () => 0.1 },
+  });
+  assert.ok(next.y > nextPlayerY - 15);
+  assert.equal(next.x, 100);
+});
+
 test('a provisional sinking preserves a capacity-safe playable fleet', () => {
   const player = {
     ships: ['Galleon'], crew: 200, cannon: 30, goods: 30, foodFixed: 30 * 256,
@@ -140,9 +178,11 @@ test('captured cargo preserves the binary two-stage fixed-point rounding', () =>
 
 test('town capture computes plunder before damaging the town economy', () => {
   const town = { gold: 40, growth: 80, alert: 0, forts: 2, mood: 1 };
+  const originalTown = { ...town };
   const loot = capturedTownPlunder({ town, rng: fixedRng({ integer: 7 }) });
   assert.deepEqual(loot, { gold: 40000, food: 7, goods: 7, specialGoods: 7, cannon: 12, treasuryLoss: 80 });
   assert.deepEqual(applyTownCapture(town, loot), { gold: 0, growth: 60, alert: 0, forts: 2, mood: -2 });
+  assert.deepEqual(town, originalTown, 'capture rules must not mutate shared town data');
 });
 
 test('captured sailors volunteer only when the offer fits fleet capacity', () => {
@@ -293,6 +333,34 @@ test('a new expedition retains only the flagship and banks the captain share', (
 test('a captured pirate earns the documented favour gain and an assumed bounty', () => {
   assert.deepEqual(pirateCaptainTerms(7), { favourGain: 4, bounty: 1000 });
   assert.deepEqual(pirateCaptainTerms(2), { favourGain: 2, bounty: 500 });
+});
+
+test('a governor awards one documented promotion and converts excess favour into land', () => {
+  assert.deepEqual(governorPromotion({ favour: 6, rank: 0, governorMood: 0 }), {
+    rank: 1, favour: 3, excess: 3, landUnits: 3,
+  });
+  assert.deepEqual(governorPromotion({ favour: 6, rank: 1, governorMood: -1 }), {
+    rank: 2, favour: 6, excess: 0, landUnits: 0,
+  });
+  assert.equal(governorPromotion({ favour: 5, rank: 1, governorMood: 2 }), null);
+  assert.equal(governorPromotion({ favour: 100, rank: 9, governorMood: 2 }), null);
+});
+
+test('captured-captain convoy intelligence names the current and next Spanish stops', () => {
+  const route = ['Curacao', 'Margarita', 'Trinidad'];
+  const towns = [
+    { name: 'Curacao', nation: 'Holland' },
+    { name: 'Margarita', nation: 'Spain' },
+    { name: 'Trinidad', nation: 'Spain' },
+  ];
+  assert.deepEqual(convoyReport({
+    kind: 'treasureFleet', route, towns,
+    calendar: { month: 8, day: 0 }, eraIndex: 5,
+  }), { location: 'Margarita', next: 'Trinidad' });
+  assert.deepEqual(convoyReport({
+    kind: 'silverTrain', route, towns,
+    calendar: { month: 1, day: 0 }, eraIndex: 5,
+  }), { location: null, next: null });
 });
 
 test('the calendar uses thirty-day months and 360-day years', () => {

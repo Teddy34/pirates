@@ -1,6 +1,6 @@
-# Fortune & Freedom
+# Pirate's legacy!
 
-`Fortune & Freedom` is an original browser game that reconstructs the documented systems of *Pirates! Gold*. It currently provides sailing and port-trading across all six historical eras.
+`Pirate's legacy!` is an original browser game that reconstructs the documented systems of *Pirates! Gold*. It currently provides sailing and port-trading across all six historical eras.
 
 ## Run
 
@@ -74,7 +74,11 @@ node tools/build_scenarios.mjs ../piratesgold/evidence/data assets/scenarios.jso
 ## Test
 
 ```sh
-node --test
-node --check src/game.mjs
-node --check server.js
+make test
+make test-browser
+# Or run both plus the patch whitespace check:
+make check
 ```
+
+Use `make serve-test` for manual browser checks on the isolated
+`http://127.0.0.1:8011` test server. Run `make help` to list all wrappers.
