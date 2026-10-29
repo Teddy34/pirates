@@ -400,6 +400,16 @@ export function startNewExpedition(player, division) {
   };
 }
 
+export function pirateCaptainTerms(value = 7) {
+  const favourGain = Math.floor((value & 7) / 2) + 1;
+  return {
+    favourGain,
+    // ASSUMED: the binary confirms the favour gain but no cash award. A
+    // modest bounty makes handing over a pirate a visible, useful transaction.
+    bounty: 250 * favourGain,
+  };
+}
+
 export function merchantFoodPrice({ growth, month, producesFood, familyDiscount = false }) {
   return merchantCommodityPrice({ growth, month, kind: 'food', produces: producesFood, familyDiscount });
 }

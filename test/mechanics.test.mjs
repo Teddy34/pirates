@@ -5,7 +5,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
-  dividePlunder, startNewExpedition,
+  dividePlunder, startNewExpedition, pirateCaptainTerms,
   approximateDistance, cloudCountForMonth, targetSailingSpeed,
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
@@ -288,6 +288,11 @@ test('a new expedition retains only the flagship and banks the captain share', (
   assert.deepEqual(next.capturedCaptains, []);
   assert.equal(next.heading, 64);
   assert.deepEqual(player.ships, ['Barque', 'Pinnace']);
+});
+
+test('a captured pirate earns the documented favour gain and an assumed bounty', () => {
+  assert.deepEqual(pirateCaptainTerms(7), { favourGain: 4, bounty: 1000 });
+  assert.deepEqual(pirateCaptainTerms(2), { favourGain: 2, bounty: 500 });
 });
 
 test('the calendar uses thirty-day months and 360-day years', () => {

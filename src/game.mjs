@@ -11,6 +11,7 @@ import {
   acceptsRudderInput,
   consumeDailyFood, foodDays, encounterRoll, chooseEncounterTier,
   harborAttempt, sneakAttempt, tavernRecruits, morale, dividePlunder, startNewExpedition,
+  pirateCaptainTerms,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   merchantCommodityPrice, merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
@@ -166,6 +167,7 @@ function newState(options) {
       ships: start.ships.map(shipRecord), crew: start.crew, cannon: start.cannon,
       foodFixed: start.food * 256, goods: start.goods, specialGoods: 0, partyGold: start.gold,
       personalWealth: 0, reputation: 0, monthsAtSea: -16,
+      capturedCaptains: [],
       barmaidRapport: {}, barmaidInformants: [],
       favour, ranks,
     },
@@ -210,6 +212,7 @@ async function startGame(nextState) {
   state.treasureMap ??= { pieces: 0, clueTownIndex: null };
   state.player.barmaidRapport ??= {};
   state.player.barmaidInformants ??= [];
+  state.player.capturedCaptains ??= [];
   state.player.specialGoods ??= 0;
   state.portTrade ??= { townIndex: null, merchantCash: null, shipwrightCash: null };
   await loadWorldMap(state.era);
@@ -860,6 +863,10 @@ function finishPrizeDecision(enemy, keepShip) {
     addWorldNews(`Shipping losses have hurt trade at ${nearbyTown.name}.`);
   }
 
+  if (enemy.flag === 'pirate') {
+    resolvePirateCaptain(enemy, () => openShipPlunder(enemy));
+    return;
+  }
   if (enemy.namedCaptain) {
     resolveNamedCaptain(enemy, () => openShipPlunder(enemy));
     return;
@@ -867,9 +874,26 @@ function finishPrizeDecision(enemy, keepShip) {
   openShipPlunder(enemy);
 }
 
+function resolvePirateCaptain(enemy, next) {
+  const terms = pirateCaptainTerms(enemy.kind);
+  const hasRoom = state.player.capturedCaptains.filter(({ pirate }) => pirate).length < 8;
+  showDialog({
+    kicker: 'A pirate prisoner', title: 'The pirate captain yields',
+    body: `<p>You may hold the captain for delivery to a governor. A governor is expected to pay ${terms.bounty} gold and improve your standing with that nation.</p>`,
+    actions: [
+      ...(hasRoom ? [{ label: 'Take the captain prisoner', run: () => {
+        state.player.capturedCaptains.push({ pirate: true, ship: enemy.ship, value: enemy.kind, ...terms });
+        addLog(`Captured a pirate captain worth a ${terms.bounty}-gold bounty.`);
+        next();
+      } }] : []),
+      { label: hasRoom ? 'Release the captain' : 'No room for another prisoner', secondary: true, run: next },
+    ],
+  });
+}
+
 function resolveNamedCaptain(enemy, next) {
   state.player.capturedCaptains ??= [];
-  if (enemy.flag !== 'pirate' && enemy.flag !== 'Spain') {
+  if (enemy.flag !== 'Spain') {
     if (state.player.capturedCaptains.length < 8) {
       state.player.capturedCaptains.push({ nation: enemy.flag, ship: enemy.ship, pirate: false });
       addLog(`The ${enemy.flag} captain is held for delivery to a governor.`);
@@ -879,11 +903,11 @@ function resolveNamedCaptain(enemy, next) {
   }
   showDialog({
     kicker: 'A notable prisoner', title: `The ${enemy.flag} captain yields`,
-    body: '<p>The original offers information about Spanish treasure movements, or lets you hold the captain for delivery to a governor.</p>',
+    body: '<p>The original offers information about Spanish treasure movements, or lets you hold the captain for ransom.</p>',
     actions: [
       { label: 'Ask about the treasure fleet', run: () => { addWorldNews('A captive captain reports the treasure fleet’s latest route.'); addLog('Questioned a captive about the treasure fleet.'); next(); } },
       { label: 'Ask about the silver train', run: () => { addWorldNews('A captive captain reports the silver train’s latest route.'); addLog('Questioned a captive about the silver train.'); next(); } },
-      { label: 'Hold for a governor', run: () => { if (state.player.capturedCaptains.length < 8) state.player.capturedCaptains.push({ nation: enemy.flag, ship: enemy.ship, pirate: enemy.flag === 'pirate' }); addLog(`Held the ${enemy.flag} captain for a governor.`); next(); } },
+      { label: 'Hold for ransom', run: () => { if (state.player.capturedCaptains.length < 8) state.player.capturedCaptains.push({ nation: enemy.flag, ship: enemy.ship, pirate: false }); addLog(`Held the ${enemy.flag} captain for ransom.`); next(); } },
     ],
   });
 }
@@ -927,15 +951,16 @@ function beginPlunderTransfer(title, loot, done) {
     if (kind === 'food') state.player.foodFixed += amount * 256;
     else state.player[kind] += amount;
     remaining[kind] -= amount;
-    showTransfer();
+    return amount;
   };
 
-  const jettisonCargo = (kind, requested) => {
+  const returnCargo = (kind, requested) => {
     const aboard = kind === 'food' ? Math.floor(state.player.foodFixed / 256) : state.player[kind];
     const amount = Math.min(requested, aboard);
     if (kind === 'food') state.player.foodFixed -= amount * 256;
     else state.player[kind] -= amount;
-    showTransfer();
+    remaining[kind] += amount;
+    return amount;
   };
 
   const mountCannon = (requested) => {
@@ -945,44 +970,82 @@ function beginPlunderTransfer(title, loot, done) {
     const amount = Math.min(requested, remaining.cannon, gunRoom, cannonByHold);
     state.player.cannon += amount;
     remaining.cannon -= amount;
-    showTransfer();
+    return amount;
   };
 
-  function showTransfer() {
+  const returnCannon = (requested) => {
+    const amount = Math.min(requested, state.player.cannon);
+    state.player.cannon -= amount;
+    remaining.cannon += amount;
+    return amount;
+  };
+
+  function showTransfer(preferredTransfer = '', preferredKind = '') {
     const food = Math.floor(state.player.foodFixed / 256);
     const room = cargoRoom();
     const gunRoom = Math.max(0, state.player.ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0) - state.player.cannon);
-    const actions = [];
-    for (const [kind, label] of [['food', 'food'], ['goods', 'goods'], ['specialGoods', specialGoodsName().toLowerCase()]]) {
-      const maximum = Math.min(room, remaining[kind]);
-      if (maximum > 0) {
-        actions.push({ label: `Take 1 ton of ${label}`, run: () => stowCargo(kind, 1) });
-        if (maximum > 1) actions.push({ label: `Take all ${label} (${maximum})`, run: () => stowCargo(kind, maximum) });
-      }
-    }
     const cannonByHold = room * 2 + (state.player.cannon % 2 === 0 ? 1 : 0);
     const cannonAmount = Math.min(gunRoom, remaining.cannon, cannonByHold);
-    if (cannonAmount > 0) {
-      actions.push({ label: 'Mount 1 cannon', run: () => mountCannon(1) });
-      if (cannonAmount > 1) actions.push({ label: `Mount all cannon (${cannonAmount})`, run: () => mountCannon(cannonAmount) });
-    }
-    if (room === 0) {
-      for (const [kind, label] of [['food', 'food'], ['goods', 'goods'], ['specialGoods', specialGoodsName().toLowerCase()]]) {
-        const aboard = kind === 'food' ? food : state.player[kind];
-        if (aboard > 0) actions.push({ label: `Jettison 1 ton of ${label}`, secondary: true, run: () => jettisonCargo(kind, 1) });
-      }
-      if (state.player.cannon > 0) actions.push({ label: 'Jettison 1 cannon', secondary: true, run: () => { state.player.cannon -= 1; showTransfer(); } });
-    }
-    actions.push({ label: 'Finish looting', secondary: true, run: () => {
-      const left = remaining.food + remaining.goods + remaining.specialGoods + remaining.cannon;
-      addLog(left > 0 ? `Left ${left} units of plunder behind.` : 'Transferred all useful plunder.');
+    const rows = [
+      { kind: 'food', label: 'Food', aboard: food, available: remaining.food, maximum: Math.min(room, remaining.food), unit: 'ton of food' },
+      { kind: 'goods', label: 'Goods', aboard: state.player.goods, available: remaining.goods, maximum: Math.min(room, remaining.goods), unit: 'ton of goods' },
+      { kind: 'specialGoods', label: specialGoodsName(), aboard: state.player.specialGoods, available: remaining.specialGoods, maximum: Math.min(room, remaining.specialGoods), unit: `ton of ${specialGoodsName().toLowerCase()}` },
+      { kind: 'cannon', label: 'Cannon', aboard: state.player.cannon, available: remaining.cannon, maximum: cannonAmount, unit: 'cannon' },
+    ];
+    const canTakeAnything = rows.some(row => row.maximum > 0);
+    const rowMarkup = rows.map(row => `<tr>
+      <th scope="row">${row.label}</th>
+      <td><div class="plunder-cell"><strong>${row.aboard}</strong><button type="button" class="plunder-arrow" data-transfer="return" data-kind="${row.kind}" aria-label="Move one ${row.unit} to the looted ship or town" title="Move one ${row.unit} to the looted ship or town"${row.aboard === 0 ? ' disabled' : ''}>→</button></div></td>
+      <td><div class="plunder-cell plunder-source"><button type="button" class="plunder-arrow" data-transfer="take" data-kind="${row.kind}" aria-label="Take one ${row.unit}" title="Take one ${row.unit}"${row.maximum === 0 ? ' disabled' : ''}>←</button><strong>${row.available}</strong><button type="button" class="plunder-take-all" data-transfer="take-all" data-kind="${row.kind}"${row.maximum === 0 ? ' disabled' : ''}>Take all</button></div></td>
+    </tr>`).join('');
+
+    const finish = () => {
+      const left = [
+        remaining.food > 0 ? `${remaining.food} ${remaining.food === 1 ? 'ton' : 'tons'} of food` : '',
+        remaining.goods > 0 ? `${remaining.goods} ${remaining.goods === 1 ? 'ton' : 'tons'} of goods` : '',
+        remaining.specialGoods > 0 ? `${remaining.specialGoods} ${remaining.specialGoods === 1 ? 'ton' : 'tons'} of ${specialGoodsName().toLowerCase()}` : '',
+        remaining.cannon > 0 ? `${remaining.cannon} cannon` : '',
+      ].filter(Boolean);
+      addLog(left.length > 0 ? `Left behind: ${left.join(', ')}.` : 'Transferred all useful plunder.');
       done();
-    } });
+    };
     showDialog({
       kicker: 'Prizes and plunder', title,
-      body: `<p>Gold is taken automatically. Move cargo one ton at a time, or use the fast actions to take everything that fits.</p><dl><dt>Gold taken</dt><dd>${loot.gold}</dd><dt>Food aboard / available</dt><dd>${food} / ${remaining.food}</dd><dt>Goods aboard / available</dt><dd>${state.player.goods} / ${remaining.goods}</dd><dt>${specialGoodsName()} aboard / available</dt><dd>${state.player.specialGoods} / ${remaining.specialGoods}</dd><dt>Cannon aboard / available</dt><dd>${state.player.cannon} / ${remaining.cannon}</dd><dt>Free hold</dt><dd>${room} tons</dd></dl>`,
-      actions,
+      body: `<p>Gold is taken automatically. Use the arrows to move one unit at a time.</p>
+        <dl class="plunder-summary"><dt>Gold taken</dt><dd>${loot.gold}</dd><dt>Free hold</dt><dd>${room} tons</dd></dl>
+        <table class="plunder-manifest">
+          <thead><tr><th>Type</th><th>Our fleet</th><th>Looted ship / town</th></tr></thead>
+          <tbody>${rowMarkup}</tbody>
+        </table>
+        <button type="button" class="plunder-take-everything" data-transfer="take-everything"${canTakeAnything ? '' : ' disabled'}>Take everything that fits</button>`,
+      actions: [{ label: 'Finish looting', secondary: true, run: finish }],
     });
+
+    const transferButtons = [...dialogBody.querySelectorAll('[data-transfer]')];
+    for (const button of transferButtons) {
+      button.addEventListener('click', () => {
+        const { transfer, kind } = button.dataset;
+        if (transfer === 'take-everything') {
+          for (const cargoKind of ['food', 'goods', 'specialGoods']) stowCargo(cargoKind, Number.MAX_SAFE_INTEGER);
+          mountCannon(Number.MAX_SAFE_INTEGER);
+        } else if (transfer === 'take') {
+          if (kind === 'cannon') mountCannon(1);
+          else stowCargo(kind, 1);
+        } else if (transfer === 'take-all') {
+          if (kind === 'cannon') mountCannon(Number.MAX_SAFE_INTEGER);
+          else stowCargo(kind, Number.MAX_SAFE_INTEGER);
+        } else if (transfer === 'return') {
+          if (kind === 'cannon') returnCannon(1);
+          else returnCargo(kind, 1);
+        }
+        showTransfer(transfer, kind);
+      });
+    }
+    const nextFocus = transferButtons.find(button => !button.disabled && button.dataset.transfer === preferredTransfer && button.dataset.kind === preferredKind)
+      ?? transferButtons.find(button => !button.disabled && preferredKind && button.dataset.kind === preferredKind)
+      ?? transferButtons.find(button => !button.disabled && button.dataset.transfer === 'take')
+      ?? transferButtons.find(button => !button.disabled);
+    nextFocus?.focus();
   }
   showTransfer();
 }
@@ -1180,7 +1243,7 @@ function finishPlunderDivision(division, nextDifficulty) {
   });
 }
 
-function showGovernor() {
+function showGovernor(offerPrisoners = true) {
   const town = state.towns[state.visit.townIndex];
   const favour = state.player.favour[town.nation];
   const briefing = diplomaticBriefing(state.diplomacy, town.nation);
@@ -1191,6 +1254,30 @@ function showGovernor() {
     showDialog({ kicker: 'Governor’s residence', title: 'The doors stay shut', body: '<p>The governor will not receive a visitor who slipped past his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
     return;
   }
+  const capturedPirates = state.player.capturedCaptains.filter(({ pirate }) => pirate);
+  if (offerPrisoners && capturedPirates.length > 0) {
+    const bounty = capturedPirates.reduce((sum, captain) => sum + (captain.bounty ?? pirateCaptainTerms(captain.value).bounty), 0);
+    const favourGain = capturedPirates.reduce((sum, captain) => sum + (captain.favourGain ?? pirateCaptainTerms(captain.value).favourGain), 0);
+    showDialog({
+      kicker: `${town.nation} governor`, title: capturedPirates.length === 1 ? 'A pirate brought to justice' : `${capturedPirates.length} pirates brought to justice`,
+      body: `<p>The governor offers ${bounty.toLocaleString()} gold for the ${capturedPirates.length === 1 ? 'captain' : 'captains'} and promises that the service will be remembered.</p><dl><dt>Bounty</dt><dd>${bounty.toLocaleString()} gold</dd><dt>${town.nation} favour</dt><dd>+${favourGain}</dd></dl>`,
+      actions: [
+        { label: `Turn ${capturedPirates.length === 1 ? 'him' : 'them'} over`, run: () => {
+          state.player.partyGold += bounty;
+          state.player.favour[town.nation] += favourGain;
+          state.player.capturedCaptains = state.player.capturedCaptains.filter(({ pirate }) => !pirate);
+          addLog(`Turned over ${capturedPirates.length} pirate ${capturedPirates.length === 1 ? 'captain' : 'captains'} in ${town.name} for ${bounty} gold.`);
+          showGovernor();
+        } },
+        { label: 'Discuss other business', secondary: true, run: () => showGovernor(false) },
+      ],
+    });
+    return;
+  }
+  // The original governor driver delivers matching captives before checking
+  // whether favour is <= -4, and its direct favour addition may cross +2.
+  // Preserve both effects: turning in a pirate can restore an audience and
+  // earn a commission without buying amnesty.
   if (favour <= -4) {
     showDialog({ kicker: `${town.nation} governor`, title: 'An enemy of the Crown', body: '<p>The governor refuses to see you.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
     return;
@@ -2097,6 +2184,17 @@ beginButton.disabled = true;
 loadScenarios().then(() => {
   updateNationalityOptions();
   beginButton.disabled = false;
+  const preview = new URLSearchParams(location.search).get('preview');
+  if (preview === 'plunder' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.paused = true;
+      beginPlunderTransfer('Spoils from the Cargo fluyt', {
+        gold: 70, food: 4, goods: 11, specialGoods: 6, cannon: 4,
+      }, () => {});
+    });
+    return;
+  }
   continueButton.classList.toggle('hidden', !loadGame());
 }).catch((error) => {
   console.error('Scenario data unavailable:', error);

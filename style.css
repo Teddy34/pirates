@@ -51,6 +51,32 @@ dialog h2 { font-size:34px; }
 #dialog-actions { display:flex; flex-wrap:wrap; gap:8px; }
 #dialog-actions button { flex:1 1 140px; }
 #dialog-actions button.secondary { border-color:#8f713e; color:var(--paper-ink); }
+dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
+.plunder-summary { max-width:280px; }
+.plunder-manifest { width:100%; margin:20px 0 14px; border-collapse:collapse; table-layout:fixed; font-family:"Source Sans 3",sans-serif; font-size:15px; line-height:1.2; }
+.plunder-manifest th,.plunder-manifest td { padding:10px 8px; border-bottom:1px solid rgba(114,95,67,.3); text-align:left; }
+.plunder-manifest thead th { color:#725f43; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+.plunder-manifest th:first-child { width:22%; }
+.plunder-manifest th:nth-child(2) { width:26%; }
+.plunder-manifest th:nth-child(3) { width:52%; }
+.plunder-cell { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.plunder-cell strong { min-width:2ch; text-align:center; font-size:18px; }
+.plunder-arrow,.plunder-take-all,.plunder-take-everything { min-height:40px; border:1px solid #8f713e; border-radius:2px; background:var(--brass); color:#1d1710; font-weight:700; cursor:pointer; }
+.plunder-arrow { min-width:42px; padding:5px 10px; font-size:20px; }
+.plunder-take-all { min-width:84px; padding:7px 12px; }
+.plunder-take-everything { width:100%; min-height:46px; padding:9px 16px; }
+.plunder-arrow:disabled,.plunder-take-all:disabled,.plunder-take-everything:disabled { cursor:default; opacity:.38; }
+@media (max-width:520px) {
+  dialog:has(.plunder-manifest) { padding:20px 14px; }
+  .plunder-manifest { font-size:13px; }
+  .plunder-manifest th,.plunder-manifest td { padding:8px 4px; }
+  .plunder-manifest th:first-child { width:20%; }
+  .plunder-manifest th:nth-child(2) { width:25%; }
+  .plunder-manifest th:nth-child(3) { width:55%; }
+  .plunder-cell { gap:4px; }
+  .plunder-arrow { min-width:34px; min-height:36px; padding:3px 6px; }
+  .plunder-take-all { min-width:0; min-height:36px; padding:5px 7px; }
+}
 @media (min-width:761px) and (max-width:1100px) { #controls{display:grid;grid-template-columns:repeat(4,1fr);width:min(620px,calc(100% - 20px))}#controls button{min-width:0}#log{bottom:126px} }
 @media (min-width:761px) and (max-width:900px) { form{grid-template-columns:repeat(3,1fr)} }
 @media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}.screen-panel{justify-items:stretch;text-align:left}.crest{margin-left:0}.lede{margin-left:0}#hud{display:grid;grid-template-columns:1fr 1fr}.hud-block{gap:10px;justify-content:space-around}.identity{grid-column:1/-1;min-height:auto}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(4,1fr);width:calc(100% - 20px)}#controls button{min-width:0;justify-content:center}#controls button span{display:none}#log{bottom:126px;width:calc(100% - 172px)} }
