@@ -58,7 +58,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | # | Sev | Discrepancy |
 |---|---|---|
 | D24 | M | **The flagship keeps its damage after dividing the plunder** (`mechanics.mjs:397-403`); the original repairs it. If reputation + 16 ≤ 0, the original keeps the old crew, but the port forces the crew to 1 (`:389`). |
-| D25 | M | **A failed harbor entry or sneak sends you back to sea.** The original keeps you at the approach menu so you can retry. Being spotted while sneaking should start a guard duel, and losing it sets reputation to −1. The port shows a notice only (`game.mjs:1205-1217`), with no provisional duel outcome as `AGENTS.md` requires. |
+| D25 | M | **Fixed in #PR.** **A failed harbor entry or sneak sends you back to sea.** The original keeps you at the approach menu so you can retry. Being spotted while sneaking should start a guard duel, and losing it sets reputation to −1. The port shows a notice only (`game.mjs:1205-1217`), with no provisional duel outcome as `AGENTS.md` requires. |
 | D26 | L | The provisional "Repelled" assault outcome gives reputation −2 and alert +16. The documented loss gives reputation −1 and a −1 favour hit. The alert +16 on "Withdraw" isn't in the docs (`game.mjs:1147-1148`). |
 | D27 | L | Population, soldiers and treasury are shown for every town on approach (`game.mjs:1131`). The original shows them only for towns you have information on. |
 

@@ -86,8 +86,11 @@ for future work.
 - Send a provisional landing party to inland towns (overland travel is not
   playable yet).
 - Attempt open harbor entry, including fort fire that can sink any ship with
-  its share of the cargo, or the last ship and send you to prison.
-- Sneak into hostile towns and resolve the recognition check.
+  its share of the cargo, or the last ship and send you to prison. A refused
+  entry returns to the approach menu for another try.
+- Sneak into hostile towns and resolve the recognition check. A recognised
+  captain fights a guard through a provisional duel dialog; either result
+  returns to the approach menu, and losing sets reputation to −1.
 - Apply port desertion from low morale.
 - Visit the governor, tavern, and merchant through dialog menus.
 - Receive current war and alliance briefings from governors.
