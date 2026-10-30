@@ -60,7 +60,9 @@ test('losing the last ship restarts with the decoded fresh fleet and no gold', (
   assert.equal(after.goods, 0);
   assert.equal(after.specialGoods, 0);
   assert.equal(after.crew, 20);
-  assert.equal(restartAfterLastShip(player({ reputation: -16, crew: 3 }), { type: 'Sloop' }, SHIPS).crew, 3);
+  assert.equal(after.monthsAtSea, 0);
+  assert.equal(restartAfterLastShip(player({ reputation: -12, crew: 3 }), { type: 'Sloop' }, SHIPS).crew, 8);
+  assert.equal(restartAfterLastShip(player({ reputation: -40, crew: 3 }), { type: 'Sloop' }, SHIPS).crew, 8);
 });
 
 test('the shore search finds the first land cell on clockwise rings and faces away from it', () => {

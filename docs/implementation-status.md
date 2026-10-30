@@ -54,8 +54,10 @@ for future work.
   uncharted island (`0x1F803`): 27-day steps while the step count is at most
   reputation/2 + 6, with the monthly world running; then the fresh fleet,
   freed pirate captives, a health-based message, and one difficulty level
-  lower. The end-of-expedition retirement check that runs first is not
-  playable yet.
+  lower. In poor health the retirement check that runs first offers a
+  provisional choice to retire or carry on.
+- Apply the monthly land income and the decoded reputation decay
+  (`rep -= rep >> 3`).
 - Pause, zoom, steer, and change sail from keyboard or touch controls.
 
 ### World simulation

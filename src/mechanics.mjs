@@ -652,11 +652,18 @@ export function removeShipWithCargo(player, slot, shipStats) {
 // personal wealth is lost, a tenth of the remainder funds the voyage, and the
 // lost flagship's type returns repaired with a small crew. The crew comes
 // from 0x45E76 (the README's reputation byte, the docs' captures counter),
-// which the port stores as `reputation`.
+// which the port stores as `reputation`; months at sea restart at 0.
+// The original stores reputation + 16 as an unsigned word and uses 1 only
+// when it is exactly 0: reputation -15..-9 leaves 1..7 men, so the fleet
+// check abandons the ship again forever, and below -16 the word wraps to
+// tens of thousands of men. ASSUMED: the port gives at least the eight men
+// one ship needs.
+export const RESTART_MIN_CREW = 8;
+
 export function restartAfterLastShip(player, flagship, shipStats) {
   const typeIndex = shipStats[flagship.type].type;
   const personalWealth = player.personalWealth - Math.trunc(player.personalWealth / 10);
-  const crew = player.reputation + 16;
+  const crew = Math.max(RESTART_MIN_CREW, player.reputation + 16);
   return {
     ...player,
     personalWealth,
@@ -666,7 +673,8 @@ export function restartAfterLastShip(player, flagship, shipStats) {
     foodFixed: 15 * 256,
     goods: 0,
     specialGoods: 0,
-    crew: crew <= 0 ? player.crew : crew,
+    crew,
+    monthsAtSea: 0,
   };
 }
 

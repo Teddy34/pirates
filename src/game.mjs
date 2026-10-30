@@ -613,9 +613,37 @@ const CAPTIVITY_TEXT = [
 ];
 const DIFFICULTY_ARTICLES = ['an apprentice', 'a journeyman', 'an adventurer', 'a swashbuckler'];
 
+function captainHealth() {
+  return healthLevel({
+    yearsElapsed: state.calendar.year - Number(state.era),
+    wounds: state.player.wounds ?? 0,
+    medicine: state.ability === 'medicine',
+  });
+}
+
+// 0x1F1D7 runs first: in poor health (3) the captain retires (CSTR 160) and
+// the career ends. Retirement and the final score are not playable yet (K9),
+// so the player chooses a provisional outcome. The famous-expedition branch
+// (CSTR 159) does not apply: every port game is a career.
 function serveCaptivity({ inTown, town, lost, done }) {
-  // 0x1F1D7, the end-of-expedition retirement check, runs first in the
-  // original; retirement is not playable yet (health_age_land.md §2).
+  if (captainHealth() < 3) {
+    beginCaptivity({ inTown, town, lost, done });
+    return;
+  }
+  showDialog({
+    kicker: 'Poor health', title: 'Time to retire?',
+    body: '<p>Your crew scatters to the winds. Age and old battle wounds sap your strength, and your officers sign on with a younger captain.</p><p>Retirement and the final score are not playable yet. Choose a provisional outcome.</p>',
+    actions: [
+      { label: 'Retire and end this career', run: () => {
+        localStorage.removeItem(SAVE_KEY);
+        location.reload();
+      } },
+      { label: 'Carry on for one more voyage', secondary: true, run: () => beginCaptivity({ inTown, town, lost, done }) },
+    ],
+  });
+}
+
+function beginCaptivity({ inTown, town, lost, done }) {
   const player = state.player;
   player.monthsAtSea = -16;
   const before = { ...state.calendar };
@@ -625,11 +653,7 @@ function serveCaptivity({ inTown, town, lost, done }) {
   const released = releaseFromCaptivity(state.player, state.difficulty);
   state.player = released.player;
   state.difficulty = released.difficulty;
-  const health = healthLevel({
-    yearsElapsed: state.calendar.year - Number(state.era),
-    wounds: state.player.wounds ?? 0,
-    medicine: state.ability === 'medicine',
-  });
+  const health = captainHealth();
   const captainKind = DIFFICULTY_ARTICLES[state.difficulty];
   addLog(inTown
     ? `Released from prison in ${town.name} after ${months} months; back at sea as ${captainKind} captain.`
@@ -639,9 +663,6 @@ function serveCaptivity({ inTown, town, lost, done }) {
     body: `<p>${CAPTIVITY_TEXT[health]}</p><p>${inTown
       ? `Your former comrades take pity on you and trade a captured nobleman for your freedom. They agree to take you back as ${captainKind} captain.`
       : `One day a small ship puts in at the island to resupply, and you recognize some of your former crew. They agree to take you back as ${captainKind} captain.`}</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
-    // ASSUMED: the restart can leave fewer than eight men when reputation is
-    // below -8, which would loop the original check forever; the port runs
-    // the last-ship path once and continues.
     actions: [{ label: 'Continue', run: () => {
       saveGame(false);
       if (state.mode !== 'town') { done(); return; }
@@ -905,7 +926,10 @@ function dailyUpdate({ marching = false } = {}) {
 function monthlyUpdate({ captive = false } = {}) {
   const player = state.player;
   player.monthsAtSea += player.partyGold > 32767 ? 2 : 1;
-  player.reputation -= Math.trunc(player.reputation / 8);
+  // 0xCEB8: wealth += land / 2; reputation -= reputation >> 3 (an
+  // arithmetic shift, so -1 decays to 0).
+  player.personalWealth += Math.trunc(player.land / 2);
+  player.reputation -= player.reputation >> 3;
   for (const nation of NATION_ORDER) player.favour[nation] = clamp(player.favour[nation], -100, 100);
   state.towns = state.towns.map((town) => updateTownMonthly(town, state.calendar.month, rng));
   updateDiplomacy();
