@@ -29,7 +29,7 @@ import {
 import { renderBattle } from './battle-renderer.mjs';
 import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
 import { TERRAIN_CHUNK_CELLS, TERRAIN_PIXELS_PER_CELL } from './terrain.mjs';
-import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, townSizeClass } from './town-sprites.mjs';
+import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
@@ -2424,7 +2424,7 @@ function updateLog() {
 }
 
 function prosperity(growth) {
-  return ['struggling', 'surviving', 'prospering', 'wealthy'][Math.min(3, growth >> 6)];
+  return ['struggling', 'surviving', 'prospering', 'wealthy'][prosperityLevel(growth)];
 }
 
 function updateInterface() {
@@ -2599,12 +2599,13 @@ function drawTowns(zoom) {
 }
 
 function townSprite(town) {
-  const key = `${town.nation}|${townSizeClass(town.population)}|${Math.min(town.forts, 4)}`;
+  const prosperity = prosperityLevel(town.growth);
+  const key = `${town.nation}|${prosperity}|${Math.min(town.forts, 4)}`;
   let sprite = townSpriteCache.get(key);
   if (!sprite) {
     sprite = document.createElement('canvas');
     sprite.width = TOWN_SPRITE_WIDTH; sprite.height = TOWN_SPRITE_HEIGHT;
-    const pixels = paintTownSprite({ nation: { key: town.nation, ...NATIONS[town.nation] }, population: town.population, forts: town.forts });
+    const pixels = paintTownSprite({ nation: { key: town.nation, ...NATIONS[town.nation] }, prosperity, forts: town.forts });
     sprite.getContext('2d').putImageData(new ImageData(pixels, TOWN_SPRITE_WIDTH, TOWN_SPRITE_HEIGHT), 0, 0);
     townSpriteCache.set(key, sprite);
   }

@@ -1,6 +1,6 @@
 // Pixel-art town markers for the sailing map. DOM-free: paints RGBA sprites
-// from a town's nation, population and forts, so the marker shows at a
-// glance who holds a town, how large it is and how well it is defended.
+// whose buildings follow the town's prosperity and whose walls follow its
+// forts; only the flag shows who holds the town.
 // Presentation only; no rule depends on anything in this module.
 
 export const TOWN_SPRITE_WIDTH = 26;
@@ -10,14 +10,10 @@ export const TOWN_SPRITE_ANCHOR = { x: 13, y: 19 };
 
 const rgb = (hex) => [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16));
 
-// Building styles per flag: wall, wall shade, roof light, roof, roof dark.
-const STYLES = {
-  Spain: { wall: '#efe4c8', wallShade: '#c9b892', roofLight: '#d36f4d', roof: '#b5533a', roofDark: '#86392a' },
-  England: { wall: '#ddd0ad', wallShade: '#b09f7a', roofLight: '#7c8790', roof: '#5d6670', roofDark: '#414850', timber: '#5a3f2a' },
-  France: { wall: '#ede1c2', wallShade: '#c5b58e', roofLight: '#6c89ae', roof: '#4f6a8f', roofDark: '#384c69' },
-  Holland: { wall: '#b5593f', wallShade: '#8c4330', roofLight: '#5a524b', roof: '#433d38', roofDark: '#2b2724', gable: true },
-  pirate: { wall: '#9c7c56', wallShade: '#775c3e', roofLight: '#8a7651', roof: '#6c5a3d', roofDark: '#4c3f2a' },
-};
+// One building style for every town: the flag alone shows allegiance. A
+// struggling settlement has thatched huts; better-off towns have tiled roofs.
+const STYLE = { wall: '#ece0c2', wallShade: '#c3b28b', roofLight: '#cf6c4b', roof: '#ae5139', roofDark: '#823a29' };
+const THATCH = { wall: '#c9b48a', wallShade: '#a08a62', roofLight: '#d9be72', roof: '#b99a52', roofDark: '#8a7038' };
 
 const COMMON = {
   outline: '#21180f', window: '#3b2b1d', glow: '#f2c55c', door: '#5a3b22',
@@ -26,10 +22,10 @@ const COMMON = {
 
 const FLAG_DARK = { Spain: '#a8331f', England: '#f4f0e4', France: '#f4f0e4', Holland: '#2f4f9a', pirate: '#1b1b1b' };
 
-export function townSizeClass(population) {
-  if (population >= 25) return 2;
-  if (population >= 12) return 1;
-  return 0;
+// Prosperity level from town growth (CSTN 9, town_economy.md): 0 struggling,
+// 1 surviving, 2 prospering, 3 wealthy.
+export function prosperityLevel(growth) {
+  return Math.min(3, Math.max(0, growth >> 6));
 }
 
 function canvas() {
@@ -50,12 +46,8 @@ function house(art, style, { x, base, w, h, roofRows, windows = 1, door = true, 
   const top = base - h;
   art.rect(x, top, w, h, style.wall);
   art.rect(x + w - 1, top, 1, h, style.wallShade);
-  if (style.timber) {
-    art.rect(x, top, w, 1, style.timber);
-    for (let col = x + 2; col < x + w - 1; col += 3) art.rect(col, top, 1, h, style.timber);
-  }
   for (let row = 0; row < roofRows; row += 1) {
-    const inset = style.gable ? Math.floor(row / 2) * 2 : row;
+    const inset = row;
     const left = x - 1 + inset;
     const width = w + 2 - inset * 2;
     if (width <= 0) break;
@@ -136,28 +128,43 @@ function flag(art, nation, { x, top }) {
   art.set(x + 4, poleTop + 1, FLAG_DARK[nation.key]);
 }
 
+// A wide two-storey residence with a hipped roof, for the governor's house.
+function mansion(art, style, { x, base }) {
+  house(art, style, { x, base, w: 8, h: 6, roofRows: 3, windows: 4, lit: true });
+  art.rect(x, base - 3, 8, 1, style.wallShade);
+}
+
 // Paints a town marker. `nation` is { key, color, dark } from NATIONS.
-export function paintTownSprite({ nation, population, forts: fortCount }) {
+export function paintTownSprite({ nation, prosperity, forts: fortCount }) {
   const art = canvas();
-  const style = STYLES[nation.key] ?? STYLES.pirate;
-  const size = townSizeClass(population);
   let flagAt;
-  if (size === 0) {
-    house(art, style, { x: 6, base: 18, w: 5, h: 4, roofRows: 3 });
-    house(art, style, { x: 12, base: 19, w: 6, h: 5, roofRows: 3, windows: 2, lit: true });
-    flagAt = { x: 14, top: 10 };
-  } else if (size === 1) {
-    house(art, style, { x: 4, base: 17, w: 5, h: 4, roofRows: 3 });
-    flagAt = church(art, style, { x: 9, base: 17, towerHeight: 9 });
-    house(art, style, { x: 7, base: 20, w: 5, h: 4, roofRows: 3, lit: true });
-    house(art, style, { x: 14, base: 20, w: 6, h: 5, roofRows: 3, windows: 2 });
+  if (prosperity <= 0) {
+    // Struggling: two thatched huts and a woodpile.
+    house(art, THATCH, { x: 6, base: 19, w: 5, h: 3, roofRows: 3, door: false });
+    house(art, THATCH, { x: 13, base: 19, w: 5, h: 4, roofRows: 3 });
+    art.rect(19, 17, 3, 2, '#7a5a36');
+    art.rect(19, 17, 3, 1, '#9b7647');
+    flagAt = { x: 15, top: 11 };
+  } else if (prosperity === 1) {
+    // Surviving: a cluster of plain houses.
+    house(art, STYLE, { x: 4, base: 17, w: 5, h: 4, roofRows: 3 });
+    house(art, STYLE, { x: 13, base: 17, w: 5, h: 4, roofRows: 3 });
+    house(art, STYLE, { x: 8, base: 20, w: 6, h: 5, roofRows: 3, windows: 2 });
+    flagAt = { x: 10, top: 11 };
+  } else if (prosperity === 2) {
+    // Prospering: a church with a bell tower among lit houses.
+    house(art, STYLE, { x: 3, base: 17, w: 5, h: 4, roofRows: 3, lit: true });
+    flagAt = church(art, STYLE, { x: 9, base: 17, towerHeight: 9 });
+    house(art, STYLE, { x: 6, base: 20, w: 5, h: 4, roofRows: 3, lit: true });
+    house(art, STYLE, { x: 14, base: 20, w: 6, h: 5, roofRows: 3, windows: 2 });
   } else {
-    house(art, style, { x: 2, base: 16, w: 5, h: 4, roofRows: 3 });
-    house(art, style, { x: 19, base: 16, w: 5, h: 5, roofRows: 3, windows: 2 });
-    flagAt = church(art, style, { x: 8, base: 16, towerHeight: 11 });
-    house(art, style, { x: 4, base: 20, w: 6, h: 5, roofRows: 3, windows: 2, lit: true });
-    house(art, style, { x: 11, base: 20, w: 5, h: 4, roofRows: 3 });
-    house(art, style, { x: 17, base: 20, w: 6, h: 5, roofRows: 3, windows: 2 });
+    // Wealthy: a tall church, the governor's mansion and a crowded skyline.
+    house(art, STYLE, { x: 1, base: 16, w: 5, h: 5, roofRows: 3, windows: 2 });
+    house(art, STYLE, { x: 20, base: 16, w: 5, h: 5, roofRows: 3, windows: 2, lit: true });
+    flagAt = church(art, STYLE, { x: 7, base: 16, towerHeight: 12 });
+    mansion(art, STYLE, { x: 3, base: 21 });
+    house(art, STYLE, { x: 12, base: 21, w: 5, h: 5, roofRows: 3, lit: true });
+    house(art, STYLE, { x: 18, base: 21, w: 6, h: 6, roofRows: 3, windows: 2 });
   }
   forts(art, fortCount);
   flag(art, nation, flagAt);
