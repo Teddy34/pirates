@@ -3,7 +3,7 @@ import {
 } from './data.mjs';
 import {
   TICKS_PER_DAY, TICKS_PER_WIND_SHIFT, VOYAGE_START_TICK, isHalfDayTick, isDailyTick, voyageDays,
-  clamp, createRng, targetSailingSpeed, stepSailingSpeed,
+  clamp, createRng, startFromRecord, targetSailingSpeed, stepSailingSpeed,
   shiftWind, cloudCountForMonth, navigationSkill, turnHeadingDownwind,
   createVoyageClouds, driftClouds, nearestCloudDistancePixels, cloudWrapOpacity,
   applyProvisionalBoardingOutcome,
@@ -154,8 +154,10 @@ function newState(options) {
   const requestedNationality = options.nationality || 'France';
   const nationality = scenario.starts[requestedNationality] ? requestedNationality : 'France';
   const start = scenario.starts[nationality];
-  const [startX, startY] = start.points[difficulty];
-  const favour = Object.fromEntries([...NATION_ORDER, 'pirate'].map((nation, index) => [nation, start.favour[index]]));
+  const seed = (Date.now() ^ Math.floor(performance.now() * 1000)) >>> 0;
+  const startRng = createRng(seed);
+  const { point: [startX, startY], favour: startFavour } = startFromRecord(start, startRng);
+  const favour = Object.fromEntries([...NATION_ORDER, 'pirate'].map((nation, index) => [nation, startFavour[index]]));
   const ranks = Object.fromEntries(NATION_ORDER.map((nation, index) => [nation, start.ranks[index]]));
   const diplomacy = Object.fromEntries(NATION_ORDER.map((nation, row) => [
     nation, Object.fromEntries(NATION_ORDER.map((other, column) => [other, start.diplomacy[row][column]])),
@@ -169,8 +171,8 @@ function newState(options) {
     nationality,
     difficulty,
     ability: options.ability,
-    seed: (Date.now() ^ Math.floor(performance.now() * 1000)) >>> 0,
-    rngState: 1,
+    seed,
+    rngState: startRng.state,
     mode: 'sailing', paused: false, tick: 0,
     calendar: { day: 0, month: 0, year: Number(era) },
     player: {

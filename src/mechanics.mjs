@@ -525,6 +525,15 @@ export function pirateCaptainTerms(value = 7) {
   };
 }
 
+// New-game record copy (0x1386C): the start point is rnd(4) of the record's
+// four points (0x1395A), not chosen by difficulty, and pirate favour
+// (0x45E7E) is set to -1 after the record's five favour bytes are copied.
+export function startFromRecord(start, rng) {
+  const favour = [...start.favour];
+  favour[4] = -1;
+  return { point: start.points[rng.int(4)], favour };
+}
+
 export function governorPromotion({ favour, rank, governorMood }) {
   const nextRank = rank + 1;
   if (nextRank > 9) return null;
