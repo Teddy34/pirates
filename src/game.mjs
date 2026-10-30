@@ -225,8 +225,11 @@ async function startGame(nextState) {
   state.player.specialGoods ??= 0;
   state.portTrade ??= { townIndex: null, merchantCash: null, shipwrightCash: null };
   await loadWorldMap(state.era);
+  // A game saved in port resumes at sea as if leaving the town (0x19B9E).
+  if (state.visit) placeForDeparture(state.visit.townIndex, state.visit.overland);
+  state.visit = null;
   movePlayerToNavigableCell();
-  // A game saved in port resumes at sea beside the town's trigger cells.
+  // Overland and older saves may still lie beside the town's trigger cells.
   state.player.arrivalGuard = true;
   rng = createRng(state.seed);
   if (state.rngState && state.rngState !== 1) rng.state = state.rngState;
