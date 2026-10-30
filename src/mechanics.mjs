@@ -328,6 +328,14 @@ export function nearestTriggerTown(triggers, cellX, cellY) {
   return bestTown;
 }
 
+// 0x19B9E: the ship starts on the centre of the town's departure cell
+// (cell·16 + 8 px) facing departure_heading[w28]; inland towns have none.
+export function departurePose(departure) {
+  if (!departure) return null;
+  const [cellX, cellY, heading] = departure;
+  return { x: cellX + .5, y: cellY + .5, heading };
+}
+
 // town_dist is measured to the town record's (x, y), not to a trigger cell,
 // and a distance of 0 counts as 1 (0x23E0E–0x23E4C).
 export function townDistanceCells(town, cellX, cellY) {

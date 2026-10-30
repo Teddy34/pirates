@@ -10,7 +10,7 @@ import {
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
   acceptsRudderInput,
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
-  triggerTownAt, nearestTriggerTown, townDistanceCells, alertAfterNearestTownCheck,
+  triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
   isEncounterHunter, hunterOvertakes,
   harborAttempt, sneakAttempt, tavernRecruits, morale, dividePlunder, startNewExpedition,
   pirateCaptainTerms, governorPromotion, convoyReport,
@@ -405,12 +405,9 @@ function isInlandTown(index) {
 // town's departure heading. ASSUMED: a landing party (provisional, K1) simply
 // rejoins the fleet where it anchored, so an overland visit leaves the ship.
 function placeForDeparture(townIndex, overland) {
-  const departure = townDeparture(townIndex);
-  if (overland || !departure) return;
-  const [cellX, cellY, heading] = departure;
-  state.player.x = cellX + .5;
-  state.player.y = cellY + .5;
-  state.player.heading = heading;
+  if (overland) return;
+  const pose = departurePose(townDeparture(townIndex));
+  if (pose) Object.assign(state.player, pose);
 }
 
 function departFromApproach() {
@@ -1432,7 +1429,6 @@ function resolveTownCapture(town) {
 function tryHarbor(town) {
   const result = harborAttempt({ favour: state.player.favour[town.nation], governorMood: town.mood, crew: state.player.crew, forts: town.forts, rng });
   if (result.admitted) { enterTown(town, false); return; }
-  departFromApproach();
   // Fort fire can only sink a ship that arrived by sea (0x1953A).
   if (result.shipLost && !state.approach?.overland) {
     // 0x1F2A1(rnd(ship_count), 0, 1): cargo share lost; the last ship means prison.
@@ -1449,7 +1445,6 @@ function tryHarbor(town) {
 function trySneak(town) {
   const unseen = sneakAttempt({ governorMood: town.mood, reputation: state.player.reputation, rng });
   if (unseen) { enterTown(town, true); return; }
-  departFromApproach();
   showNotice('Recognized!', 'A governor’s guard spots you in the street. You escape the patrol and return to your ship.');
 }
 

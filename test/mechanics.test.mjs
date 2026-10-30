@@ -12,7 +12,7 @@ import {
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
   applyProvisionalBoardingOutcome,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
-  triggerTownAt, nearestTriggerTown, townDistanceCells, alertAfterNearestTownCheck,
+  triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
 } from '../src/mechanics.mjs';
 import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
 
@@ -410,4 +410,9 @@ test('the single town alert resets only when the nearest town changes', () => {
   assert.equal(alertAfterNearestTownCheck(27, 4, 5), 0);
   // The half-day roll then builds alert again near the new town.
   assert.equal(encounterRoll(3, alertAfterNearestTownCheck(27, 4, 5), fixedRng({ integer: 7 })).alert, 5);
+});
+
+test('leaving a town starts at the departure cell centre with its heading', () => {
+  assert.deepEqual(departurePose([401, 205, 192]), { x: 401.5, y: 205.5, heading: 192 });
+  assert.equal(departurePose(null), null);
 });
