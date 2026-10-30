@@ -20,7 +20,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | D4 | M | **Time doesn't follow the voyage clock.** In the original, each voyage starts its tick count at 63, with half-day and daily checks at offsets from that. Every arrival or encounter ends the voyage and costs `tick/64 + 1` days (at least 2). The port runs the half-day and daily checks on a global tick (`game.mjs:489-490`) and charges no days for arrivals or encounters. Wind does use the voyage tick. The project hasn't recorded whether it keeps the original's "at least 2 days" rule (porting guide quirk 3). |
 | D5 | M | **Leaving town ignores the town's departure cell and heading.** The port moves the ship 8 cells along its current heading (`game.mjs:1884-1892`). The departure heading isn't extracted, and the `harbors` field in the scenario data is never used. |
 | D6 | M | **Fixed in #4.** **No minimum crew per ship.** The original makes you abandon ships when you have fewer than 8 men per ship, and checks this at every voyage start, after dividing the plunder and after an assault (ships §5). The port never enforces it. |
-| D7 | M | **Losing a ship doesn't lose its share of the cargo.** When the flagship sinks, the enemy takes a ship during your escape, or the fort sinks one, the original also removes that ship's share of gold, food, goods and cannon. The port just deletes the ship and trims cargo to fit (`game.mjs:759-762`, `779-780`, `1206`). Fort fire also never sinks your only ship (`:1205`); in the original that is the "last ship" path, which means prison. |
+| D7 | M | **Fixed in #7.** **Losing a ship doesn't lose its share of the cargo.** When the flagship sinks, the enemy takes a ship during your escape, or the fort sinks one, the original also removes that ship's share of gold, food, goods and cannon. The port just deletes the ship and trims cargo to fit (`game.mjs:759-762`, `779-780`, `1206`). Fort fire also never sinks your only ship (`:1205`); in the original that is the "last ship" path, which means prison. |
 | D8 | L | **Fixed in #1.** The starvation formula (crew/20 desert, `game.mjs:513-517`) isn't in the docs, which say it was never traced. It isn't marked `ASSUMED` as `AGENTS.md` requires. |
 | D9 | L | At the map edge the original turns the ship around; the port just stops it at the edge (`game.mjs:477-478`). |
 
@@ -43,7 +43,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | D17 | L | The battle wind's strength changes even when its direction didn't (`:329-336`); the docs say only if the direction changed. |
 | D18 | L | The enemy's wanted heading isn't rounded to 16. |
 | D19 | M | The "enemy takes a ship when you escape" penalty also applies at sunset (`game.mjs:773`). The docs limit it to escape (event 6). |
-| D20 | M | When the flagship sinks, the port halves the crew (`game.mjs:761`). Nothing in the docs supports this and it isn't marked as an assumption. |
+| D20 | M | **Fixed in #7** (with D7). When the flagship sinks, the port halves the crew (`game.mjs:761`). Nothing in the docs supports this and it isn't marked as an assumption. |
 
 ## Captures, morale and prisoners
 
@@ -101,7 +101,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | K7 | Lost relatives and villains |
 | K8 | Marriage and the governor's daughter (favour ≥ 2) |
 | K9 | Health, forced retirement and score |
-| K10 | Prison and shipwreck relocation (a free Pinnace is used instead, marked `ASSUMED`) |
+| K10 | Prison and shipwreck relocation (relocation and the fresh fleet are done since #4; prison time and escape are still missing) |
 
 ## What matched the docs
 

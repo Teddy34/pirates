@@ -582,6 +582,29 @@ export function abandonShip(player, slot) {
   return { player: { ...player, ships: player.ships.filter((_, index) => index !== slot) }, lost: player.ships[slot] };
 }
 
+// remove_ship with cargo lost (0x1F2A1, keep_cargo = 0): the ship takes its
+// share of the hold, 2·(T+1) of the fleet's units, as a fraction of the gold,
+// food (8.8 fixed point), goods, third good and cannon. Gold is truncated;
+// the rest are rounded. The last ship takes the last-ship path instead.
+export function removeShipWithCargo(player, slot, shipStats) {
+  if (player.ships.length < 2) throw new Error('the last ship takes the last-ship path');
+  const units = (ship) => 2 * (shipStats[ship.type].type + 1);
+  const share = units(player.ships[slot]) / player.ships.reduce((sum, ship) => sum + units(ship), 0);
+  const rounded = (value) => value - Math.trunc(value * share + .5);
+  return {
+    player: {
+      ...player,
+      ships: player.ships.filter((_, index) => index !== slot),
+      partyGold: player.partyGold - Math.trunc(player.partyGold * share),
+      foodFixed: rounded(player.foodFixed),
+      goods: rounded(player.goods),
+      specialGoods: rounded(player.specialGoods),
+      cannon: rounded(player.cannon),
+    },
+    lost: player.ships[slot],
+  };
+}
+
 // Fresh fleet after the last ship is lost (0x1EF87 with g = 0): a tenth of
 // personal wealth is lost, a tenth of the remainder funds the voyage, and the
 // lost flagship's type returns repaired with a small crew. The crew comes

@@ -67,6 +67,9 @@ for future work.
 - Fight tactical battles on a fixed-step clock with flagship choice, steering,
   sail changes, broadsides, damage, enemy tactics, surrender, sinking, escape,
   and explicit provisional boarding outcomes.
+- Lose a sunk flagship, or a reserve ship taken during an escape, with its
+  decoded share of gold, food, goods, the era commodity, and cannon; losing
+  the last ship ends in a shipwreck restart.
 - Carry surviving crew, cannon, flagship damage, captured ships, reputation,
   and nearby-town alert back into the campaign. Captures continue through
   prize-ship choice, named-captain handling, plunder, and volunteers.
@@ -77,8 +80,8 @@ for future work.
   chosen from the trigger table as in the original.
 - Send a provisional landing party to inland towns (overland travel is not
   playable yet).
-- Attempt open harbor entry, including fort fire and possible reserve-ship
-  loss.
+- Attempt open harbor entry, including fort fire that can sink any ship with
+  its share of the cargo, or the last ship and send you to prison.
 - Sneak into hostile towns and resolve the recognition check.
 - Apply port desertion from low morale.
 - Visit the governor, tavern, and merchant through dialog menus.
