@@ -19,6 +19,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
   fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
   escapeCostsShip,
+  monthEndCrewEvent, mutinyOutcome,
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
@@ -688,22 +689,56 @@ function setupClouds() {
 // Every exit from the sailing view ends the voyage (0x2885B–0x289BB): the
 // calendar gains tick / 64 + 1 days, running each month boundary crossed,
 // and the next voyage restarts the tick at 63.
-function endVoyage() {
+// The original charges the days (0x1DD0E, which ends with the mutiny check)
+// before it dispatches the event that ended the voyage (0x2849C), so `next`
+// runs after any mutiny has been resolved; it receives whether one happened.
+function endVoyage(next = () => {}, { aboard = true } = {}) {
   const player = state.player;
-  passDays(voyageDays(player.voyageTick ?? VOYAGE_START_TICK));
+  const monthsCrossed = passDays(voyageDays(player.voyageTick ?? VOYAGE_START_TICK));
   player.voyageTick = VOYAGE_START_TICK;
   player.cloudDistancePixels = 999;
+  const event = monthsCrossed > 0 && monthEndCrewEvent({
+    morale: morale({ ...player, difficulty: state.difficulty }),
+    crew: player.crew,
+    monthsAtSea: player.monthsAtSea,
+    aboard,
+  });
+  if (event === 'mutiny') { showMutiny(() => next(true)); return; }
+  if (event === 'restless') addLog('The men grow restless; without plunder soon they may mutiny.');
+  if (event === 'divide') addLog('After many months at sea the men are anxious to divide the plunder.');
+  next(false);
+}
+
+function showMutiny(next) {
+  state.paused = true;
+  const resolve = (duelWon) => {
+    const player = state.player;
+    const result = mutinyOutcome({ crew: player.crew, partyGold: player.partyGold, reputation: player.reputation, duelWon });
+    Object.assign(player, { crew: result.crew, partyGold: result.partyGold, reputation: result.reputation });
+    addLog(`Mutiny! ${result.deserters} men deserted with ${result.goldLost} gold; you ${duelWon ? 'cut down' : 'were beaten by'} their leader.`);
+    next();
+  };
+  showDialog({
+    kicker: 'Mutiny', title: 'Your men confront you on the quarterdeck',
+    body: '<p>“Captain, you are a skulker and a coward. We are taking this ship to search for plunder!” A third of the crew deserts as you draw your sword and attack their leader.</p><p>Sword fighting is not playable yet. Choose the provisional result of the duel; either way the mutiny costs you reputation.</p>',
+    actions: [
+      { label: 'Defeat the ringleader', run: () => resolve(true) },
+      { label: 'Lose the duel', secondary: true, run: () => resolve(false) },
+    ],
+  });
 }
 
 function passDays(days) {
+  let monthsCrossed = 0;
   for (let day = 0; day < days; day += 1) {
     const nextDate = advanceDate(state.calendar);
     state.calendar = { day: nextDate.day, month: nextDate.month, year: nextDate.year };
-    if (nextDate.newMonth) monthlyUpdate();
+    if (nextDate.newMonth) { monthlyUpdate(); monthsCrossed += 1; }
     // The browser autosave waits until sailing resumes, so it never records
     // a voyage that is about to open an encounter or a town.
     if ((state.calendar.day + state.calendar.month * 30) % 5 === 0) autosaveDue = true;
   }
+  return monthsCrossed;
 }
 
 function stepSimulation() {
@@ -779,8 +814,7 @@ function checkTownArrival(attemptedX, attemptedY, previousX, previousY) {
   state.player.x = previousX;
   state.player.y = previousY;
   state.nearestTownIndex = nearestTriggerTown(triggers, touched[0], touched[1]);
-  endVoyage();
-  approachTown();
+  endVoyage(() => approachTown());
   return true;
 }
 
@@ -813,8 +847,7 @@ function dailyUpdate({ marching = false } = {}) {
   // event 5 the next voyage starts with the fleet check; an open encounter
   // runs it on resuming.
   const undermanned = !state.paused && fleetIsUndermanned({ crew: player.crew, shipCount: player.ships.length });
-  if (foodEvent || undermanned) endVoyage();
-  if (undermanned) resumeSailing();
+  if (foodEvent || undermanned) endVoyage((mutinied) => { if (undermanned || mutinied) resumeSailing(); });
 }
 
 function monthlyUpdate() {
@@ -825,8 +858,6 @@ function monthlyUpdate() {
   state.towns = state.towns.map((town) => updateTownMonthly(town, state.calendar.month, rng));
   updateDiplomacy();
   applyRandomTownEvent();
-  const crewMood = morale({ ...player, difficulty: state.difficulty });
-  if (crewMood < 0) addLog('The crew grows restless and calls for plunder.');
   addLog(`${MONTHS[state.calendar.month]} begins. The Caribbean shifts around you.`);
 }
 
@@ -888,7 +919,10 @@ function applyRandomTownEvent() {
 }
 
 function openSighting(town, distance) {
-  endVoyage();
+  endVoyage(() => showSighting(town, distance));
+}
+
+function showSighting(town, distance) {
   state.paused = true;
   showDialog({
     kicker: 'Sail ho!', title: 'A sail on the horizon',
@@ -1470,10 +1504,12 @@ function marchOverland(townIndex, days) {
     state.player.voyageTick = (state.player.voyageTick ?? VOYAGE_START_TICK) + TICKS_PER_DAY;
     dailyUpdate({ marching: true });
   }
-  endVoyage();
-  state.nearestTownIndex = townIndex;
-  addLog(`The landing party marches to ${state.towns[townIndex].name}.`);
-  approachTown({ overland: true });
+  // On foot (0x47ACA set), so the month-end mutiny check does not run.
+  endVoyage(() => {
+    state.nearestTownIndex = townIndex;
+    addLog(`The landing party marches to ${state.towns[townIndex].name}.`);
+    approachTown({ overland: true });
+  }, { aboard: false });
 }
 
 function attackTown(town) {
