@@ -50,6 +50,14 @@ for future work.
   plunder, after a town assault, and when crew drops below eight men per ship:
   choose ships to abandon with their cargo kept, and lose the last ship to a
   shipwreck or prison restart with the decoded fresh fleet.
+- Serve the decoded captivity after losing the last ship, in prison or on the
+  uncharted island (`0x1F803`): 27-day steps while the step count is at most
+  reputation/2 + 6, with the monthly world running; then the fresh fleet,
+  freed pirate captives, a health-based message, and one difficulty level
+  lower. In poor health the retirement check that runs first offers a
+  provisional choice to retire or carry on.
+- Apply the monthly land income and the decoded reputation decay
+  (`rep -= rep >> 3`).
 - Pause, zoom, steer, and change sail from keyboard or touch controls.
 
 ### World simulation
@@ -141,8 +149,8 @@ The following systems have no complete playable implementation:
 - treasure fleets, silver trains, overland treasure-map searching, and named pirates;
 - lost relatives, villains, rumors, and rescue quests;
 - courtship, rival suitors, marriage, and family benefits;
-- wounds, aging, illness, medicine effects, prison time, ransom, and escape
-  (losing the last ship already relocates you and restarts the fleet);
+- aging and illness effects beyond the captivity message, ransom, and the
+  retirement check at the start of captivity;
 - retirement, land grants, final score, and career ending;
 - music, sound effects, and a complete original art set.
 

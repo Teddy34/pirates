@@ -652,11 +652,18 @@ export function removeShipWithCargo(player, slot, shipStats) {
 // personal wealth is lost, a tenth of the remainder funds the voyage, and the
 // lost flagship's type returns repaired with a small crew. The crew comes
 // from 0x45E76 (the README's reputation byte, the docs' captures counter),
-// which the port stores as `reputation`.
+// which the port stores as `reputation`; months at sea restart at 0.
+// The original stores reputation + 16 as an unsigned word and uses 1 only
+// when it is exactly 0: reputation -15..-9 leaves 1..7 men, so the fleet
+// check abandons the ship again forever, and below -16 the word wraps to
+// tens of thousands of men. ASSUMED: the port gives at least the eight men
+// one ship needs.
+export const RESTART_MIN_CREW = 8;
+
 export function restartAfterLastShip(player, flagship, shipStats) {
   const typeIndex = shipStats[flagship.type].type;
   const personalWealth = player.personalWealth - Math.trunc(player.personalWealth / 10);
-  const crew = player.reputation + 16;
+  const crew = Math.max(RESTART_MIN_CREW, player.reputation + 16);
   return {
     ...player,
     personalWealth,
@@ -666,7 +673,33 @@ export function restartAfterLastShip(player, flagship, shipStats) {
     foodFixed: 15 * 256,
     goods: 0,
     specialGoods: 0,
-    crew: crew <= 0 ? player.crew : crew,
+    crew,
+    monthsAtSea: 0,
+  };
+}
+
+// Captivity after the last ship is lost (0x1F803, called by 0x1F2A1 for
+// both prison and the uncharted island). Time passes in 27-day steps of the
+// calendar routine 0x1DD0E while step <= trunc(reputation / 2) + 6; the
+// reputation is re-read before every step, so monthly decay can shorten it.
+export const CAPTIVITY_STEP_DAYS = 27;
+
+export function captivityContinues(reputation, stepsServed) {
+  return Math.trunc(reputation / 2) + 6 >= stepsServed;
+}
+
+// 0x1DB64: health 0 fine .. 3 poor, from years elapsed plus wounds.
+export function healthLevel({ yearsElapsed, wounds = 0, medicine = false }) {
+  return Math.min(3, Math.trunc((yearsElapsed + wounds) / (medicine ? 4 : 3)));
+}
+
+// The rest of 0x1F803 after the fresh fleet: captured pirates are freed
+// (0x4720A cleared), and the difficulty drops one level unless it is already
+// Apprentice, so you return "as an apprentice/journeyman/... captain".
+export function releaseFromCaptivity(player, difficulty) {
+  return {
+    player: { ...player, capturedCaptains: (player.capturedCaptains ?? []).filter(({ pirate }) => !pirate) },
+    difficulty: (difficulty & 3) !== 0 ? difficulty - 1 : difficulty,
   };
 }
 

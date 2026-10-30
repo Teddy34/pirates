@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
+  CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
 } from '../src/mechanics.mjs';
 import { SHIPS } from '../src/data.mjs';
 
@@ -59,7 +60,9 @@ test('losing the last ship restarts with the decoded fresh fleet and no gold', (
   assert.equal(after.goods, 0);
   assert.equal(after.specialGoods, 0);
   assert.equal(after.crew, 20);
-  assert.equal(restartAfterLastShip(player({ reputation: -16, crew: 3 }), { type: 'Sloop' }, SHIPS).crew, 3);
+  assert.equal(after.monthsAtSea, 0);
+  assert.equal(restartAfterLastShip(player({ reputation: -12, crew: 3 }), { type: 'Sloop' }, SHIPS).crew, 8);
+  assert.equal(restartAfterLastShip(player({ reputation: -40, crew: 3 }), { type: 'Sloop' }, SHIPS).crew, 8);
 });
 
 test('the shore search finds the first land cell on clockwise rings and faces away from it', () => {
@@ -76,4 +79,29 @@ test('inland towns carry the documented release offsets', () => {
   assert.deepEqual(INLAND_RELEASE_OFFSETS['Gran Granada'], [50, 0]);
   assert.deepEqual(INLAND_RELEASE_OFFSETS.Panama, [0, -20]);
   assert.equal(Object.keys(INLAND_RELEASE_OFFSETS).length, 6);
+});
+
+test('captivity lasts while the step count is within reputation/2 + 6', () => {
+  const steps = (reputation) => { let n = 0; while (captivityContinues(reputation, n)) n += 1; return n; };
+  assert.equal(CAPTIVITY_STEP_DAYS, 27);
+  assert.equal(steps(0), 7);
+  assert.equal(steps(5), 9);
+  assert.equal(steps(-3), 6);
+  assert.equal(steps(-14), 0);
+  assert.equal(steps(-15), 0);
+});
+
+test('health counts years and wounds in thirds, quarters with medicine', () => {
+  assert.equal(healthLevel({ yearsElapsed: 2, wounds: 0 }), 0);
+  assert.equal(healthLevel({ yearsElapsed: 2, wounds: 1 }), 1);
+  assert.equal(healthLevel({ yearsElapsed: 3, wounds: 0, medicine: true }), 0);
+  assert.equal(healthLevel({ yearsElapsed: 20, wounds: 0 }), 3);
+});
+
+test('release from captivity frees held pirates and lowers the difficulty', () => {
+  const captives = [{ pirate: true }, { pirate: false, nation: 'Spain' }];
+  const released = releaseFromCaptivity({ capturedCaptains: captives }, 2);
+  assert.deepEqual(released.player.capturedCaptains, [{ pirate: false, nation: 'Spain' }]);
+  assert.equal(released.difficulty, 1);
+  assert.equal(releaseFromCaptivity({}, 0).difficulty, 0);
 });

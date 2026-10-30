@@ -101,7 +101,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | K7 | Lost relatives and villains |
 | K8 | Marriage and the governor's daughter (favour ≥ 2) |
 | K9 | Health, forced retirement and score |
-| K10 | Prison and shipwreck relocation (relocation and the fresh fleet are done since #4; prison time and escape are still missing) |
+| K10 | **Done in #12.** Prison and shipwreck relocation (relocation and the fresh fleet since #4). Captivity time traced from `0x1F803`: both prison and the uncharted island last (trunc(reputation/2) + 7) steps of 27 days, re-checking reputation each step; the fresh fleet follows, held pirates go free, a health message (CSTR 176–179) shows, and difficulty drops one level. The original has no escape option. The retirement check (`0x1F1D7`) that runs first now offers a provisional retire / carry-on choice in poor health until K9. Also fixed in #12: the fresh fleet resets months at sea to 0 (`0x1EF87`); its crew is `u16(reputation + 16)`, 1 only when that is exactly 0 (ships.md's "kept as is" is wrong), so the port takes at least 8 men (ASSUMED) instead of the original's endless abandon loop or wrapped crew; monthly reputation decay is `rep -= rep >> 3` (floor, `0xCEB8`), not truncation; and monthly land income `wealth += land / 2` is applied. |
 
 ## What matched the docs
 

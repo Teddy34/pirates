@@ -20,6 +20,7 @@ import {
   fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
   escapeCostsShip,
   monthEndCrewEvent, mutinyOutcome,
+  CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
@@ -581,12 +582,13 @@ function runFleetCheck({ inTown = false, done }) {
   showOverfullHold(done, 'You have more cargo than will fit in your hold! You must throw some overboard!');
 }
 
-// Last-ship path of remove_ship (0x1F2A1): prison in a town (0x1C056) or a
-// shipwreck at sea (0x1BE71), then the fresh fleet 0x1EF87 with no gold.
+// Last-ship path of remove_ship (0x1F2A1): prison in a town (0x1C056) or the
+// uncharted island at sea (0x1BE71). Both then run 0x1F803: months pass,
+// the fresh fleet 0x1EF87(0) is fitted out, held pirates go free and the
+// difficulty drops a level.
 function loseLastShip({ inTown, done, cause = '' }) {
   const town = state.visit ? state.towns[state.visit.townIndex] : nearestTown();
   const lost = state.player.ships[0];
-  state.player = restartAfterLastShip(state.player, lost, SHIPS);
   const release = inTown ? releaseFromTown(town) : shoreNear(state.player.x, state.player.y);
   if (release) {
     state.player.x = release.x + .5;
@@ -594,16 +596,89 @@ function loseLastShip({ inTown, done, cause = '' }) {
     if (release.heading !== undefined) state.player.heading = release.heading;
   }
   state.player.speed = 0;
-  addLog(inTown ? `Imprisoned in ${town.name}; released with a new ${shipName(lost)}.` : `Washed ashore after losing the ${shipName(lost)}; a new expedition begins.`);
   showDialog({
     kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
     body: inTown
-      ? `${cause}<p>You are imprisoned in ${town.name}.</p><p>On your release, backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`
-      : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
-    // ASSUMED: the restart can leave fewer than eight men when reputation is
-    // below -8, which would loop the original check forever; the port runs
-    // the last-ship path once and continues.
+      ? `${cause}<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${town.name}.</p>`
+      : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p>`,
+    actions: [{ label: 'Continue', run: () => serveCaptivity({ inTown, town, lost, done }) }],
+  });
+}
+
+const CAPTIVITY_TEXT = [
+  'The months pass quickly as you search for a way out. Fortunately, you are still young and healthy.',
+  'The passing months take their toll on your spirits and vitality. There is much yet to be done.',
+  'The months pass slowly, with frequent bouts of discouragement and illness.',
+  'Each month seems an eternity; age and old battle wounds sap your strength.',
+];
+const DIFFICULTY_ARTICLES = ['an apprentice', 'a journeyman', 'an adventurer', 'a swashbuckler'];
+
+function captainHealth() {
+  return healthLevel({
+    yearsElapsed: state.calendar.year - Number(state.era),
+    wounds: state.player.wounds ?? 0,
+    medicine: state.ability === 'medicine',
+  });
+}
+
+// 0x1F1D7 runs first: in poor health (3) the captain retires (CSTR 160) and
+// the career ends. Retirement and the final score are not playable yet (K9),
+// so the player chooses a provisional outcome. The famous-expedition branch
+// (CSTR 159) does not apply: every port game is a career.
+function serveCaptivity({ inTown, town, lost, done }) {
+  if (captainHealth() < 3) {
+    beginCaptivity({ inTown, town, lost, done });
+    return;
+  }
+  showDialog({
+    kicker: 'Poor health', title: 'Time to retire?',
+    body: '<p>Your crew scatters to the winds. Age and old battle wounds sap your strength, and your officers sign on with a younger captain.</p><p>Retirement and the final score are not playable yet. Choose a provisional outcome.</p>',
+    actions: [
+      { label: 'Retire and end this career', run: () => {
+        localStorage.removeItem(SAVE_KEY);
+        location.reload();
+      } },
+      { label: 'Carry on for one more voyage', secondary: true, run: () => beginCaptivity({ inTown, town, lost, done }) },
+    ],
+  });
+}
+
+function beginCaptivity({ inTown, town, lost, done }) {
+  const player = state.player;
+  player.monthsAtSea = -16;
+  const before = { ...state.calendar };
+  // Each step is one 0x1DD0E call, so on the island its crew check can raise
+  // a mutiny; reputation is re-read before every step.
+  const serveStep = (step) => {
+    if (!captivityContinues(state.player.reputation, step)) {
+      endCaptivity({ inTown, town, lost, done, before });
+      return;
+    }
+    const monthsCrossed = passCaptivityDays(CAPTIVITY_STEP_DAYS);
+    if (inTown) { serveStep(step + 1); return; }
+    monthEndCrewCheck({ monthsCrossed, aboard: true }, () => serveStep(step + 1));
+  };
+  serveStep(0);
+}
+
+function endCaptivity({ inTown, town, lost, done, before }) {
+  const months = (state.calendar.year - before.year) * 12 + state.calendar.month - before.month;
+  state.player = restartAfterLastShip(state.player, lost, SHIPS);
+  const released = releaseFromCaptivity(state.player, state.difficulty);
+  state.player = released.player;
+  state.difficulty = released.difficulty;
+  const health = captainHealth();
+  const captainKind = DIFFICULTY_ARTICLES[state.difficulty];
+  addLog(inTown
+    ? `Released from prison in ${town.name} after ${months} months; back at sea as ${captainKind} captain.`
+    : `Rescued from an uncharted island after ${months} months; back at sea as ${captainKind} captain.`);
+  showDialog({
+    kicker: inTown ? 'Released' : 'Rescued', title: `${months} months pass`,
+    body: `<p>${CAPTIVITY_TEXT[health]}</p><p>${inTown
+      ? `Your former comrades take pity on you and trade a captured nobleman for your freedom. They agree to take you back as ${captainKind} captain.`
+      : `One day a small ship puts in at the island to resupply, and you recognize some of your former crew. They agree to take you back as ${captainKind} captain.`}</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
     actions: [{ label: 'Continue', run: () => {
+      saveGame(false);
       if (state.mode !== 'town') { done(); return; }
       // Released from a port visit: the new voyage starts at the release point.
       state.visit = null;
@@ -612,6 +687,21 @@ function loseLastShip({ inTown, done, cause = '' }) {
       startVoyage();
     } }],
   });
+}
+
+// 0x1DD0E with captivity's day count: the calendar and the monthly world
+// update advance, but no food is eaten. Its closing crew check (0x1DDC5) runs
+// only while 0x47ACA is 0: after a loss at sea it still is, so it uses the
+// lost fleet's crew on the island; in a town prison bit 1 is set and it is
+// skipped (entering_towns.md, 0x47ACA table).
+function passCaptivityDays(days) {
+  let monthsCrossed = 0;
+  for (let day = 0; day < days; day += 1) {
+    const nextDate = advanceDate(state.calendar);
+    state.calendar = { day: nextDate.day, month: nextDate.month, year: nextDate.year };
+    if (nextDate.newMonth) { monthlyUpdate({ newsLog: false }); monthsCrossed += 1; }
+  }
+  return monthsCrossed;
 }
 
 // 0x1C056: a coastal town releases you on its departure cell; an inland town
@@ -697,6 +787,12 @@ function endVoyage(next = () => {}, { aboard = true } = {}) {
   const monthsCrossed = passDays(voyageDays(player.voyageTick ?? VOYAGE_START_TICK));
   player.voyageTick = VOYAGE_START_TICK;
   player.cloudDistancePixels = 999;
+  monthEndCrewCheck({ monthsCrossed, aboard }, next);
+}
+
+// The crew check that ends 0x1DD0E; `next` receives whether a mutiny happened.
+function monthEndCrewCheck({ monthsCrossed, aboard }, next) {
+  const player = state.player;
   const event = monthsCrossed > 0 && monthEndCrewEvent({
     morale: morale({ ...player, difficulty: state.difficulty }),
     crew: player.crew,
@@ -850,15 +946,18 @@ function dailyUpdate({ marching = false } = {}) {
   if (foodEvent || undermanned) endVoyage((mutinied) => { if (undermanned || mutinied) resumeSailing(); });
 }
 
-function monthlyUpdate() {
+function monthlyUpdate({ newsLog = true } = {}) {
   const player = state.player;
   player.monthsAtSea += player.partyGold > 32767 ? 2 : 1;
-  player.reputation -= Math.trunc(player.reputation / 8);
+  // 0xCEB8: wealth += land / 2; reputation -= reputation >> 3 (an
+  // arithmetic shift, so -1 decays to 0).
+  player.personalWealth += Math.trunc(player.land / 2);
+  player.reputation -= player.reputation >> 3;
   for (const nation of NATION_ORDER) player.favour[nation] = clamp(player.favour[nation], -100, 100);
   state.towns = state.towns.map((town) => updateTownMonthly(town, state.calendar.month, rng));
   updateDiplomacy();
   applyRandomTownEvent();
-  addLog(`${MONTHS[state.calendar.month]} begins. The Caribbean shifts around you.`);
+  if (newsLog) addLog(`${MONTHS[state.calendar.month]} begins. The Caribbean shifts around you.`);
 }
 
 function addWorldNews(message) {
@@ -2732,6 +2831,15 @@ loadScenarios().then(() => {
     // Panama 1560 is inland; the fleet lies at anchor four cells away.
     const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     Object.assign(previewState.player, { x: 318.5, y: 443.5, speed: 0, sails: 'furled' });
+    startGame(previewState);
+    return;
+  }
+  if (preview === 'shipwreck' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // Four men cannot sail the last ship: the fleet check takes the at-sea
+    // last-ship path to the uncharted island.
+    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 2, ability: 'navigation' });
+    Object.assign(previewState.player, { crew: 4, reputation: 2, capturedCaptains: [{ pirate: true, ship: 'Sloop', value: 7 }] });
+    previewState.player.ships = previewState.player.ships.slice(0, 1);
     startGame(previewState);
     return;
   }
