@@ -647,7 +647,7 @@ function beginCaptivity({ inTown, town, lost, done }) {
   const player = state.player;
   player.monthsAtSea = -16;
   const before = { ...state.calendar };
-  for (let step = 0; captivityContinues(player.reputation, step); step += 1) passCaptivityDays(CAPTIVITY_STEP_DAYS);
+  for (let step = 0; captivityContinues(player.reputation, step); step += 1) passCaptivityDays(CAPTIVITY_STEP_DAYS, { inTown });
   const months = (state.calendar.year - before.year) * 12 + state.calendar.month - before.month;
   state.player = restartAfterLastShip(state.player, lost, SHIPS);
   const released = releaseFromCaptivity(state.player, state.difficulty);
@@ -676,14 +676,15 @@ function beginCaptivity({ inTown, town, lost, done }) {
 }
 
 // 0x1DD0E with captivity's day count: the calendar and the monthly world
-// update advance, but no food is eaten. ASSUMED: the aboard-ship crew
-// warnings are skipped, because the at-sea flag 0x47ACA during captivity
-// was not traced.
-function passCaptivityDays(days) {
+// update advance, but no food is eaten. The monthly crew checks (0x1DDC5)
+// run only while 0x47ACA is 0: after a loss at sea it still is, so they use
+// the lost fleet's crew on the island; in a town prison bit 1 is set and
+// they are skipped (entering_towns.md, 0x47ACA table).
+function passCaptivityDays(days, { inTown }) {
   for (let day = 0; day < days; day += 1) {
     const nextDate = advanceDate(state.calendar);
     state.calendar = { day: nextDate.day, month: nextDate.month, year: nextDate.year };
-    if (nextDate.newMonth) monthlyUpdate({ captive: true });
+    if (nextDate.newMonth) monthlyUpdate({ crewChecks: !inTown, newsLog: false });
   }
 }
 
@@ -923,7 +924,7 @@ function dailyUpdate({ marching = false } = {}) {
   if (foodEvent || undermanned) endVoyage((mutinied) => { if (undermanned || mutinied) resumeSailing(); });
 }
 
-function monthlyUpdate({ captive = false } = {}) {
+function monthlyUpdate({ newsLog = true } = {}) {
   const player = state.player;
   player.monthsAtSea += player.partyGold > 32767 ? 2 : 1;
   // 0xCEB8: wealth += land / 2; reputation -= reputation >> 3 (an
@@ -934,7 +935,7 @@ function monthlyUpdate({ captive = false } = {}) {
   state.towns = state.towns.map((town) => updateTownMonthly(town, state.calendar.month, rng));
   updateDiplomacy();
   applyRandomTownEvent();
-  if (!captive) addLog(`${MONTHS[state.calendar.month]} begins. The Caribbean shifts around you.`);
+  if (newsLog) addLog(`${MONTHS[state.calendar.month]} begins. The Caribbean shifts around you.`);
 }
 
 function addWorldNews(message) {
