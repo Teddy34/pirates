@@ -341,11 +341,12 @@ function movePlayerToNavigableCell() {
     for (let dy = -distance; dy <= distance; dy += 1) {
       const dx = distance - Math.abs(dy);
       for (const xDirection of dx === 0 ? [0] : [-dx, dx]) {
-        const x = originX + xDirection;
-        const y = originY + dy;
+        // Place the ship at the cell centre, so test that exact map pixel.
+        const x = originX + xDirection + .5;
+        const y = originY + dy + .5;
         if (isNavigable(x, y)) {
-          state.player.x = x + .5;
-          state.player.y = y + .5;
+          state.player.x = x;
+          state.player.y = y;
           return;
         }
       }

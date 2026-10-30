@@ -66,11 +66,13 @@ test('all difficulty start points have nearby navigable water', async () => {
     const packed = await readMap(era);
     for (const [nation, start] of Object.entries(scenario.starts)) {
       for (const [startX, startY] of start.points) {
-        let found = false;
-        for (let distance = 0; distance <= 12 && !found; distance += 1) {
+        // Mirrors movePlayerToNavigableCell: the start itself, else a cell centre.
+        let found = isNavigableAt(packed, startX, startY);
+        for (let distance = 1; distance <= 12 && !found; distance += 1) {
           for (let dy = -distance; dy <= distance; dy += 1) {
             const dx = distance - Math.abs(dy);
-            found ||= cellHasWater(packed, startX - dx, startY + dy) || cellHasWater(packed, startX + dx, startY + dy);
+            found ||= isNavigableAt(packed, startX - dx + .5, startY + dy + .5)
+              || isNavigableAt(packed, startX + dx + .5, startY + dy + .5);
           }
         }
         assert.ok(found, `${era} ${nation} start ${startX},${startY} has no nearby water`);
