@@ -1529,7 +1529,7 @@ function finishPlunderDivision(division, nextDifficulty) {
   // including clandestine entry and one-off tavern/merchant state.
   state.visit = { ...state.visit, sneaking: false, recruited: false, merchant: null };
   addLog(`Divided the plunder: ${oldCrew} crew received ${division.crewShare} gold each.`);
-  addLog(`A new expedition begins aboard the ${flagship} with ${player.crew} loyal hands.`);
+  addLog(`A new expedition begins aboard the ${shipName(flagship)} with ${player.crew} loyal hands.`);
   saveGame(false);
   showDialog({
     kicker: 'A new account', title: 'The company disperses',
