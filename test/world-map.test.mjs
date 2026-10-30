@@ -120,14 +120,16 @@ test('trigger tables match the documented era counts and test vectors', () => {
   assert.equal(towns1660[tie].name, 'Port-de-Paix');
 });
 
-test('coastal trigger cells border the sea and inland ones do not', async () => {
+// Inland towns are not asserted dry: Panama faces the Pacific and Gran Granada
+// Lake Nicaragua, neither of which a ship can reach from the Caribbean.
+test('every coastal town has a trigger cell beside water', async () => {
   for (const [era, scenario] of Object.entries(scenarios)) {
     const map = await readMap(era);
     const besideSea = ([x, y]) => [-1, 0, 1].some((dx) => [-1, 0, 1].some((dy) => cellHasWater(map, x + dx, y + dy)));
     scenario.towns.forEach((town, index) => {
       const cells = scenario.townTriggers.filter(([, , owner]) => owner === index);
       const inland = town.harbors[1][0] === 0 || town.harbors[1][1] === 0;
-      assert.equal(cells.some(besideSea), !inland, `${era} ${town.name}`);
+      if (!inland) assert.ok(cells.some(besideSea), `${era} ${town.name}`);
     });
   }
 });
