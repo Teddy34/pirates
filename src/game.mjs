@@ -44,6 +44,9 @@ const MAX_ZOOM = 64;
 const NATION_ORDER = ['Spain', 'England', 'France', 'Holland'];
 const RANK_NAMES = ['Mr.', 'Ensign', 'Captain', 'Major', 'Colonel', 'Admiral', 'Baron', 'Count', 'Marquis', 'Duke'];
 const DIFFICULTY_NAMES = ['Apprentice', 'Journeyman', 'Adventurer', 'Swashbuckler'];
+// 0x184F8: the refit after a division runs the calendar four times, 26 days each.
+const DIVISION_REFIT_STEPS = 4;
+const DIVISION_REFIT_STEP_DAYS = 26;
 const WIND_NAMES = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
 
 const canvas = document.querySelector('#game');
@@ -664,7 +667,7 @@ function beginCaptivity({ inTown, town, lost, done }) {
       endCaptivity({ inTown, town, lost, done, before });
       return;
     }
-    const monthsCrossed = passCaptivityDays(CAPTIVITY_STEP_DAYS);
+    const monthsCrossed = passCalendarDays(CAPTIVITY_STEP_DAYS);
     if (inTown) { serveStep(step + 1); return; }
     monthEndCrewCheck({ monthsCrossed, aboard: true }, () => serveStep(step + 1));
   };
@@ -706,7 +709,9 @@ function endCaptivity({ inTown, town, lost, done, before }) {
 // only while 0x47ACA is 0: after a loss at sea it still is, so it uses the
 // lost fleet's crew on the island; in a town prison bit 1 is set and it is
 // skipped (entering_towns.md, 0x47ACA table).
-function passCaptivityDays(days) {
+// The calendar routine 0x1DD0E, as 0x1E018 calls it for captivity and the
+// refit after a division: day by day, with each month's update.
+function passCalendarDays(days) {
   let monthsCrossed = 0;
   for (let day = 0; day < days; day += 1) {
     const nextDate = advanceDate(state.calendar);
@@ -980,6 +985,10 @@ function monthlyUpdate({ newsLog = true } = {}) {
 // battle reload and the month-end crew check read the stored value.
 function refreshCrewMorale() {
   state.player.crewMorale = morale({ ...state.player, difficulty: state.difficulty });
+}
+
+function formatDate({ day, month, year }) {
+  return `${day + 1} ${MONTHS[month]} ${year}`;
 }
 
 function addWorldNews(message) {
@@ -1986,11 +1995,18 @@ function finishPlunderDivision(division, nextDifficulty) {
   // including clandestine entry and one-off tavern/merchant state.
   state.visit = { ...state.visit, sneaking: false, recruited: false, merchant: null };
   addLog(`Divided the plunder: ${oldCrew} crew received ${division.crewShare} gold each.`);
+  // 0x184A8: the refit takes four 26-day calls of the calendar routine
+  // (0x1E018), 104 days with every month's update, after months at sea is
+  // reset to -16. ASSUMED: as for a town prison, the month-end crew check is
+  // not run while the ship lies in port.
+  const refitStart = { ...state.calendar };
+  for (let step = 0; step < DIVISION_REFIT_STEPS; step += 1) passCalendarDays(DIVISION_REFIT_STEP_DAYS);
+  addLog(`The ${shipName(flagship)} was careened and refitted, ${DIVISION_REFIT_STEPS * DIVISION_REFIT_STEP_DAYS} days ashore from ${formatDate(refitStart)}.`);
   addLog(`A new expedition begins aboard the ${shipName(flagship)} with ${player.crew} loyal hands.`);
   saveGame(false);
   showDialog({
     kicker: 'A new account', title: 'The company disperses',
-    body: `<p>Your share of ${division.captainTake.toLocaleString()} gold is secured as personal wealth. Your backers provide ${division.expeditionGold.toLocaleString()} gold for a new expedition.</p><dl><dt>Personal wealth</dt><dd>${player.personalWealth.toLocaleString()}</dd><dt>Reputation</dt><dd>${player.reputation}</dd><dt>New crew</dt><dd>${player.crew}</dd></dl>`,
+    body: `<p>Your share of ${division.captainTake.toLocaleString()} gold is secured as personal wealth. Your backers provide ${division.expeditionGold.toLocaleString()} gold for a new expedition.</p><p>Your ship is careened and refitted; provisions are collected and stowed. News of your expedition spreads among the islands. Small groups of hardy men return to join your band.</p><dl><dt>Time ashore</dt><dd>${DIVISION_REFIT_STEPS * DIVISION_REFIT_STEP_DAYS} days, until ${formatDate(state.calendar)}</dd><dt>Personal wealth</dt><dd>${state.player.personalWealth.toLocaleString()}</dd><dt>Reputation</dt><dd>${state.player.reputation}</dd><dt>New crew</dt><dd>${player.crew}</dd></dl>`,
     actions: [{ label: 'Return to town', run: () => runFleetCheck({ inTown: true, done: showTownMenu }) }],
   });
 }
@@ -2711,7 +2727,7 @@ function updateInterface() {
   const town = nearestTown();
   const distance = nearestTownDistance();
   labels.captain.textContent = `Captain ${state.captain} · ${state.nationality}`;
-  labels.date.textContent = `${state.calendar.day + 1} ${MONTHS[state.calendar.month]} ${state.calendar.year}`;
+  labels.date.textContent = formatDate(state.calendar);
   labels.speed.textContent = `${player.speed.toFixed(1)} cells/day`;
   labels.wind.textContent = WIND_NAMES[(player.wind >> 4) & 15];
   labels.sails.textContent = { furled: 'Closed', battle: 'Low', full: 'High' }[player.sails];
