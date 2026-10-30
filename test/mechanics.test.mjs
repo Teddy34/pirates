@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   acceptsRudderInput, advanceDate, VOYAGE_START_TICK, isHalfDayTick, isDailyTick, voyageDays, consumeDailyFood, encounterRoll, foodDays, starvationDesertion, monthEndCrewEvent, mutinyOutcome,
-  isEncounterHunter, prizeMoraleBonus, startFromRecord, createRng, hunterOvertakes, escapeCostsShip, harborAttempt,
+  isEncounterHunter, drawHunterCaptain, captainName, captainRenown, prizeMoraleBonus, startFromRecord, createRng, hunterOvertakes, escapeCostsShip, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -469,4 +469,33 @@ test('a captured prize raises stored crew morale by 1, or 2 above kind 5', () =>
   assert.equal(prizeMoraleBonus(5), 1);
   assert.equal(prizeMoraleBonus(6), 2);
   assert.equal(prizeMoraleBonus(7), 2);
+});
+
+test('hunter captains are named from their id like the original', () => {
+  // Row 1 (Delgado), title index 2 (Colonel), Spain.
+  assert.equal(captainName(1 * 8 + 2), 'Colonel Delgado');
+  // Row 4, title 3 (Admiral), Holland (nation 3).
+  assert.equal(captainName(4 * 8 + 3 + 64 * 3), 'Admiral de Graff');
+  assert.equal(captainRenown(2), 'cowardly');
+  assert.equal(captainRenown(3), 'promising');
+  assert.equal(captainRenown(7), 'well known');
+});
+
+test('hunter names use each of five rows before any repeats', () => {
+  const rng = createRng(99);
+  let usedRows = 0;
+  const rows = [];
+  for (let draw = 0; draw < 5; draw += 1) {
+    const captain = drawHunterCaptain({ usedRows, nationIndex: 2, rng });
+    usedRows = captain.usedRows;
+    rows.push((captain.id >> 3) & 7);
+    assert.equal((captain.id >> 6) & 3, 2);
+  }
+  assert.deepEqual([...rows].sort(), [0, 1, 2, 3, 4]);
+  assert.equal(usedRows, 31);
+  // A full mask starts over: one row taken, or two if id 0 forced a redraw.
+  const next = drawHunterCaptain({ usedRows, nationIndex: 0, rng });
+  const taken = [0, 1, 2, 3, 4].filter((row) => next.usedRows & (1 << row)).length;
+  assert.ok(taken === 1 || taken === 2);
+  assert.ok(next.id > 0);
 });
