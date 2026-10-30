@@ -12,6 +12,7 @@ import {
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
   triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
   isEncounterHunter, hunterOvertakes, drawHunterCaptain, captainName, captainRenown,
+  MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
   harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, startNewExpedition,
   pirateCaptainTerms, governorPromotion, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
@@ -228,6 +229,7 @@ async function startGame(nextState) {
   state.worldNews ??= initialDiplomacyNews(state.diplomacy, state.calendar);
   state.treasureMap ??= { pieces: 0, clueTownIndex: null };
   state.hunterNameRows ??= 0;
+  state.mission ??= null;
   state.player.barmaidRapport ??= {};
   state.player.barmaidInformants ??= [];
   state.player.capturedCaptains ??= [];
@@ -671,6 +673,8 @@ function beginCaptivity({ inTown, town, lost, done }) {
 function endCaptivity({ inTown, town, lost, done, before }) {
   const months = (state.calendar.year - before.year) * 12 + state.calendar.month - before.month;
   state.player = restartAfterLastShip(state.player, lost, SHIPS);
+  // 0x1F803 also abandons any governor mission (0x1F87C).
+  state.mission = null;
   const released = releaseFromCaptivity(state.player, state.difficulty);
   state.player = released.player;
   state.difficulty = released.difficulty;
@@ -1008,7 +1012,10 @@ function applyRandomTownEvent() {
   const townIndex = rng.int(64);
   if (townIndex >= state.towns.length - 2) return;
   const town = state.towns[townIndex];
-  switch (rng.int(5)) {
+  // 0xCAC4: the issuing town of an open mission keeps its governor.
+  let event = rng.int(5);
+  while (event === 3 && state.mission && townIndex === state.mission.issuer) event = rng.int(5);
+  switch (event) {
     case 0:
       town.soldiers = Math.floor(town.soldiers / 2);
       addWorldNews(`Indians have attacked ${town.name}.`);
@@ -1060,10 +1067,23 @@ function revealEncounter(town, distance) {
     tier = Math.floor(roll / 4);
     nation = NATION_ORDER[roll % 4];
   }
-  const [ship, flag, crew, guns, kind, gold, cargo] = scenarios[state.era].encounters[nation][tier];
-  const hostile = isEncounterHunter({ kind, favour: state.player.favour[flag] });
+  const encounters = scenarios[state.era].encounters;
+  let template = encounters[nation][tier];
+  // 0xD3E7: in the waters of an open pirate mission's target town, 4 times
+  // in 5 the ship is the mission nation's pirate.
+  const mission = state.mission;
+  const missionWaters = mission?.type === MISSION.PIRATE && !mission.done && mission.target === state.nearestTownIndex;
+  if (missionWaters && rng.int(5) !== 0) {
+    template = encounters[mission.nation].find((entry) => entry[1] === 'pirate') ?? template;
+  }
+  const [ship, flag, crew, guns, kind, gold, cargo] = template;
+  // 0xD525: any pirate met there is the wanted man, and he always gives chase.
+  const wanted = missionWaters && flag === 'pirate';
+  const hostile = wanted || isEncounterHunter({ kind, favour: state.player.favour[flag] });
   const enemy = { ship, flag, crew, guns, kind, gold, cargo, hostile, namedCaptain: hostile };
-  if (hostile) {
+  if (wanted) {
+    Object.assign(enemy, { captainId: mission.captainId, captainName: captainName(mission.captainId) });
+  } else if (hostile) {
     // A pirate hunter takes his surname from the local waters' nation.
     const nationIndex = NATION_ORDER.indexOf(flag === 'pirate' ? town.nation : flag);
     const captain = drawHunterCaptain({ usedRows: state.hunterNameRows ?? 0, nationIndex, rng });
@@ -1338,6 +1358,10 @@ function finishPrizeDecision(enemy, keepShip) {
     addWorldNews(`Shipping losses have hurt trade at ${nearbyTown.name}.`);
   }
 
+  if (isMissionPirateId(enemy.captainId ?? 0)) {
+    completeMission(() => openShipPlunder(enemy));
+    return;
+  }
   if (enemy.flag === 'pirate') {
     resolvePirateCaptain(enemy, () => openShipPlunder(enemy));
     return;
@@ -1680,7 +1704,16 @@ function resolveTownCapture(town) {
   if (loot.gold > 990) propagateFavour(oldNation, -2);
   const threshold = 10 * town.population + rng.int(10 * town.population);
   addLog(`Captured ${town.name} from ${oldNation}.`);
+  // 0x2285C: taking the rescue mission's town frees the governor's son.
+  const mission = state.mission;
+  if (mission?.type === MISSION.RESCUE && !mission.done && mission.target === state.towns.indexOf(town)) {
+    completeMission(() => settleCapturedTown(town, oldNation, loot, threshold));
+    return;
+  }
+  settleCapturedTown(town, oldNation, loot, threshold);
+}
 
+function settleCapturedTown(town, oldNation, loot, threshold) {
   const proceed = () => beginPlunderTransfer(`Plunder of ${town.name}`, loot, () => {
     saveGame(false);
     departFromApproach();
@@ -1773,13 +1806,128 @@ function enterTown(town, sneaking) {
   showTownMenu();
 }
 
+// CSTR 200-209 and the logbook lines of CSTN 20 (28-36).
+const MISSION_ORDERS = {
+  [MISSION.LETTER]: (target) => `“You must deliver this letter to my cousin who lives in the city of ${target}. Please hurry.”`,
+  [MISSION.PAPERS]: (target) => `“You must deliver these secret documents to my half-brother, who is acting as a spy for our king in the city of ${target}. His future depends upon your haste.”`,
+  [MISSION.PIRATE]: (target, pirate) => `“The pirate ${pirate} is again roaming the seas off the coast of ${target}. You must capture him and his band of cutthroats.”`,
+  [MISSION.RESCUE]: (target) => `“My son is held captive by our king’s enemies in the city of ${target}. I charge you to capture the town and free my son!”`,
+};
+const MISSION_ACCEPTED_LOGS = {
+  [MISSION.LETTER]: (target) => `Accepted letter for ${target}.`,
+  [MISSION.PAPERS]: (target) => `Accepted papers for ${target}.`,
+  [MISSION.PIRATE]: (target, pirate) => `Pirate ${pirate} off ${target}.`,
+  [MISSION.RESCUE]: (target) => `Accepted rescue mission to ${target}.`,
+};
+const MISSION_DONE_TEXTS = {
+  [MISSION.LETTER]: (issuer) => `The cousin of the governor of ${issuer} accepts the letter you have brought him. “The governor will surely reward you for this service,” he adds with a smile.`,
+  [MISSION.PAPERS]: (issuer) => `The half-brother of the governor of ${issuer} quietly accepts the secret documents you have brought him. “The king will be greatly pleased by your efforts,” he whispers.`,
+  [MISSION.PIRATE]: (issuer, pirate) => `The governor of ${issuer} will be greatly pleased by your capture of the evil pirate ${pirate} and his crew.`,
+  [MISSION.RESCUE]: (issuer) => `The son of the governor of ${issuer} is freed from his dark prison cell. “My father will reward you handsomely for this noble deed,” he cries.`,
+};
+const MISSION_DONE_LOGS = {
+  [MISSION.LETTER]: (target) => `Delivered letter to ${target}.`,
+  [MISSION.PAPERS]: (target) => `Delivered papers to ${target}.`,
+  [MISSION.PIRATE]: (target, pirate) => `Captured the pirate ${pirate}.`,
+  [MISSION.RESCUE]: (target) => `Rescued prisoner from ${target}.`,
+};
+
+function governorMission(town, next) {
+  const townIndex = state.visit.townIndex;
+  const mission = state.mission;
+  const kicker = `${town.nation} governor`;
+  if (mission) {
+    // Only the governor who gave the mission settles it (0x12E9D).
+    if (mission.issuer !== townIndex) { next(); return; }
+    state.mission = null;
+    if (!mission.done) {
+      // 0x12EC9: an open mission counts as failed.
+      state.player.favour[town.nation] -= 1;
+      town.mood -= 1;
+      addLog('Governor displeased by failure.');
+      showDialog({
+        kicker, title: 'A mission unfulfilled',
+        body: '<p>“I am disappointed that you have failed to complete the mission I gave to you,” the governor says.</p>',
+        actions: [{ label: 'Continue the audience', run: next }],
+      });
+      return;
+    }
+    // 0x12F70: favour +1 with the mission's nation. The binary adds the
+    // status word, which is the negated type by now, to the governor's mood.
+    state.player.favour[mission.nation] += 1;
+    town.mood -= mission.type;
+    showDialog({
+      kicker, title: 'A mission fulfilled',
+      body: mission.type === MISSION.PIRATE
+        ? `<p>“So you have brought me that despicable pirate, ${captainName(mission.captainId)},” the governor observes. “The king will be very pleased at this news.”</p>`
+        : '<p>“I am greatly pleased that you have fulfilled the mission I gave you,” the governor says. “Your service will be remembered.”</p>',
+      actions: [{ label: 'Continue the audience', run: next }],
+    });
+    return;
+  }
+  const offer = rollGovernorMission({
+    towns: state.towns, currentTownIndex: townIndex, nation: town.nation,
+    favour: state.player.favour[town.nation], governorMood: town.mood, diplomacy: state.diplomacy, rng,
+  });
+  if (!offer) { next(); return; }
+  showDialog({
+    kicker, title: 'An urgent mission',
+    body: '<p>“I have an urgent mission for you,” the governor says.</p>',
+    actions: [
+      { label: 'Accept the mission', run: () => acceptMission(town, offer, next) },
+      { label: 'Decline the mission', secondary: true, run: next },
+    ],
+  });
+}
+
+function acceptMission(town, { type, target }, next) {
+  const mission = { type, issuer: state.visit.townIndex, target, nation: town.nation, done: false };
+  if (type === MISSION.PIRATE) mission.captainId = missionPirateId(NATION_ORDER.indexOf(town.nation), rng);
+  state.mission = mission;
+  const targetName = state.towns[target].name;
+  const pirate = mission.captainId === undefined ? '' : captainName(mission.captainId);
+  addLog(MISSION_ACCEPTED_LOGS[type](targetName, pirate));
+  showDialog({
+    kicker: `${town.nation} governor`, title: 'Your orders',
+    body: `<p>${MISSION_ORDERS[type](targetName, pirate)}</p>`,
+    actions: [{ label: 'Continue the audience', run: next }],
+  });
+}
+
+// 0x1F8F7: the mission is done; its reward waits for the issuing governor.
+function completeMission(next) {
+  const mission = state.mission;
+  const issuer = state.towns[mission.issuer].name;
+  const target = state.towns[mission.target].name;
+  const pirate = mission.captainId === undefined ? '' : captainName(mission.captainId);
+  mission.done = true;
+  addLog(MISSION_DONE_LOGS[mission.type](target, pirate));
+  showDialog({
+    kicker: 'Mission accomplished', title: `Return to ${issuer}`,
+    body: `<p>${MISSION_DONE_TEXTS[mission.type](issuer, pirate)}</p>`,
+    actions: [{ label: 'Continue', run: next }],
+  });
+}
+
+// 0x1108F: in the target town of a letter or papers mission the recipient
+// appears. ASSUMED: the original shows him as a figure in the town view;
+// here he is a town menu entry.
+function missionDeliveryActions() {
+  const mission = state.mission;
+  if (!mission || mission.done || mission.target !== state.visit.townIndex) return [];
+  if (mission.type !== MISSION.LETTER && mission.type !== MISSION.PAPERS) return [];
+  const label = mission.type === MISSION.LETTER ? 'Deliver the letter' : 'Deliver the papers';
+  return [{ label, run: () => completeMission(showTownMenu) }];
+}
+
 function showTownMenu() {
   const town = state.towns[state.visit.townIndex];
   const commission = state.player.favour[town.nation] >= 2
     ? `${town.nation} letter of marque`
     : 'None';
   const actions = [
-    { label: 'Governor', run: showGovernor },
+    { label: 'Governor', run: openGovernorAudience },
+    ...missionDeliveryActions(),
     { label: 'Tavern', run: showTavern },
     { label: 'Merchant', run: openMerchant },
     { label: 'Shipwright', run: showShipwright },
@@ -1843,6 +1991,11 @@ function finishPlunderDivision(division, nextDifficulty) {
   });
 }
 
+function openGovernorAudience() {
+  state.visit.missionHeard = false;
+  showGovernor();
+}
+
 function showGovernor(offerPrisoners = true) {
   const town = state.towns[state.visit.townIndex];
   const favour = state.player.favour[town.nation];
@@ -1852,6 +2005,13 @@ function showGovernor(offerPrisoners = true) {
     : `<p>The governor reports that ${town.nation} is at peace with every European power in the Caribbean.</p>`;
   if (state.visit.sneaking) {
     showDialog({ kicker: 'Governor’s residence', title: 'The doors stay shut', body: '<p>The governor will not receive a visitor who slipped past his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
+    return;
+  }
+  // The governor driver settles or offers a mission (0x12E88) before the
+  // pirate delivery (0x12432) and the promotion (0x12549).
+  if (!state.visit.missionHeard) {
+    state.visit.missionHeard = true;
+    governorMission(town, () => showGovernor(offerPrisoners));
     return;
   }
   const capturedPirates = state.player.capturedCaptains.filter(({ pirate }) => pirate);

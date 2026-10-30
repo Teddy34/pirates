@@ -133,9 +133,9 @@ for future work.
 | System | Present | Still needed |
 | --- | --- | --- |
 | Sailing | Heading, wind, fleet speed, sails, collision, calendar, food, and seasonal clouds | Storms, exact reduced-sail behavior, and more faithful movement feedback |
-| Encounters | Sighting stages, identification, named hunter captains (title, surname and renown from the original's captain id), news, escape, tactical combat, provisional boarding outcomes, and capture aftermath | Quest overrides (and the quest captain id), treasure fleet encounters, the captain id's battle and sword skill, coastal battle terrain, and interactive sword fights |
-| Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, promotions, titles, missions, pardons, and nation-specific rewards |
-| Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading | Missions and richer governor actions |
+| Encounters | Sighting stages, identification, named hunter captains (title, surname and renown from the original's captain id), the pirate-mission override and the wanted pirate's id, news, escape, tactical combat, provisional boarding outcomes, and capture aftermath | Treasure fleet encounters, the captain id's battle and sword skill, coastal battle terrain, and interactive sword fights |
+| Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, promotions, titles, pardons, and nation-specific rewards |
+| Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading, and governor missions (letter, papers, pirate hunt, rescue: offer, delivery, completion, failure and reward) | Richer governor actions; the AI-conquest exclusion of a mission town waits for AI conquest |
 | Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, and treasure movements |
 | Morale | Stored crew morale (recomputed each month and on load, +1 or +2 per captured prize; used for port desertion, battle reload and the month-end check), desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a provisional leader duel, and plunder division with crew satisfaction | A Party Status mood display (which recomputes morale in the original) and interactive mutiny combat |
 | Persistence | One versioned browser save slot and v1-v4 save migration | Multiple slots, battle-state persistence, and import/export |
@@ -186,6 +186,6 @@ fallback dialog when the real system becomes playable.
 2. Replace provisional boarding outcomes with interactive sword fighting.
 3. Complete the merchant and shipwright loops.
 4. Add sword fighting, fort battles, land battles, and town capture.
-5. Add missions, treasure systems, relatives, romance, aging, and retirement
+5. Add treasure systems, relatives, romance, aging, and retirement
    as complete vertical slices.
 
