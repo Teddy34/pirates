@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  acceptsRudderInput, advanceDate, consumeDailyFood, encounterRoll, foodDays, starvationDesertion,
+  acceptsRudderInput, advanceDate, VOYAGE_START_TICK, isHalfDayTick, isDailyTick, voyageDays, consumeDailyFood, encounterRoll, foodDays, starvationDesertion,
   isEncounterHunter, hunterOvertakes, escapeCostsShip, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
@@ -424,4 +424,14 @@ test('only escaping, not sunset, lets an undamaged pursuer take a reserve ship',
   assert.equal(escapeCostsShip({ ...base, shipCount: 1 }), false);
   assert.equal(escapeCostsShip({ ...base, enemyDamage: 16 }), false);
   assert.equal(escapeCostsShip({ ...base, enemyTactic: 'flee' }), false);
+});
+
+test('the voyage clock starts at 63 and charges tick / 64 + 1 days on leaving', () => {
+  const ticks = (count, check) => Array.from({ length: count }, (_, n) => VOYAGE_START_TICK + 1 + n).filter(check);
+  // First half-day step at tick 92, first meal at 126 (porting_guide.md §5.1).
+  assert.deepEqual(ticks(70, isHalfDayTick), [92, 124]);
+  assert.deepEqual(ticks(130, isDailyTick), [126, 190]);
+  assert.equal(voyageDays(VOYAGE_START_TICK + 1), 2);
+  assert.equal(voyageDays(VOYAGE_START_TICK + 64), 2);
+  assert.equal(voyageDays(VOYAGE_START_TICK + 65), 3);
 });

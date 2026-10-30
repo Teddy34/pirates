@@ -2,7 +2,7 @@ import {
   WORLD, NATIONS, SHIPS, LAND_SHAPES, MONTHS,
 } from './data.mjs';
 import {
-  TICKS_PER_DAY, TICKS_PER_HALF_DAY, TICKS_PER_WIND_SHIFT,
+  TICKS_PER_DAY, TICKS_PER_WIND_SHIFT, VOYAGE_START_TICK, isHalfDayTick, isDailyTick, voyageDays,
   clamp, createRng, targetSailingSpeed, stepSailingSpeed,
   shiftWind, cloudCountForMonth, navigationSkill, turnHeadingDownwind,
   createVoyageClouds, driftClouds, nearestCloudDistancePixels, cloudWrapOpacity,
@@ -71,6 +71,7 @@ const labels = {
 let state = null;
 let rng = createRng();
 let accumulator = 0;
+let autosaveDue = false;
 let battleAccumulator = 0;
 let previousSailingPose = null;
 let previousSailingClouds = null;
@@ -605,20 +606,45 @@ function setupClouds() {
   // The original voyage reset starts at 999; the first cloud update at the
   // end of the tick supplies the distance used by the following tick.
   state.player.cloudDistancePixels = 999;
-  state.player.voyageTick = 63;
+  state.player.voyageTick = VOYAGE_START_TICK;
+}
+
+// Every exit from the sailing view ends the voyage (0x2885B–0x289BB): the
+// calendar gains tick / 64 + 1 days, running each month boundary crossed,
+// and the next voyage restarts the tick at 63.
+function endVoyage() {
+  const player = state.player;
+  passDays(voyageDays(player.voyageTick ?? VOYAGE_START_TICK));
+  player.voyageTick = VOYAGE_START_TICK;
+  player.cloudDistancePixels = 999;
+}
+
+function passDays(days) {
+  for (let day = 0; day < days; day += 1) {
+    const nextDate = advanceDate(state.calendar);
+    state.calendar = { day: nextDate.day, month: nextDate.month, year: nextDate.year };
+    if (nextDate.newMonth) monthlyUpdate();
+    // The browser autosave waits until sailing resumes, so it never records
+    // a voyage that is about to open an encounter or a town.
+    if ((state.calendar.day + state.calendar.month * 30) % 5 === 0) autosaveDue = true;
+  }
 }
 
 function stepSimulation() {
   if (!state || state.paused || state.mode !== 'sailing') return;
+  if (autosaveDue) {
+    autosaveDue = false;
+    saveGame(false);
+  }
   const player = state.player;
   const previousPlayerX = player.x;
   const previousPlayerY = player.y;
   previousSailingPose = sailingPose();
   previousSailingClouds = state.clouds.map((cloud) => ({ ...cloud }));
   state.tick += 1;
-  player.voyageTick = (player.voyageTick ?? 63) + 1;
+  player.voyageTick = (player.voyageTick ?? VOYAGE_START_TICK) + 1;
 
-  if (acceptsRudderInput(state.tick)) {
+  if (acceptsRudderInput(player.voyageTick)) {
     if (input.left) player.heading = (player.heading - 16) & 0xff;
     if (input.right) player.heading = (player.heading + 16) & 0xff;
   }
@@ -650,8 +676,8 @@ function stepSimulation() {
   if (checkTownArrival(nextX, nextY, previousPlayerX, previousPlayerY)) return;
 
   if (player.voyageTick % TICKS_PER_WIND_SHIFT === 0) player.wind = shiftWind(player.wind, rng);
-  if (state.tick % TICKS_PER_HALF_DAY === 0) halfDayUpdate();
-  if (state.tick % TICKS_PER_DAY === 0) dailyUpdate();
+  if (isHalfDayTick(player.voyageTick)) halfDayUpdate();
+  if (isDailyTick(player.voyageTick)) dailyUpdate();
   state.clouds = driftClouds({
     clouds: state.clouds, playerX: player.x, playerY: player.y,
     playerDeltaX: player.x - previousPlayerX, playerDeltaY: player.y - previousPlayerY,
@@ -677,6 +703,7 @@ function checkTownArrival(attemptedX, attemptedY, previousX, previousY) {
   state.player.x = previousX;
   state.player.y = previousY;
   state.nearestTownIndex = nearestTriggerTown(triggers, touched[0], touched[1]);
+  endVoyage();
   approachTown();
   return true;
 }
@@ -691,11 +718,13 @@ function halfDayUpdate() {
   if (result.sighted) openSighting(town, distance);
 }
 
-function dailyUpdate() {
+// The daily check eats food; the calendar moves only when the voyage ends.
+function dailyUpdate({ marching = false } = {}) {
   const player = state.player;
   player.foodFixed = consumeDailyFood(player.foodFixed, player.crew);
   const remaining = foodDays(player.foodFixed, player.crew);
-  if (remaining > 0 && remaining <= 20 && remaining % 4 === 0) addLog(`Only ${remaining} days of food remain.`);
+  const foodEvent = remaining <= 20 && remaining % 4 === 0 && player.crew > 0;
+  if (remaining > 0 && foodEvent) addLog(`Only ${remaining} days of food remain.`);
   if (remaining === 0 && player.crew > 0) {
     const starving = starvationDesertion(player);
     player.crew = starving.crew;
@@ -703,14 +732,13 @@ function dailyUpdate() {
     player.foodFixed = starving.foodFixed;
     addLog(`Out of food: ${starving.deserters} men deserted with ${starving.goldLost} gold; the rest foraged 5 tons of food.`);
   }
-  // Event 5: too few men for the fleet ends the voyage, and the next one
-  // starts with the fleet check. An open encounter runs it on resuming.
-  if (!state.paused && fleetIsUndermanned({ crew: player.crew, shipCount: player.ships.length })) resumeSailing();
-
-  const nextDate = advanceDate(state.calendar);
-  state.calendar = { day: nextDate.day, month: nextDate.month, year: nextDate.year };
-  if (nextDate.newMonth) monthlyUpdate();
-  if ((state.calendar.day + state.calendar.month * 30) % 5 === 0) saveGame(false);
+  if (marching) return;
+  // Events 2 (food) and 5 (too few men for the fleet) end the voyage. After
+  // event 5 the next voyage starts with the fleet check; an open encounter
+  // runs it on resuming.
+  const undermanned = !state.paused && fleetIsUndermanned({ crew: player.crew, shipCount: player.ships.length });
+  if (foodEvent || undermanned) endVoyage();
+  if (undermanned) resumeSailing();
 }
 
 function monthlyUpdate() {
@@ -784,6 +812,7 @@ function applyRandomTownEvent() {
 }
 
 function openSighting(town, distance) {
+  endVoyage();
   state.paused = true;
   showDialog({
     kicker: 'Sail ho!', title: 'A sail on the horizon',
@@ -1317,8 +1346,6 @@ function finishCaptureFlow() {
 }
 
 function resumeAfterEncounter() {
-  state.player.cloudDistancePixels = 999;
-  state.player.voyageTick = 63;
   resumeSailing();
 }
 
@@ -1361,7 +1388,13 @@ function showOverlandMarch() {
 }
 
 function marchOverland(townIndex, days) {
-  for (let day = 0; day < days; day += 1) dailyUpdate();
+  // ASSUMED: until walking on land exists, each provisional march day is 64
+  // voyage ticks that eat food, and arriving ends the voyage as usual.
+  for (let day = 0; day < days; day += 1) {
+    state.player.voyageTick = (state.player.voyageTick ?? VOYAGE_START_TICK) + TICKS_PER_DAY;
+    dailyUpdate({ marching: true });
+  }
+  endVoyage();
   state.nearestTownIndex = townIndex;
   addLog(`The landing party marches to ${state.towns[townIndex].name}.`);
   approachTown({ overland: true });
