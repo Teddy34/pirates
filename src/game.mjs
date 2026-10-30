@@ -1469,18 +1469,6 @@ function beginPlunderTransfer(title, loot, done) {
     specialGoods: loot.specialGoods ?? 0,
     cannon: loot.cannon,
   };
-  let repeatDelay = 0;
-  let repeatInterval = 0;
-
-  const stopTransferRepeat = () => {
-    clearTimeout(repeatDelay);
-    clearInterval(repeatInterval);
-    repeatDelay = 0;
-    repeatInterval = 0;
-  };
-  addEventListener('pointerup', stopTransferRepeat);
-  addEventListener('pointercancel', stopTransferRepeat);
-  addEventListener('blur', stopTransferRepeat);
 
   const stowCargo = (kind, requested) => {
     const amount = Math.min(requested, remaining[kind], cargoRoom());
@@ -1537,9 +1525,6 @@ function beginPlunderTransfer(title, loot, done) {
 
     const finish = () => {
       stopTransferRepeat();
-      removeEventListener('pointerup', stopTransferRepeat);
-      removeEventListener('pointercancel', stopTransferRepeat);
-      removeEventListener('blur', stopTransferRepeat);
       const left = [
         remaining.food > 0 ? `${remaining.food} ${remaining.food === 1 ? 'ton' : 'tons'} of food` : '',
         remaining.goods > 0 ? `${remaining.goods} ${remaining.goods === 1 ? 'ton' : 'tons'} of goods` : '',
@@ -1563,7 +1548,6 @@ function beginPlunderTransfer(title, loot, done) {
       actions: [{ label: 'Finish looting', secondary: true, run: finish }],
     });
 
-    const transferButtons = [...dialogBody.querySelectorAll('[data-transfer]')];
     const applyTransfer = (transfer, kind) => {
       let moved = 0;
       if (transfer === 'take-everything') {
@@ -1579,33 +1563,50 @@ function beginPlunderTransfer(title, loot, done) {
       if (moved > 0) showTransfer(transfer, kind);
       return moved;
     };
-    for (const button of transferButtons) {
-      button.addEventListener('click', () => {
-        const { transfer, kind } = button.dataset;
-        applyTransfer(transfer, kind);
-      });
-      if (['take', 'return'].includes(button.dataset.transfer)) {
-        button.addEventListener('pointerdown', (event) => {
-          if (event.button !== 0 || button.disabled) return;
-          event.preventDefault();
-          stopTransferRepeat();
-          const { transfer, kind } = button.dataset;
-          if (applyTransfer(transfer, kind) === 0) return;
-          repeatDelay = setTimeout(() => {
-            repeatInterval = setInterval(() => {
-              if (applyTransfer(transfer, kind) === 0) stopTransferRepeat();
-            }, 90);
-          }, 320);
-        });
-      }
-    }
-    const nextFocus = transferButtons.find(button => !button.disabled && button.dataset.transfer === preferredTransfer && button.dataset.kind === preferredKind)
-      ?? transferButtons.find(button => !button.disabled && preferredKind && button.dataset.kind === preferredKind)
-      ?? transferButtons.find(button => !button.disabled && button.dataset.transfer === 'take')
-      ?? transferButtons.find(button => !button.disabled);
-    nextFocus?.focus();
+    bindTransferButtons(applyTransfer, { repeatable: ['take', 'return'], preferredTransfer, preferredKind, defaultTransfer: 'take' });
   }
   showTransfer();
+}
+
+// One-unit transfer arrows, shared by the plunder and merchant windows: a
+// click moves one unit and holding the arrow repeats. `apply` moves the
+// units, redraws the window when anything moved, and returns the count.
+let transferRepeatDelay = 0;
+let transferRepeatInterval = 0;
+
+function stopTransferRepeat() {
+  clearTimeout(transferRepeatDelay);
+  clearInterval(transferRepeatInterval);
+  transferRepeatDelay = 0;
+  transferRepeatInterval = 0;
+}
+addEventListener('pointerup', stopTransferRepeat);
+addEventListener('pointercancel', stopTransferRepeat);
+addEventListener('blur', stopTransferRepeat);
+
+function bindTransferButtons(apply, { repeatable, preferredTransfer, preferredKind, defaultTransfer }) {
+  const buttons = [...dialogBody.querySelectorAll('[data-transfer]')];
+  for (const button of buttons) {
+    button.addEventListener('click', () => apply(button.dataset.transfer, button.dataset.kind));
+    if (!repeatable.includes(button.dataset.transfer)) continue;
+    button.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || button.disabled) return;
+      event.preventDefault();
+      stopTransferRepeat();
+      const { transfer, kind } = button.dataset;
+      if (apply(transfer, kind) === 0) return;
+      transferRepeatDelay = setTimeout(() => {
+        transferRepeatInterval = setInterval(() => {
+          if (apply(transfer, kind) === 0) stopTransferRepeat();
+        }, 90);
+      }, 320);
+    });
+  }
+  const nextFocus = buttons.find(button => !button.disabled && button.dataset.transfer === preferredTransfer && button.dataset.kind === preferredKind)
+    ?? buttons.find(button => !button.disabled && preferredKind && button.dataset.kind === preferredKind)
+    ?? buttons.find(button => !button.disabled && button.dataset.transfer === defaultTransfer)
+    ?? buttons.find(button => !button.disabled);
+  nextFocus?.focus();
 }
 
 function finishCaptureFlow() {
@@ -2499,11 +2500,20 @@ function finishMerchantVisit() {
   if (market && Math.abs(state.player.partyGold - market.startingGold) > 20) {
     town.growth = Math.min(255, Math.floor((town.growth * 19) / 20) + 12);
   }
+  if (market?.bought) {
+    const tons = (amount) => `${amount} ton${amount === 1 ? '' : 's'}`;
+    const label = (kind) => (kind === 'specialGoods' ? specialGoodsName().toLowerCase() : kind);
+    const trades = ['food', 'goods', 'specialGoods'].flatMap((kind) => [
+      market.bought[kind] > 0 ? `bought ${tons(market.bought[kind])} of ${label(kind)}` : '',
+      market.sold[kind] > 0 ? `sold ${tons(market.sold[kind])} of ${label(kind)}` : '',
+    ]).filter(Boolean);
+    if (trades.length) addLog(`At the ${town.name} merchant: ${trades.join(', ')}.`);
+  }
   state.visit.merchant = null;
   showTownMenu();
 }
 
-function showMerchant() {
+function showMerchant(preferredTransfer = '', preferredKind = '') {
   const town = state.towns[state.visit.townIndex];
   if (town.nation === 'Spain' && 25 * state.player.ranks.Spain + scenarios[state.era].merchantThreshold < town.growth) {
     showDialog({ kicker: 'The merchant', title: '“We do not trade with pirates!”', body: '<p>The merchant dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
@@ -2528,32 +2538,52 @@ function showMerchant() {
     state.portTrade.merchantCash = state.visit.merchant.cash;
   }
   const market = state.visit.merchant;
-  const food = Math.floor(state.player.foodFixed / 256);
+  market.bought ??= { food: 0, goods: 0, specialGoods: 0 };
+  market.sold ??= { food: 0, goods: 0, specialGoods: 0 };
   const room = cargoRoom();
-  const amounts = { food, goods: state.player.goods, specialGoods: state.player.specialGoods };
-  const labels = { food: 'food', goods: 'goods', specialGoods: specialGoodsName().toLowerCase() };
-  const actions = [];
-  for (const kind of ['food', 'goods', 'specialGoods']) {
+  const rows = ['food', 'goods', 'specialGoods'].map((kind) => {
     const price = market.prices[kind];
-    const buyMaximum = Math.min(market.stocks[kind], room, Math.floor(state.player.partyGold / price));
-    const sellMaximum = Math.min(amounts[kind], Math.floor(market.cash / price));
-    if (buyMaximum > 0) {
-      actions.push({ label: `Buy 1 ton of ${labels[kind]} · ${price}`, run: () => tradeWithMerchant(kind, 1, 1) });
-      if (buyMaximum > 1) actions.push({ label: `Buy max ${labels[kind]} (${buyMaximum})`, run: () => tradeWithMerchant(kind, 1, buyMaximum) });
-    }
-    if (sellMaximum > 0) {
-      actions.push({ label: `Sell 1 ton of ${labels[kind]} · ${price}`, run: () => tradeWithMerchant(kind, -1, 1) });
-      if (sellMaximum > 1) actions.push({ label: `Sell max ${labels[kind]} (${sellMaximum})`, run: () => tradeWithMerchant(kind, -1, sellMaximum) });
-    }
-  }
-  actions.push({ label: 'Return to town', secondary: true, run: finishMerchantVisit });
+    const aboard = kind === 'food' ? Math.floor(state.player.foodFixed / 256) : state.player[kind];
+    const label = kind === 'specialGoods' ? specialGoodsName() : kind === 'food' ? 'Food' : 'Goods';
+    return {
+      kind, label, aboard, price, stock: market.stocks[kind],
+      unit: `ton of ${label.toLowerCase()}`,
+      buyMaximum: Math.min(market.stocks[kind], room, Math.floor(state.player.partyGold / price)),
+      sellMaximum: Math.min(aboard, Math.floor(market.cash / price)),
+    };
+  });
+  const rowMarkup = rows.map(row => `<tr>
+      <th scope="row">${row.label}</th>
+      <td><div class="plunder-cell"><button type="button" class="plunder-arrow" data-transfer="buy" data-kind="${row.kind}" aria-label="Buy one ${row.unit}" title="Buy one ${row.unit}"${row.buyMaximum === 0 ? ' disabled' : ''}>←</button><strong>${row.aboard}</strong><button type="button" class="plunder-take-all" data-transfer="sell-all" data-kind="${row.kind}"${row.sellMaximum === 0 ? ' disabled' : ''}>Sell all</button></div></td>
+      <td class="merchant-price">${row.price}</td>
+      <td><div class="plunder-cell plunder-source"><strong>${row.stock}</strong><button type="button" class="plunder-arrow" data-transfer="sell" data-kind="${row.kind}" aria-label="Sell one ${row.unit}" title="Sell one ${row.unit}"${row.sellMaximum === 0 ? ' disabled' : ''}>→</button><button type="button" class="plunder-take-all" data-transfer="buy-max" data-kind="${row.kind}"${row.buyMaximum === 0 ? ' disabled' : ''}>Buy max</button></div></td>
+    </tr>`).join('');
   showDialog({
     kicker: `The merchant · ${town.name}`, title: 'Buy or sell by the ton',
-    body: `<p>Use one-ton trades for an exact manifest, or the maximum shortcuts for speed.</p><dl><dt>Food: aboard / stock / price</dt><dd>${food} / ${market.stocks.food} / ${market.prices.food}</dd><dt>Goods: aboard / stock / price</dt><dd>${state.player.goods} / ${market.stocks.goods} / ${market.prices.goods}</dd><dt>${specialGoodsName()}: aboard / stock / price</dt><dd>${state.player.specialGoods} / ${market.stocks.specialGoods} / ${market.prices.specialGoods}</dd><dt>Free hold</dt><dd>${room} tons</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd><dt>Merchant cash</dt><dd>${market.cash}</dd></dl>`,
-    actions,
+    body: `<p>Prices are per ton. Use the arrows to trade one ton at a time, and hold an arrow to keep trading.</p>
+      <dl class="plunder-summary"><dt>Your gold</dt><dd>${state.player.partyGold}</dd><dt>Merchant cash</dt><dd>${market.cash}</dd><dt>Free hold</dt><dd>${room} tons</dd></dl>
+      <table class="plunder-manifest merchant-manifest">
+        <thead><tr><th>Type</th><th>Our fleet</th><th>Price</th><th>Merchant</th></tr></thead>
+        <tbody>${rowMarkup}</tbody>
+      </table>`,
+    actions: [{ label: 'Return to town', secondary: true, run: finishMerchantVisit }],
   });
+  const applyTrade = (transfer, kind) => {
+    const all = Number.MAX_SAFE_INTEGER;
+    const moved = {
+      buy: () => tradeWithMerchant(kind, 1, 1),
+      'buy-max': () => tradeWithMerchant(kind, 1, all),
+      sell: () => tradeWithMerchant(kind, -1, 1),
+      'sell-all': () => tradeWithMerchant(kind, -1, all),
+    }[transfer]();
+    if (moved > 0) showMerchant(transfer, kind);
+    return moved;
+  };
+  bindTransferButtons(applyTrade, { repeatable: ['buy', 'sell'], preferredTransfer, preferredKind, defaultTransfer: 'buy' });
 }
 
+// Moves up to `requested` tons and returns how many moved. The log line is
+// written once, when the captain leaves the merchant.
 function tradeWithMerchant(kind, direction, requested) {
   const market = state.visit.merchant;
   const price = market.prices[kind];
@@ -2561,10 +2591,7 @@ function tradeWithMerchant(kind, direction, requested) {
   const amount = direction > 0
     ? Math.min(requested, market.stocks[kind], cargoRoom(), Math.floor(state.player.partyGold / price))
     : Math.min(requested, aboard, Math.floor(market.cash / price));
-  if (amount <= 0) {
-    showMerchant();
-    return;
-  }
+  if (amount <= 0) return 0;
   const delta = direction * amount;
   if (kind === 'food') state.player.foodFixed += delta * 256;
   else state.player[kind] += delta;
@@ -2572,9 +2599,8 @@ function tradeWithMerchant(kind, direction, requested) {
   state.player.partyGold -= delta * price;
   market.cash += delta * price;
   state.portTrade.merchantCash = market.cash;
-  const label = kind === 'specialGoods' ? specialGoodsName().toLowerCase() : kind;
-  addLog(`${direction > 0 ? 'Bought' : 'Sold'} ${amount} ton${amount === 1 ? '' : 's'} of ${label}.`);
-  showMerchant();
+  market[direction > 0 ? 'bought' : 'sold'][kind] += amount;
+  return amount;
 }
 
 function leaveTown() {
@@ -3053,6 +3079,18 @@ loadScenarios().then(() => {
       beginPlunderTransfer('Spoils from the Cargo fluyt', {
         gold: 70, food: 4, goods: 11, specialGoods: 6, cannon: 4,
       }, () => {});
+    });
+    return;
+  }
+  if (preview === 'merchant' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.player.partyGold = 5000;
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      openMerchant();
     });
     return;
   }
