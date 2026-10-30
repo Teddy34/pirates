@@ -14,7 +14,8 @@ import {
   isEncounterHunter, hunterOvertakes, drawHunterCaptain, captainName, captainRenown,
   MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
   harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, startNewExpedition,
-  pirateCaptainTerms, governorPromotion, convoyReport,
+  pirateCaptainTerms, governorPromotion, nationalStanding, governorAmnestyTerms,
+  captainRansomOffers, monthlyLandIncome, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   merchantCommodityPrice, merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
@@ -41,7 +42,7 @@ const ZOOM_STEP = 4;
 const MIN_ZOOM = 16;
 const MAX_ZOOM = 64;
 const NATION_ORDER = ['Spain', 'England', 'France', 'Holland'];
-const RANK_NAMES = ['Mister', 'Ensign', 'Captain', 'Major', 'Colonel', 'Admiral', 'Baron', 'Count', 'Marquis', 'Duke'];
+const RANK_NAMES = ['Mr.', 'Ensign', 'Captain', 'Major', 'Colonel', 'Admiral', 'Baron', 'Count', 'Marquis', 'Duke'];
 const DIFFICULTY_NAMES = ['Apprentice', 'Journeyman', 'Adventurer', 'Swashbuckler'];
 const WIND_NAMES = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
 
@@ -959,10 +960,10 @@ function dailyUpdate({ marching = false } = {}) {
 
 function monthlyUpdate({ newsLog = true } = {}) {
   const player = state.player;
-  player.monthsAtSea += player.partyGold > 32767 ? 2 : 1;
   // 0xCEB8: wealth += land / 2; reputation -= reputation >> 3 (an
   // arithmetic shift, so -1 decays to 0).
-  player.personalWealth += Math.trunc(player.land / 2);
+  player.personalWealth += monthlyLandIncome(player.land);
+  player.monthsAtSea += player.partyGold > 32767 ? 2 : 1;
   player.reputation -= player.reputation >> 3;
   for (const nation of NATION_ORDER) player.favour[nation] = clamp(player.favour[nation], -100, 100);
   state.towns = state.towns.map((town) => updateTownMonthly(town, state.calendar.month, rng));
@@ -1379,14 +1380,14 @@ function resolvePirateCaptain(enemy, next) {
   const value = enemy.captainId ?? enemy.kind;
   const terms = pirateCaptainTerms(value);
   const who = enemy.captainName ?? 'The pirate captain';
-  const hasRoom = state.player.capturedCaptains.filter(({ pirate }) => pirate).length < 8;
+  const hasRoom = state.player.capturedCaptains.length < 8;
   showDialog({
     kicker: 'A pirate prisoner', title: `${who} yields`,
-    body: `<p>You may hold the captain for delivery to a governor. A governor is expected to pay ${terms.bounty} gold and improve your standing with that nation.</p>`,
+    body: '<p>You may hold the captain for delivery to a governor. The Crown will remember the service.</p>',
     actions: [
       ...(hasRoom ? [{ label: 'Take the captain prisoner', run: () => {
         state.player.capturedCaptains.push({ pirate: true, ship: enemy.ship, value, name: enemy.captainName, ...terms });
-        addLog(`Captured ${enemy.captainName ?? 'a pirate captain'}, worth a ${terms.bounty}-gold bounty.`);
+        addLog(`Captured ${enemy.captainName ?? 'a pirate captain'} for delivery to a governor.`);
         next();
       } }] : []),
       { label: hasRoom ? 'Release the captain' : 'No room for another prisoner', secondary: true, run: next },
@@ -1398,7 +1399,7 @@ function resolveNamedCaptain(enemy, next) {
   state.player.capturedCaptains ??= [];
   if (enemy.flag !== 'Spain') {
     if (state.player.capturedCaptains.length < 8) {
-      state.player.capturedCaptains.push({ nation: enemy.flag, ship: enemy.ship, pirate: false, value: enemy.captainId, name: enemy.captainName });
+      state.player.capturedCaptains.push({ nation: enemy.flag, ship: enemy.ship, pirate: false, value: enemy.captainId ?? enemy.kind, name: enemy.captainName });
       addLog(`${enemy.captainName ?? `The ${enemy.flag} captain`} is held for delivery to a governor.`);
     }
     next();
@@ -1410,7 +1411,7 @@ function resolveNamedCaptain(enemy, next) {
     actions: [
       { label: 'Ask about the treasure fleet', run: () => showConvoyReport('treasureFleet', next) },
       { label: 'Ask about the silver train', run: () => showConvoyReport('silverTrain', next) },
-      { label: 'Hold for ransom', run: () => { if (state.player.capturedCaptains.length < 8) state.player.capturedCaptains.push({ nation: enemy.flag, ship: enemy.ship, pirate: false, value: enemy.captainId, name: enemy.captainName }); addLog(`Held ${enemy.captainName ?? `the ${enemy.flag} captain`} for ransom.`); next(); } },
+      { label: 'Hold for ransom', run: () => { if (state.player.capturedCaptains.length < 8) state.player.capturedCaptains.push({ nation: enemy.flag, ship: enemy.ship, pirate: false, value: enemy.captainId ?? enemy.kind, name: enemy.captainName }); addLog(`Held ${enemy.captainName ?? `the ${enemy.flag} captain`} for ransom.`); next(); } },
     ],
   });
 }
@@ -1923,23 +1924,24 @@ function missionDeliveryActions() {
 
 function showTownMenu() {
   const town = state.towns[state.visit.townIndex];
-  const commission = state.player.favour[town.nation] >= 2
-    ? `${town.nation} letter of marque`
-    : 'None';
-  const actions = [
-    { label: 'Governor', run: openGovernorAudience },
+  const rank = RANK_NAMES[state.player.ranks[town.nation]];
+  const standing = nationalStanding(state.player.favour[town.nation]);
+  const governorAvailable = town.population >= 6 && !state.visit.governorSeen;
+  const governorState = town.population < 6 ? 'No resident governor' : state.visit.governorSeen ? 'Audience completed' : 'Audience available';
+  const actions = [];
+  if (governorAvailable) actions.push({ label: 'Governor', run: showGovernor });
+  actions.push(
     ...missionDeliveryActions(),
     { label: 'Tavern', run: showTavern },
-    { label: 'Merchant', run: openMerchant },
+    ...(!state.visit.sneaking ? [{ label: 'Merchant', run: openMerchant }] : []),
     { label: 'Shipwright', run: showShipwright },
     { label: 'Divide the plunder', run: showPlunderDivision },
     { label: 'Save voyage', secondary: true, run: () => { saveGame(); showTownMenu(); } },
     { label: 'Put to sea', secondary: true, run: leaveTown },
-  ];
-  if (state.visit.sneaking) actions.splice(2, 1);
+  );
   showDialog({
     kicker: `${town.nation} port`, title: town.name,
-    body: `<p>${state.visit.sneaking ? 'You move through the streets under a borrowed name.' : 'Your ships lie safely at anchor.'}</p><dl><dt>Standing</dt><dd>${commission}</dd><dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
+    body: `<p>${state.visit.sneaking ? 'You move through the streets under a borrowed name.' : 'Your ships lie safely at anchor.'}</p><dl><dt>${town.nation} rank</dt><dd>${rank}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>Land</dt><dd>${(state.player.land * 50).toLocaleString()} acres</dd><dt>Governor</dt><dd>${governorState}</dd><dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
     actions,
   });
 }
@@ -1992,89 +1994,156 @@ function finishPlunderDivision(division, nextDifficulty) {
   });
 }
 
-function openGovernorAudience() {
-  state.visit.missionHeard = false;
-  showGovernor();
+function governorStatusBody(town) {
+  const favour = state.player.favour[town.nation];
+  return `<dl><dt>${town.nation} rank</dt><dd>${RANK_NAMES[state.player.ranks[town.nation]]}</dd><dt>Crown standing</dt><dd>${nationalStanding(favour)}</dd><dt>${town.nation} national favour</dt><dd>${favour}</dd><dt>Land</dt><dd>${(state.player.land * 50).toLocaleString()} acres</dd><dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`;
 }
 
-function showGovernor(offerPrisoners = true) {
-  const town = state.towns[state.visit.townIndex];
-  const favour = state.player.favour[town.nation];
+function governorBriefingBody(town) {
   const briefing = diplomaticBriefing(state.diplomacy, town.nation);
-  const briefingBody = briefing.length
+  return briefing.length
     ? `<p>The governor describes the present affairs of the Crown:</p><ul class="ship-news">${briefing.map(({ message }) => `<li>${message}</li>`).join('')}</ul>`
     : `<p>The governor reports that ${town.nation} is at peace with every European power in the Caribbean.</p>`;
-  if (state.visit.sneaking) {
-    showDialog({ kicker: 'Governor’s residence', title: 'The doors stay shut', body: '<p>The governor will not receive a visitor who slipped past his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
-    return;
-  }
+}
+
+function showGovernor() {
+  const town = state.towns[state.visit.townIndex];
+  state.visit.governorSeen = true;
   // The governor driver settles or offers a mission (0x12E88) before the
   // pirate delivery (0x12432) and the promotion (0x12549).
-  if (!state.visit.missionHeard) {
-    state.visit.missionHeard = true;
-    governorMission(town, () => showGovernor(offerPrisoners));
-    return;
-  }
+  governorMission(town, () => deliverGovernorPirates(town));
+}
+
+function deliverGovernorPirates(town) {
   const capturedPirates = state.player.capturedCaptains.filter(({ pirate }) => pirate);
-  if (offerPrisoners && capturedPirates.length > 0) {
-    const bounty = capturedPirates.reduce((sum, captain) => sum + (captain.bounty ?? pirateCaptainTerms(captain.value).bounty), 0);
-    const favourGain = capturedPirates.reduce((sum, captain) => sum + (captain.favourGain ?? pirateCaptainTerms(captain.value).favourGain), 0);
-    showDialog({
-      kicker: `${town.nation} governor`, title: capturedPirates.length === 1 ? 'A pirate brought to justice' : `${capturedPirates.length} pirates brought to justice`,
-      body: `${capturedPirates.some(({ name }) => name) ? `<p>Your prisoners: ${capturedPirates.map(({ name, ship }) => name ?? `the captain of a ${ship}`).join(', ')}.</p>` : ''}<p>The governor offers ${bounty.toLocaleString()} gold for the ${capturedPirates.length === 1 ? 'captain' : 'captains'} and promises that the service will be remembered.</p><dl><dt>Bounty</dt><dd>${bounty.toLocaleString()} gold</dd><dt>${town.nation} favour reward</dt><dd>+${favourGain}</dd><dt>Current national favour</dt><dd>${favour}</dd><dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
-      actions: [
-        { label: `Turn ${capturedPirates.length === 1 ? 'him' : 'them'} over`, run: () => {
-          state.player.partyGold += bounty;
-          state.player.favour[town.nation] += favourGain;
-          state.player.capturedCaptains = state.player.capturedCaptains.filter(({ pirate }) => !pirate);
-          addLog(`Turned over ${capturedPirates.length} pirate ${capturedPirates.length === 1 ? 'captain' : 'captains'} in ${town.name} for ${bounty} gold.`);
-          showGovernor();
-        } },
-        { label: 'Discuss other business', secondary: true, run: () => showGovernor(false) },
-      ],
-    });
+  if (capturedPirates.length === 0) {
+    continueGovernorAudience(town);
     return;
   }
+  const favourGain = capturedPirates.reduce((sum, captain) => sum + (captain.favourGain ?? pirateCaptainTerms(captain.value).favourGain), 0);
+  showDialog({
+    kicker: `${town.nation} governor`, title: capturedPirates.length === 1 ? 'A pirate brought to justice' : `${capturedPirates.length} pirates brought to justice`,
+    body: `${capturedPirates.some(({ name }) => name) ? `<p>Your prisoners: ${capturedPirates.map(({ name, ship }) => name ?? `the captain of a ${ship}`).join(', ')}.</p>` : ''}<p>The governor accepts the ${capturedPirates.length === 1 ? 'captain' : 'captains'} and promises that the Crown will remember your service.</p><dl><dt>${town.nation} favour reward</dt><dd>+${favourGain}</dd><dt>Current national favour</dt><dd>${state.player.favour[town.nation]}</dd><dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
+    actions: [
+      { label: `Turn ${capturedPirates.length === 1 ? 'him' : 'them'} over`, run: () => {
+        state.player.favour[town.nation] += favourGain;
+        state.player.capturedCaptains = state.player.capturedCaptains.filter(({ pirate }) => !pirate);
+        addLog(`Turned over ${capturedPirates.length} pirate ${capturedPirates.length === 1 ? 'captain' : 'captains'} in ${town.name}; ${town.nation} favour rose by ${favourGain}.`);
+        continueGovernorAudience(town);
+      } },
+      { label: 'Keep the prisoners', secondary: true, run: () => continueGovernorAudience(town) },
+    ],
+  });
+}
+
+function continueGovernorAudience(town) {
   const promotion = governorPromotion({
-    favour,
+    favour: state.player.favour[town.nation],
     rank: state.player.ranks[town.nation],
     governorMood: town.mood,
   });
-  if (promotion) {
-    const oldRank = state.player.ranks[town.nation];
-    state.player.ranks[town.nation] = promotion.rank;
-    state.player.favour[town.nation] = promotion.favour;
-    state.player.land += promotion.landUnits;
-    addLog(`${town.nation} promoted you from ${RANK_NAMES[oldRank]} to ${RANK_NAMES[promotion.rank]}.`);
-    showDialog({
-      kicker: `${town.nation} governor`, title: `Promotion to ${RANK_NAMES[promotion.rank]}`,
-      body: `<p>The Crown recognizes your service to ${town.nation}.</p><dl><dt>New rank</dt><dd>${RANK_NAMES[promotion.rank]}</dd><dt>${town.nation} national favour</dt><dd>${promotion.favour}</dd>${promotion.landUnits > 0 ? `<dt>Land grant</dt><dd>${(promotion.landUnits * 50).toLocaleString()} acres</dd>` : ''}<dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
-      actions: [{ label: 'Continue the audience', run: () => showGovernor(false) }],
-    });
+  if (!promotion) {
+    beginGovernorRansoms(town);
     return;
   }
-  const governorStatus = `<dl><dt>${town.nation} national favour</dt><dd>${favour}</dd><dt>${town.nation} rank</dt><dd>${RANK_NAMES[state.player.ranks[town.nation]]}</dd><dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`;
-  // The original governor driver delivers matching captives before checking
-  // whether favour is <= -4, and its direct favour addition may cross +2.
-  // Preserve both effects: turning in a pirate can restore an audience and
-  // earn a commission without buying amnesty.
-  if (favour <= -4) {
-    showDialog({ kicker: `${town.nation} governor`, title: 'An enemy of the Crown', body: `<p>The governor refuses to see you.</p>${governorStatus}`, actions: [{ label: 'Return to town', run: showTownMenu }] });
+  const oldRank = state.player.ranks[town.nation];
+  state.player.ranks[town.nation] = promotion.rank;
+  state.player.favour[town.nation] = promotion.favour;
+  state.player.land += promotion.landUnits;
+  addLog(`${town.nation} promoted you from ${RANK_NAMES[oldRank]} to ${RANK_NAMES[promotion.rank]}.`);
+  showDialog({
+    kicker: `${town.nation} governor`, title: `Promotion to ${RANK_NAMES[promotion.rank]}`,
+    body: `<p>The Crown recognizes your service to ${town.nation}.</p><dl><dt>New rank</dt><dd>${RANK_NAMES[promotion.rank]}</dd><dt>${town.nation} national favour</dt><dd>${promotion.favour}</dd>${promotion.landUnits > 0 ? `<dt>Land grant</dt><dd>${(promotion.landUnits * 50).toLocaleString()} acres</dd>` : ''}<dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
+    actions: [{ label: 'Continue the audience', run: () => beginGovernorRansoms(town) }],
+  });
+}
+
+function beginGovernorRansoms(town) {
+  const offers = captainRansomOffers({ captives: state.player.capturedCaptains, rng });
+  showGovernorRansom(town, offers, 0);
+}
+
+function showGovernorRansom(town, offers, index) {
+  if (index >= offers.length) {
+    finishGovernorAudience(town);
     return;
   }
-  if (favour < 2) {
-    const price = 200 * (4 - favour ** 3);
+  const { captain, gold } = offers[index];
+  if (!state.player.capturedCaptains.includes(captain)) {
+    showGovernorRansom(town, offers, index + 1);
+    return;
+  }
+  const description = `${captain.nation ?? 'foreign'} captain captured from a ${captain.ship}`;
+  showDialog({
+    kicker: 'A ransom offer', title: `${gold.toLocaleString()} gold for the prisoner`,
+    body: `<p>An agent asks you to release the ${description}.</p>`,
+    actions: [
+      { label: 'Take the gold', run: () => {
+        state.player.partyGold += gold;
+        state.player.capturedCaptains.splice(state.player.capturedCaptains.indexOf(captain), 1);
+        addLog(`Ransomed a captured ${captain.nation ?? 'foreign'} captain for ${gold} gold.`);
+        showGovernorRansom(town, offers, index + 1);
+      } },
+      { label: 'Wait for a better offer', secondary: true, run: () => showGovernorRansom(town, offers, index + 1) },
+    ],
+  });
+}
+
+function finishGovernorAudience(town) {
+  const favour = state.player.favour[town.nation];
+  const status = governorStatusBody(town);
+  const briefing = governorBriefingBody(town);
+  const terms = governorAmnestyTerms(favour);
+  if (terms) {
+    const isAmnesty = terms.kind === 'amnesty';
     showDialog({
-      kicker: `${town.nation} governor`, title: 'A chance for amnesty',
-      body: `<p>The governor offers a letter of marque for ${price} gold pieces.</p>${governorStatus}${briefingBody}`,
+      kicker: `${town.nation} governor`, title: isAmnesty ? 'An offer of amnesty' : 'A letter of marque',
+      body: `<p>${isAmnesty ? `The governor offers to pardon your offenses against ${town.nation}` : `The governor offers you a commission in the service of ${town.nation}`} for ${terms.price.toLocaleString()} gold.</p>${status}${briefing}`,
       actions: [
-        { label: 'Buy the commission', run: () => { if (state.player.partyGold >= price) { state.player.partyGold -= price; state.player.favour[town.nation] = Math.min(favour + 2, 2); addLog(`${town.nation} granted you a letter of marque.`); } else addLog('You cannot afford the commission.'); showTownMenu(); } },
+        { label: isAmnesty ? 'Accept amnesty' : 'Buy the commission', run: () => completeGovernorPurchase(town, terms) },
         { label: 'Decline', secondary: true, run: showTownMenu },
       ],
     });
     return;
   }
-  showDialog({ kicker: `${town.nation} governor`, title: 'A cordial audience', body: `<p>The governor welcomes a proven friend of ${town.nation}. Your letter of marque remains in good standing.</p>${governorStatus}${briefingBody}`, actions: [{ label: 'Return to town', run: showTownMenu }] });
+  if (favour <= -4) {
+    showDialog({
+      kicker: `${town.nation} governor`, title: 'A cold audience',
+      body: `<p>The governor hears you but offers neither pardon nor commission.</p>${status}${briefing}`,
+      actions: [{ label: 'Return to town', run: showTownMenu }],
+    });
+    return;
+  }
+  const rank = RANK_NAMES[state.player.ranks[town.nation]];
+  showDialog({
+    kicker: `${town.nation} governor`, title: `My dear ${rank} ${state.captain}`,
+    body: `<p>The governor welcomes a proven friend of ${town.nation}. Your letter of marque remains in good standing.</p>${status}${briefing}`,
+    actions: [{ label: 'Return to town', run: showTownMenu }],
+  });
+}
+
+function completeGovernorPurchase(town, terms) {
+  if (state.player.partyGold < terms.price) {
+    showDialog({
+      kicker: `${town.nation} governor`, title: 'Insufficient funds',
+      body: `<p>The governor requires ${terms.price.toLocaleString()} gold, but you have ${state.player.partyGold.toLocaleString()}.</p>`,
+      actions: [{ label: 'Return to town', run: showTownMenu }],
+    });
+    return;
+  }
+  state.player.partyGold -= terms.price;
+  state.player.favour[town.nation] = terms.resultingFavour;
+  town.mood = 0;
+  const standing = nationalStanding(terms.resultingFavour);
+  const message = terms.grantsCommission
+    ? `${town.nation} granted you a letter of marque.`
+    : `${town.nation} granted amnesty and now regards you as ${standing.toLowerCase()}.`;
+  addLog(message);
+  showDialog({
+    kicker: `${town.nation} governor`, title: terms.grantsCommission ? 'Commission granted' : 'Amnesty recorded',
+    body: `<p>${message}</p><dl><dt>Gold paid</dt><dd>${terms.price.toLocaleString()}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>${town.nation} national favour</dt><dd>${terms.resultingFavour}</dd><dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
+    actions: [{ label: 'Return to town', run: showTownMenu }],
+  });
 }
 
 function showTavern() {
@@ -2995,6 +3064,34 @@ loadScenarios().then(() => {
       state.mode = 'town';
       state.paused = true;
       state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showGovernor();
+    });
+    return;
+  }
+  if (preview === 'town-rank' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.player.ranks.France = 1;
+      state.player.favour.France = 3;
+      state.player.land = 3;
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showTownMenu();
+    });
+    return;
+  }
+  if (preview === 'governor-amnesty' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.player.favour.France = -3;
+      state.player.partyGold = 7000;
+      state.towns[state.nearestTownIndex].mood = -3;
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: true, recruited: false, merchant: null };
       showGovernor();
     });
     return;

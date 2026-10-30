@@ -7,7 +7,8 @@ import {
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
-  dividePlunder, startNewExpedition, pirateCaptainTerms, governorPromotion, convoyReport,
+  dividePlunder, startNewExpedition, pirateCaptainTerms, governorPromotion,
+  nationalStanding, governorAmnestyTerms, captainRansomOffers, monthlyLandIncome, convoyReport,
   approximateDistance, cloudCountForMonth, targetSailingSpeed,
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
@@ -344,9 +345,9 @@ test('a new expedition retains only the flagship and banks the captain share', (
   assert.deepEqual(player.ships, ['Barque', 'Pinnace']);
 });
 
-test('a captured pirate earns the documented favour gain and an assumed bounty', () => {
-  assert.deepEqual(pirateCaptainTerms(7), { favourGain: 4, bounty: 1000 });
-  assert.deepEqual(pirateCaptainTerms(2), { favourGain: 2, bounty: 500 });
+test('a captured pirate earns the documented favour gain', () => {
+  assert.deepEqual(pirateCaptainTerms(7), { favourGain: 4 });
+  assert.deepEqual(pirateCaptainTerms(2), { favourGain: 2 });
 });
 
 test('a governor awards one documented promotion and converts excess favour into land', () => {
@@ -358,6 +359,34 @@ test('a governor awards one documented promotion and converts excess favour into
   });
   assert.equal(governorPromotion({ favour: 5, rank: 1, governorMood: 2 }), null);
   assert.equal(governorPromotion({ favour: 100, rank: 9, governorMood: 2 }), null);
+});
+
+test('governor standing and amnesty terms preserve the documented thresholds', () => {
+  assert.deepEqual([-4, -3, -1, 0, 1, 2].map(nationalStanding), [
+    'Hostile', 'Wary', 'Wary', 'No title', 'No title', 'Letter of marque',
+  ]);
+  assert.deepEqual(governorAmnestyTerms(-3), {
+    kind: 'amnesty', price: 6200, resultingFavour: -1, grantsCommission: false,
+  });
+  assert.deepEqual(governorAmnestyTerms(0), {
+    kind: 'commission', price: 800, resultingFavour: 2, grantsCommission: true,
+  });
+  assert.deepEqual(governorAmnestyTerms(1), {
+    kind: 'commission', price: 600, resultingFavour: 2, grantsCommission: true,
+  });
+  assert.equal(governorAmnestyTerms(-4), null);
+  assert.equal(governorAmnestyTerms(2), null);
+});
+
+test('a governor makes four decoded ransom draws and land pays monthly income', () => {
+  const captives = Array.from({ length: 8 }, (_, value) => ({ value, nation: 'Spain', ship: 'Barque' }));
+  const rolls = [0, 0, 1, 1, 2, 2, 3, 0];
+  const offers = captainRansomOffers({ captives, rng: { int: () => rolls.shift() } });
+  assert.deepEqual(offers.map(({ captain, gold }) => [captain.value, gold]), [
+    [0, 500], [1, 2000], [2, 4500], [3, 2000],
+  ]);
+  assert.equal(monthlyLandIncome(3), 1);
+  assert.equal(monthlyLandIncome(100), 50);
 });
 
 test('captured-captain convoy intelligence names the current and next Spanish stops', () => {

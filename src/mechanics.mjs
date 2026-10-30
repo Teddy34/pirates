@@ -609,13 +609,7 @@ export function startNewExpedition(player, division) {
 }
 
 export function pirateCaptainTerms(value = 7) {
-  const favourGain = Math.floor((value & 7) / 2) + 1;
-  return {
-    favourGain,
-    // ASSUMED: the binary confirms the favour gain but no cash award. A
-    // modest bounty makes handing over a pirate a visible, useful transaction.
-    bounty: 250 * favourGain,
-  };
+  return { favourGain: Math.floor((value & 7) / 2) + 1 };
 }
 
 // New-game record copy (0x1386C): the start point is rnd(4) of the record's
@@ -639,6 +633,39 @@ export function governorPromotion({ favour, rank, governorMood }) {
     excess,
     landUnits: Math.max(0, excess + governorMood),
   };
+}
+
+export function nationalStanding(favour) {
+  if (favour >= 2) return 'Letter of marque';
+  if (favour >= 0) return 'No title';
+  if (favour >= -3) return 'Wary';
+  return 'Hostile';
+}
+
+export function governorAmnestyTerms(favour) {
+  if (favour <= -4 || favour >= 2) return null;
+  const resultingFavour = Math.min(favour + 2, 2);
+  return {
+    kind: favour < 0 ? 'amnesty' : 'commission',
+    price: 200 * (4 - favour ** 3),
+    resultingFavour,
+    grantsCommission: resultingFavour >= 2,
+  };
+}
+
+export function captainRansomOffers({ captives, rng }) {
+  const offers = [];
+  for (let draw = 0; draw < 4; draw += 1) {
+    const captain = captives[rng.int(8)];
+    if (!captain || captain.pirate) continue;
+    const multiplier = rng.int(3) + 1;
+    offers.push({ captain, gold: 500 * (((captain.value ?? 0) & 7) + 1) * multiplier });
+  }
+  return offers;
+}
+
+export function monthlyLandIncome(landUnits) {
+  return Math.trunc(landUnits / 2);
 }
 
 export function convoyReport({ kind, route, towns, calendar, eraIndex }) {
