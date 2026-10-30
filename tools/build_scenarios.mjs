@@ -15,6 +15,7 @@ const templates = await readJson('ship_templates.json');
 const starts = await readJson('start_records.json');
 const convoyRoutes = await readJson('fleet_train_routes.json');
 const triggers = await readJson('town_triggers_by_era.json');
+const { departure_heading: departureHeadings } = await readJson('world_tables.json');
 const eras = {};
 const eraOrder = Object.keys(speeds);
 const shipNames = ['Pinnace', 'Sloop', 'Barque', 'Cargo fluyt', 'Merchantman', 'Frigate', 'War galleon', 'Galleon'];
@@ -51,7 +52,12 @@ for (const [eraIndex, era] of eraOrder.entries()) {
       name: entry.name, x: entry.x, y: entry.y, nation: entry.nation,
       forts: entry.w4, soldiers: entry.w5, population: entry.w6,
       gold: entry.w7, growth: entry.w8, flags: entry.flags, mood: entry.w9,
-      harbors: [[entry.harbor1_x, entry.harbor1_y], [entry.harbor2_x, entry.harbor2_y]],
+      // Departure cell (w26/w27) and heading byte from the w28 index into
+      // departure_heading (0x36870); inland towns have cell (0, 0). harbor1
+      // (w24/w25) is never read by the original and is omitted.
+      departure: entry.harbor2_x && entry.harbor2_y
+        ? [entry.harbor2_x, entry.harbor2_y, departureHeadings.values[entry.w28]]
+        : null,
     })),
     // [cellX, cellY, townIndex] in the original table order; townIndex points
     // into `towns` above (the Florida Channel pseudo-towns have no cells).
@@ -76,5 +82,5 @@ for (const [eraIndex, era] of eraOrder.entries()) {
 }
 
 await mkdir(path.dirname(destination), { recursive: true });
-await writeFile(destination, `${JSON.stringify({ version: 5, eras })}\n`);
+await writeFile(destination, `${JSON.stringify({ version: 6, eras })}\n`);
 console.log(`wrote ${Object.keys(eras).length} eras to ${destination}`);
