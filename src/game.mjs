@@ -29,6 +29,7 @@ import {
 import { renderBattle } from './battle-renderer.mjs';
 import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
 import { TERRAIN_CHUNK_CELLS, TERRAIN_PIXELS_PER_CELL } from './terrain.mjs';
+import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, townSizeClass } from './town-sprites.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
@@ -2557,56 +2558,53 @@ function drawLand() {
   }
 }
 
-// Town markers and labels are sized in screen pixels, independent of zoom.
-const TOWN_SPRITE_SCALE = 2;
-const TOWN_LABEL_OFFSET = 17;
+// Town markers are sized in screen pixels: each art pixel covers 2 screen
+// pixels, stepping up to 3 and 4 as the map zooms in so the town keeps pace
+// with the terrain without breaking the pixel grid. Labels stay one size.
+const townSpriteScale = (zoom) => (zoom >= 48 ? 4 : zoom >= 28 ? 3 : 2);
+const TOWN_LABEL_GAP = 14;
+const townSpriteCache = new Map();
 
 function drawTowns(zoom) {
   ctx.textBaseline = 'middle';
   ctx.font = `${16 / zoom}px "IM Fell English", Georgia, serif`;
   for (const town of state.towns) {
-    const nation = NATIONS[town.nation];
     const markerX = town.x + .5;
     const markerY = town.y + .5;
-    drawTownSprite(town, nation, zoom, markerX, markerY);
-    const labelX = markerX + TOWN_LABEL_OFFSET / zoom;
+    const spriteScale = townSpriteScale(zoom);
+    drawTownSprite(town, markerX, markerY, spriteScale);
+    const labelX = markerX + (TOWN_LABEL_GAP * spriteScale) / zoom;
+    const labelY = markerY - (3 * spriteScale) / zoom;
     ctx.lineJoin = 'round';
-    ctx.lineWidth = 3 / zoom; ctx.strokeStyle = 'rgba(4,15,17,.8)'; ctx.strokeText(town.name, labelX, markerY);
-    ctx.fillStyle = '#fff1c8'; ctx.fillText(town.name, labelX, markerY);
+    ctx.lineWidth = 3 / zoom; ctx.strokeStyle = 'rgba(4,15,17,.8)'; ctx.strokeText(town.name, labelX, labelY);
+    ctx.fillStyle = '#fff1c8'; ctx.fillText(town.name, labelX, labelY);
   }
 }
 
-function drawTownSprite(town, nation, zoom, x, y) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(TOWN_SPRITE_SCALE / zoom, TOWN_SPRITE_SCALE / zoom);
-  ctx.fillStyle = 'rgba(0,0,0,.28)';
-  ctx.beginPath(); ctx.ellipse(1, 6, 9, 2.6, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = '#2b2418';
-  ctx.fillStyle = '#d6bd7d';
-  ctx.beginPath();
-  ctx.rect(-6, 0, 12, 5);
-  ctx.moveTo(-7, 0); ctx.lineTo(-3.5, -4); ctx.lineTo(0, 0);
-  ctx.moveTo(-1, 0); ctx.lineTo(2.5, -5); ctx.lineTo(7, 0);
-  ctx.fill(); ctx.stroke();
-  if (town.forts > 0) {
-    ctx.fillStyle = '#8b7952';
-    ctx.fillRect(-7, 4, 14, 3);
-    ctx.strokeRect(-7, 4, 14, 3);
+function townSprite(town) {
+  const key = `${town.nation}|${townSizeClass(town.population)}|${Math.min(town.forts, 4)}`;
+  let sprite = townSpriteCache.get(key);
+  if (!sprite) {
+    sprite = document.createElement('canvas');
+    sprite.width = TOWN_SPRITE_WIDTH; sprite.height = TOWN_SPRITE_HEIGHT;
+    const pixels = paintTownSprite({ nation: { key: town.nation, ...NATIONS[town.nation] }, population: town.population, forts: town.forts });
+    sprite.getContext('2d').putImageData(new ImageData(pixels, TOWN_SPRITE_WIDTH, TOWN_SPRITE_HEIGHT), 0, 0);
+    townSpriteCache.set(key, sprite);
   }
-  ctx.strokeStyle = '#2b2418';
-  ctx.beginPath(); ctx.moveTo(-1, -1); ctx.lineTo(-1, -9); ctx.stroke();
-  ctx.fillStyle = nation.color;
-  ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(6, -7); ctx.lineTo(0, -5); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.font = 'bold 6px system-ui, sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 1.5; ctx.strokeStyle = '#241a10';
-  const nationMark = town.nation[0].toUpperCase();
-  ctx.strokeText(nationMark, 2.4, -7);
-  ctx.fillStyle = '#fff4d0'; ctx.fillText(nationMark, 2.4, -7);
-  ctx.textAlign = 'start';
+  return sprite;
+}
+
+// Drawn in device pixels on a whole-pixel grid, so every art pixel stays an
+// even square at any zoom.
+function drawTownSprite(town, x, y, spriteScale) {
+  const transform = ctx.getTransform();
+  const scale = spriteScale * Math.round(Math.min(devicePixelRatio || 1, 2));
+  const left = Math.round(transform.a * x + transform.e) - TOWN_SPRITE_ANCHOR.x * scale;
+  const top = Math.round(transform.d * y + transform.f) - TOWN_SPRITE_ANCHOR.y * scale;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(townSprite(town), left, top, TOWN_SPRITE_WIDTH * scale, TOWN_SPRITE_HEIGHT * scale);
   ctx.restore();
 }
 

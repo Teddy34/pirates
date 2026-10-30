@@ -20,6 +20,7 @@ syntax:
 	node --check src/world-map.mjs
 	node --check src/terrain.mjs
 	node --check src/terrain-worker.mjs
+	node --check src/town-sprites.mjs
 	node --check server.js
 	node --check tools/build_scenarios.mjs
 	node --check tools/check_plunder_hold.mjs
