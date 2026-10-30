@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  acceptsRudderInput, advanceDate, consumeDailyFood, encounterRoll, foodDays, starvationDesertion, harborAttempt,
+  acceptsRudderInput, advanceDate, consumeDailyFood, encounterRoll, foodDays, starvationDesertion,
+  isEncounterHunter, hunterOvertakes, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -386,4 +387,18 @@ test('town triggers use exact cells, first-entry ties, and record distance', () 
   assert.equal(nearestTriggerTown(triggers, 11, 13), 1);
   assert.equal(townDistanceCells({ x: 5, y: 5 }, 5, 5), 1);
   assert.equal(townDistanceCells({ x: 5, y: 5 }, 8, 1), 7);
+});
+
+test('a hunter is a kind-6+ template of a nation that dislikes you', () => {
+  assert.equal(isEncounterHunter({ kind: 6, favour: -1 }), true);
+  assert.equal(isEncounterHunter({ kind: 5, favour: -1 }), false);
+  assert.equal(isEncounterHunter({ kind: 7, favour: 0 }), false);
+});
+
+test('a hunter overtakes a fleeing captain when rnd(3) is below the difficulty', () => {
+  const roll = (value) => ({ int: (n) => { assert.equal(n, 3); return value; } });
+  assert.equal(hunterOvertakes({ hunter: true, difficulty: 0, rng: roll(0) }), false);
+  assert.equal(hunterOvertakes({ hunter: true, difficulty: 2, rng: roll(1) }), true);
+  assert.equal(hunterOvertakes({ hunter: true, difficulty: 2, rng: roll(2) }), false);
+  assert.equal(hunterOvertakes({ hunter: false, difficulty: 3, rng: roll(0) }), false);
 });

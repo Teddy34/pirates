@@ -11,6 +11,7 @@ import {
   acceptsRudderInput,
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
   triggerTownAt, nearestTriggerTown, townDistanceCells,
+  isEncounterHunter, hunterOvertakes,
   harborAttempt, sneakAttempt, tavernRecruits, morale, dividePlunder, startNewExpedition,
   pirateCaptainTerms, governorPromotion, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
@@ -778,14 +779,15 @@ function revealEncounter(town, distance) {
     nation = NATION_ORDER[roll % 4];
   }
   const [ship, flag, crew, guns, kind, gold, cargo] = scenarios[state.era].encounters[nation][tier];
-  const hostile = kind >= 6 && state.player.favour[flag] < 0;
+  const hostile = isEncounterHunter({ kind, favour: state.player.favour[flag] });
   const enemy = { ship, flag, crew, guns, kind, gold, cargo, hostile, namedCaptain: hostile };
   showDialog({
     kicker: 'The sail draws nearer', title: `She looks like a ${ship}`,
     body: '<p>The lookout cannot yet make out her colors. Will you close the distance?</p>',
     actions: [
       { label: 'Investigate', run: () => identifyEncounter(enemy, town) },
-      { label: 'Sail away', secondary: true, run: () => escapeEncounter(enemy, town) },
+      // A hunter ignores this answer (0xD560) and closes regardless.
+      { label: 'Sail away', secondary: true, run: () => (enemy.hostile ? identifyEncounter(enemy, town) : escapeEncounter(enemy, town)) },
     ],
   });
 }
@@ -796,9 +798,21 @@ function identifyEncounter(enemy, town) {
     body: `<p>She carries about ${enemy.crew * 4} hands and ${enemy.guns} guns. ${enemy.hostile ? 'She alters course and gives chase.' : 'Her crew watches your approach.'}</p>`,
     actions: [
       { label: 'Close for battle', run: () => closeForBattle(enemy) },
-      { label: 'Hail for news', run: () => hailForNews(enemy) },
-      { label: enemy.hostile ? 'Break away' : 'Sail away', secondary: true, run: () => escapeEncounter(enemy, town) },
+      { label: 'Hail for news', run: () => evadeHunter(enemy, () => hailForNews(enemy, town)) },
+      { label: 'Sail away', secondary: true, run: () => evadeHunter(enemy, () => escapeEncounter(enemy, town)) },
     ],
+  });
+}
+
+function evadeHunter(enemy, next) {
+  if (!hunterOvertakes({ hunter: enemy.hostile, difficulty: state.difficulty, rng })) {
+    next();
+    return;
+  }
+  showDialog({
+    kicker: 'Overtaken', title: 'She is overtaking us',
+    body: `<p>The ${enemy.ship} closes too quickly to escape. You will have to fight.</p>`,
+    actions: [{ label: 'Prepare for battle', run: () => closeForBattle(enemy) }],
   });
 }
 
@@ -808,7 +822,7 @@ function escapeEncounter(enemy, town) {
   resumeAfterEncounter();
 }
 
-function hailForNews(enemy) {
+function hailForNews(enemy, town) {
   if (state.player.favour[enemy.flag] <= -4) {
     showDialog({
       kicker: 'No reply', title: 'Your hail goes unanswered',
@@ -818,6 +832,9 @@ function hailForNews(enemy) {
     return;
   }
   const items = state.worldNews.slice(0, 6);
+  // Hailing returns "no battle" from 0xD1FC, so the caller raises the alert
+  // by 16 just as when sailing away (0x284EF).
+  town.alert += 16;
   showDialog({
     kicker: 'Ship’s News', title: 'News from across the Caribbean',
     body: newsBody(items, 'The other captain has heard nothing of consequence.'),
