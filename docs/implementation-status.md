@@ -24,6 +24,11 @@ for future work.
 - Block ships from entering land while allowing movement along coastlines.
   Land is tested per map pixel with the original colour classes, so coastal
   tiles have their drawn shoreline and shallow water is recorded.
+- Paint the sea and land as pixel art at the navigation mask's own
+  resolution (16 pixels per tile). Sea depth comes from distance to land, and
+  the coast gets surf and a beach. Inland there are grass, forest and shaded
+  hills. Chunks are painted lazily from the mask, so the drawn coastline is
+  the sailed coastline.
 - Display fixed-size town sprites, nationality marks, labels, the player ship,
   and a minimap.
 - Zoom from 16× to 64× without scaling town labels, town markers, or the ship.

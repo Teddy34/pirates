@@ -26,6 +26,7 @@ import {
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
 import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
+import { TERRAIN_CHUNK_CELLS, TERRAIN_PIXELS_PER_CELL, buildCoastField, paintTerrainChunk } from './terrain.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
@@ -80,6 +81,7 @@ let viewWidth = innerWidth;
 let viewHeight = innerHeight;
 let worldMap = null;
 let worldMapLayer = null;
+let terrain = null;
 let scenarios = null;
 let cameraZoom = MIN_ZOOM;
 let wheelZoomDelta = 0;
@@ -296,14 +298,15 @@ async function loadScenarios() {
 
 async function loadWorldMap(era) {
   if (mapCache.has(era)) {
-    ({ map: worldMap, layer: worldMapLayer } = mapCache.get(era));
+    ({ map: worldMap, layer: worldMapLayer, terrain } = mapCache.get(era));
     return;
   }
   const response = await fetch(new URL(`../assets/world-${era}.bin`, import.meta.url));
   if (!response.ok) throw new Error(`map request failed: ${response.status}`);
   worldMap = decodeNavigationMap(await gunzip(await response.arrayBuffer()), WORLD.width, WORLD.height);
   worldMapLayer = buildWorldMapLayer(worldMap);
-  mapCache.set(era, { map: worldMap, layer: worldMapLayer });
+  terrain = { coast: buildCoastField(worldMap), chunks: new Map() };
+  mapCache.set(era, { map: worldMap, layer: worldMapLayer, terrain });
 }
 
 function buildWorldMapLayer(map) {
@@ -343,6 +346,51 @@ function buildWorldMapLayer(map) {
   }
   layerContext.putImageData(image, 0, 0);
   return layer;
+}
+
+// Detailed terrain is painted lazily in chunks: a few per frame, with the
+// coarse layer showing until a chunk is ready. Least recently drawn chunks
+// are dropped past the cache limit.
+const TERRAIN_CHUNKS_PER_FRAME = 2;
+const TERRAIN_CHUNK_CACHE = 72;
+
+function terrainChunk(chunkX, chunkY, allowBuild) {
+  const key = `${chunkX},${chunkY}`;
+  let chunk = terrain.chunks.get(key);
+  if (chunk) {
+    terrain.chunks.delete(key);
+    terrain.chunks.set(key, chunk);
+    return chunk;
+  }
+  if (!allowBuild) return null;
+  const size = TERRAIN_CHUNK_CELLS * TERRAIN_PIXELS_PER_CELL;
+  chunk = document.createElement('canvas');
+  chunk.width = size; chunk.height = size;
+  chunk.getContext('2d').putImageData(new ImageData(paintTerrainChunk(worldMap, terrain.coast, chunkX, chunkY), size, size), 0, 0);
+  terrain.chunks.set(key, chunk);
+  if (terrain.chunks.size > TERRAIN_CHUNK_CACHE) terrain.chunks.delete(terrain.chunks.keys().next().value);
+  return chunk;
+}
+
+function drawTerrainChunks(camera, visibleWidth, visibleHeight) {
+  if (!terrain) return;
+  const maxX = Math.ceil(WORLD.width / TERRAIN_CHUNK_CELLS) - 1;
+  const maxY = Math.ceil(WORLD.height / TERRAIN_CHUNK_CELLS) - 1;
+  const left = clamp(Math.floor((camera.x - visibleWidth / 2) / TERRAIN_CHUNK_CELLS), 0, maxX);
+  const right = clamp(Math.floor((camera.x + visibleWidth / 2) / TERRAIN_CHUNK_CELLS), 0, maxX);
+  const top = clamp(Math.floor((camera.y - visibleHeight / 2) / TERRAIN_CHUNK_CELLS), 0, maxY);
+  const bottom = clamp(Math.floor((camera.y + visibleHeight / 2) / TERRAIN_CHUNK_CELLS), 0, maxY);
+  let budget = TERRAIN_CHUNKS_PER_FRAME;
+  ctx.imageSmoothingEnabled = false;
+  for (let chunkY = top; chunkY <= bottom; chunkY += 1) {
+    for (let chunkX = left; chunkX <= right; chunkX += 1) {
+      const cached = terrain.chunks.has(`${chunkX},${chunkY}`);
+      const chunk = terrainChunk(chunkX, chunkY, budget > 0);
+      if (!chunk) continue;
+      if (!cached) budget -= 1;
+      ctx.drawImage(chunk, chunkX * TERRAIN_CHUNK_CELLS, chunkY * TERRAIN_CHUNK_CELLS, TERRAIN_CHUNK_CELLS, TERRAIN_CHUNK_CELLS);
+    }
+  }
 }
 
 function isNavigable(x, y) {
@@ -2226,6 +2274,7 @@ function render() {
   if (worldMapLayer) {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(worldMapLayer, 0, 0, worldMapLayer.width, worldMapLayer.height, 0, 0, WORLD.width, WORLD.height);
+    drawTerrainChunks(camera, visibleWidth, visibleHeight);
   } else {
     drawSeaTexture(camera, visibleWidth, visibleHeight);
     drawLand();
@@ -2302,25 +2351,33 @@ function drawLand() {
   }
 }
 
+// Town markers and labels are sized in screen pixels, independent of zoom.
+const TOWN_SPRITE_SCALE = 2;
+const TOWN_LABEL_OFFSET = 17;
+
 function drawTowns(zoom) {
   ctx.textBaseline = 'middle';
-  ctx.font = `${12 / zoom}px "IM Fell English", Georgia, serif`;
+  ctx.font = `${16 / zoom}px "IM Fell English", Georgia, serif`;
   for (const town of state.towns) {
     const nation = NATIONS[town.nation];
     const markerX = town.x + .5;
     const markerY = town.y + .5;
     drawTownSprite(town, nation, zoom, markerX, markerY);
-    ctx.lineWidth = 2 / zoom; ctx.strokeStyle = 'rgba(4,15,17,.75)'; ctx.strokeText(town.name, markerX + 9 / zoom, markerY);
-    ctx.fillStyle = '#fff1c8'; ctx.fillText(town.name, markerX + 9 / zoom, markerY);
+    const labelX = markerX + TOWN_LABEL_OFFSET / zoom;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3 / zoom; ctx.strokeStyle = 'rgba(4,15,17,.8)'; ctx.strokeText(town.name, labelX, markerY);
+    ctx.fillStyle = '#fff1c8'; ctx.fillText(town.name, labelX, markerY);
   }
 }
 
 function drawTownSprite(town, nation, zoom, x, y) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(1 / zoom, 1 / zoom);
+  ctx.scale(TOWN_SPRITE_SCALE / zoom, TOWN_SPRITE_SCALE / zoom);
+  ctx.fillStyle = 'rgba(0,0,0,.28)';
+  ctx.beginPath(); ctx.ellipse(1, 6, 9, 2.6, 0, 0, Math.PI * 2); ctx.fill();
   ctx.lineJoin = 'round';
-  ctx.lineWidth = 1.2;
+  ctx.lineWidth = 1;
   ctx.strokeStyle = '#2b2418';
   ctx.fillStyle = '#d6bd7d';
   ctx.beginPath();
