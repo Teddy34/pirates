@@ -430,6 +430,56 @@ export function captainRenown(id) {
   return CAPTAIN_RENOWN[Math.trunc((id & 7) / 3)];
 }
 
+// Governor missions (0x12E88). The status word 0x471AA holds the type while
+// the mission is open and its negation once it is done (0x1F9FC).
+export const MISSION = Object.freeze({ LETTER: 1, PAPERS: 2, PIRATE: 3, RESCUE: 4 });
+
+// 0x12FC1: type = rnd(5) + 1, where 5 means no mission. Up to ten random
+// towns are tried as the target; if none fits, the type is rolled again. The
+// offer then needs favour >> 2 >= type and a governor mood that is not
+// negative.
+export function rollGovernorMission({ towns, currentTownIndex, nation, favour, governorMood, diplomacy, rng }) {
+  for (;;) {
+    const type = rng.int(5) + 1;
+    const target = missionTarget({ type, towns, currentTownIndex, nation, diplomacy, rng });
+    if (target < 0) continue;
+    if ((favour >> 2) < type || type === 5 || governorMood < 0) return null;
+    return { type, target };
+  }
+}
+
+// Odd types (letter, pirate, and the unused 5) need a town not at war with
+// the governor's nation; the pirate mission needs a coastal town of the
+// governor's own nation. Even types (papers, rescue) need an enemy town.
+function missionTarget({ type, towns, currentTownIndex, nation, diplomacy, rng }) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const index = rng.int(towns.length);
+    if (index === currentTownIndex) continue;
+    const town = towns[index];
+    const relation = diplomacy[nation]?.[town.nation] ?? 0;
+    if (type & 1) {
+      if (type === MISSION.PIRATE) {
+        if (town.nation === nation && !(town.flags & 0x40)) return index;
+        continue;
+      }
+      if (relation >= 0) return index;
+    } else if (relation < 0) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+// 0x13150: the wanted pirate's id is 0x8000 | (nation·4 + rnd(4))·8. Bit 15
+// marks him (0xDE48), and the name comes from the low byte as usual.
+export function missionPirateId(nationIndex, rng) {
+  return 0x8000 | ((nationIndex * 4 + rng.int(4)) << 3);
+}
+
+export function isMissionPirateId(id) {
+  return Boolean(id & 0x8000);
+}
+
 export function isEncounterHunter({ kind, favour }) {
   return kind >= 6 && favour < 0;
 }

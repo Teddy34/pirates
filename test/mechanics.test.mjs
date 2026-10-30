@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   acceptsRudderInput, advanceDate, VOYAGE_START_TICK, isHalfDayTick, isDailyTick, voyageDays, consumeDailyFood, encounterRoll, foodDays, starvationDesertion, monthEndCrewEvent, mutinyOutcome,
+  MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
   isEncounterHunter, drawHunterCaptain, captainName, captainRenown, prizeMoraleBonus, startFromRecord, createRng, hunterOvertakes, escapeCostsShip, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
@@ -498,4 +499,47 @@ test('hunter names use each of five rows before any repeats', () => {
   const taken = [0, 1, 2, 3, 4].filter((row) => next.usedRows & (1 << row)).length;
   assert.ok(taken === 1 || taken === 2);
   assert.ok(next.id > 0);
+});
+
+// A scripted rng: each int(n) call returns the next queued value.
+const scriptedRng = (values) => ({ int: (n) => { const value = values.shift(); assert.ok(value < n); return value; } });
+
+const missionTowns = [
+  { name: 'Home', nation: 'France', flags: 0 },
+  { name: 'Ally', nation: 'France', flags: 0 },
+  { name: 'Inland', nation: 'France', flags: 0x40 },
+  { name: 'Enemy', nation: 'Spain', flags: 0 },
+  { name: 'Neutral', nation: 'Holland', flags: 0 },
+];
+const missionDiplomacy = { France: { France: 0, Spain: -1, Holland: 0, England: 0 } };
+
+test('governor missions pick targets by type as 0x12FC1 does', () => {
+  const roll = (values, favour = 16, governorMood = 0) => rollGovernorMission({
+    towns: missionTowns, currentTownIndex: 0, nation: 'France', favour, governorMood,
+    diplomacy: missionDiplomacy, rng: scriptedRng(values),
+  });
+  // Letter (type 1): the current town is skipped, an enemy town is refused,
+  // any town not at war is taken.
+  assert.deepEqual(roll([0, 0, 3, 4]), { type: MISSION.LETTER, target: 4 });
+  // Papers (type 2) and rescue (type 4) need a town at war.
+  assert.deepEqual(roll([1, 4, 3]), { type: MISSION.PAPERS, target: 3 });
+  assert.deepEqual(roll([3, 1, 3]), { type: MISSION.RESCUE, target: 3 });
+  // The pirate mission needs a coastal town of the governor's own nation.
+  assert.deepEqual(roll([2, 2, 4, 1]), { type: MISSION.PIRATE, target: 1 });
+  // Ten failed tries roll the type again.
+  assert.deepEqual(roll([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1]), { type: MISSION.LETTER, target: 1 });
+  // Type 5, low favour and a sour governor give no offer.
+  assert.equal(roll([4, 1]), null);
+  assert.equal(roll([3, 3], 15), null);
+  assert.equal(roll([0, 1], 3), null);
+  assert.equal(roll([0, 1], 16, -1), null);
+});
+
+test('the wanted pirate id carries bit 15 and a title-less low byte', () => {
+  const id = missionPirateId(2, scriptedRng([3]));
+  assert.equal(id, 0x8000 | ((2 * 4 + 3) << 3));
+  assert.ok(isMissionPirateId(id));
+  assert.equal(id & 7, 0);
+  assert.equal(captainName(id), captainName(id & 0xff));
+  assert.ok(!isMissionPirateId(0xff));
 });

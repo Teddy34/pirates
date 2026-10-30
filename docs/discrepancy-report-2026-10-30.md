@@ -97,7 +97,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | K2 | **Fixed in #14.** Mutiny when morale ≤ −4. Traced (`0x1DD0E`): checked once after the months a voyage crosses, aboard at sea; a third of the crew deserts with their gold, the leader duel is provisional, and reputation drops by 4 (to −5 if the duel is lost). There is no marooning. |
 | K3 | Sword fights, fort battles and land battles |
 | K4 | Treasure fleet and silver train: monthly movement, encounter override and capture bonus |
-| K5 | Quest encounters and named-captain identities. **Hunter names done in #19**; quest captains are still open. |
+| K5 | Quest encounters and named-captain identities. **Hunter names done in #19; governor missions and the wanted pirate done in #22.** |
 | K6 | Battle shallows, beaching and terrain backdrops (the "beached" ending can never happen) |
 | K7 | Lost relatives and villains |
 | K8 | Marriage and the governor's daughter (favour ≥ 2) |
