@@ -5,7 +5,7 @@ help:
 	@echo "make serve-test    Start the game on isolated port 8011"
 	@echo "make syntax        Check JavaScript syntax"
 	@echo "make test          Run syntax and deterministic tests"
-	@echo "make test-browser  Run the plunder interaction smoke test"
+	@echo "make test-browser  Run the plunder and merchant interaction smoke test"
 	@echo "make check         Run every automated check"
 
 serve:
