@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   acceptsRudderInput, advanceDate, VOYAGE_START_TICK, isHalfDayTick, isDailyTick, voyageDays, consumeDailyFood, encounterRoll, foodDays, starvationDesertion, monthEndCrewEvent, mutinyOutcome,
-  isEncounterHunter, startFromRecord, createRng, hunterOvertakes, escapeCostsShip, harborAttempt,
+  isEncounterHunter, prizeMoraleBonus, startFromRecord, createRng, hunterOvertakes, escapeCostsShip, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -462,4 +462,11 @@ test('new game start picks one of four record points at random and makes pirates
   const { favour } = startFromRecord(start, createRng(1));
   assert.deepEqual(favour, [0, 0, 2, 0, -1]);
   assert.deepEqual(start.favour, [0, 0, 2, 0, 0]);
+});
+
+test('a captured prize raises stored crew morale by 1, or 2 above kind 5', () => {
+  assert.equal(prizeMoraleBonus(3), 1);
+  assert.equal(prizeMoraleBonus(5), 1);
+  assert.equal(prizeMoraleBonus(6), 2);
+  assert.equal(prizeMoraleBonus(7), 2);
 });

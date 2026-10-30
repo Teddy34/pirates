@@ -12,7 +12,7 @@ import {
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
   triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
   isEncounterHunter, hunterOvertakes,
-  harborAttempt, sneakAttempt, tavernRecruits, morale, dividePlunder, startNewExpedition,
+  harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, startNewExpedition,
   pirateCaptainTerms, governorPromotion, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -233,6 +233,9 @@ async function startGame(nextState) {
   state.player.specialGoods ??= 0;
   state.portTrade ??= { townIndex: null, merchantCash: null, shipwrightCash: null };
   await loadWorldMap(state.era);
+  // Loading recomputes morale (0x1D9A2). ASSUMED: a new game does the same;
+  // the new-game routine does not set 0x45FAA.
+  refreshCrewMorale();
   // A game saved in port resumes at sea as if leaving the town (0x19B9E).
   if (state.visit) placeForDeparture(state.visit.townIndex, state.visit.overland);
   state.visit = null;
@@ -796,7 +799,7 @@ function endVoyage(next = () => {}, { aboard = true } = {}) {
 function monthEndCrewCheck({ monthsCrossed, aboard }, next) {
   const player = state.player;
   const event = monthsCrossed > 0 && monthEndCrewEvent({
-    morale: morale({ ...player, difficulty: state.difficulty }),
+    morale: player.crewMorale,
     crew: player.crew,
     monthsAtSea: player.monthsAtSea,
     aboard,
@@ -960,6 +963,16 @@ function monthlyUpdate({ newsLog = true } = {}) {
   updateDiplomacy();
   applyRandomTownEvent();
   if (newsLog) addLog(`${MONTHS[state.calendar.month]} begins. The Caribbean shifts around you.`);
+  // 0x1DD0E recomputes the stored morale after each month's update (0x1DDB7).
+  refreshCrewMorale();
+}
+
+// Crew morale is a stored value (0x45FAA). 0x1DA9B overwrites it with the
+// formula at each month end, on loading a game and when the Party Status
+// mood is shown; in between, prizes raise it (0xDB7B), and port desertion,
+// battle reload and the month-end crew check read the stored value.
+function refreshCrewMorale() {
+  state.player.crewMorale = morale({ ...state.player, difficulty: state.difficulty });
 }
 
 function addWorldNews(message) {
@@ -1130,7 +1143,7 @@ function beginTacticalBattle(enemy, flagshipIndex) {
     difficulty: state.difficulty,
     ability: state.ability,
     playerFlag: state.nationality,
-    crewMorale: morale({ ...state.player, difficulty: state.difficulty }),
+    crewMorale: state.player.crewMorale,
     rng,
   });
   state.player.ships = state.battle.fleet.map(shipRecord);
@@ -1302,6 +1315,7 @@ function finishPrizeDecision(enemy, keepShip) {
     addLog(`Stripped and sank the captured ${enemy.ship}.`);
   }
   state.player.reputation += 1;
+  state.player.crewMorale += prizeMoraleBonus(enemy.kind);
   if (enemy.flag !== 'pirate') propagateFavour(enemy.flag, -1);
   const nearbyTown = nearestTown();
   const distance = Math.round(Math.abs(state.player.x - nearbyTown.x) + Math.abs(state.player.y - nearbyTown.y));
@@ -1728,8 +1742,7 @@ function trySneak(town) {
 function enterTown(town, sneaking) {
   state.mode = 'town';
   state.paused = true;
-  const currentMorale = morale({ ...state.player, difficulty: state.difficulty });
-  const deserters = Math.min(state.player.crew - 1, Math.floor(((3 - currentMorale) * state.player.crew) / 15));
+  const deserters = Math.min(state.player.crew - 1, Math.floor(((3 - state.player.crewMorale) * state.player.crew) / 15));
   if (deserters > 1) {
     state.player.crew -= deserters;
     addLog(`${deserters} crewmen deserted at ${town.name}.`);
