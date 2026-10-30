@@ -38,7 +38,7 @@ for future work.
   control is a documented project approximation; the decoded campaign code
   confirms only a probable half-speed reduced-sail flag.
 - Advance time at 64 ticks per day, using 30-day months and 360-day years.
-- Consume food in 8.8 fixed point and lose crew to starvation.
+- Consume food in 8.8 fixed point. When food runs out, a third of the crew deserts with a share of the gold and the rest forage 5 tons (traced from event 2 at `0x28537` and `0x1F044`; the reference archive marks this formula untraced).
 - Pause, zoom, steer, and change sail from keyboard or touch controls.
 
 ### World simulation

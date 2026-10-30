@@ -275,6 +275,22 @@ export function foodDays(foodFixed, crew) {
   return crew > 0 ? Math.floor(foodFixed / crew) : 0;
 }
 
+// Event 2 at 0x28537 with zero days left, traced through 0x1F044: the
+// whole-ton food word becomes 5 (the fraction byte stays), and a third of
+// the crew deserts, never the last man, taking a proportional share of the
+// party's gold.
+export function starvationDesertion({ crew, partyGold, foodFixed }) {
+  const deserters = Math.min(Math.trunc(crew / 3), Math.max(0, crew - 1));
+  const goldLost = crew > 0 ? Math.trunc((deserters * partyGold) / crew) : 0;
+  return {
+    deserters,
+    goldLost,
+    crew: crew - deserters,
+    partyGold: partyGold - goldLost,
+    foodFixed: 5 * 256 + (foodFixed & 0xff),
+  };
+}
+
 export function encounterRoll(distance, alert, rng) {
   const d = Math.max(1, Math.floor(distance));
   let nextAlert = alert;

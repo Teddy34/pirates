@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  acceptsRudderInput, advanceDate, consumeDailyFood, encounterRoll, foodDays, harborAttempt,
+  acceptsRudderInput, advanceDate, consumeDailyFood, encounterRoll, foodDays, starvationDesertion, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -212,6 +212,15 @@ test('food is stored in 8.8 fixed point', () => {
   const remaining = consumeDailyFood(20 * 256, 80);
   assert.equal(remaining, 5040);
   assert.equal(foodDays(remaining, 80), 63);
+});
+
+test('starvation sends a third of the crew away with their share of gold', () => {
+  assert.deepEqual(starvationDesertion({ crew: 80, partyGold: 1000, foodFixed: 40 }), {
+    deserters: 26, goldLost: 325, crew: 54, partyGold: 675, foodFixed: 5 * 256 + 40,
+  });
+  assert.deepEqual(starvationDesertion({ crew: 2, partyGold: 99, foodFixed: 0 }), {
+    deserters: 0, goldLost: 0, crew: 2, partyGold: 99, foodFixed: 1280,
+  });
 });
 
 test('far-sea encounter chance uses a 4-in-64 roll', () => {

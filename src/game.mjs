@@ -9,7 +9,7 @@ import {
   applyProvisionalBoardingOutcome,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
   acceptsRudderInput,
-  consumeDailyFood, foodDays, encounterRoll, chooseEncounterTier,
+  consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
   harborAttempt, sneakAttempt, tavernRecruits, morale, dividePlunder, startNewExpedition,
   pirateCaptainTerms, governorPromotion, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
@@ -508,11 +508,13 @@ function dailyUpdate() {
   const player = state.player;
   player.foodFixed = consumeDailyFood(player.foodFixed, player.crew);
   const remaining = foodDays(player.foodFixed, player.crew);
-  if (remaining <= 20 && remaining % 4 === 0) addLog(`Only ${remaining} days of food remain.`);
-  if (player.foodFixed === 0) {
-    const lost = Math.max(1, Math.floor(player.crew / 20));
-    player.crew = Math.max(1, player.crew - lost);
-    addLog(`${lost} starving crewmen have deserted.`);
+  if (remaining > 0 && remaining <= 20 && remaining % 4 === 0) addLog(`Only ${remaining} days of food remain.`);
+  if (remaining === 0 && player.crew > 0) {
+    const starving = starvationDesertion(player);
+    player.crew = starving.crew;
+    player.partyGold = starving.partyGold;
+    player.foodFixed = starving.foodFixed;
+    addLog(`Out of food: ${starving.deserters} men deserted with ${starving.goldLost} gold; the rest foraged 5 tons of food.`);
   }
 
   const nextDate = advanceDate(state.calendar);
