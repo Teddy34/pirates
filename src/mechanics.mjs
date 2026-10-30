@@ -218,8 +218,8 @@ export function capturedShipPlunder({ enemy, nearbyTownGrowth, shipStats, rng })
   };
 }
 
-export function capturedTownPlunder({ town, rng }) {
-  const baseGold = Math.floor((town.gold * 1500) / (town.alert + 15));
+export function capturedTownPlunder({ town, alert, rng }) {
+  const baseGold = Math.floor((town.gold * 1500) / (alert + 15));
   const food = rng.int(town.growth);
   const goods = rng.int(town.growth);
   const specialGoods = rng.int(town.growth);

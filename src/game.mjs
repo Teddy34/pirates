@@ -1381,7 +1381,7 @@ function captureTown(town) {
 function resolveTownCapture(town) {
   const oldNation = town.nation;
   town.growth = Math.max(0, town.growth - 20);
-  const loot = capturedTownPlunder({ town, rng });
+  const loot = capturedTownPlunder({ town, alert: state.alert, rng });
   Object.assign(town, applyTownCapture(town, loot));
   state.player.reputation += loot.gold > 990 ? 2 : 0;
   propagateFavour(oldNation, -1);
