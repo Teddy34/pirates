@@ -101,7 +101,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | K7 | Lost relatives and villains |
 | K8 | Marriage and the governor's daughter (favour ≥ 2) |
 | K9 | Health, forced retirement and score |
-| K10 | **Done in #PR.** Prison and shipwreck relocation (relocation and the fresh fleet since #4). Captivity time traced from `0x1F803`: both prison and the uncharted island last (trunc(reputation/2) + 7) steps of 27 days, re-checking reputation each step; the fresh fleet follows, held pirates go free, a health message (CSTR 176–179) shows, and difficulty drops one level. The original has no escape option; the retirement check (`0x1F1D7`) that runs first waits for K9. |
+| K10 | **Done in #12.** Prison and shipwreck relocation (relocation and the fresh fleet since #4). Captivity time traced from `0x1F803`: both prison and the uncharted island last (trunc(reputation/2) + 7) steps of 27 days, re-checking reputation each step; the fresh fleet follows, held pirates go free, a health message (CSTR 176–179) shows, and difficulty drops one level. The original has no escape option; the retirement check (`0x1F1D7`) that runs first waits for K9. |
 
 ## What matched the docs
 
