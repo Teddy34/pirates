@@ -12,7 +12,7 @@ import {
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
   applyProvisionalBoardingOutcome,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
-  triggerTownAt, nearestTriggerTown, townDistanceCells,
+  triggerTownAt, nearestTriggerTown, townDistanceCells, alertAfterNearestTownCheck,
 } from '../src/mechanics.mjs';
 import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
 
@@ -179,11 +179,13 @@ test('captured cargo preserves the binary two-stage fixed-point rounding', () =>
 });
 
 test('town capture computes plunder before damaging the town economy', () => {
-  const town = { gold: 40, growth: 80, alert: 0, forts: 2, mood: 1 };
+  const town = { gold: 40, growth: 80, forts: 2, mood: 1 };
   const originalTown = { ...town };
-  const loot = capturedTownPlunder({ town, rng: fixedRng({ integer: 7 }) });
+  const loot = capturedTownPlunder({ town, alert: 0, rng: fixedRng({ integer: 7 }) });
   assert.deepEqual(loot, { gold: 40000, food: 7, goods: 7, specialGoods: 7, cannon: 12, treasuryLoss: 80 });
-  assert.deepEqual(applyTownCapture(town, loot), { gold: 0, growth: 60, alert: 0, forts: 2, mood: -2 });
+  assert.deepEqual(applyTownCapture(town, loot), { gold: 0, growth: 60, forts: 2, mood: -2 });
+  // A warned town hides gold: 40·1500 / (45 + 15) = 1000 → 10000 gold.
+  assert.equal(capturedTownPlunder({ town, alert: 45, rng: fixedRng() }).gold, 10000);
   assert.deepEqual(town, originalTown, 'capture rules must not mutate shared town data');
 });
 
@@ -401,4 +403,11 @@ test('a hunter overtakes a fleeing captain when rnd(3) is below the difficulty',
   assert.equal(hunterOvertakes({ hunter: true, difficulty: 2, rng: roll(1) }), true);
   assert.equal(hunterOvertakes({ hunter: true, difficulty: 2, rng: roll(2) }), false);
   assert.equal(hunterOvertakes({ hunter: false, difficulty: 3, rng: roll(0) }), false);
+});
+
+test('the single town alert resets only when the nearest town changes', () => {
+  assert.equal(alertAfterNearestTownCheck(27, 4, 4), 27);
+  assert.equal(alertAfterNearestTownCheck(27, 4, 5), 0);
+  // The half-day roll then builds alert again near the new town.
+  assert.equal(encounterRoll(3, alertAfterNearestTownCheck(27, 4, 5), fixedRng({ integer: 7 })).alert, 5);
 });

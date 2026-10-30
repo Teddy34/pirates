@@ -10,7 +10,7 @@ import {
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
   acceptsRudderInput,
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
-  triggerTownAt, nearestTriggerTown, townDistanceCells,
+  triggerTownAt, nearestTriggerTown, townDistanceCells, alertAfterNearestTownCheck,
   isEncounterHunter, hunterOvertakes,
   harborAttempt, sneakAttempt, tavernRecruits, morale, dividePlunder, startNewExpedition,
   pirateCaptainTerms, governorPromotion, convoyReport,
@@ -29,7 +29,7 @@ import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt }
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
 const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 const TICK_SECONDS = 0.125;
 const ZOOM_STEP = 4;
 const MIN_ZOOM = 16;
@@ -176,8 +176,11 @@ function newState(options) {
       barmaidRapport: {}, barmaidInformants: [],
       favour, ranks,
     },
-    towns: scenario.towns.map((town) => ({ ...town, alert: 0 })),
+    towns: scenario.towns.map((town) => ({ ...town })),
     nearestTownIndex: 0,
+    // One alert counter belongs to whichever town is nearest; it resets when
+    // the nearest town changes (town_attack_and_plunder.md §1).
+    alert: 0,
     diplomacy,
     worldNews: initialDiplomacyNews(diplomacy, { month: 0, year: Number(era) }),
     treasureMap: { pieces: 0, clueTownIndex: null },
@@ -254,7 +257,11 @@ function saveGame(showMessage = true) {
 function loadGame() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(PREVIOUS_SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY));
-    if (![1, 2, 3, 4, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
+    if (![1, 2, 3, 4, 5, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
+    // Version 6 replaces per-town alert with the original's single counter,
+    // keeping the value of the town that was nearest when the game was saved.
+    if (saved.alert === undefined) saved.alert = saved.towns[saved.nearestTownIndex ?? 0]?.alert ?? 0;
+    for (const town of saved.towns) delete town.alert;
     // Version 4 stores fleet ships as damage-bearing records. The old storage
     // key remains readable so existing browser voyages are not discarded.
     saved.player.ships = saved.player.ships.map(shipRecord);
@@ -657,10 +664,12 @@ function checkTownArrival(attemptedX, attemptedY, previousX, previousY) {
 }
 
 function halfDayUpdate() {
+  const previousTownIndex = state.nearestTownIndex;
   const distance = updateNearestTown();
   const town = nearestTown();
-  const result = encounterRoll(distance, town.alert, rng);
-  town.alert = result.alert;
+  state.alert = alertAfterNearestTownCheck(state.alert, previousTownIndex, state.nearestTownIndex);
+  const result = encounterRoll(distance, state.alert, rng);
+  state.alert = result.alert;
   if (result.sighted) openSighting(town, distance);
 }
 
@@ -765,14 +774,14 @@ function openSighting(town, distance) {
       : '<p>A distant sail crosses the horizon. Will you investigate?</p>',
     actions: [
       { label: 'Investigate', run: () => revealEncounter(town, distance) },
-      { label: 'Continue the voyage', secondary: true, run: () => { town.alert += 16; resumeAfterEncounter(); } },
+      { label: 'Continue the voyage', secondary: true, run: () => { state.alert += 16; resumeAfterEncounter(); } },
     ],
   });
 }
 
 function revealEncounter(town, distance) {
   let nation = town.nation;
-  let tier = chooseEncounterTier({ crew: state.player.crew, alert: town.alert, governorMood: town.mood, rng });
+  let tier = chooseEncounterTier({ crew: state.player.crew, alert: state.alert, governorMood: town.mood, rng });
   if (distance > 12 || rng.int(15) < 4) {
     const roll = rng.int(20);
     tier = Math.floor(roll / 4);
@@ -817,7 +826,7 @@ function evadeHunter(enemy, next) {
 }
 
 function escapeEncounter(enemy, town) {
-  town.alert += 16;
+  state.alert += 16;
   addLog(`You leave the ${enemy.ship} astern.`);
   resumeAfterEncounter();
 }
@@ -834,7 +843,7 @@ function hailForNews(enemy, town) {
   const items = state.worldNews.slice(0, 6);
   // Hailing returns "no battle" from 0xD1FC, so the caller raises the alert
   // by 16 just as when sailing away (0x284EF).
-  town.alert += 16;
+  state.alert += 16;
   showDialog({
     kicker: 'Ship’s News', title: 'News from across the Caribbean',
     body: newsBody(items, 'The other captain has heard nothing of consequence.'),
@@ -884,9 +893,8 @@ function applyBattleSurvivors(battle) {
   const damage = Math.min(48, battle.player.damage & 0xf0);
   state.player.ships = battle.fleet.map(shipRecord);
   if (state.player.ships.length) state.player.ships[0] = { ...state.player.ships[0], damage };
-  const town = nearestTown();
   const distance = nearestTownDistance();
-  if (distance < 12) town.alert += 24 - 2 * distance;
+  if (distance < 12) state.alert += 24 - 2 * distance;
 }
 
 function capacitySafeFleet() {
@@ -991,7 +999,7 @@ function resolveProvisionalBoarding(enemy, outcome) {
   }
   const result = applyProvisionalBoardingOutcome(state.player, state.battle.player.men, outcome);
   state.player = result.player;
-  nearestTown().alert += 16;
+  state.alert += 16;
   if (outcome === 'defeated') {
     endBattleToSailing(`Provisional boarding defeat: lost ${result.casualties} crew and paid ${result.ransom} gold in ransom.`);
     return;
@@ -1351,15 +1359,15 @@ function attackTown(town) {
     body: `<p>Town and land combat are not playable yet. Choose the provisional result of the assault; capture now leads into the documented plunder sequence.</p>`,
     actions: [
       { label: 'Capture the town', run: () => captureTown(town) },
-      { label: 'Repelled with losses', run: () => { const lost = Math.min(state.player.crew - 1, Math.max(1, Math.floor(state.player.crew / 5))); state.player.crew -= lost; town.alert += 16; state.player.reputation -= 2; addLog(`Lost ${lost} crew attacking ${town.name}.`); runFleetCheck({ inTown: true, done: startVoyage }); } },
-      { label: 'Withdraw from the assault', secondary: true, run: () => { town.alert += 16; addLog(`Withdrew from the assault on ${town.name}.`); resumeSailing(); } },
+      { label: 'Repelled with losses', run: () => { const lost = Math.min(state.player.crew - 1, Math.max(1, Math.floor(state.player.crew / 5))); state.player.crew -= lost; state.alert += 16; state.player.reputation -= 2; addLog(`Lost ${lost} crew attacking ${town.name}.`); runFleetCheck({ inTown: true, done: startVoyage }); } },
+      { label: 'Withdraw from the assault', secondary: true, run: () => { state.alert += 16; addLog(`Withdrew from the assault on ${town.name}.`); resumeSailing(); } },
     ],
   });
 }
 
 function captureTown(town) {
-  if (town.alert >= 12) {
-    const hidden = ['Some', 'Much', 'Most'][Math.min(2, Math.floor((town.alert - 12) / 15))];
+  if (state.alert >= 12) {
+    const hidden = ['Some', 'Much', 'Most'][Math.min(2, Math.floor((state.alert - 12) / 15))];
     showDialog({
       kicker: 'The town was warned', title: `${hidden} of the gold is hidden`,
       body: '<p>The inhabitants had time to conceal part of the treasury before your force arrived.</p>',
@@ -1373,7 +1381,7 @@ function captureTown(town) {
 function resolveTownCapture(town) {
   const oldNation = town.nation;
   town.growth = Math.max(0, town.growth - 20);
-  const loot = capturedTownPlunder({ town, rng });
+  const loot = capturedTownPlunder({ town, alert: state.alert, rng });
   Object.assign(town, applyTownCapture(town, loot));
   state.player.reputation += loot.gold > 990 ? 2 : 0;
   propagateFavour(oldNation, -1);

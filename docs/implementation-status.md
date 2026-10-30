@@ -53,7 +53,7 @@ for future work.
 - Change diplomatic relations and publish wars, peace treaties, and alliances
   as world news.
 - Apply simplified mine, malaria, raid, governor, and plunder events.
-- Track town alert, national favour, ranks, reputation, morale inputs, and time
+- Track the single nearest-town alert (reset when the nearest town changes), national favour, ranks, reputation, morale inputs, and time
   at sea.
 
 ### Ship encounters

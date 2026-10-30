@@ -218,8 +218,8 @@ export function capturedShipPlunder({ enemy, nearbyTownGrowth, shipStats, rng })
   };
 }
 
-export function capturedTownPlunder({ town, rng }) {
-  const baseGold = Math.floor((town.gold * 1500) / (town.alert + 15));
+export function capturedTownPlunder({ town, alert, rng }) {
+  const baseGold = Math.floor((town.gold * 1500) / (alert + 15));
   const food = rng.int(town.growth);
   const goods = rng.int(town.growth);
   const specialGoods = rng.int(town.growth);
@@ -332,6 +332,12 @@ export function nearestTriggerTown(triggers, cellX, cellY) {
 // and a distance of 0 counts as 1 (0x23E0E–0x23E4C).
 export function townDistanceCells(town, cellX, cellY) {
   return Math.max(1, Math.abs(town.x - cellX) + Math.abs(town.y - cellY));
+}
+
+// The single alert counter belongs to the nearest town and is cleared when
+// the half-day nearest-town check picks a different town (0x23DE4–0x23DF7).
+export function alertAfterNearestTownCheck(alert, previousTownIndex, nearestTownIndex) {
+  return nearestTownIndex === previousTownIndex ? alert : 0;
 }
 
 export function chooseEncounterTier({ crew, alert, governorMood, rng }) {
