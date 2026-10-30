@@ -1538,6 +1538,16 @@ function resolveTownCapture(town) {
   });
 }
 
+function returnToApproach(kicker, title, body) {
+  const overland = Boolean(state.approach?.overland);
+  showDialog({
+    kicker, title, body: `<p>${body}</p>`,
+    actions: [{ label: 'Back to the approach', run: () => approachTown({ overland }) }],
+  });
+}
+
+// entering_towns.md §2: a refused approach leaves the approach menu open, so
+// the captain may try again (a new roll) or choose another course.
 function tryHarbor(town) {
   const result = harborAttempt({ favour: state.player.favour[town.nation], governorMood: town.mood, crew: state.player.crew, forts: town.forts, rng });
   if (result.admitted) { enterTown(town, false); return; }
@@ -1547,17 +1557,35 @@ function tryHarbor(town) {
     loseShip(rng.int(state.player.ships.length), { inTown: true, cause: '<p>As you approach the town, the fort opens fire! One of your ships is sunk!</p>', done: (lost) => {
       if (!lost) { resumeSailing(); return; }
       addLog(`The fort at ${town.name} sank your ${shipName(lost)} and her cargo.`);
-      showNotice('The fort opens fire', `One of your ships is sunk! An accurate salvo sinks your ${shipName(lost)} and her cargo. The fleet withdraws to open water.`);
+      returnToApproach('The fort opens fire', 'One of your ships is sunk!', `An accurate salvo sinks your ${shipName(lost)} and her cargo.`);
     } });
   } else {
-    showNotice('The fort opens fire', 'Cannon fire throws up columns of water. The fleet withdraws beyond range.');
+    returnToApproach('The fort opens fire', 'The fort opens fire!', 'Cannon fire throws up columns of water and the fleet stands off beyond range.');
   }
 }
 
+// entering_towns.md §3 and sword_fights.md: a recognised captain fights one
+// guard (0x161BA at 0x1968C); win or lose, he is back at the approach menu.
 function trySneak(town) {
   const unseen = sneakAttempt({ governorMood: town.mood, reputation: state.player.reputation, rng });
   if (unseen) { enterTown(town, true); return; }
-  showNotice('Recognized!', 'A governor’s guard spots you in the street. You escape the patrol and return to your ship.');
+  const overland = Boolean(state.approach?.overland);
+  showDialog({
+    kicker: 'Recognized!', title: '“Halt, you cowardly pirate scum!”',
+    body: '<p>As you sneak into town, one of the governor’s guards recognizes you and draws his sword.</p><p>Sword fighting is not playable yet. Choose the provisional result of the duel.</p>',
+    actions: [
+      { label: 'Defeat the guard', run: () => {
+        addLog(`Fought off a guard while sneaking into ${town.name}.`);
+        approachTown({ overland });
+      } },
+      { label: 'Lose the duel', secondary: true, run: () => {
+        // Losing any duel sets reputation to -1 (0x165FE, sword_fights.md).
+        state.player.reputation = -1;
+        addLog(`Beaten by a guard while sneaking into ${town.name}.`);
+        approachTown({ overland });
+      } },
+    ],
+  });
 }
 
 function enterTown(town, sneaking) {
