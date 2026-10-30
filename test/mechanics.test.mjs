@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   acceptsRudderInput, advanceDate, consumeDailyFood, encounterRoll, foodDays, starvationDesertion,
-  isEncounterHunter, hunterOvertakes, harborAttempt,
+  isEncounterHunter, hunterOvertakes, escapeCostsShip, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -415,4 +415,13 @@ test('the single town alert resets only when the nearest town changes', () => {
 test('leaving a town starts at the departure cell centre with its heading', () => {
   assert.deepEqual(departurePose([401, 205, 192]), { x: 401.5, y: 205.5, heading: 192 });
   assert.equal(departurePose(null), null);
+});
+
+test('only escaping, not sunset, lets an undamaged pursuer take a reserve ship', () => {
+  const base = { event: 'escaped', shipCount: 2, enemyDamage: 15, enemyTactic: 'close' };
+  assert.equal(escapeCostsShip(base), true);
+  assert.equal(escapeCostsShip({ ...base, event: 'sunset' }), false);
+  assert.equal(escapeCostsShip({ ...base, shipCount: 1 }), false);
+  assert.equal(escapeCostsShip({ ...base, enemyDamage: 16 }), false);
+  assert.equal(escapeCostsShip({ ...base, enemyTactic: 'flee' }), false);
 });

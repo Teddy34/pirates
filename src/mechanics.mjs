@@ -666,3 +666,9 @@ export const INLAND_RELEASE_OFFSETS = {
   'Gran Granada': [50, 0], Jalapa: [20, 0], Panama: [0, -20],
   'Puerto Principe': [0, 16], 'Villa Hermosa': [0, -10], 'St. Thome': [0, -20],
 };
+
+// sea_battles.md §6: only leaving the field (event 6) lets an undamaged,
+// non-fleeing enemy overtake a reserve ship; sunset (event 8) just ends it.
+export function escapeCostsShip({ event, shipCount, enemyDamage, enemyTactic }) {
+  return event === 'escaped' && shipCount > 1 && enemyDamage < 16 && enemyTactic !== 'flee';
+}

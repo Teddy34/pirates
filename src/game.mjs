@@ -18,6 +18,7 @@ import {
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   merchantCommodityPrice, merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
   fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
+  escapeCostsShip,
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
@@ -973,8 +974,7 @@ function finishTacticalBattle() {
     endBattleToSailing(`The ${enemy.ship} exploded and sank. No prize remained.`);
     return;
   }
-  if ((battle.event === 'escaped' || battle.event === 'sunset') && state.player.ships.length > 1
-      && battle.enemy.damage < 16 && battle.enemy.tactic !== 'flee') {
+  if (escapeCostsShip({ event: battle.event, shipCount: state.player.ships.length, enemyDamage: battle.enemy.damage, enemyTactic: battle.enemy.tactic })) {
     let slowest = 1;
     for (let index = 2; index < state.player.ships.length; index += 1) {
       if (statsFor(state.player.ships[index]).type > statsFor(state.player.ships[slowest]).type) slowest = index;
