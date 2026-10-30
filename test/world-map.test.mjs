@@ -128,8 +128,26 @@ test('every coastal town has a trigger cell beside water', async () => {
     const besideSea = ([x, y]) => [-1, 0, 1].some((dx) => [-1, 0, 1].some((dy) => cellHasWater(map, x + dx, y + dy)));
     scenario.towns.forEach((town, index) => {
       const cells = scenario.townTriggers.filter(([, , owner]) => owner === index);
-      const inland = town.harbors[1][0] === 0 || town.harbors[1][1] === 0;
-      if (!inland) assert.ok(cells.some(besideSea), `${era} ${town.name}`);
+      if (town.departure) assert.ok(cells.some(besideSea), `${era} ${town.name}`);
     });
   }
+});
+
+test('coastal towns leave from a navigable departure cell that is never a trigger cell', async () => {
+  for (const [era, scenario] of Object.entries(scenarios)) {
+    const map = await readMap(era);
+    const triggerCells = new Set(scenario.townTriggers.map(([x, y]) => `${x},${y}`));
+    for (const town of scenario.towns) {
+      if (!town.departure) continue;
+      const [x, y, heading] = town.departure;
+      assert.ok(!triggerCells.has(`${x},${y}`), `${era} ${town.name} departs from a trigger cell`);
+      assert.ok(isNavigableAt(map, x + .5, y + .5), `${era} ${town.name} departs onto land`);
+      assert.equal(heading % 32, 0);
+    }
+  }
+  const byName = Object.fromEntries(scenarios['1660'].towns.map((town) => [town.name, town]));
+  // entering_towns.md §0: both leave from (401, 205), west and south-west.
+  assert.deepEqual(byName['Port-de-Paix'].departure, [401, 205, 192]);
+  assert.deepEqual(byName.Tortuga.departure, [401, 205, 160]);
+  assert.equal(byName.Panama.departure, null);
 });

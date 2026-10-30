@@ -285,7 +285,7 @@ async function loadScenarios() {
   const response = await fetch(new URL('../assets/scenarios.json', import.meta.url));
   if (!response.ok) throw new Error(`scenario request failed: ${response.status}`);
   const payload = await response.json();
-  if (payload.version !== 5) throw new Error('unsupported scenario data version');
+  if (payload.version !== 6) throw new Error('unsupported scenario data version');
   scenarios = payload.eras;
 }
 
@@ -393,9 +393,28 @@ function nearestTownDistance() {
   return townDistanceCells(nearestTown(), cellX, cellY);
 }
 
+function townDeparture(index) {
+  return scenarios[state.era].towns[index].departure;
+}
+
 function isInlandTown(index) {
-  const [x, y] = scenarios[state.era].towns[index].harbors[1];
-  return x === 0 || y === 0;
+  return !townDeparture(index);
+}
+
+// 0x19B9E: leaving by sea puts the ship on the town's departure cell with the
+// town's departure heading. ASSUMED: a landing party (provisional, K1) simply
+// rejoins the fleet where it anchored, so an overland visit leaves the ship.
+function placeForDeparture(townIndex, overland) {
+  const departure = townDeparture(townIndex);
+  if (overland || !departure) return;
+  const [cellX, cellY, heading] = departure;
+  state.player.x = cellX + .5;
+  state.player.y = cellY + .5;
+  state.player.heading = heading;
+}
+
+function departFromApproach() {
+  placeForDeparture(state.nearestTownIndex, state.approach?.overland);
 }
 
 // ASSUMED: landing parties are not playable yet (K1). A ship lying beside the
@@ -519,10 +538,8 @@ function loseLastShip({ inTown, done, cause = '' }) {
 // 0x1C056: a coastal town releases you on its departure cell; an inland town
 // shifts the point by its fixed offset and then searches for the shore.
 function releaseFromTown(town) {
-  const [departureX, departureY] = town.harbors?.[1] ?? [0, 0];
-  // ASSUMED: the departure heading (w28) is not in the scenario data yet
-  // (report item D5), so the current heading is kept on a coastal release.
-  if (departureX && departureY) return { x: departureX, y: departureY };
+  const departure = townDeparture(state.towns.indexOf(town));
+  if (departure) return { x: departure[0], y: departure[1], heading: departure[2] };
   const [dx, dy] = INLAND_RELEASE_OFFSETS[town.name] ?? [0, 0];
   return shoreNear(town.x + dx, town.y + dy);
 }
@@ -1309,9 +1326,9 @@ function approachTown({ overland = false } = {}) {
   const town = nearestTown();
   state.paused = true;
   state.approach = { overland };
-  // ASSUMED: the original puts the ship on the departure cell after the
-  // approach menu (D5). Until then this guard, cleared once the ship is off
-  // every trigger cell, stops an immediate re-arrival on the cell it touches.
+  // Leaving puts the ship on the departure cell, which is never a trigger
+  // cell. The guard, cleared once the ship is off every trigger cell, covers
+  // an overland visit, which leaves the fleet where it lay.
   state.player.arrivalGuard = true;
   const fortText = town.forts === 0 ? 'No fort guards the harbor.' : `${town.forts === 1 ? 'One fort guards' : `${town.forts} forts guard`} the harbor.`;
   showDialog({
@@ -1321,7 +1338,7 @@ function approachTown({ overland = false } = {}) {
       { label: overland ? 'March into town' : 'Sail into the harbor', run: () => tryHarbor(town) },
       { label: 'Sneak into town', run: () => trySneak(town) },
       { label: 'Attack the town', run: () => attackTown(town) },
-      { label: 'Leave town', secondary: true, run: resumeSailing },
+      { label: 'Leave town', secondary: true, run: () => { departFromApproach(); resumeSailing(); } },
     ],
   });
 }
@@ -1356,8 +1373,8 @@ function attackTown(town) {
     body: `<p>Town and land combat are not playable yet. Choose the provisional result of the assault; capture now leads into the documented plunder sequence.</p>`,
     actions: [
       { label: 'Capture the town', run: () => captureTown(town) },
-      { label: 'Repelled with losses', run: () => { const lost = Math.min(state.player.crew - 1, Math.max(1, Math.floor(state.player.crew / 5))); state.player.crew -= lost; state.alert += 16; state.player.reputation -= 2; addLog(`Lost ${lost} crew attacking ${town.name}.`); runFleetCheck({ inTown: true, done: startVoyage }); } },
-      { label: 'Withdraw from the assault', secondary: true, run: () => { state.alert += 16; addLog(`Withdrew from the assault on ${town.name}.`); resumeSailing(); } },
+      { label: 'Repelled with losses', run: () => { const lost = Math.min(state.player.crew - 1, Math.max(1, Math.floor(state.player.crew / 5))); state.player.crew -= lost; state.alert += 16; state.player.reputation -= 2; addLog(`Lost ${lost} crew attacking ${town.name}.`); departFromApproach(); runFleetCheck({ inTown: true, done: startVoyage }); } },
+      { label: 'Withdraw from the assault', secondary: true, run: () => { state.alert += 16; addLog(`Withdrew from the assault on ${town.name}.`); departFromApproach(); resumeSailing(); } },
     ],
   });
 }
@@ -1388,6 +1405,7 @@ function resolveTownCapture(town) {
 
   const proceed = () => beginPlunderTransfer(`Plunder of ${town.name}`, loot, () => {
     saveGame(false);
+    departFromApproach();
     runFleetCheck({ inTown: true, done: startVoyage });
   });
   if (state.player.crew < threshold) {
@@ -1414,6 +1432,7 @@ function resolveTownCapture(town) {
 function tryHarbor(town) {
   const result = harborAttempt({ favour: state.player.favour[town.nation], governorMood: town.mood, crew: state.player.crew, forts: town.forts, rng });
   if (result.admitted) { enterTown(town, false); return; }
+  departFromApproach();
   // Fort fire can only sink a ship that arrived by sea (0x1953A).
   if (result.shipLost && !state.approach?.overland) {
     // 0x1F2A1(rnd(ship_count), 0, 1): cargo share lost; the last ship means prison.
@@ -1430,6 +1449,7 @@ function tryHarbor(town) {
 function trySneak(town) {
   const unseen = sneakAttempt({ governorMood: town.mood, reputation: state.player.reputation, rng });
   if (unseen) { enterTown(town, true); return; }
+  departFromApproach();
   showNotice('Recognized!', 'A governor’s guard spots you in the street. You escape the patrol and return to your ship.');
 }
 
@@ -1442,7 +1462,7 @@ function enterTown(town, sneaking) {
     state.player.crew -= deserters;
     addLog(`${deserters} crewmen deserted at ${town.name}.`);
   }
-  state.visit = { townIndex: state.nearestTownIndex, sneaking, recruited: false, merchant: null };
+  state.visit = { townIndex: state.nearestTownIndex, sneaking, overland: Boolean(state.approach?.overland), recruited: false, merchant: null };
   if (state.portTrade.townIndex !== state.nearestTownIndex) {
     state.portTrade = { townIndex: state.nearestTownIndex, merchantCash: null, shipwrightCash: null };
   }
@@ -2026,13 +2046,7 @@ function tradeWithMerchant(kind, direction, requested) {
 
 function leaveTown() {
   const town = state.towns[state.visit.townIndex];
-  const angle = state.player.heading / 256 * Math.PI * 2;
-  const departureX = clamp(state.player.x + Math.sin(angle) * 8, 1, WORLD.width - 1);
-  const departureY = clamp(state.player.y - Math.cos(angle) * 8, 1, WORLD.height - 1);
-  if (isNavigable(departureX, departureY)) {
-    state.player.x = departureX;
-    state.player.y = departureY;
-  }
+  placeForDeparture(state.visit.townIndex, state.visit.overland);
   state.visit = null;
   state.mode = 'sailing';
   state.player.arrivalGuard = true;
