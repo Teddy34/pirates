@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import { WORLD } from '../src/data.mjs';
 import { CELL, PIXEL, decodeNavigationMap, isNavigableAt, pixelClassAt } from '../src/world-map.mjs';
+import { nearestTriggerTown } from '../src/mechanics.mjs';
 
 const scenarios = JSON.parse(await readFile(new URL('../assets/scenarios.json', import.meta.url), 'utf8')).eras;
 const readMap = async (era) => decodeNavigationMap(
@@ -105,4 +106,30 @@ test('land and sea are classified per map pixel, including shallows', async () =
   assert.ok(shallow > 0, 'shallow water pixels are present');
   assert.ok(mixedLand > 0, 'coastal cells hold land pixels');
   assert.equal(pixelClassAt(map, -1, 10), PIXEL.LAND);
+});
+
+test('trigger tables match the documented era counts and test vectors', () => {
+  const counts = Object.fromEntries(Object.entries(scenarios).map(([era, { townTriggers }]) => [era, townTriggers.length]));
+  assert.deepEqual(counts, { 1560: 223, 1600: 230, 1620: 267, 1640: 300, 1660: 305, 1680: 314 });
+  assert.equal(new Set(scenarios['1560'].townTriggers.map(([x, y]) => `${x},${y}`)).size, 210);
+  for (const scenario of Object.values(scenarios)) {
+    assert.equal(new Set(scenario.townTriggers.map(([, , town]) => town)).size, scenario.towns.length);
+  }
+  const towns1660 = scenarios['1660'].towns;
+  const tie = nearestTriggerTown(scenarios['1660'].townTriggers, 401, 205);
+  assert.equal(towns1660[tie].name, 'Port-de-Paix');
+});
+
+// Inland towns are not asserted dry: Panama faces the Pacific and Gran Granada
+// Lake Nicaragua, neither of which a ship can reach from the Caribbean.
+test('every coastal town has a trigger cell beside water', async () => {
+  for (const [era, scenario] of Object.entries(scenarios)) {
+    const map = await readMap(era);
+    const besideSea = ([x, y]) => [-1, 0, 1].some((dx) => [-1, 0, 1].some((dy) => cellHasWater(map, x + dx, y + dy)));
+    scenario.towns.forEach((town, index) => {
+      const cells = scenario.townTriggers.filter(([, , owner]) => owner === index);
+      const inland = town.harbors[1][0] === 0 || town.harbors[1][1] === 0;
+      if (!inland) assert.ok(cells.some(besideSea), `${era} ${town.name}`);
+    });
+  }
 });

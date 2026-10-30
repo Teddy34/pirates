@@ -15,7 +15,8 @@ Open <http://localhost:8000>. Node.js 18 or later is sufficient; there are no pa
 - Turn with the left and right arrow keys, `A` and `D`, or the on-screen controls.
 - Raise and lower sail with the up and down arrow keys or the on-screen sail controls. The three states are closed, low, and high.
 - Zoom from `16×` to `64×` with the `+` and `-` keys, the mouse wheel, or the on-screen controls.
-- Press `E` or choose **Approach** when a town lies within seven map cells.
+- Sail onto a town's harbor cells to arrive there automatically.
+- Press `E` or choose **Land** beside the coast to send a provisional landing party to an inland town within 16 map cells.
 - Press Space or choose **Pause** to pause the voyage.
 - Save from any town. The save remains in the current browser's local storage.
 

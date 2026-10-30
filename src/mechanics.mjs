@@ -307,6 +307,33 @@ export function encounterRoll(distance, alert, rng) {
   return { sighted, alert: nextAlert };
 }
 
+// Trigger entries are [cellX, cellY, townIndex] in the era table's original
+// order (entering_towns.md §0). Order matters: the nearest-town scan keeps the
+// first entry on a tie, which decides Port-de-Paix over Tortuga.
+export function triggerTownAt(triggers, cellX, cellY) {
+  const entry = triggers.find(([x, y]) => x === cellX && y === cellY);
+  return entry ? entry[2] : -1;
+}
+
+export function nearestTriggerTown(triggers, cellX, cellY) {
+  let bestTown = -1;
+  let bestDistance = Infinity;
+  for (const [x, y, townIndex] of triggers) {
+    const distance = Math.abs(x - cellX) + Math.abs(y - cellY);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestTown = townIndex;
+    }
+  }
+  return bestTown;
+}
+
+// town_dist is measured to the town record's (x, y), not to a trigger cell,
+// and a distance of 0 counts as 1 (0x23E0E–0x23E4C).
+export function townDistanceCells(town, cellX, cellY) {
+  return Math.max(1, Math.abs(town.x - cellX) + Math.abs(town.y - cellY));
+}
+
 export function chooseEncounterTier({ crew, alert, governorMood, rng }) {
   const range = Math.floor(crew / 50 + alert / 6 - governorMood);
   if (range <= 0) return 0;

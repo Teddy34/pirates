@@ -10,6 +10,7 @@ import {
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
   acceptsRudderInput,
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
+  triggerTownAt, nearestTriggerTown, townDistanceCells,
   harborAttempt, sneakAttempt, tavernRecruits, morale, dividePlunder, startNewExpedition,
   pirateCaptainTerms, governorPromotion, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
@@ -220,6 +221,8 @@ async function startGame(nextState) {
   state.portTrade ??= { townIndex: null, merchantCash: null, shipwrightCash: null };
   await loadWorldMap(state.era);
   movePlayerToNavigableCell();
+  // A game saved in port resumes at sea beside the town's trigger cells.
+  state.player.arrivalGuard = true;
   rng = createRng(state.seed);
   if (state.rngState && state.rngState !== 1) rng.state = state.rngState;
   // Loading begins a fresh sailing session in the original: trade wind,
@@ -272,7 +275,7 @@ async function loadScenarios() {
   const response = await fetch(new URL('../assets/scenarios.json', import.meta.url));
   if (!response.ok) throw new Error(`scenario request failed: ${response.status}`);
   const payload = await response.json();
-  if (payload.version !== 4) throw new Error('unsupported scenario data version');
+  if (payload.version !== 5) throw new Error('unsupported scenario data version');
   scenarios = payload.eras;
 }
 
@@ -359,15 +362,46 @@ function nearestTown() {
   return state.towns[state.nearestTownIndex];
 }
 
+function townTriggers() {
+  return scenarios[state.era].townTriggers;
+}
+
+function playerCell() {
+  return [Math.floor(state.player.x), Math.floor(state.player.y)];
+}
+
+// The original picks the nearest town from the trigger-cell table, then
+// measures town_dist to that town's record (x, y) (porting_guide.md §7).
 function updateNearestTown() {
-  let bestIndex = 0;
-  let bestDistance = Infinity;
-  state.towns.forEach((town, index) => {
-    const distance = Math.abs(state.player.x - town.x) + Math.abs(state.player.y - town.y);
-    if (distance < bestDistance) { bestDistance = distance; bestIndex = index; }
+  const [cellX, cellY] = playerCell();
+  state.nearestTownIndex = nearestTriggerTown(townTriggers(), cellX, cellY);
+  return nearestTownDistance();
+}
+
+function nearestTownDistance() {
+  const [cellX, cellY] = playerCell();
+  return townDistanceCells(nearestTown(), cellX, cellY);
+}
+
+function isInlandTown(index) {
+  const [x, y] = scenarios[state.era].towns[index].harbors[1];
+  return x === 0 || y === 0;
+}
+
+// ASSUMED: landing parties are not playable yet (K1). A ship lying beside the
+// coast may send a party to an inland town within this many map cells.
+const OVERLAND_MARCH_RANGE_CELLS = 16;
+
+function overlandMarchTargets() {
+  const [cellX, cellY] = playerCell();
+  const besideCoast = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
+    .some(([dx, dy]) => !isNavigable(cellX + dx + .5, cellY + dy + .5));
+  if (!besideCoast) return [];
+  return state.towns.flatMap((town, index) => {
+    if (!isInlandTown(index)) return [];
+    const distance = townDistanceCells(town, cellX, cellY);
+    return distance <= OVERLAND_MARCH_RANGE_CELLS ? [{ town, index, distance }] : [];
   });
-  state.nearestTownIndex = bestIndex;
-  return bestDistance;
 }
 
 function fleetCapacity() {
@@ -485,6 +519,7 @@ function stepSimulation() {
   } else if (isNavigable(player.x, nextY)) {
     player.y = nextY;
   }
+  if (checkTownArrival(nextX, nextY, previousPlayerX, previousPlayerY)) return;
 
   if (player.voyageTick % TICKS_PER_WIND_SHIFT === 0) player.wind = shiftWind(player.wind, rng);
   if (state.tick % TICKS_PER_HALF_DAY === 0) halfDayUpdate();
@@ -495,12 +530,32 @@ function stepSimulation() {
     wind: player.wind, rng,
   });
   player.cloudDistancePixels = nearestCloudDistancePixels(state.clouds, player.x, player.y);
-  updateNearestTown();
+}
+
+// Arrival is immediate when the ship touches one of a town's trigger cells
+// (entering_towns.md §0). The original moves first and checks arrival before
+// the land/sea switch (porting_guide.md §5, steps 5, 10 and 11), so a move
+// that land would block here still counts as touching the trigger cell.
+function checkTownArrival(attemptedX, attemptedY, previousX, previousY) {
+  const triggers = townTriggers();
+  const cells = [playerCell(), [Math.floor(attemptedX), Math.floor(attemptedY)]];
+  const touched = cells.find(([x, y]) => triggerTownAt(triggers, x, y) >= 0);
+  if (!touched) {
+    state.player.arrivalGuard = false;
+    return false;
+  }
+  if (state.player.arrivalGuard) return false;
+  // The original restores the position from before this tick's move.
+  state.player.x = previousX;
+  state.player.y = previousY;
+  state.nearestTownIndex = nearestTriggerTown(triggers, touched[0], touched[1]);
+  approachTown();
+  return true;
 }
 
 function halfDayUpdate() {
-  const town = nearestTown();
   const distance = updateNearestTown();
+  const town = nearestTown();
   const result = encounterRoll(distance, town.alert, rng);
   town.alert = result.alert;
   if (result.sighted) openSighting(town, distance);
@@ -708,7 +763,7 @@ function applyBattleSurvivors(battle) {
   state.player.ships = battle.fleet.map(shipRecord);
   if (state.player.ships.length) state.player.ships[0] = { ...state.player.ships[0], damage };
   const town = nearestTown();
-  const distance = Math.floor(Math.abs(state.player.x - town.x) + Math.abs(state.player.y - town.y));
+  const distance = nearestTownDistance();
   if (distance < 12) town.alert += 24 - 2 * distance;
 }
 
@@ -1123,21 +1178,49 @@ function resumeAfterEncounter() {
   resumeSailing();
 }
 
-function approachTown() {
-  if (!state || state.mode !== 'sailing' || updateNearestTown() > 7) return;
+function approachTown({ overland = false } = {}) {
   const town = nearestTown();
   state.paused = true;
+  state.approach = { overland };
+  // ASSUMED: the original puts the ship on the departure cell after the
+  // approach menu (D5). Until then this guard, cleared once the ship is off
+  // every trigger cell, stops an immediate re-arrival on the cell it touches.
+  state.player.arrivalGuard = true;
   const fortText = town.forts === 0 ? 'No fort guards the harbor.' : `${town.forts === 1 ? 'One fort guards' : `${town.forts} forts guard`} the harbor.`;
   showDialog({
     kicker: `${town.nation} · ${prosperity(town.growth)}`, title: town.name,
     body: `<p>You have arrived at ${town.name}. ${fortText}</p><dl><dt>Citizens</dt><dd>${town.population * 100}</dd><dt>Soldiers</dt><dd>${town.soldiers * 5}</dd><dt>Treasury</dt><dd>${town.gold * 1000} gold</dd></dl>`,
     actions: [
-      { label: 'Sail into the harbor', run: () => tryHarbor(town) },
+      { label: overland ? 'March into town' : 'Sail into the harbor', run: () => tryHarbor(town) },
       { label: 'Sneak into town', run: () => trySneak(town) },
       { label: 'Attack the town', run: () => attackTown(town) },
       { label: 'Leave town', secondary: true, run: resumeSailing },
     ],
   });
+}
+
+function showOverlandMarch() {
+  const targets = overlandMarchTargets();
+  if (!state || state.mode !== 'sailing' || !targets.length) return;
+  state.paused = true;
+  showDialog({
+    kicker: 'Landing party', title: 'March inland',
+    body: '<p>Landing and overland travel are not playable yet. Choose a provisional outcome: the party marches two map cells a day while the fleet waits at anchor.</p>',
+    actions: [
+      ...targets.map(({ town, index, distance }) => {
+        const days = Math.ceil(distance / 2);
+        return { label: `March to ${town.name} (${days} day${days === 1 ? '' : 's'})`, run: () => marchOverland(index, days) };
+      }),
+      { label: 'Stay aboard', secondary: true, run: resumeSailing },
+    ],
+  });
+}
+
+function marchOverland(townIndex, days) {
+  for (let day = 0; day < days; day += 1) dailyUpdate();
+  state.nearestTownIndex = townIndex;
+  addLog(`The landing party marches to ${state.towns[townIndex].name}.`);
+  approachTown({ overland: true });
 }
 
 function attackTown(town) {
@@ -1204,7 +1287,8 @@ function resolveTownCapture(town) {
 function tryHarbor(town) {
   const result = harborAttempt({ favour: state.player.favour[town.nation], governorMood: town.mood, crew: state.player.crew, forts: town.forts, rng });
   if (result.admitted) { enterTown(town, false); return; }
-  if (result.shipLost && state.player.ships.length > 1) {
+  // Fort fire can only sink a ship that arrived by sea (0x1953A).
+  if (result.shipLost && !state.approach?.overland && state.player.ships.length > 1) {
     const lost = state.player.ships.splice(rng.int(state.player.ships.length), 1)[0];
     showNotice('The fort opens fire', `An accurate salvo sinks your ${shipName(lost)}. The fleet withdraws to open water.`);
   } else {
@@ -1820,6 +1904,7 @@ function leaveTown() {
   }
   state.visit = null;
   state.mode = 'sailing';
+  state.player.arrivalGuard = true;
   setupClouds();
   resumeSailing();
   addLog(`Put to sea from ${town.name}.`);
@@ -1849,6 +1934,7 @@ function showDialog({ kicker, title, body, actions }) {
 
 function resumeSailing() {
   state.paused = false;
+  state.approach = null;
   state.mode = 'sailing';
   state.battle = null;
   resetSailingInterpolation();
@@ -1891,8 +1977,8 @@ function updateInterface() {
   if (!state) return;
   const player = state.player;
   const inBattle = state.mode === 'battle' && state.battle;
-  dockButton.querySelector('span').textContent = inBattle ? 'Fire' : 'Approach';
-  dockButton.setAttribute('aria-label', inBattle ? 'Fire loaded broadside' : 'Approach nearest town');
+  dockButton.querySelector('span').textContent = inBattle ? 'Fire' : 'Land';
+  dockButton.setAttribute('aria-label', inBattle ? 'Fire loaded broadside' : 'Land a party to march inland');
   dockButton.firstChild.textContent = inBattle ? '● ' : '⚓ ';
   zoomOutButton.disabled = Boolean(inBattle);
   zoomInButton.disabled = Boolean(inBattle);
@@ -1913,7 +1999,7 @@ function updateInterface() {
     return;
   }
   const town = nearestTown();
-  const distance = Math.round(Math.abs(player.x - town.x) + Math.abs(player.y - town.y));
+  const distance = nearestTownDistance();
   labels.captain.textContent = `Captain ${state.captain} · ${state.nationality}`;
   labels.date.textContent = `${state.calendar.day + 1} ${MONTHS[state.calendar.month]} ${state.calendar.year}`;
   labels.speed.textContent = `${player.speed.toFixed(1)} cells/day`;
@@ -1923,7 +2009,7 @@ function updateInterface() {
   labels.crew.textContent = player.crew.toLocaleString();
   labels.gold.textContent = player.partyGold.toLocaleString();
   labels.nearest.textContent = `${town.name} · ${distance}`;
-  dockButton.disabled = distance > 7 || state.paused;
+  dockButton.disabled = state.paused || overlandMarchTargets().length === 0;
   zoomOutButton.disabled = false;
   zoomInButton.disabled = false;
 }
@@ -2146,7 +2232,7 @@ continueButton.addEventListener('click', async () => { const saved = loadGame();
 pauseButton.addEventListener('click', togglePause);
 dockButton.addEventListener('click', () => {
   if (state?.mode === 'battle') input.firePressed = true;
-  else approachTown();
+  else showOverlandMarch();
 });
 zoomOutButton.addEventListener('click', () => changeZoom(-ZOOM_STEP));
 zoomInButton.addEventListener('click', () => changeZoom(ZOOM_STEP));
@@ -2195,7 +2281,7 @@ addEventListener('keydown', (event) => {
     else togglePause();
   }
   if ((event.key === 'Escape' || event.key.toLowerCase() === 'p') && !event.repeat) togglePause();
-  if (event.key.toLowerCase() === 'e' && !dockButton.disabled) approachTown();
+  if (event.key.toLowerCase() === 'e' && !dockButton.disabled && state?.mode === 'sailing') showOverlandMarch();
   if (event.key === '+' || event.key === '=') changeZoom(ZOOM_STEP);
   if (event.key === '-' || event.key === '_') changeZoom(-ZOOM_STEP);
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'].includes(event.key)) event.preventDefault();
@@ -2302,6 +2388,20 @@ loadScenarios().then(() => {
         actions: [{ label: 'Return to the tavern', run: () => {} }],
       });
     });
+    return;
+  }
+  if (preview === 'arrival' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // Havana 1560: the coast cell (244, 178) south of the ship is a trigger cell.
+    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    Object.assign(previewState.player, { x: 244.5, y: 176.5, heading: 128, speed: 12 });
+    startGame(previewState);
+    return;
+  }
+  if (preview === 'landing' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // Panama 1560 is inland; the fleet lies at anchor four cells away.
+    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    Object.assign(previewState.player, { x: 318.5, y: 443.5, speed: 0, sails: 'furled' });
+    startGame(previewState);
     return;
   }
   continueButton.classList.toggle('hidden', !loadGame());
