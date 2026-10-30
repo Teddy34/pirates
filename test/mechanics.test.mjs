@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   acceptsRudderInput, advanceDate, VOYAGE_START_TICK, isHalfDayTick, isDailyTick, voyageDays, consumeDailyFood, encounterRoll, foodDays, starvationDesertion, monthEndCrewEvent, mutinyOutcome,
-  isEncounterHunter, hunterOvertakes, escapeCostsShip, harborAttempt,
+  isEncounterHunter, startFromRecord, createRng, hunterOvertakes, escapeCostsShip, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -451,4 +451,15 @@ test('a mutiny costs a third of the crew with their gold and four reputation', (
     deserters: 30, goldLost: 300, crew: 60, partyGold: 600, reputation: 2,
   });
   assert.equal(mutinyOutcome({ crew: 90, partyGold: 900, reputation: 6, duelWon: false }).reputation, -5);
+});
+
+test('new game start picks one of four record points at random and makes pirates wary', () => {
+  const start = { favour: [0, 0, 2, 0, 0], points: [[602, 242], [602, 242], [407, 231], [401, 204]] };
+  const picks = new Set();
+  const rng = createRng(12345);
+  for (let draw = 0; draw < 40; draw += 1) picks.add(String(startFromRecord(start, rng).point));
+  assert.deepEqual([...picks].sort(), ['401,204', '407,231', '602,242']);
+  const { favour } = startFromRecord(start, createRng(1));
+  assert.deepEqual(favour, [0, 0, 2, 0, -1]);
+  assert.deepEqual(start.favour, [0, 0, 2, 0, 0]);
 });
