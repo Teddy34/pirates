@@ -670,6 +670,31 @@ export function restartAfterLastShip(player, flagship, shipStats) {
   };
 }
 
+// Captivity after the last ship is lost (0x1F803, called by 0x1F2A1 for
+// both prison and the uncharted island). Time passes in 27-day steps of the
+// calendar routine 0x1DD0E while step <= trunc(reputation / 2) + 6; the
+// reputation is re-read before every step, so monthly decay can shorten it.
+export const CAPTIVITY_STEP_DAYS = 27;
+
+export function captivityContinues(reputation, stepsServed) {
+  return Math.trunc(reputation / 2) + 6 >= stepsServed;
+}
+
+// 0x1DB64: health 0 fine .. 3 poor, from years elapsed plus wounds.
+export function healthLevel({ yearsElapsed, wounds = 0, medicine = false }) {
+  return Math.min(3, Math.trunc((yearsElapsed + wounds) / (medicine ? 4 : 3)));
+}
+
+// The rest of 0x1F803 after the fresh fleet: captured pirates are freed
+// (0x4720A cleared), and the difficulty drops one level unless it is already
+// Apprentice, so you return "as an apprentice/journeyman/... captain".
+export function releaseFromCaptivity(player, difficulty) {
+  return {
+    player: { ...player, capturedCaptains: (player.capturedCaptains ?? []).filter(({ pirate }) => !pirate) },
+    difficulty: (difficulty & 3) !== 0 ? difficulty - 1 : difficulty,
+  };
+}
+
 // The port's replacement for the original shore search 0x1BE71
 // (porting_guide.md §10.1 find_shore): the first land cell on clockwise
 // Chebyshev rings with open water beside it. The heading is a byte angle
