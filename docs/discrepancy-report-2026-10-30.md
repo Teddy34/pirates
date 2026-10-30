@@ -42,7 +42,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | D16 | M | **The enemy only fires when duelling** (`:372`). The docs say he fires whenever loaded, armed, and within ±6 of his beam, whatever his tactic. |
 | D17 | L | The battle wind's strength changes even when its direction didn't (`:329-336`); the docs say only if the direction changed. |
 | D18 | L | The enemy's wanted heading isn't rounded to 16. |
-| D19 | M | **Fixed in #PR.** The "enemy takes a ship when you escape" penalty also applies at sunset (`game.mjs:773`). The docs limit it to escape (event 6). |
+| D19 | M | **Fixed in #9.** The "enemy takes a ship when you escape" penalty also applies at sunset (`game.mjs:773`). The docs limit it to escape (event 6). |
 | D20 | M | **Fixed in #7** (with D7). When the flagship sinks, the port halves the crew (`game.mjs:761`). Nothing in the docs supports this and it isn't marked as an assumption. |
 
 ## Captures, morale and prisoners
