@@ -12,7 +12,7 @@ import {
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
   applyProvisionalBoardingOutcome,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
-  triggerTownAt, nearestTriggerTown, townDistanceCells,
+  triggerTownAt, nearestTriggerTown, townDistanceCells, alertAfterNearestTownCheck,
 } from '../src/mechanics.mjs';
 import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
 
@@ -401,4 +401,11 @@ test('a hunter overtakes a fleeing captain when rnd(3) is below the difficulty',
   assert.equal(hunterOvertakes({ hunter: true, difficulty: 2, rng: roll(1) }), true);
   assert.equal(hunterOvertakes({ hunter: true, difficulty: 2, rng: roll(2) }), false);
   assert.equal(hunterOvertakes({ hunter: false, difficulty: 3, rng: roll(0) }), false);
+});
+
+test('the single town alert resets only when the nearest town changes', () => {
+  assert.equal(alertAfterNearestTownCheck(27, 4, 4), 27);
+  assert.equal(alertAfterNearestTownCheck(27, 4, 5), 0);
+  // The half-day roll then builds alert again near the new town.
+  assert.equal(encounterRoll(3, alertAfterNearestTownCheck(27, 4, 5), fixedRng({ integer: 7 })).alert, 5);
 });

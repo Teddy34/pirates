@@ -334,6 +334,12 @@ export function townDistanceCells(town, cellX, cellY) {
   return Math.max(1, Math.abs(town.x - cellX) + Math.abs(town.y - cellY));
 }
 
+// The single alert counter belongs to the nearest town and is cleared when
+// the half-day nearest-town check picks a different town (0x23DE4–0x23DF7).
+export function alertAfterNearestTownCheck(alert, previousTownIndex, nearestTownIndex) {
+  return nearestTownIndex === previousTownIndex ? alert : 0;
+}
+
 export function chooseEncounterTier({ crew, alert, governorMood, rng }) {
   const range = Math.floor(crew / 50 + alert / 6 - governorMood);
   if (range <= 0) return 0;
