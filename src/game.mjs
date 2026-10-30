@@ -519,14 +519,26 @@ function releaseFromTown(town) {
   return shoreNear(town.x + dx, town.y + dy);
 }
 
-// ASSUMED: find_shore wants LAND = tiles >= 60 and OPEN_WATER = tiles 0-39.
-// The navigation mask only separates sea from everything else, so it stands
-// in for both until the mask carries those tile classes (report item D1).
+// find_shore wants LAND = tiles >= 60 and OPEN_WATER = tiles 0-39. In the
+// navigation map those are cells holding a land pixel and all-water cells;
+// shallow tiles 40-59 are mixed cells with no land pixel, so they are neither.
 function shoreNear(x, y) {
+  const cellClass = (cellX, cellY) => (worldMap ? worldMap.cells[cellY * WORLD.width + cellX] : CELL.WATER);
+  const hasLandPixel = (cellX, cellY) => {
+    for (let pixel = 0; pixel < 256; pixel += 1) {
+      const px = cellX + ((pixel & 15) + .5) / 16;
+      const py = cellY + ((pixel >> 4) + .5) / 16;
+      if (pixelClassAt(worldMap, px, py) === PIXEL.LAND) return true;
+    }
+    return false;
+  };
   return findShore(Math.floor(x), Math.floor(y), {
     width: WORLD.width, height: WORLD.height,
-    isLand: (cellX, cellY) => !isNavigable(cellX, cellY),
-    isOpenWater: isNavigable,
+    isLand: (cellX, cellY) => {
+      const kind = cellClass(cellX, cellY);
+      return kind === CELL.MIXED ? hasLandPixel(cellX, cellY) : kind !== CELL.WATER;
+    },
+    isOpenWater: (cellX, cellY) => cellClass(cellX, cellY) === CELL.WATER,
   });
 }
 
