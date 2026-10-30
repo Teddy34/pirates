@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  acceptsRudderInput, advanceDate, VOYAGE_START_TICK, isHalfDayTick, isDailyTick, voyageDays, consumeDailyFood, encounterRoll, foodDays, starvationDesertion,
+  acceptsRudderInput, advanceDate, VOYAGE_START_TICK, isHalfDayTick, isDailyTick, voyageDays, consumeDailyFood, encounterRoll, foodDays, starvationDesertion, monthEndCrewEvent, mutinyOutcome,
   isEncounterHunter, hunterOvertakes, escapeCostsShip, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
@@ -434,4 +434,21 @@ test('the voyage clock starts at 63 and charges tick / 64 + 1 days on leaving', 
   assert.equal(voyageDays(VOYAGE_START_TICK + 1), 2);
   assert.equal(voyageDays(VOYAGE_START_TICK + 64), 2);
   assert.equal(voyageDays(VOYAGE_START_TICK + 65), 3);
+});
+
+test('the month-end crew check mutinies at morale -4 and warns below 0', () => {
+  const base = { crew: 60, monthsAtSea: 3, aboard: true };
+  assert.equal(monthEndCrewEvent({ ...base, morale: -4 }), 'mutiny');
+  assert.equal(monthEndCrewEvent({ ...base, morale: -3 }), 'restless');
+  assert.equal(monthEndCrewEvent({ ...base, morale: -1, monthsAtSea: 12 }), 'divide');
+  assert.equal(monthEndCrewEvent({ ...base, morale: 0 }), null);
+  assert.equal(monthEndCrewEvent({ ...base, morale: -9, crew: 1 }), null);
+  assert.equal(monthEndCrewEvent({ ...base, morale: -9, aboard: false }), null);
+});
+
+test('a mutiny costs a third of the crew with their gold and four reputation', () => {
+  assert.deepEqual(mutinyOutcome({ crew: 90, partyGold: 900, reputation: 6, duelWon: true }), {
+    deserters: 30, goldLost: 300, crew: 60, partyGold: 600, reputation: 2,
+  });
+  assert.equal(mutinyOutcome({ crew: 90, partyGold: 900, reputation: 6, duelWon: false }).reputation, -5);
 });

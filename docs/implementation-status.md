@@ -126,7 +126,7 @@ for future work.
 | Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, promotions, titles, missions, pardons, and nation-specific rewards |
 | Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading | Missions and richer governor actions |
 | Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, and treasure movements |
-| Morale | Morale calculation, desertion, low-morale warning, and plunder division with crew satisfaction | Persistent crew mood, mutiny checks, and mutiny combat |
+| Morale | Morale calculation, desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a provisional leader duel, and plunder division with crew satisfaction | Persistent crew mood (D22) and interactive mutiny combat |
 | Persistence | One versioned browser save slot and v1-v4 save migration | Multiple slots, battle-state persistence, and import/export |
 | Accessibility | Keyboard and touch controls, visible labels, focus styles, and text HUD | Complete keyboard dialog navigation testing, screen-reader alternatives for the canvas, and configurable controls |
 
@@ -173,7 +173,7 @@ fallback dialog when the real system becomes playable.
 
 1. Build the tactical naval-combat slice in the existing combat plan.
 2. Replace provisional boarding outcomes with interactive sword fighting.
-3. Complete the merchant and shipwright loops, then add mutiny.
+3. Complete the merchant and shipwright loops.
 4. Add sword fighting, fort battles, land battles, and town capture.
 5. Add missions, treasure systems, relatives, romance, aging, and retirement
    as complete vertical slices.

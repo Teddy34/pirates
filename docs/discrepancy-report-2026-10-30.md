@@ -93,7 +93,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | # | Gap |
 |---|---|
 | K1 | Landing, walking on land, digging and reefs |
-| K2 | Mutiny when morale ≤ −4 |
+| K2 | **Fixed in #PR.** Mutiny when morale ≤ −4. Traced (`0x1DD0E`): checked once after the months a voyage crosses, aboard at sea; a third of the crew deserts with their gold, the leader duel is provisional, and reputation drops by 4 (to −5 if the duel is lost). There is no marooning. |
 | K3 | Sword fights, fort battles and land battles |
 | K4 | Treasure fleet and silver train: monthly movement, encounter override and capture bonus |
 | K5 | Quest encounters and named-captain identities |

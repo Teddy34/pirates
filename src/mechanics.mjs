@@ -295,20 +295,35 @@ export function foodDays(foodFixed, crew) {
   return crew > 0 ? Math.floor(foodFixed / crew) : 0;
 }
 
-// Event 2 at 0x28537 with zero days left, traced through 0x1F044: the
-// whole-ton food word becomes 5 (the fraction byte stays), and a third of
-// the crew deserts, never the last man, taking a proportional share of the
-// party's gold.
-export function starvationDesertion({ crew, partyGold, foodFixed }) {
+// 0x1F044(n): n men desert, never the last man, each taking an equal share
+// of the party gold.
+export function thirdOfCrewDeserts({ crew, partyGold }) {
   const deserters = Math.min(Math.trunc(crew / 3), Math.max(0, crew - 1));
   const goldLost = crew > 0 ? Math.trunc((deserters * partyGold) / crew) : 0;
-  return {
-    deserters,
-    goldLost,
-    crew: crew - deserters,
-    partyGold: partyGold - goldLost,
-    foodFixed: 5 * 256 + (foodFixed & 0xff),
-  };
+  return { deserters, goldLost, crew: crew - deserters, partyGold: partyGold - goldLost };
+}
+
+// Event 2 at 0x28537 with zero days left: the whole-ton food word becomes 5
+// (the fraction byte stays), and a third of the crew deserts via 0x1F044.
+export function starvationDesertion({ crew, partyGold, foodFixed }) {
+  return { ...thirdOfCrewDeserts({ crew, partyGold }), foodFixed: 5 * 256 + (foodFixed & 0xff) };
+}
+
+// 0x1DD0E, after the months a voyage crossed: aboard at sea with more than
+// one man, morale <= -4 is a mutiny (CSTR 139) and a negative morale is a
+// warning, CSTR 210 once months at sea reach 12, otherwise CSTR 140.
+export function monthEndCrewEvent({ morale, crew, monthsAtSea, aboard }) {
+  if (!aboard || crew === 1) return null;
+  if (morale <= -4) return 'mutiny';
+  if (morale < 0) return monthsAtSea >= 12 ? 'divide' : 'restless';
+  return null;
+}
+
+// Mutiny: 0x1F044(crew / 3), the leader duel 0x161BA, then reputation -4 in
+// any case; a lost duel first sets reputation to -1 (0x165FE).
+export function mutinyOutcome({ crew, partyGold, reputation, duelWon }) {
+  const deserted = thirdOfCrewDeserts({ crew, partyGold });
+  return { ...deserted, reputation: (duelWon ? reputation : -1) - 4 };
 }
 
 export function encounterRoll(distance, alert, rng) {
