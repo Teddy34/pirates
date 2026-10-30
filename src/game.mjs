@@ -1897,6 +1897,7 @@ function acceptMission(town, { type, target }, next) {
 // 0x1F8F7: the mission is done; its reward waits for the issuing governor.
 function completeMission(next) {
   const mission = state.mission;
+  if (!mission) { next(); return; }
   const issuer = state.towns[mission.issuer].name;
   const target = state.towns[mission.target].name;
   const pirate = mission.captainId === undefined ? '' : captainName(mission.captainId);
