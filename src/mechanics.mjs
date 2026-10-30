@@ -257,6 +257,26 @@ export function stepSailingSpeed(current, target, sailState) {
   return sailState === 'battle' ? Math.floor(stepped / 2) : stepped;
 }
 
+// The voyage clock (porting_guide.md §5.1). Each voyage restarts its tick
+// at 63 (0x23319, 0x2454D); the half-day check runs when (tick + 4) & 31 is
+// 0 (0x23DC9) and the daily check when (tick + 2) & 63 is 0 (0x23F2D).
+export const VOYAGE_START_TICK = 63;
+
+export function isHalfDayTick(voyageTick) {
+  return ((voyageTick + 4) & 31) === 0;
+}
+
+export function isDailyTick(voyageTick) {
+  return ((voyageTick + 2) & 63) === 0;
+}
+
+// Leaving the sailing view passes tick / 64 + 1 days to the calendar
+// (0x2898F → 0x1DD0E), so any voyage costs at least 2 days. Quirk 3 is kept
+// as the original behaves.
+export function voyageDays(voyageTick) {
+  return Math.floor(voyageTick / 64) + 1;
+}
+
 export function acceptsRudderInput(tick) {
   return (tick & 4) === 0;
 }

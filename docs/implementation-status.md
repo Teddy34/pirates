@@ -39,7 +39,7 @@ for future work.
 - Raise and lower sails through closed, low, and high states. This three-state
   control is a documented project approximation; the decoded campaign code
   confirms only a probable half-speed reduced-sail flag.
-- Advance time at 64 ticks per day, using 30-day months and 360-day years.
+- Run the original voyage clock: each voyage starts its tick at 63, with half-day checks at `(tick + 4) & 31` and meals at `(tick + 2) & 63`. Every exit from the sailing view (town arrival, sighting, food warning, too few crew) adds `tick / 64 + 1` days, so any voyage costs at least 2 days (quirk 3, kept). The calendar uses 30-day months and 360-day years and runs each month boundary crossed.
 - Consume food in 8.8 fixed point. When food runs out, a third of the crew deserts with a share of the gold and the rest forage 5 tons (traced from event 2 at `0x28537` and `0x1F044`; the reference archive marks this formula untraced).
 - Run the decoded fleet check at the start of every voyage, after dividing the
   plunder, after a town assault, and when crew drops below eight men per ship:
