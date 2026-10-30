@@ -549,3 +549,71 @@ export function advanceDate(calendar) {
   }
   return { day, month, year, newMonth };
 }
+
+// Fleet check (0x1F65F, ships.md §5): every ship needs eight men.
+export const CREW_PER_SHIP = 8;
+
+export function fleetIsUndermanned({ crew, shipCount }) {
+  return CREW_PER_SHIP * shipCount > crew;
+}
+
+// Abandoning a ship for lack of crew keeps the whole cargo (0x1F748 calls
+// 0x1F2A1 with keep_cargo set). The last ship takes the last-ship path instead.
+export function abandonShip(player, slot) {
+  if (player.ships.length < 2) throw new Error('the last ship takes the last-ship path');
+  return { player: { ...player, ships: player.ships.filter((_, index) => index !== slot) }, lost: player.ships[slot] };
+}
+
+// Fresh fleet after the last ship is lost (0x1EF87 with g = 0): a tenth of
+// personal wealth is lost, a tenth of the remainder funds the voyage, and the
+// lost flagship's type returns repaired with a small crew. The crew comes
+// from 0x45E76 (the README's reputation byte, the docs' captures counter),
+// which the port stores as `reputation`.
+export function restartAfterLastShip(player, flagship, shipStats) {
+  const typeIndex = shipStats[flagship.type].type;
+  const personalWealth = player.personalWealth - Math.trunc(player.personalWealth / 10);
+  const crew = player.reputation + 16;
+  return {
+    ...player,
+    personalWealth,
+    partyGold: Math.trunc(personalWealth / 10),
+    ships: [{ type: flagship.type, damage: 0 }],
+    cannon: 2 * typeIndex + 6,
+    foodFixed: 15 * 256,
+    goods: 0,
+    specialGoods: 0,
+    crew: crew <= 0 ? player.crew : crew,
+  };
+}
+
+// The port's replacement for the original shore search 0x1BE71
+// (porting_guide.md §10.1 find_shore): the first land cell on clockwise
+// Chebyshev rings with open water beside it. The heading is a byte angle
+// pointing away from the land.
+export function findShore(cx, cy, { width, height, isLand, isOpenWater }) {
+  const onMap = (x, y) => x >= 0 && y >= 0 && x < width && y < height;
+  const sides = [[1, 0, 64], [0, 1, 128], [-1, 0, 192], [0, -1, 0]];
+  for (let r = 1; r <= 640; r += 1) {
+    for (const [x, y] of chebyshevRing(cx, cy, r)) {
+      if (!onMap(x, y) || !isLand(x, y)) continue;
+      for (const [dx, dy, heading] of sides) {
+        if (onMap(x + dx, y + dy) && isOpenWater(x + dx, y + dy)) return { x: x + dx, y: y + dy, heading };
+      }
+    }
+  }
+  return null;
+}
+
+function* chebyshevRing(cx, cy, r) {
+  for (let x = cx - r; x <= cx + r; x += 1) yield [x, cy - r];
+  for (let y = cy - r + 1; y <= cy + r; y += 1) yield [cx + r, y];
+  for (let x = cx + r - 1; x >= cx - r; x -= 1) yield [x, cy + r];
+  for (let y = cy + r - 1; y >= cy - r + 1; y -= 1) yield [cx - r, y];
+}
+
+// Inland towns have no departure cell; 0x1C056 shifts the release point by
+// these cell offsets before the shore search (landing_and_overland.md §6).
+export const INLAND_RELEASE_OFFSETS = {
+  'Gran Granada': [50, 0], Jalapa: [20, 0], Panama: [0, -20],
+  'Puerto Principe': [0, 16], 'Villa Hermosa': [0, -10], 'St. Thome': [0, -20],
+};

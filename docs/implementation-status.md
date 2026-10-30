@@ -41,6 +41,10 @@ for future work.
   confirms only a probable half-speed reduced-sail flag.
 - Advance time at 64 ticks per day, using 30-day months and 360-day years.
 - Consume food in 8.8 fixed point. When food runs out, a third of the crew deserts with a share of the gold and the rest forage 5 tons (traced from event 2 at `0x28537` and `0x1F044`; the reference archive marks this formula untraced).
+- Run the decoded fleet check at the start of every voyage, after dividing the
+  plunder, after a town assault, and when crew drops below eight men per ship:
+  choose ships to abandon with their cargo kept, and lose the last ship to a
+  shipwreck or prison restart with the decoded fresh fleet.
 - Pause, zoom, steer, and change sail from keyboard or touch controls.
 
 ### World simulation
@@ -126,7 +130,8 @@ The following systems have no complete playable implementation:
 - treasure fleets, silver trains, overland treasure-map searching, and named pirates;
 - lost relatives, villains, rumors, and rescue quests;
 - courtship, rival suitors, marriage, and family benefits;
-- wounds, aging, illness, medicine effects, prison, ransom, and escape;
+- wounds, aging, illness, medicine effects, prison time, ransom, and escape
+  (losing the last ship already relocates you and restarts the fleet);
 - retirement, land grants, final score, and career ending;
 - music, sound effects, and a complete original art set.
 

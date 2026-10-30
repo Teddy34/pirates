@@ -16,6 +16,7 @@ import {
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   merchantCommodityPrice, merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
+  fleetIsUndermanned, abandonShip, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
@@ -239,6 +240,7 @@ async function startGame(nextState) {
   updateNearestTown();
   updateLog();
   updateInterface();
+  resumeSailing();
 }
 
 function saveGame(showMessage = true) {
@@ -421,7 +423,7 @@ function cargoRoom() {
   return Math.max(0, cargoCapacity() - cargoUsed());
 }
 
-function showOverfullHold(done) {
+function showOverfullHold(done, reason = 'The sold ship’s hold is gone. Choose exactly what to throw overboard before leaving the yard.') {
   const excess = cargoUsed() - cargoCapacity();
   if (excess <= 0) {
     done();
@@ -429,14 +431,102 @@ function showOverfullHold(done) {
   }
   const actions = [];
   const food = Math.floor(state.player.foodFixed / 256);
-  if (food > 0) actions.push({ label: 'Jettison 1 ton of food', run: () => { state.player.foodFixed -= 256; showOverfullHold(done); } });
-  if (state.player.goods > 0) actions.push({ label: 'Jettison 1 ton of goods', run: () => { state.player.goods -= 1; showOverfullHold(done); } });
-  if (state.player.specialGoods > 0) actions.push({ label: `Jettison 1 ton of ${specialGoodsName().toLowerCase()}`, run: () => { state.player.specialGoods -= 1; showOverfullHold(done); } });
-  if (state.player.cannon > 0) actions.push({ label: 'Jettison 1 cannon', run: () => { state.player.cannon -= 1; showOverfullHold(done); } });
+  if (food > 0) actions.push({ label: 'Jettison 1 ton of food', run: () => { state.player.foodFixed -= 256; showOverfullHold(done, reason); } });
+  if (state.player.goods > 0) actions.push({ label: 'Jettison 1 ton of goods', run: () => { state.player.goods -= 1; showOverfullHold(done, reason); } });
+  if (state.player.specialGoods > 0) actions.push({ label: `Jettison 1 ton of ${specialGoodsName().toLowerCase()}`, run: () => { state.player.specialGoods -= 1; showOverfullHold(done, reason); } });
+  if (state.player.cannon > 0) actions.push({ label: 'Jettison 1 cannon', run: () => { state.player.cannon -= 1; showOverfullHold(done, reason); } });
   showDialog({
     kicker: 'Overloaded fleet', title: `${excess} ton${excess === 1 ? '' : 's'} over capacity`,
-    body: '<p>The sold ship’s hold is gone. Choose exactly what to throw overboard before leaving the yard.</p>',
+    body: `<p>${reason}</p>`,
     actions,
+  });
+}
+
+// Fleet check (0x1F65F, ships.md §5). The original runs it at the top of
+// every voyage, after dividing the plunder and after a town assault. It
+// repeats until every ship has eight men and the cargo fits in the hold.
+function runFleetCheck({ inTown = false, done }) {
+  const player = state.player;
+  state.paused = true;
+  if (fleetIsUndermanned({ crew: player.crew, shipCount: player.ships.length })) {
+    if (player.ships.length === 1) {
+      showDialog({
+        kicker: 'Too few hands', title: 'The last ship is abandoned',
+        body: '<p>You do not have enough crewmen to man your last ship, so regretfully you abandon it.</p>',
+        actions: [{ label: 'Continue', run: () => loseLastShip({ inTown, done }) }],
+      });
+      return;
+    }
+    showDialog({
+      kicker: 'Too few hands', title: 'Which ship will you abandon?',
+      body: `<p>Your crew is too small to man your ships! Which will you abandon?</p><p>${player.crew} men can sail at most ${Math.floor(player.crew / 8)} ship${Math.floor(player.crew / 8) === 1 ? '' : 's'}; all cargo is moved to the ships you keep.</p>`,
+      actions: player.ships.map((ship, slot) => ({
+        label: `${slot === 0 ? 'Flagship' : `Ship ${slot + 1}`}: ${describeShip(ship)}`,
+        run: () => {
+          const result = abandonShip(state.player, slot);
+          state.player = result.player;
+          addLog(`Abandoned the ${shipName(result.lost)}: too few hands to sail her.`);
+          runFleetCheck({ inTown, done });
+        },
+      })),
+    });
+    return;
+  }
+  showOverfullHold(done, 'You have more cargo than will fit in your hold! You must throw some overboard!');
+}
+
+// Last-ship path of remove_ship (0x1F2A1): prison in a town (0x1C056) or a
+// shipwreck at sea (0x1BE71), then the fresh fleet 0x1EF87 with no gold.
+function loseLastShip({ inTown, done }) {
+  const town = state.visit ? state.towns[state.visit.townIndex] : nearestTown();
+  const lost = state.player.ships[0];
+  state.player = restartAfterLastShip(state.player, lost, SHIPS);
+  const release = inTown ? releaseFromTown(town) : shoreNear(state.player.x, state.player.y);
+  if (release) {
+    state.player.x = release.x + .5;
+    state.player.y = release.y + .5;
+    if (release.heading !== undefined) state.player.heading = release.heading;
+  }
+  state.player.speed = 0;
+  addLog(inTown ? `Imprisoned in ${town.name}; released with a new ${shipName(lost)}.` : `Washed ashore after losing the ${shipName(lost)}; a new expedition begins.`);
+  showDialog({
+    kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
+    body: inTown
+      ? `<p>You are imprisoned in ${town.name}.</p><p>On your release, backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`
+      : `<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
+    // ASSUMED: the restart can leave fewer than eight men when reputation is
+    // below -8, which would loop the original check forever; the port runs
+    // the last-ship path once and continues.
+    actions: [{ label: 'Continue', run: () => {
+      if (state.mode !== 'town') { done(); return; }
+      // Released from a port visit: the new voyage starts at the release point.
+      state.visit = null;
+      state.mode = 'sailing';
+      setupClouds();
+      startVoyage();
+    } }],
+  });
+}
+
+// 0x1C056: a coastal town releases you on its departure cell; an inland town
+// shifts the point by its fixed offset and then searches for the shore.
+function releaseFromTown(town) {
+  const [departureX, departureY] = town.harbors?.[1] ?? [0, 0];
+  // ASSUMED: the departure heading (w28) is not in the scenario data yet
+  // (report item D5), so the current heading is kept on a coastal release.
+  if (departureX && departureY) return { x: departureX, y: departureY };
+  const [dx, dy] = INLAND_RELEASE_OFFSETS[town.name] ?? [0, 0];
+  return shoreNear(town.x + dx, town.y + dy);
+}
+
+// ASSUMED: find_shore wants LAND = tiles >= 60 and OPEN_WATER = tiles 0-39.
+// The navigation mask only separates sea from everything else, so it stands
+// in for both until the mask carries those tile classes (report item D1).
+function shoreNear(x, y) {
+  return findShore(Math.floor(x), Math.floor(y), {
+    width: WORLD.width, height: WORLD.height,
+    isLand: (cellX, cellY) => !isNavigable(cellX, cellY),
+    isOpenWater: isNavigable,
   });
 }
 
@@ -573,6 +663,9 @@ function dailyUpdate() {
     player.foodFixed = starving.foodFixed;
     addLog(`Out of food: ${starving.deserters} men deserted with ${starving.goldLost} gold; the rest foraged 5 tons of food.`);
   }
+  // Event 5: too few men for the fleet ends the voyage, and the next one
+  // starts with the fleet check. An open encounter runs it on resuming.
+  if (!state.paused && fleetIsUndermanned({ crew: player.crew, shipCount: player.ships.length })) resumeSailing();
 
   const nextDate = advanceDate(state.calendar);
   state.calendar = { day: nextDate.day, month: nextDate.month, year: nextDate.year };
@@ -1229,7 +1322,7 @@ function attackTown(town) {
     body: `<p>Town and land combat are not playable yet. Choose the provisional result of the assault; capture now leads into the documented plunder sequence.</p>`,
     actions: [
       { label: 'Capture the town', run: () => captureTown(town) },
-      { label: 'Repelled with losses', run: () => { const lost = Math.min(state.player.crew - 1, Math.max(1, Math.floor(state.player.crew / 5))); state.player.crew -= lost; town.alert += 16; state.player.reputation -= 2; addLog(`Lost ${lost} crew attacking ${town.name}.`); resumeSailing(); } },
+      { label: 'Repelled with losses', run: () => { const lost = Math.min(state.player.crew - 1, Math.max(1, Math.floor(state.player.crew / 5))); state.player.crew -= lost; town.alert += 16; state.player.reputation -= 2; addLog(`Lost ${lost} crew attacking ${town.name}.`); runFleetCheck({ inTown: true, done: startVoyage }); } },
       { label: 'Withdraw from the assault', secondary: true, run: () => { town.alert += 16; addLog(`Withdrew from the assault on ${town.name}.`); resumeSailing(); } },
     ],
   });
@@ -1261,7 +1354,7 @@ function resolveTownCapture(town) {
 
   const proceed = () => beginPlunderTransfer(`Plunder of ${town.name}`, loot, () => {
     saveGame(false);
-    resumeSailing();
+    runFleetCheck({ inTown: true, done: startVoyage });
   });
   if (state.player.crew < threshold) {
     proceed();
@@ -1385,7 +1478,7 @@ function finishPlunderDivision(division, nextDifficulty) {
   showDialog({
     kicker: 'A new account', title: 'The company disperses',
     body: `<p>Your share of ${division.captainTake.toLocaleString()} gold is secured as personal wealth. Your backers provide ${division.expeditionGold.toLocaleString()} gold for a new expedition.</p><dl><dt>Personal wealth</dt><dd>${player.personalWealth.toLocaleString()}</dd><dt>Reputation</dt><dd>${player.reputation}</dd><dt>New crew</dt><dd>${player.crew}</dd></dl>`,
-    actions: [{ label: 'Return to town', run: showTownMenu }],
+    actions: [{ label: 'Return to town', run: () => runFleetCheck({ inTown: true, done: showTownMenu }) }],
   });
 }
 
@@ -1932,7 +2025,13 @@ function showDialog({ kicker, title, body, actions }) {
   dialogActions.querySelector('button')?.focus();
 }
 
+// Every return to the sailing map starts a new voyage, and each voyage begins
+// with the fleet check (porting_guide.md §4).
 function resumeSailing() {
+  runFleetCheck({ done: startVoyage });
+}
+
+function startVoyage() {
   state.paused = false;
   state.approach = null;
   state.mode = 'sailing';
