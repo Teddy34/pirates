@@ -21,7 +21,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | D5 | M | **Leaving town ignores the town's departure cell and heading.** The port moves the ship 8 cells along its current heading (`game.mjs:1884-1892`). The departure heading isn't extracted, and the `harbors` field in the scenario data is never used. |
 | D6 | M | **No minimum crew per ship.** The original makes you abandon ships when you have fewer than 8 men per ship, and checks this at every voyage start, after dividing the plunder and after an assault (ships §5). The port never enforces it. |
 | D7 | M | **Losing a ship doesn't lose its share of the cargo.** When the flagship sinks, the enemy takes a ship during your escape, or the fort sinks one, the original also removes that ship's share of gold, food, goods and cannon. The port just deletes the ship and trims cargo to fit (`game.mjs:759-762`, `779-780`, `1206`). Fort fire also never sinks your only ship (`:1205`); in the original that is the "last ship" path, which means prison. |
-| D8 | L | **Fixed in #PR.** The starvation formula (crew/20 desert, `game.mjs:513-517`) isn't in the docs, which say it was never traced. It isn't marked `ASSUMED` as `AGENTS.md` requires. |
+| D8 | L | **Fixed in #1.** The starvation formula (crew/20 desert, `game.mjs:513-517`) isn't in the docs, which say it was never traced. It isn't marked `ASSUMED` as `AGENTS.md` requires. |
 | D9 | L | At the map edge the original turns the ship around; the port just stops it at the edge (`game.mjs:477-478`). |
 
 ## Encounters
