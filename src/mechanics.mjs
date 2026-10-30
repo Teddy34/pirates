@@ -393,6 +393,43 @@ export function chooseEncounterTier({ crew, alert, governorMood, rng }) {
 // least 6, met while your favour with its nation is negative, is a named
 // hunter. Its CSTR 120 "Sail away" answer is ignored, and after the CSTR 121
 // menu any answer but battle is overtaken when rnd(3) < difficulty (CSTR 126).
+// Hunter captains (0xD60D). The name comes from 0x19FBB: a title from
+// CSTN 78 (Captain .. Duke, index (id & 7) + 2) and a surname from the
+// nation's list (CSTN 2-5, row (id >> 3) & 7, nation (id >> 6) & 3); the
+// renown word (CSTN 34) is (id & 7) / 3.
+export const CAPTAIN_TITLES = ['Captain', 'Major', 'Colonel', 'Admiral', 'Baron', 'Count', 'Marquis', 'Duke'];
+export const CAPTAIN_SURNAMES = [
+  ['Montalban', 'Delgado', 'Vasquez', 'La Mancha', 'de Silva', 'Almagro', 'Delado', 'Orgonez'],
+  ['Fielding', 'Moodyford', 'Holcroft', 'Thatcher', 'Culliford', 'Roberts', 'Alexander', 'Gilford'],
+  ['Raynale', 'de Coligny', 'le Crozat', 'Galoise', 'Carriere', 'Ribault', 'le Grand', 'Olonais'],
+  ['vaan Ryhn', 'Ruyters', 'Tromper', 'de Vranck', 'de Graff', 'Brugmans', 'van Hudde', 'Haakles'],
+];
+export const CAPTAIN_RENOWN = ['cowardly', 'promising', 'well known', 'famous', 'notorious', 'infamous'];
+
+// One of five name rows not yet used (bitmask 0x32E06, cleared once all
+// five are taken), then rnd(8) for the title, plus 64 x nation. Id 0 means
+// "no captain", so it is drawn again.
+export function drawHunterCaptain({ usedRows, nationIndex, rng }) {
+  let mask = usedRows;
+  for (;;) {
+    if (mask === 31) mask = 0;
+    let row = rng.int(5);
+    while (mask & (1 << row)) row = row >= 4 ? 0 : row + 1;
+    mask |= 1 << row;
+    const id = row * 8 + rng.int(8) + 64 * nationIndex;
+    if (id !== 0) return { id, usedRows: mask };
+  }
+}
+
+export function captainName(id) {
+  const low = id & 0xff;
+  return `${CAPTAIN_TITLES[low & 7]} ${CAPTAIN_SURNAMES[(low >> 6) & 3][(low >> 3) & 7]}`;
+}
+
+export function captainRenown(id) {
+  return CAPTAIN_RENOWN[Math.trunc((id & 7) / 3)];
+}
+
 export function isEncounterHunter({ kind, favour }) {
   return kind >= 6 && favour < 0;
 }

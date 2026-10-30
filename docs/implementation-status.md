@@ -132,7 +132,7 @@ for future work.
 | System | Present | Still needed |
 | --- | --- | --- |
 | Sailing | Heading, wind, fleet speed, sails, collision, calendar, food, and seasonal clouds | Storms, exact reduced-sail behavior, and more faithful movement feedback |
-| Encounters | Sighting stages, identification, news, escape, tactical combat, provisional boarding outcomes, and capture aftermath | Quest overrides, treasure fleet encounters, named-captain identities, coastal battle terrain, and interactive sword fights |
+| Encounters | Sighting stages, identification, named hunter captains (title, surname and renown from the original's captain id), news, escape, tactical combat, provisional boarding outcomes, and capture aftermath | Quest overrides (and the quest captain id), treasure fleet encounters, the captain id's battle and sword skill, coastal battle terrain, and interactive sword fights |
 | Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, promotions, titles, missions, pardons, and nation-specific rewards |
 | Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading | Missions and richer governor actions |
 | Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, and treasure movements |
