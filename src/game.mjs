@@ -17,7 +17,7 @@ import {
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   merchantCommodityPrice, merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
-  fleetIsUndermanned, abandonShip, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
+  fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
@@ -485,7 +485,7 @@ function runFleetCheck({ inTown = false, done }) {
 
 // Last-ship path of remove_ship (0x1F2A1): prison in a town (0x1C056) or a
 // shipwreck at sea (0x1BE71), then the fresh fleet 0x1EF87 with no gold.
-function loseLastShip({ inTown, done }) {
+function loseLastShip({ inTown, done, cause = '' }) {
   const town = state.visit ? state.towns[state.visit.townIndex] : nearestTown();
   const lost = state.player.ships[0];
   state.player = restartAfterLastShip(state.player, lost, SHIPS);
@@ -500,8 +500,8 @@ function loseLastShip({ inTown, done }) {
   showDialog({
     kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
     body: inTown
-      ? `<p>You are imprisoned in ${town.name}.</p><p>On your release, backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`
-      : `<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
+      ? `${cause}<p>You are imprisoned in ${town.name}.</p><p>On your release, backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`
+      : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
     // ASSUMED: the restart can leave fewer than eight men when reputation is
     // below -8, which would loop the original check forever; the port runs
     // the last-ship path once and continues.
@@ -897,17 +897,17 @@ function applyBattleSurvivors(battle) {
   if (distance < 12) state.alert += 24 - 2 * distance;
 }
 
-function capacitySafeFleet() {
-  if (state.player.ships.length === 0) {
-    // ASSUMED recovery bridge until capture/prison and career-ending states exist.
-    state.player.ships.push({ type: 'Pinnace', damage: 0 });
+// remove_ship (0x1F2A1) with the ship's cargo share lost. The last ship takes
+// the last-ship path (prison in a town, shipwreck at sea); `done` then gets
+// null instead of the lost ship.
+function loseShip(slot, { inTown = false, cause = '', done }) {
+  if (state.player.ships.length === 1) {
+    loseLastShip({ inTown, cause, done: () => done(null) });
+    return;
   }
-  state.player.crew = Math.min(state.player.crew, fleetCapacity());
-  state.player.cannon = Math.min(state.player.cannon, state.player.ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0));
-  const hold = Math.max(0, cargoCapacity() - Math.floor(state.player.cannon / 2));
-  state.player.goods = Math.min(state.player.goods, hold);
-  state.player.specialGoods = Math.min(state.player.specialGoods, Math.max(0, hold - state.player.goods));
-  state.player.foodFixed = Math.min(state.player.foodFixed, Math.max(0, hold - state.player.goods - state.player.specialGoods) * 256);
+  const result = removeShipWithCargo(state.player, slot, SHIPS);
+  state.player = result.player;
+  done(result.lost);
 }
 
 function endBattleToSailing(message) {
@@ -943,11 +943,10 @@ function finishTacticalBattle() {
     return;
   }
   if (battle.event === 'player-sunk') {
-    state.player.ships.shift();
     state.player.wounds = (state.player.wounds ?? 0) + 1;
-    state.player.crew = Math.max(1, Math.floor(state.player.crew / 2));
-    capacitySafeFleet();
-    endBattleToSailing('Your flagship sank; survivors were taken aboard the remaining fleet.');
+    loseShip(0, { cause: '<p>Your ship is holed in a dozen places, and gradually sinks beneath the waves.</p>', done: (lost) => endBattleToSailing(lost
+      ? `Your ${shipName(lost)} was holed and sank, taking her share of the cargo.`
+      : 'Your last ship was holed and sank.') });
     return;
   }
   if (battle.event === 'enemy-sunk') {
@@ -963,9 +962,7 @@ function finishTacticalBattle() {
     for (let index = 2; index < state.player.ships.length; index += 1) {
       if (statsFor(state.player.ships[index]).type > statsFor(state.player.ships[slowest]).type) slowest = index;
     }
-    const [lost] = state.player.ships.splice(slowest, 1);
-    capacitySafeFleet();
-    endBattleToSailing(`The enemy overtook and captured your reserve ${shipName(lost)} during the escape.`);
+    loseShip(slowest, { done: (lost) => endBattleToSailing(`The enemy overtook and captured your reserve ${shipName(lost)} and her cargo during the escape.`) });
     return;
   }
   const messages = {
@@ -1418,9 +1415,13 @@ function tryHarbor(town) {
   const result = harborAttempt({ favour: state.player.favour[town.nation], governorMood: town.mood, crew: state.player.crew, forts: town.forts, rng });
   if (result.admitted) { enterTown(town, false); return; }
   // Fort fire can only sink a ship that arrived by sea (0x1953A).
-  if (result.shipLost && !state.approach?.overland && state.player.ships.length > 1) {
-    const lost = state.player.ships.splice(rng.int(state.player.ships.length), 1)[0];
-    showNotice('The fort opens fire', `An accurate salvo sinks your ${shipName(lost)}. The fleet withdraws to open water.`);
+  if (result.shipLost && !state.approach?.overland) {
+    // 0x1F2A1(rnd(ship_count), 0, 1): cargo share lost; the last ship means prison.
+    loseShip(rng.int(state.player.ships.length), { inTown: true, cause: '<p>As you approach the town, the fort opens fire! One of your ships is sunk!</p>', done: (lost) => {
+      if (!lost) { resumeSailing(); return; }
+      addLog(`The fort at ${town.name} sank your ${shipName(lost)} and her cargo.`);
+      showNotice('The fort opens fire', `One of your ships is sunk! An accurate salvo sinks your ${shipName(lost)} and her cargo. The fleet withdraws to open water.`);
+    } });
   } else {
     showNotice('The fort opens fire', 'Cannon fire throws up columns of water. The fleet withdraws beyond range.');
   }

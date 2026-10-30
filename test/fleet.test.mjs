@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  fleetIsUndermanned, abandonShip, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
+  fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
 } from '../src/mechanics.mjs';
 import { SHIPS } from '../src/data.mjs';
 
@@ -28,6 +28,25 @@ test('abandoning a ship for lack of crew keeps every cargo', () => {
     assert.equal(after[key], before[key]);
   }
   assert.throws(() => abandonShip(player({ ships: [{ type: 'Sloop', damage: 0 }] }), 0));
+});
+
+test('a lost ship takes its share of the hold with the decoded rounding', () => {
+  // Units: Frigate 12, Sloop 4, Galleon 16, so the Galleon's share is 16/32.
+  const before = player({ partyGold: 4001, foodFixed: 50 * 256 + 3, goods: 31, specialGoods: 5, cannon: 41 });
+  const { player: after, lost } = removeShipWithCargo(before, 2, SHIPS);
+  assert.deepEqual(lost, { type: 'Galleon', damage: 16 });
+  assert.deepEqual(after.ships.map(({ type }) => type), ['Frigate', 'Sloop']);
+  assert.equal(after.partyGold, 4001 - 2000);
+  assert.equal(after.foodFixed, 12803 - 6402);
+  assert.equal(after.goods, 31 - 16);
+  assert.equal(after.specialGoods, 5 - 3);
+  assert.equal(after.cannon, 41 - 21);
+  assert.equal(after.crew, before.crew);
+  // The Sloop's share is 4/32: gold truncates (500.125), goods round (3.875).
+  const sloop = removeShipWithCargo(before, 1, SHIPS).player;
+  assert.equal(sloop.partyGold, 4001 - 500);
+  assert.equal(sloop.goods, 31 - 4);
+  assert.throws(() => removeShipWithCargo(player({ ships: [{ type: 'Sloop', damage: 0 }] }), 0, SHIPS));
 });
 
 test('losing the last ship restarts with the decoded fresh fleet and no gold', () => {
