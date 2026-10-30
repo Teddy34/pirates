@@ -647,7 +647,21 @@ function beginCaptivity({ inTown, town, lost, done }) {
   const player = state.player;
   player.monthsAtSea = -16;
   const before = { ...state.calendar };
-  for (let step = 0; captivityContinues(player.reputation, step); step += 1) passCaptivityDays(CAPTIVITY_STEP_DAYS, { inTown });
+  // Each step is one 0x1DD0E call, so on the island its crew check can raise
+  // a mutiny; reputation is re-read before every step.
+  const serveStep = (step) => {
+    if (!captivityContinues(state.player.reputation, step)) {
+      endCaptivity({ inTown, town, lost, done, before });
+      return;
+    }
+    const monthsCrossed = passCaptivityDays(CAPTIVITY_STEP_DAYS);
+    if (inTown) { serveStep(step + 1); return; }
+    monthEndCrewCheck({ monthsCrossed, aboard: true }, () => serveStep(step + 1));
+  };
+  serveStep(0);
+}
+
+function endCaptivity({ inTown, town, lost, done, before }) {
   const months = (state.calendar.year - before.year) * 12 + state.calendar.month - before.month;
   state.player = restartAfterLastShip(state.player, lost, SHIPS);
   const released = releaseFromCaptivity(state.player, state.difficulty);
@@ -676,16 +690,18 @@ function beginCaptivity({ inTown, town, lost, done }) {
 }
 
 // 0x1DD0E with captivity's day count: the calendar and the monthly world
-// update advance, but no food is eaten. The monthly crew checks (0x1DDC5)
-// run only while 0x47ACA is 0: after a loss at sea it still is, so they use
-// the lost fleet's crew on the island; in a town prison bit 1 is set and
-// they are skipped (entering_towns.md, 0x47ACA table).
-function passCaptivityDays(days, { inTown }) {
+// update advance, but no food is eaten. Its closing crew check (0x1DDC5) runs
+// only while 0x47ACA is 0: after a loss at sea it still is, so it uses the
+// lost fleet's crew on the island; in a town prison bit 1 is set and it is
+// skipped (entering_towns.md, 0x47ACA table).
+function passCaptivityDays(days) {
+  let monthsCrossed = 0;
   for (let day = 0; day < days; day += 1) {
     const nextDate = advanceDate(state.calendar);
     state.calendar = { day: nextDate.day, month: nextDate.month, year: nextDate.year };
-    if (nextDate.newMonth) monthlyUpdate({ crewChecks: !inTown, newsLog: false });
+    if (nextDate.newMonth) { monthlyUpdate({ newsLog: false }); monthsCrossed += 1; }
   }
+  return monthsCrossed;
 }
 
 // 0x1C056: a coastal town releases you on its departure cell; an inland town
@@ -771,6 +787,12 @@ function endVoyage(next = () => {}, { aboard = true } = {}) {
   const monthsCrossed = passDays(voyageDays(player.voyageTick ?? VOYAGE_START_TICK));
   player.voyageTick = VOYAGE_START_TICK;
   player.cloudDistancePixels = 999;
+  monthEndCrewCheck({ monthsCrossed, aboard }, next);
+}
+
+// The crew check that ends 0x1DD0E; `next` receives whether a mutiny happened.
+function monthEndCrewCheck({ monthsCrossed, aboard }, next) {
+  const player = state.player;
   const event = monthsCrossed > 0 && monthEndCrewEvent({
     morale: morale({ ...player, difficulty: state.difficulty }),
     crew: player.crew,
