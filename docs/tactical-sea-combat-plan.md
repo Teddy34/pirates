@@ -60,9 +60,9 @@ reuse the finished naval engine in a later milestone.
 
 ### Open points that must stay explicit
 
-- Terrain class 1 shallows are not fully mapped to original palette indices.
-  The current four-class navigation mask can supply water, shallows, and land,
-  but this mapping needs a focused verification pass.
+- The navigation map now records the original per-pixel classes (water,
+  shallows, land) from the decoded `0x4113C` table, but battles do not use it
+  yet: shallows damage, beaching, and terrain backdrops remain unimplemented.
 - The encounter-provided extra gunnery skill and wind-strength source are not
   traced. Use `extra = 0` and `windStrength = rng.int(3)` for the first slice,
   matching the confirmed fort setup while marking both rules `ASSUMED`.

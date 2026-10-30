@@ -21,6 +21,7 @@ import {
   createBattle, damageLevel, shipName, shipRecord, stepBattle,
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
+import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
@@ -72,7 +73,7 @@ let previousSailingClouds = null;
 let lastFrame = performance.now();
 let viewWidth = innerWidth;
 let viewHeight = innerHeight;
-let worldCells = null;
+let worldMap = null;
 let worldMapLayer = null;
 let scenarios = null;
 let cameraZoom = MIN_ZOOM;
@@ -277,23 +278,17 @@ async function loadScenarios() {
 
 async function loadWorldMap(era) {
   if (mapCache.has(era)) {
-    ({ cells: worldCells, layer: worldMapLayer } = mapCache.get(era));
+    ({ map: worldMap, layer: worldMapLayer } = mapCache.get(era));
     return;
   }
   const response = await fetch(new URL(`../assets/world-${era}.bin`, import.meta.url));
   if (!response.ok) throw new Error(`map request failed: ${response.status}`);
-  const packed = new Uint8Array(await response.arrayBuffer());
-  if (packed.length !== WORLD.width * WORLD.height / 4) throw new Error('unexpected navigation map size');
-
-  worldCells = new Uint8Array(WORLD.width * WORLD.height);
-  for (let index = 0; index < worldCells.length; index += 1) {
-    worldCells[index] = (packed[index >> 2] >> ((index & 3) * 2)) & 3;
-  }
-  worldMapLayer = buildWorldMapLayer(worldCells);
-  mapCache.set(era, { cells: worldCells, layer: worldMapLayer });
+  worldMap = decodeNavigationMap(await gunzip(await response.arrayBuffer()), WORLD.width, WORLD.height);
+  worldMapLayer = buildWorldMapLayer(worldMap);
+  mapCache.set(era, { map: worldMap, layer: worldMapLayer });
 }
 
-function buildWorldMapLayer(cells) {
+function buildWorldMapLayer(map) {
   const layer = document.createElement('canvas');
   layer.width = WORLD.width * 2;
   layer.height = WORLD.height * 2;
@@ -304,13 +299,21 @@ function buildWorldMapLayer(cells) {
     [[91, 111, 67], [103, 119, 72], [82, 103, 61]],
     [[184, 157, 88], [166, 143, 78], [198, 170, 96]],
     [[214, 184, 91], [226, 198, 106], [194, 157, 69]],
+    [[34, 102, 112], [38, 110, 118], [31, 96, 106]],
   ];
   for (let y = 0; y < WORLD.height; y += 1) {
     for (let x = 0; x < WORLD.width; x += 1) {
-      const cell = cells[y * WORLD.width + x];
-      const color = palette[cell][Math.abs((x * 17 + y * 31) % 3)];
+      const cell = map.cells[y * WORLD.width + x];
+      const shade = Math.abs((x * 17 + y * 31) % 3);
       for (let py = 0; py < 2; py += 1) {
         for (let px = 0; px < 2; px += 1) {
+          // Mixed coastal cells sample the pixel class at each quarter's centre.
+          let tone = cell;
+          if (cell === CELL.MIXED) {
+            const pixel = pixelClassAt(map, x + px / 2 + .25, y + py / 2 + .25);
+            tone = pixel === PIXEL.LAND ? CELL.MIXED : pixel === PIXEL.SHALLOW ? 4 : CELL.WATER;
+          }
+          const color = palette[tone][shade];
           const offset = ((y * 2 + py) * layer.width + x * 2 + px) * 4;
           image.data[offset] = color[0] + (px === py ? 2 : -2);
           image.data[offset + 1] = color[1] + (px === py ? 2 : -2);
@@ -325,11 +328,9 @@ function buildWorldMapLayer(cells) {
 }
 
 function isNavigable(x, y) {
-  if (!worldCells) return true;
-  const col = Math.floor(x);
-  const row = Math.floor(y);
-  if (col < 0 || row < 0 || col >= WORLD.width || row >= WORLD.height) return false;
-  return worldCells[row * WORLD.width + col] === 0;
+  if (!worldMap) return true;
+  if (x < 0 || y < 0 || x >= WORLD.width || y >= WORLD.height) return false;
+  return isNavigableAt(worldMap, x, y);
 }
 
 function movePlayerToNavigableCell() {
@@ -340,11 +341,12 @@ function movePlayerToNavigableCell() {
     for (let dy = -distance; dy <= distance; dy += 1) {
       const dx = distance - Math.abs(dy);
       for (const xDirection of dx === 0 ? [0] : [-dx, dx]) {
-        const x = originX + xDirection;
-        const y = originY + dy;
+        // Place the ship at the cell centre, so test that exact map pixel.
+        const x = originX + xDirection + .5;
+        const y = originY + dy + .5;
         if (isNavigable(x, y)) {
-          state.player.x = x + .5;
-          state.player.y = y + .5;
+          state.player.x = x;
+          state.player.y = y;
           return;
         }
       }
