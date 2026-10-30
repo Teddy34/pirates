@@ -27,6 +27,9 @@ form .primary,form .secondary { grid-column:1/-1; }
 .hud-block span { display:grid; align-content:center; }
 .hud-block small { color:var(--muted); font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
 .hud-block b { font-family:"IM Fell English",Georgia,serif; font-size:16px; font-weight:400; white-space:nowrap; }
+/* Reserve room for the longest sailing value so the box keeps its width as values change (e.g. "12.0 cells/day", "WNW", "Closed", "9999 days"). */
+.voyage b { font-variant-numeric:tabular-nums; }
+#speed-label { min-width:12ch; } #wind-label { min-width:5.5ch; } #sails-label { min-width:6ch; } #food-label { min-width:8.5ch; }
 .identity { display:grid; gap:0; }
 .identity strong { font-family:"IM Fell English",Georgia,serif; font-size:19px; }
 .identity span { color:var(--muted); font-size:12px; }
