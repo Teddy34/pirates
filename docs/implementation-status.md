@@ -29,9 +29,10 @@ for future work.
   the coast gets surf and a beach. Inland there are grass, forest and shaded
   hills. Chunks are painted lazily from the mask, so the drawn coastline is
   the sailed coastline.
-- Display pixel-art town sprites that show the flag, the size of the town
-  (population) and its defences (forts), with labels, the player ship and a
-  minimap.
+- Display pixel-art town sprites whose buildings show the town's prosperity
+  (struggling, surviving, prospering, wealthy) and whose walls show its
+  forts. Only the flag shows who holds the town. Labels, the player ship and
+  a minimap are drawn too.
 - Zoom from 16× to 64× without scaling town labels or the ship. Town sprites
   step from 2 to 3 to 4 screen pixels per art pixel as the map zooms in.
 - Show every decoded town for the selected era, including eastern Caribbean
