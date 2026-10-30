@@ -11,6 +11,7 @@ import {
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
   applyProvisionalBoardingOutcome,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
+  triggerTownAt, nearestTriggerTown, townDistanceCells,
 } from '../src/mechanics.mjs';
 import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
 
@@ -375,4 +376,14 @@ test('captured-captain convoy intelligence names the current and next Spanish st
 test('the calendar uses thirty-day months and 360-day years', () => {
   assert.deepEqual(advanceDate({ day: 29, month: 0, year: 1560 }), { day: 0, month: 1, year: 1560, newMonth: true });
   assert.deepEqual(advanceDate({ day: 29, month: 11, year: 1560 }), { day: 0, month: 0, year: 1561, newMonth: true });
+});
+
+test('town triggers use exact cells, first-entry ties, and record distance', () => {
+  const triggers = [[10, 10, 0], [12, 10, 1], [11, 12, 1]];
+  assert.equal(triggerTownAt(triggers, 12, 10), 1);
+  assert.equal(triggerTownAt(triggers, 11, 10), -1);
+  assert.equal(nearestTriggerTown(triggers, 11, 10), 0);
+  assert.equal(nearestTriggerTown(triggers, 11, 13), 1);
+  assert.equal(townDistanceCells({ x: 5, y: 5 }, 5, 5), 1);
+  assert.equal(townDistanceCells({ x: 5, y: 5 }, 8, 1), 7);
 });

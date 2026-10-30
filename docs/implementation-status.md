@@ -69,7 +69,10 @@ for future work.
 
 ### Ports
 
-- Approach towns within seven map cells.
+- Arrive automatically on a town's decoded trigger cells; the nearest town is
+  chosen from the trigger table as in the original.
+- Send a provisional landing party to inland towns (overland travel is not
+  playable yet).
 - Attempt open harbor entry, including fort fire and possible reserve-ship
   loss.
 - Sneak into hostile towns and resolve the recognition check.
