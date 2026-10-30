@@ -340,6 +340,18 @@ export function chooseEncounterTier({ crew, alert, governorMood, rng }) {
   return Math.min(4, Math.floor(rng.int(range) / 3));
 }
 
+// Encounter steps 7-8 (0xD540, 0xD980): a template whose kind byte is at
+// least 6, met while your favour with its nation is negative, is a named
+// hunter. Its CSTR 120 "Sail away" answer is ignored, and after the CSTR 121
+// menu any answer but battle is overtaken when rnd(3) < difficulty (CSTR 126).
+export function isEncounterHunter({ kind, favour }) {
+  return kind >= 6 && favour < 0;
+}
+
+export function hunterOvertakes({ hunter, difficulty, rng }) {
+  return hunter && rng.int(3) < difficulty;
+}
+
 export function harborAttempt({ favour, governorMood, crew, forts, rng }) {
   if (forts === 0) return { admitted: true, fired: false, shipLost: false };
   const x = favour + governorMood - crew / 100;

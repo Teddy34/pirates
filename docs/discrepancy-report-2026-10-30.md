@@ -28,7 +28,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 
 | # | Sev | Discrepancy |
 |---|---|---|
-| D10 | M | **Hunters can be escaped.** A ship whose kind is 6 or more, from a nation with negative favour, should give chase: no sail-away and no hail option (encounters §2.7). The port offers both "Break away" and "Hail for news" (`game.mjs:636-639`). The rule that a hail fails at favour −4 or lower isn't in the docs. |
+| D10 | M | **Fixed in #PR.** **Hunters can be escaped.** Correction after tracing `0xD540`–`0xDB7B`: the original does offer Close for battle, Hail and Sail away to a hunter (CSTR 121). The real rules: (1) a hunter ignores "Sail away" at the CSTR 120 prompt; (2) after CSTR 121, any answer except battle is overtaken ("He's overtaking us", CSTR 126) when `rnd(3) < difficulty`; (3) a successful hail, like sailing away, raises the town alert by 16. The port escaped on the first prompt, never overtook, and charged no alert for hailing. The rule that a hail goes unanswered at favour ≤ −4 is original (CSTR 315 at `0xDA61`); the report was wrong to call it undocumented. |
 | D11 | L | Before 1660 a Frigate should be shown as a "Fast galleon" in sightings, the capture prompt and the shipwright list. This isn't implemented anywhere. |
 
 ## Sea battles (`battle-mechanics.mjs`)
