@@ -66,7 +66,7 @@ for future work.
 - Change diplomatic relations and publish wars, peace treaties, and alliances
   as world news.
 - Apply simplified mine, malaria, raid, governor, and plunder events.
-- Track the single nearest-town alert (reset when the nearest town changes), national favour, ranks, reputation, morale inputs, and time
+- Track the single nearest-town alert (reset when the nearest town changes), national favour, ranks, reputation, stored crew morale, and time
   at sea.
 
 ### Ship encounters
@@ -134,7 +134,7 @@ for future work.
 | Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, promotions, titles, missions, pardons, and nation-specific rewards |
 | Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading | Missions and richer governor actions |
 | Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, and treasure movements |
-| Morale | Morale calculation, desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a provisional leader duel, and plunder division with crew satisfaction | Persistent crew mood (D22) and interactive mutiny combat |
+| Morale | Stored crew morale (recomputed each month and on load, +1 or +2 per captured prize; used for port desertion, battle reload and the month-end check), desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a provisional leader duel, and plunder division with crew satisfaction | A Party Status mood display (which recomputes morale in the original) and interactive mutiny combat |
 | Persistence | One versioned browser save slot and v1-v4 save migration | Multiple slots, battle-state persistence, and import/export |
 | Accessibility | Keyboard and touch controls, visible labels, focus styles, and text HUD | Complete keyboard dialog navigation testing, screen-reader alternatives for the canvas, and configurable controls |
 

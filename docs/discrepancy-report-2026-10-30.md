@@ -51,7 +51,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | # | Sev | Discrepancy |
 |---|---|---|
 | D21 | M | **Captured ships arrive repaired.** The docs keep the prize's battle damage; the port sets it to 0 (`game.mjs:839`, `851`). The "raise crew to 8 × slot" quirk is also skipped when a prize replaces a ship in a full fleet. |
-| D22 | M | **Crew morale isn't stored.** The original keeps a morale value that rises by 1 per capture (2 for kind > 5) and is recalculated monthly. The port recalculates it on every use (`game.mjs:687`, `1222`), so the capture bonus never affects reload time or desertion. |
+| D22 | M | **Fixed in #PR.** **Crew morale isn't stored.** The original keeps a morale value that rises by 1 per capture (2 for kind > 5) and is recalculated monthly. The port recalculates it on every use (`game.mjs:687`, `1222`), so the capture bonus never affects reload time or desertion. |
 | D23 | M | **Pirate delivery differs from the original (from the disassembly).** `deliver_pirates.asm` (`0x12461–0x1248F`) appears to check each prisoner against the governor's nation and hand them over automatically. The port delivers to any governor and lets you keep them. The port also uses the ship's kind as the value, so the favour gain is always +4. The original value comes from the captain's ID, so (v&7)/2+1 gives 1–4. The focused docs only give the formula, so treat this one as medium confidence. |
 
 ## Dividing the plunder and ports

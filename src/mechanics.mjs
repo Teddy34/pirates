@@ -473,6 +473,12 @@ export function morale({ partyGold, crew, monthsAtSea, difficulty }) {
   return Math.floor(2 * Math.sqrt(partyGold / 10 / crew)) + 4 - monthsAtSea - difficulty;
 }
 
+// add_prize (0xDB7B): every captured prize, kept or sunk, raises the stored
+// crew morale by 1, or by 2 when the encounter template's kind is above 5.
+export function prizeMoraleBonus(kind) {
+  return kind > 5 ? 2 : 1;
+}
+
 export function dividePlunder({ partyGold, crew, reputation, difficulty, flagshipSizeClass }) {
   const crewShare = Math.round((0.8 * partyGold) / Math.max(1, crew));
   const shareRoot = Math.floor(Math.sqrt(crewShare));
