@@ -48,7 +48,7 @@ it safe to commit.
 
 The repository may contain original project assets, material the user supplies
 with suitable rights, and generated data that records mechanics, factual
-values, or measurements. The packed four-class navigation masks are generated
+values, or measurements. The packed per-pixel navigation class masks are generated
 data, not copies of the original tiles or artwork. Document the provenance and
 generation command for any such derived data.
 
@@ -64,7 +64,7 @@ The project has no build step or third-party dependency:
 - `index.html` owns the browser entry point and canvas.
 - `src/data.mjs` contains shared immutable data and fallback vector geography.
 - `assets/scenarios.json` contains the generated data for all six eras; rebuild it with `tools/build_scenarios.mjs`.
-- `assets/world-<era>.bin` contains packed four-class navigation masks derived from `MAP1560.PCX` and its era deltas; rebuild them with `tools/build_world_map.py`.
+- `assets/world-<era>.bin` contains gzip-compressed per-pixel navigation class masks (water, shallows, land) derived from `MAP1560.PCX`, its era deltas, `MAP.IMB` and the decoded `0x4113C` class table; rebuild them with `tools/build_world_map.py`. `src/world-map.mjs` decodes them.
 - `src/mechanics.mjs` contains deterministic, DOM-free game rules.
 - `src/game.mjs` owns state, input, modes, canvas rendering, and browser saves.
 - `style.css` makes the canvas fill the viewport.

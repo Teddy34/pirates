@@ -22,6 +22,8 @@ for future work.
 - Sail on the original 640×480 world-tile grid: 307,200 logical tiles.
 - Load a separate coastline and navigation mask for every era.
 - Block ships from entering land while allowing movement along coastlines.
+  Land is tested per map pixel with the original colour classes, so coastal
+  tiles have their drawn shoreline and shallow water is recorded.
 - Display fixed-size town sprites, nationality marks, labels, the player ship,
   and a minimap.
 - Zoom from 16× to 64× without scaling town labels, town markers, or the ship.
