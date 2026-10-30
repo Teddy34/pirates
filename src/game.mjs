@@ -26,7 +26,7 @@ import {
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
 import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
-import { TERRAIN_CHUNK_CELLS, TERRAIN_PIXELS_PER_CELL, buildCoastField, paintTerrainChunk } from './terrain.mjs';
+import { TERRAIN_CHUNK_CELLS, TERRAIN_PIXELS_PER_CELL } from './terrain.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
@@ -298,6 +298,7 @@ async function loadScenarios() {
 
 async function loadWorldMap(era) {
   if (mapCache.has(era)) {
+    retireTerrain();
     ({ map: worldMap, layer: worldMapLayer, terrain } = mapCache.get(era));
     return;
   }
@@ -305,7 +306,8 @@ async function loadWorldMap(era) {
   if (!response.ok) throw new Error(`map request failed: ${response.status}`);
   worldMap = decodeNavigationMap(await gunzip(await response.arrayBuffer()), WORLD.width, WORLD.height);
   worldMapLayer = buildWorldMapLayer(worldMap);
-  terrain = { coast: buildCoastField(worldMap), chunks: new Map() };
+  retireTerrain();
+  terrain = createTerrain(worldMap);
   mapCache.set(era, { map: worldMap, layer: worldMapLayer, terrain });
 }
 
@@ -348,47 +350,73 @@ function buildWorldMapLayer(map) {
   return layer;
 }
 
-// Detailed terrain is painted lazily in chunks: a few per frame, with the
-// coarse layer showing until a chunk is ready. Least recently drawn chunks
-// are dropped past the cache limit.
-const TERRAIN_CHUNKS_PER_FRAME = 2;
-const TERRAIN_CHUNK_CACHE = 72;
+// Detailed terrain is painted lazily in chunks by a worker, with the coarse
+// layer showing until a chunk arrives. Visible chunks are requested first,
+// then a one-chunk ring around them. Least recently drawn chunks are dropped
+// past the cache limit (each chunk is 1 MB of canvas).
+const TERRAIN_CHUNKS_IN_FLIGHT = 2;
+const TERRAIN_CHUNK_CACHE = 64;
+const TERRAIN_CHUNK_PIXELS = TERRAIN_CHUNK_CELLS * TERRAIN_PIXELS_PER_CELL;
 
-function terrainChunk(chunkX, chunkY, allowBuild) {
+function createTerrain(map) {
+  const entry = { chunks: new Map(), pending: new Set(), worker: null };
+  if (typeof Worker !== 'function') return entry;
+  entry.worker = new Worker(new URL('./terrain-worker.mjs', import.meta.url), { type: 'module' });
+  entry.worker.onmessage = ({ data }) => {
+    entry.pending.delete(data.key);
+    // Chunks for an era no longer shown are dropped rather than cached.
+    if (terrain !== entry) return;
+    const chunk = document.createElement('canvas');
+    chunk.width = TERRAIN_CHUNK_PIXELS; chunk.height = TERRAIN_CHUNK_PIXELS;
+    chunk.getContext('2d').putImageData(new ImageData(data.pixels, TERRAIN_CHUNK_PIXELS, TERRAIN_CHUNK_PIXELS), 0, 0);
+    entry.chunks.set(data.key, chunk);
+    if (entry.chunks.size > TERRAIN_CHUNK_CACHE) entry.chunks.delete(entry.chunks.keys().next().value);
+  };
+  // Without the worker the coarse layer stays: terrain is presentation only.
+  entry.worker.onerror = () => { entry.worker.terminate(); entry.worker = null; };
+  entry.worker.postMessage({ type: 'map', map });
+  return entry;
+}
+
+// Only the shown era keeps painted chunks; the others repaint on return.
+function retireTerrain() {
+  if (!terrain) return;
+  terrain.chunks.clear();
+  terrain.pending.clear();
+}
+
+function requestTerrainChunk(chunkX, chunkY) {
   const key = `${chunkX},${chunkY}`;
-  let chunk = terrain.chunks.get(key);
-  if (chunk) {
-    terrain.chunks.delete(key);
-    terrain.chunks.set(key, chunk);
-    return chunk;
-  }
-  if (!allowBuild) return null;
-  const size = TERRAIN_CHUNK_CELLS * TERRAIN_PIXELS_PER_CELL;
-  chunk = document.createElement('canvas');
-  chunk.width = size; chunk.height = size;
-  chunk.getContext('2d').putImageData(new ImageData(paintTerrainChunk(worldMap, terrain.coast, chunkX, chunkY), size, size), 0, 0);
-  terrain.chunks.set(key, chunk);
-  if (terrain.chunks.size > TERRAIN_CHUNK_CACHE) terrain.chunks.delete(terrain.chunks.keys().next().value);
-  return chunk;
+  if (!terrain.worker || terrain.chunks.has(key) || terrain.pending.has(key)) return;
+  if (terrain.pending.size >= TERRAIN_CHUNKS_IN_FLIGHT) return;
+  terrain.pending.add(key);
+  terrain.worker.postMessage({ type: 'paint', key, chunkX, chunkY });
 }
 
 function drawTerrainChunks(camera, visibleWidth, visibleHeight) {
   if (!terrain) return;
   const maxX = Math.ceil(WORLD.width / TERRAIN_CHUNK_CELLS) - 1;
   const maxY = Math.ceil(WORLD.height / TERRAIN_CHUNK_CELLS) - 1;
-  const left = clamp(Math.floor((camera.x - visibleWidth / 2) / TERRAIN_CHUNK_CELLS), 0, maxX);
-  const right = clamp(Math.floor((camera.x + visibleWidth / 2) / TERRAIN_CHUNK_CELLS), 0, maxX);
-  const top = clamp(Math.floor((camera.y - visibleHeight / 2) / TERRAIN_CHUNK_CELLS), 0, maxY);
-  const bottom = clamp(Math.floor((camera.y + visibleHeight / 2) / TERRAIN_CHUNK_CELLS), 0, maxY);
-  let budget = TERRAIN_CHUNKS_PER_FRAME;
+  const left = Math.floor((camera.x - visibleWidth / 2) / TERRAIN_CHUNK_CELLS);
+  const right = Math.floor((camera.x + visibleWidth / 2) / TERRAIN_CHUNK_CELLS);
+  const top = Math.floor((camera.y - visibleHeight / 2) / TERRAIN_CHUNK_CELLS);
+  const bottom = Math.floor((camera.y + visibleHeight / 2) / TERRAIN_CHUNK_CELLS);
   ctx.imageSmoothingEnabled = false;
-  for (let chunkY = top; chunkY <= bottom; chunkY += 1) {
-    for (let chunkX = left; chunkX <= right; chunkX += 1) {
-      const cached = terrain.chunks.has(`${chunkX},${chunkY}`);
-      const chunk = terrainChunk(chunkX, chunkY, budget > 0);
-      if (!chunk) continue;
-      if (!cached) budget -= 1;
+  for (let chunkY = Math.max(top, 0); chunkY <= Math.min(bottom, maxY); chunkY += 1) {
+    for (let chunkX = Math.max(left, 0); chunkX <= Math.min(right, maxX); chunkX += 1) {
+      const key = `${chunkX},${chunkY}`;
+      const chunk = terrain.chunks.get(key);
+      if (!chunk) { requestTerrainChunk(chunkX, chunkY); continue; }
+      terrain.chunks.delete(key);
+      terrain.chunks.set(key, chunk);
       ctx.drawImage(chunk, chunkX * TERRAIN_CHUNK_CELLS, chunkY * TERRAIN_CHUNK_CELLS, TERRAIN_CHUNK_CELLS, TERRAIN_CHUNK_CELLS);
+    }
+  }
+  // Prefetch only while the ring fits the cache, or it would evict itself.
+  if ((right - left + 3) * (bottom - top + 3) > TERRAIN_CHUNK_CACHE) return;
+  for (let chunkY = Math.max(top - 1, 0); chunkY <= Math.min(bottom + 1, maxY); chunkY += 1) {
+    for (let chunkX = Math.max(left - 1, 0); chunkX <= Math.min(right + 1, maxX); chunkX += 1) {
+      requestTerrainChunk(chunkX, chunkY);
     }
   }
 }

@@ -194,10 +194,16 @@ export function paintTerrainChunk(map, coast, chunkX, chunkY) {
   const classes = new Uint8Array(span * span);
   const toLand = new Float32Array(span * span);
   const toWater = new Float32Array(span * span);
+  const maxPixelX = map.width * TERRAIN_PIXELS_PER_CELL - 1;
+  const maxPixelY = map.height * TERRAIN_PIXELS_PER_CELL - 1;
   for (let y = 0; y < span; y += 1) {
     for (let x = 0; x < span; x += 1) {
       const index = y * span + x;
-      const cls = pixelClassAt(map, (originX + x + .5) / TERRAIN_PIXELS_PER_CELL, (originY + y + .5) / TERRAIN_PIXELS_PER_CELL);
+      // Off-map padding repeats the edge pixel, so open sea at the world
+      // edge is not painted with surf against an imaginary coast.
+      const sampleX = Math.min(Math.max(originX + x, 0), maxPixelX);
+      const sampleY = Math.min(Math.max(originY + y, 0), maxPixelY);
+      const cls = pixelClassAt(map, (sampleX + .5) / TERRAIN_PIXELS_PER_CELL, (sampleY + .5) / TERRAIN_PIXELS_PER_CELL);
       classes[index] = cls;
       toLand[index] = cls === PIXEL.LAND ? 0 : PAD;
       toWater[index] = cls === PIXEL.LAND ? PAD : 0;

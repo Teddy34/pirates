@@ -19,6 +19,7 @@ syntax:
 	node --check src/mechanics.mjs
 	node --check src/world-map.mjs
 	node --check src/terrain.mjs
+	node --check src/terrain-worker.mjs
 	node --check server.js
 	node --check tools/build_scenarios.mjs
 	node --check tools/check_plunder_hold.mjs
