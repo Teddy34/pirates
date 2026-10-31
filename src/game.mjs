@@ -31,12 +31,18 @@ import {
 import { renderBattle } from './battle-renderer.mjs';
 import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
 import { TERRAIN_CHUNK_CELLS, TERRAIN_PIXELS_PER_CELL } from './terrain.mjs';
+import {
+  MAP_KIND, COMPLETE_MAP, RELATIVE_NAMES, LOST_CITY_NAMES, REEF_COOLDOWN_TICKS, REBOARD_REACH_CELLS,
+  walkVectorForHeading, walkVectorForDirections, roundUpToHalfDay, stepOnFoot,
+  reefVictim, crewAfterReef, emptyMapRecords, mapPieceCount, giveMapPiece, digForTreasure,
+} from './overland.mjs';
+import { TREASURE_SITES } from './treasure-sites.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
 const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
 const TICK_SECONDS = 0.125;
 const ZOOM_STEP = 4;
 const MIN_ZOOM = 16;
@@ -68,6 +74,8 @@ const zoomOutButton = document.querySelector('#zoom-out-button');
 const zoomInButton = document.querySelector('#zoom-in-button');
 const lowerSailsButton = document.querySelector('#lower-sails-button');
 const raiseSailsButton = document.querySelector('#raise-sails-button');
+const turnLeftButton = document.querySelector('[data-hold="left"]');
+const turnRightButton = document.querySelector('[data-hold="right"]');
 
 const labels = {
   captain: document.querySelector('#captain-label'), date: document.querySelector('#date-label'),
@@ -85,6 +93,10 @@ let battleAccumulator = 0;
 let previousSailingPose = null;
 let previousSailingClouds = null;
 let lastFrame = performance.now();
+// T toggles fast mode (0x33FCC): a tick waits 1 timer unit instead of 5.
+// Any voyage event clears it (0x284B6). Real-time pacing only.
+let fastTravel = false;
+const tickSeconds = () => (fastTravel ? TICK_SECONDS / 5 : TICK_SECONDS);
 let viewWidth = innerWidth;
 let viewHeight = innerHeight;
 let worldMap = null;
@@ -114,7 +126,7 @@ function resetSailingInterpolation() {
 function sailingInterpolationProgress() {
   return state.paused || state.mode !== 'sailing' || dialog.open
     ? 1
-    : clamp(accumulator / TICK_SECONDS, 0, 1);
+    : clamp(accumulator / tickSeconds(), 0, 1);
 }
 
 function interpolatedSailingPose() {
@@ -186,6 +198,10 @@ function newState(options) {
       ships: start.ships.map(shipRecord), crew: start.crew, cannon: start.cannon,
       foodFixed: start.food * 256, goods: start.goods, specialGoods: 0, partyGold: start.gold,
       personalWealth: 0, land: 0, reputation: 0, monthsAtSea: -16,
+      // On foot (0x4D28A), the ship waits at `ship` and the party re-boards
+      // only at `landing`; both are null afloat. `walk` is the persistent
+      // walk vector (0x454A8/AA). The reef cooldown counts ticks (0x367FA).
+      onFoot: false, ship: null, landing: null, walk: null, reefCooldown: 0,
       capturedCaptains: [],
       barmaidRapport: {}, barmaidInformants: [],
       favour, ranks,
@@ -197,7 +213,9 @@ function newState(options) {
     alert: 0,
     diplomacy,
     worldNews: initialDiplomacyNews(diplomacy, { month: 0, year: Number(era) }),
-    treasureMap: { pieces: 0, clueTownIndex: null },
+    // Buried treasure, lost relative and lost city (0x47186).
+    treasureMaps: emptyMapRecords(),
+    relativesRescued: 0,
     portTrade: { townIndex: null, merchantCash: null, shipwrightCash: null },
     logs,
     visit: null,
@@ -231,7 +249,11 @@ async function startGame(nextState) {
   state.player.ships = state.player.ships.map(shipRecord);
   state.diplomacy ??= newState({ era: state.era, captain: state.captain, nationality: state.nationality, difficulty: state.difficulty, ability: state.ability }).diplomacy;
   state.worldNews ??= initialDiplomacyNews(state.diplomacy, state.calendar);
-  state.treasureMap ??= { pieces: 0, clueTownIndex: null };
+  state.treasureMaps ??= migrateTreasureMap(state.treasureMap);
+  delete state.treasureMap;
+  state.relativesRescued ??= 0;
+  state.player.onFoot ??= false;
+  state.player.reefCooldown ??= 0;
   state.hunterNameRows ??= 0;
   state.mission ??= null;
   state.player.barmaidRapport ??= {};
@@ -247,7 +269,10 @@ async function startGame(nextState) {
   // A game saved in port resumes at sea as if leaving the town (0x19B9E).
   if (state.visit) placeForDeparture(state.visit.townIndex, state.visit.overland);
   state.visit = null;
-  movePlayerToNavigableCell();
+  // ASSUMED: a party saved ashore stays ashore with its ship waiting
+  // (landing_and_overland.md §4), although the voyage reset after loading
+  // (porting_guide.md §5 step 3) would clear the on-foot flag.
+  if (!state.player.onFoot) movePlayerToNavigableCell();
   // Overland and older saves may still lie beside the town's trigger cells.
   state.player.arrivalGuard = true;
   rng = createRng(state.seed);
@@ -279,11 +304,13 @@ function saveGame(showMessage = true) {
 function loadGame() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(PREVIOUS_SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY));
-    if (![1, 2, 3, 4, 5, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
+    if (![1, 2, 3, 4, 5, 6, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
     // Version 6 replaces per-town alert with the original's single counter,
     // keeping the value of the town that was nearest when the game was saved.
     if (saved.alert === undefined) saved.alert = saved.towns[saved.nearestTownIndex ?? 0]?.alert ?? 0;
     for (const town of saved.towns) delete town.alert;
+    // Version 7 adds the landing party and the three treasure-map records;
+    // startGame fills them in and converts the old single map.
     // Version 4 stores fleet ships as damage-bearing records. The old storage
     // key remains readable so existing browser voyages are not discarded.
     saved.player.ships = saved.player.ships.map(shipRecord);
@@ -493,37 +520,24 @@ function townDeparture(index) {
   return scenarios[state.era].towns[index].departure;
 }
 
-function isInlandTown(index) {
-  return !townDeparture(index);
-}
-
 // 0x19B9E: leaving by sea puts the ship on the town's departure cell with the
-// town's departure heading. ASSUMED: a landing party (provisional, K1) simply
-// rejoins the fleet where it anchored, so an overland visit leaves the ship.
+// town's departure heading. A party that came on foot leaves on the town's
+// own cell, "just outside the city gates", and its ship stays where it
+// landed; the arrival guard keeps it from re-entering at once. If the party
+// lost its ship meanwhile (0x33A50), it leaves by sea like everyone else.
 function placeForDeparture(townIndex, overland) {
-  if (overland) return;
+  if (overland && state.player.onFoot) {
+    const town = state.towns[townIndex];
+    state.player.x = town.x + .5;
+    state.player.y = town.y + .5;
+    return;
+  }
   const pose = departurePose(townDeparture(townIndex));
   if (pose) Object.assign(state.player, pose);
 }
 
 function departFromApproach() {
   placeForDeparture(state.nearestTownIndex, state.approach?.overland);
-}
-
-// ASSUMED: landing parties are not playable yet (K1). A ship lying beside the
-// coast may send a party to an inland town within this many map cells.
-const OVERLAND_MARCH_RANGE_CELLS = 16;
-
-function overlandMarchTargets() {
-  const [cellX, cellY] = playerCell();
-  const besideCoast = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
-    .some(([dx, dy]) => !isNavigable(cellX + dx + .5, cellY + dy + .5));
-  if (!besideCoast) return [];
-  return state.towns.flatMap((town, index) => {
-    if (!isInlandTown(index)) return [];
-    const distance = townDistanceCells(town, cellX, cellY);
-    return distance <= OVERLAND_MARCH_RANGE_CELLS ? [{ town, index, distance }] : [];
-  });
 }
 
 function fleetCapacity() {
@@ -609,6 +623,9 @@ function loseLastShip({ inTown, done, cause = '' }) {
     if (release.heading !== undefined) state.player.heading = release.heading;
   }
   state.player.speed = 0;
+  // 0x33A50: any landing party is gone with its ship; the new voyage starts
+  // aboard at the release point.
+  clearLandingParty();
   showDialog({
     kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
     body: inTown
@@ -799,7 +816,8 @@ function setupClouds() {
 // The original charges the days (0x1DD0E, which ends with the mutiny check)
 // before it dispatches the event that ended the voyage (0x2849C), so `next`
 // runs after any mutiny has been resolved; it receives whether one happened.
-function endVoyage(next = () => {}, { aboard = true } = {}) {
+function endVoyage(next = () => {}, { aboard = !state.player.onFoot } = {}) {
+  fastTravel = false;
   const player = state.player;
   const monthsCrossed = passDays(voyageDays(player.voyageTick ?? VOYAGE_START_TICK));
   player.voyageTick = VOYAGE_START_TICK;
@@ -867,6 +885,15 @@ function stepSimulation() {
   previousSailingClouds = state.clouds.map((cloud) => ({ ...cloud }));
   state.tick += 1;
   player.voyageTick = (player.voyageTick ?? VOYAGE_START_TICK) + 1;
+  if (player.reefCooldown > 0) player.reefCooldown -= 1;
+
+  if (player.onFoot) {
+    // On foot: no clouds' speed effects, no encounter roll and no alert
+    // build-up, no reefs; food, wind, time and arrival still run (§3).
+    if (stepPartyOnLand(previousPlayerX, previousPlayerY)) return;
+    finishTick(previousPlayerX, previousPlayerY);
+    return;
+  }
 
   if (acceptsRudderInput(player.voyageTick)) {
     if (input.left) player.heading = (player.heading - 16) & 0xff;
@@ -889,19 +916,29 @@ function stepSimulation() {
   const angle = player.heading / 256 * Math.PI * 2;
   const nextX = clamp(player.x + Math.sin(angle) * player.speed / TICKS_PER_DAY, 1, WORLD.width - 1);
   const nextY = clamp(player.y - Math.cos(angle) * player.speed / TICKS_PER_DAY, 1, WORLD.height - 1);
-  if (isNavigable(nextX, nextY)) {
-    player.x = nextX;
-    player.y = nextY;
-  } else if (isNavigable(nextX, player.y)) {
-    player.x = nextX;
-  } else if (isNavigable(player.x, nextY)) {
-    player.y = nextY;
-  }
   if (checkTownArrival(nextX, nextY, previousPlayerX, previousPlayerY)) return;
+  // The land/sea switch tests the single map pixel under the new position;
+  // only class 2 is land, so shallows are sailed over (porting_guide.md §6).
+  if (!isNavigable(nextX, nextY)) {
+    beginLanding(nextX, nextY, previousPlayerX, previousPlayerY);
+    return;
+  }
+  player.x = nextX;
+  player.y = nextY;
+  finishTick(previousPlayerX, previousPlayerY);
+}
 
+// Steps 12-16 of the tick, shared afloat and on foot.
+function finishTick(previousPlayerX, previousPlayerY) {
+  const player = state.player;
   if (player.voyageTick % TICKS_PER_WIND_SHIFT === 0) player.wind = shiftWind(player.wind, rng);
   if (isHalfDayTick(player.voyageTick)) halfDayUpdate();
   if (isDailyTick(player.voyageTick)) dailyUpdate();
+  // ASSUMED: the reef (event 3) is assigned last in the original and so wins
+  // over an encounter or food event in the same tick; here it waits for the
+  // next tick when one of those has already opened, as the fleet is still on
+  // the shallows then.
+  if (!state.paused && state.mode === 'sailing' && checkReef()) return;
   state.clouds = driftClouds({
     clouds: state.clouds, playerX: player.x, playerY: player.y,
     playerDeltaX: player.x - previousPlayerX, playerDeltaY: player.y - previousPlayerY,
@@ -936,13 +973,16 @@ function halfDayUpdate() {
   const distance = updateNearestTown();
   const town = nearestTown();
   state.alert = alertAfterNearestTownCheck(state.alert, previousTownIndex, state.nearestTownIndex);
+  // On foot the nearest town still updates, but there is no encounter roll
+  // and approaching overland does not raise the alert (0x23E00).
+  if (state.player.onFoot) return;
   const result = encounterRoll(distance, state.alert, rng);
   state.alert = result.alert;
   if (result.sighted) openSighting(town, distance);
 }
 
 // The daily check eats food; the calendar moves only when the voyage ends.
-function dailyUpdate({ marching = false } = {}) {
+function dailyUpdate() {
   const player = state.player;
   player.foodFixed = consumeDailyFood(player.foodFixed, player.crew);
   const remaining = foodDays(player.foodFixed, player.crew);
@@ -955,11 +995,10 @@ function dailyUpdate({ marching = false } = {}) {
     player.foodFixed = starving.foodFixed;
     addLog(`Out of food: ${starving.deserters} men deserted with ${starving.goldLost} gold; the rest foraged 5 tons of food.`);
   }
-  if (marching) return;
   // Events 2 (food) and 5 (too few men for the fleet) end the voyage. After
   // event 5 the next voyage starts with the fleet check; an open encounter
-  // runs it on resuming.
-  const undermanned = !state.paused && fleetIsUndermanned({ crew: player.crew, shipCount: player.ships.length });
+  // runs it on resuming. Food runs on foot too; the crew check runs aboard.
+  const undermanned = !state.paused && !player.onFoot && fleetIsUndermanned({ crew: player.crew, shipCount: player.ships.length });
   if (foodEvent || undermanned) endVoyage((mutinied) => { if (undermanned || mutinied) resumeSailing(); });
 }
 
@@ -1627,7 +1666,7 @@ function resumeAfterEncounter() {
   resumeSailing();
 }
 
-function approachTown({ overland = false } = {}) {
+function approachTown({ overland = Boolean(state.player.onFoot) } = {}) {
   const town = nearestTown();
   state.paused = true;
   state.approach = { overland };
@@ -1648,36 +1687,194 @@ function approachTown({ overland = false } = {}) {
   });
 }
 
-function showOverlandMarch() {
-  const targets = overlandMarchTargets();
-  if (!state || state.mode !== 'sailing' || !targets.length) return;
+// Landing (porting_guide.md §8): sailing onto a land pixel stops the ship
+// where it lay at the start of the tick and puts a party ashore on the
+// pixel it touched. The tick rounds up to the next half day. The prompt is
+// "Disembark (Y/N)"; the voyage goes on either way.
+function beginLanding(landX, landY, shipX, shipY) {
+  const player = state.player;
+  player.voyageTick = roundUpToHalfDay(player.voyageTick);
+  Object.assign(player, {
+    x: landX, y: landY, onFoot: true,
+    ship: { x: shipX, y: shipY, heading: player.heading },
+    landing: { x: landX, y: landY },
+    // set_heading (0x1B565) also set the walk vector: the party walks on
+    // inland the way the ship sailed.
+    walk: walkVectorForHeading(player.heading),
+  });
   state.paused = true;
   showDialog({
-    kicker: 'Landing party', title: 'March inland',
-    body: '<p>Landing and overland travel are not playable yet. Choose a provisional outcome: the party marches two map cells a day while the fleet waits at anchor.</p>',
+    kicker: 'Landfall', title: 'Disembark?',
+    body: '<p>Your ship touches the shore and stops. A landing party waits beside it.</p><p>On land the party walks two map cells a day in any terrain, and re-boards only by walking back into the water where it landed. Press <kbd>S</kbd> or Dig to search for treasure.</p>',
     actions: [
-      ...targets.map(({ town, index, distance }) => {
-        const days = Math.ceil(distance / 2);
-        return { label: `March to ${town.name} (${days} day${days === 1 ? '' : 's'})`, run: () => marchOverland(index, days) };
-      }),
-      { label: 'Stay aboard', secondary: true, run: resumeSailing },
+      { label: 'Yes, go ashore (Y)', key: 'y', run: () => {
+        addLog('A landing party goes ashore; the ship waits offshore.');
+        continueVoyage();
+      } },
+      // 0x315D answered N: the ship is put back and turned round; on_foot
+      // stays set, so the next tick walks the party back into the water at
+      // the landing spot and re-boards it (rounding the time up again).
+      { label: 'No, stay aboard (N)', key: 'n', secondary: true, run: () => {
+        player.x = shipX;
+        player.y = shipY;
+        player.heading = (player.heading + 128) & 0xff;
+        player.walk = walkVectorForHeading(player.heading);
+        continueVoyage();
+      } },
     ],
   });
 }
 
-function marchOverland(townIndex, days) {
-  // ASSUMED: until walking on land exists, each provisional march day is 64
-  // voyage ticks that eat food, and arriving ends the voyage as usual.
-  for (let day = 0; day < days; day += 1) {
-    state.player.voyageTick = (state.player.voyageTick ?? VOYAGE_START_TICK) + TICKS_PER_DAY;
-    dailyUpdate({ marching: true });
+// Resume the running voyage after a prompt that is not a voyage event.
+function continueVoyage() {
+  state.paused = false;
+  resetSailingInterpolation();
+  updateInterface();
+}
+
+function clearLandingParty() {
+  Object.assign(state.player, { onFoot: false, ship: null, landing: null, walk: null });
+}
+
+// The on-foot branch of the tick (0x235A3, porting_guide.md §5 and §8).
+// Returns true when the tick ended in an event.
+function stepPartyOnLand(previousX, previousY) {
+  const player = state.player;
+  const result = stepOnFoot({
+    party: { x: player.x, y: player.y }, walk: player.walk, ship: player.ship, landing: player.landing,
+    isLand: (x, y) => !isNavigable(x, y),
+    bounds: { minX: 1, minY: 1, maxX: WORLD.width - 1, maxY: WORLD.height - 1 },
+  });
+  player.dirBits = result.dirBits;
+  if (checkTownArrival(result.toX, result.toY, previousX, previousY)) return true;
+  if (result.outcome === 'walk') {
+    player.x = result.x;
+    player.y = result.y;
+    player.blockedNoticeShown = false;
+  } else if (result.outcome === 'blocked') {
+    // Pushing against the water costs half a day a tick; food, wind and
+    // encounters stand still until the party turns (landing_and_overland.md §3).
+    player.voyageTick = roundUpToHalfDay(player.voyageTick);
+    if (!player.blockedNoticeShown) addLog('Water blocks the party; time slips by until it turns inland or walks back to its boat.');
+    player.blockedNoticeShown = true;
+  } else if (result.outcome === 'board') {
+    player.voyageTick = roundUpToHalfDay(player.voyageTick);
+    player.x = result.x;
+    player.y = result.y;
+    player.heading = result.heading;
+    player.speed = 0;
+    player.blockedNoticeShown = false;
+    clearLandingParty();
+    resetSailingInterpolation();
+    addLog('The landing party is back aboard.');
   }
-  // On foot (0x47ACA set), so the month-end mutiny check does not run.
-  endVoyage(() => {
-    state.nearestTownIndex = townIndex;
-    addLog(`The landing party marches to ${state.towns[townIndex].name}.`);
-    approachTown({ overland: true });
-  }, { aboard: false });
+  return false;
+}
+
+const COMPASS_POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+
+function boatBearing() {
+  const { landing } = state.player;
+  const dx = landing.x - state.player.x;
+  const dy = landing.y - state.player.y;
+  const distance = Math.round(Math.hypot(dx, dy));
+  if (distance === 0) return 'Here';
+  const point = COMPASS_POINTS[Math.round((Math.atan2(dx, -dy) / (Math.PI * 2)) * 8 + 8) % 8];
+  return `${distance} ${point}`;
+}
+
+// Reef (0x2405D, event 3): aboard over a shallow pixel, a fleet with any ship
+// bigger than a sloop loses the last such ship once per 100 ticks.
+function checkReef() {
+  const player = state.player;
+  const victim = reefVictim({
+    onFoot: player.onFoot,
+    shallow: worldMap ? pixelClassAt(worldMap, player.x, player.y) === PIXEL.SHALLOW : false,
+    cooldown: player.reefCooldown,
+    ships: player.ships, shipStats: SHIPS,
+  });
+  if (victim < 0) return false;
+  player.reefCooldown = REEF_COOLDOWN_TICKS;
+  endVoyage(() => strikeReef(victim));
+  return true;
+}
+
+const REEF_TEXT = '<p>With a jarring crash, one of your ships grinds onto a shallow reef and rapidly fills with water!</p>';
+
+function strikeReef(slot) {
+  state.paused = true;
+  const wrecked = state.player.ships[slot];
+  if (state.player.ships.length === 1) {
+    addLog(`The ${shipName(wrecked)} was wrecked on a reef.`);
+    loseShip(slot, { cause: REEF_TEXT, done: () => resumeSailing() });
+    return;
+  }
+  loseShip(slot, { done: (lost) => {
+    const before = state.player.crew;
+    state.player.crew = crewAfterReef(state.player.crew, state.player.ships, SHIPS);
+    const drowned = before - state.player.crew;
+    addLog(`The ${shipName(lost)} sank on a reef${drowned ? ` with ${drowned} men` : ''}.`);
+    showDialog({
+      kicker: 'Shallows', title: `The ${shipName(lost)} is lost`,
+      body: `${REEF_TEXT}<p>Her share of the cargo goes down with her.${drowned ? ` ${drowned} men who cannot fit aboard the remaining ships are lost.` : ''}</p><p>Pinnaces and sloops cross shallows safely; bigger ships risk the reefs.</p>`,
+      actions: [{ label: 'Continue', run: resumeSailing }],
+    });
+  } });
+}
+
+// Search (S on foot, event 7 → 0xA801). The confirmation is the port's: the
+// original digs at the key press. The search ends the voyage, which costs
+// tick / 64 + 1 days whatever the outcome.
+function showDigPrompt() {
+  if (!state || state.mode !== 'sailing' || !state.player.onFoot || dialog.open) return;
+  state.paused = true;
+  const actions = [{ label: 'Dig here (S)', key: 's', run: () => endVoyage(resolveDig) }];
+  if (state.treasureMaps.some(({ pieces }) => pieces)) {
+    actions.push({ label: 'Study the treasure maps (M)', key: 'm', run: () => showTreasureMaps(showDigPrompt) });
+  }
+  actions.push({ label: 'Keep walking', secondary: true, run: continueVoyage });
+  const [cellX, cellY] = playerCell();
+  showDialog({
+    kicker: 'Landing party', title: 'Search for treasure?',
+    body: `<p>The party stands near ${nearestTown().name}, at map cell ${cellX}, ${cellY}. A search ends the day's march, and a cache must lie within a cell of where you dig.</p>`,
+    actions,
+  });
+}
+
+function resolveDig() {
+  const [cellX, cellY] = playerCell();
+  const result = digForTreasure({
+    records: state.treasureMaps, cellX, cellY, rng,
+    relativesRescued: state.relativesRescued,
+    giveLostCityPiece: (records, rescued) => giveTreasureMapPiece(records, MAP_KIND.LOST_CITY, state.nearestTownIndex, rescued),
+  });
+  state.treasureMaps = result.records;
+  state.relativesRescued = result.relativesRescued;
+  state.player.partyGold += result.gold;
+  const paragraphs = result.finds.map((find) => {
+    const near = state.towns[find.townIndex]?.name ?? 'the coast';
+    if (find.kind === MAP_KIND.BURIED) {
+      addLog(`Found buried treasure near ${near}: ${find.gold.toLocaleString()} gold.`);
+      return `<p>Your digging uncovers a chest of solid oak! Opening the box, you find ${find.gold.toLocaleString()} gleaming pieces of gold and silver.</p>`;
+    }
+    if (find.kind === MAP_KIND.RELATIVE) {
+      // K7 hook: villains hand out the relative's map pieces and are wiped by
+      // this rescue (lost_relatives.md §7). Until the family quest exists no
+      // such map can be held, so this branch cannot run yet.
+      const relative = RELATIVE_NAMES[find.relative] ?? 'relative';
+      addLog(`Rescued my ${relative}.`);
+      return `<p>Your ${relative} is rescued! After years of searching, you are reunited at last. "I have a mysterious and exciting tale to tell," your ${relative} exclaims.</p>`;
+    }
+    addLog('Found great lost treasure!');
+    return `<p>You have found the lost ${LOST_CITY_NAMES[find.city] ?? ''} treasure! Riches beyond your wildest dreams are laid before you! A hundred thousand gold pieces are collected and carried aboard your ship.</p>`;
+  });
+  if (!paragraphs.length) addLog(`A search at cell ${cellX}, ${cellY} found nothing.`);
+  state.paused = true;
+  showDialog({
+    kicker: 'The search', title: paragraphs.length ? 'Treasure!' : 'Nothing here',
+    body: paragraphs.length ? paragraphs.join('') : '<p>After three days of fruitless digging, the search is called off. There is no treasure here.</p>',
+    actions: [{ label: 'Continue', run: resumeSailing }],
+  });
 }
 
 function attackTown(town) {
@@ -2166,7 +2363,7 @@ function completeGovernorPurchase(town, terms) {
 function showTavern() {
   const town = state.towns[state.visit.townIndex];
   if (!state.visit.tavernEncounters) {
-    state.visit.tavernEncounters = tavernSpecialEncounters({ mapPieces: state.treasureMap.pieces, rng })
+    state.visit.tavernEncounters = tavernSpecialEncounters({ mapPieces: mapPieceCount(state.treasureMaps[MAP_KIND.BURIED]), rng })
       .map((encounter) => ({
         ...encounter,
         resolved: false,
@@ -2176,7 +2373,7 @@ function showTavern() {
       }));
   }
   const encounters = state.visit.tavernEncounters.filter(({ resolved }) => !resolved);
-  const map = state.treasureMap;
+  const mapPieces = mapPieceCount(state.treasureMaps[MAP_KIND.BURIED]);
   const actions = [];
   if (!state.visit.recruited) actions.push({ label: 'Speak with unemployed sailors', run: showTavernRecruits });
   actions.push(
@@ -2189,7 +2386,7 @@ function showTavern() {
       run: () => showTavernSpecialEncounter(encounter),
     });
   }
-  if (map.pieces >= 1) actions.push({ label: 'Study the treasure map', run: showTreasureMap });
+  if (state.treasureMaps.some(({ pieces }) => pieces)) actions.push({ label: 'Study the treasure maps', run: () => showTreasureMaps(showTavern) });
   actions.push({ label: 'Return to town', secondary: true, run: showTownMenu });
 
   const visitor = encounters.length
@@ -2200,7 +2397,7 @@ function showTavern() {
   showDialog({
     kicker: `The tavern · ${town.name}`,
     title: 'Rumours, recruits, and strong drink',
-    body: `<p>${visitor}</p><dl><dt>Sailors</dt><dd>${state.visit.recruited ? 'Already approached' : 'Available'}</dd><dt>Treasure map</dt><dd>${map.pieces}/4 pieces</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd></dl>`,
+    body: `<p>${visitor}</p><dl><dt>Sailors</dt><dd>${state.visit.recruited ? 'Already approached' : 'Available'}</dd><dt>Treasure map</dt><dd>${mapPieces}/4 pieces</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd></dl>`,
     actions,
   });
 }
@@ -2305,7 +2502,7 @@ function showTavernSpecialEncounter(encounter) {
   }
   showDialog({
     kicker: 'A map seller', title: 'A scrap of an old treasure map',
-    body: `<p>The seller asks ${encounter.price} gold pieces for one fragment. Four pieces reveal the cache.</p>`,
+    body: `<p>The seller asks ${encounter.price} gold pieces for part of an old treasure map. Each piece shows more of the land around the cache.</p>`,
     actions: [
       { label: `Buy it · ${encounter.price} gold`, run: () => buyTreasureMapPiece(encounter) },
       { label: 'Decline', secondary: true, run: () => declineTavernEncounter(encounter) },
@@ -2343,43 +2540,117 @@ function buyTreasureMapPiece(encounter) {
   }
   state.player.partyGold -= encounter.price;
   encounter.resolved = true;
-  const map = state.treasureMap;
-  if (map.clueTownIndex === null) {
-    map.clueTownIndex = (state.visit.townIndex + 1 + rng.int(state.towns.length - 1)) % state.towns.length;
+  state.treasureMaps = giveTreasureMapPiece(state.treasureMaps, MAP_KIND.BURIED, state.visit.townIndex);
+  const map = state.treasureMaps[MAP_KIND.BURIED];
+  addLog(`Bought treasure-map piece ${mapPieceCount(map)}/4 near ${state.towns[map.townIndex].name}.`);
+  showDialog({
+    kicker: 'The treasure map', title: map.pieces === COMPLETE_MAP ? 'The map is complete' : `Piece ${mapPieceCount(map)} of 4`,
+    body: treasureMapBody(MAP_KIND.BURIED),
+    actions: [{ label: 'Return to the tavern', run: showTavern }],
+  });
+}
+
+// give_piece (0x1F08A) with the site's nearest town from the trigger cells.
+function giveTreasureMapPiece(records, kind, currentTownIndex, relativesRescued = state.relativesRescued) {
+  return giveMapPiece({
+    records, kind, sites: TREASURE_SITES,
+    nearestTown: (x, y) => nearestTriggerTown(townTriggers(), x, y),
+    currentTownIndex, difficulty: state.difficulty, relativesRescued, rng,
+  });
+}
+
+// Saves before version 7 held one map with a piece count and a random clue
+// town. ASSUMED: the converted map keeps the piece count and, when one
+// exists, takes a dig site whose nearest town is the old clue town.
+function migrateTreasureMap(old) {
+  let records = emptyMapRecords();
+  const count = Math.min(4, old?.pieces ?? 0);
+  if (count === 0) return records;
+  const clueSites = TREASURE_SITES.filter(([x, y]) => nearestTriggerTown(townTriggers(), x, y) === old.clueTownIndex);
+  const sites = clueSites.length ? clueSites : TREASURE_SITES;
+  records = giveMapPiece({
+    records, kind: MAP_KIND.BURIED, sites,
+    nearestTown: (x, y) => nearestTriggerTown(townTriggers(), x, y),
+    currentTownIndex: null, difficulty: 1, rng: createRng(state.seed ^ 0x3a9),
+  });
+  records[MAP_KIND.BURIED].pieces = (1 << count) - 1;
+  return records;
+}
+
+const TREASURE_MAP_TITLES = ['Pirate treasure map', 'Map to lost relative', 'Map to lost treasure'];
+
+function treasureMapTitle(kind) {
+  const record = state.treasureMaps[kind];
+  if (kind === MAP_KIND.RELATIVE) return `Map to lost ${RELATIVE_NAMES[state.relativesRescued] ?? 'relative'}`;
+  if (kind === MAP_KIND.LOST_CITY) return `Map to lost ${LOST_CITY_NAMES[record.city] ?? ''} treasure`;
+  return TREASURE_MAP_TITLES[kind];
+}
+
+// The map view (0x29ECE) is render-only and the port draws its own: the
+// terrain classes around the site, one quarter per piece. ASSUMED: piece
+// bits 1, 2, 4, 8 are the NW, NE, SW and SE quarters, and the site lies
+// where they meet.
+const TREASURE_MAP_HALF_CELLS = 10;
+
+function treasureMapImage(record) {
+  const size = TREASURE_MAP_HALF_CELLS * 2 * 16;
+  const image = document.createElement('canvas');
+  image.width = size;
+  image.height = size;
+  const context = image.getContext('2d');
+  const pixels = context.createImageData(size, size);
+  const [siteX, siteY] = record.site;
+  const left = siteX + .5 - TREASURE_MAP_HALF_CELLS;
+  const top = siteY + .5 - TREASURE_MAP_HALF_CELLS;
+  const colours = { [PIXEL.WATER]: [118, 150, 150], [PIXEL.SHALLOW]: [168, 190, 172], [PIXEL.LAND]: [196, 160, 104] };
+  for (let py = 0; py < size; py += 1) {
+    for (let px = 0; px < size; px += 1) {
+      const quarter = (px < size / 2 ? 0 : 1) + (py < size / 2 ? 0 : 2);
+      const owned = record.pieces & (1 << quarter);
+      const offset = (py * size + px) * 4;
+      const [r, g, b] = owned
+        ? colours[pixelClassAt(worldMap, left + (px + .5) / 16, top + (py + .5) / 16)]
+        : ((px >> 3) + (py >> 3)) & 1 ? [92, 72, 50] : [80, 62, 44];
+      pixels.data.set([r, g, b, 255], offset);
+    }
   }
-  map.pieces = state.difficulty === 0 ? 4 : Math.min(4, map.pieces + 1);
-  const clueTown = state.towns[map.clueTownIndex];
-  addLog(`Bought treasure-map piece ${map.pieces}/4 near ${clueTown.name}.`);
-  showDialog({
-    kicker: 'The treasure map', title: map.pieces >= 4 ? 'The route is complete' : `Fragment ${map.pieces} of 4`,
-    body: `<p>The markings point toward the countryside somewhere near ${clueTown.name}.</p>`,
-    actions: [{ label: 'Return to the tavern', run: showTavern }],
-  });
+  context.putImageData(pixels, 0, 0);
+  context.strokeStyle = '#3d2410';
+  context.lineWidth = 2;
+  context.strokeRect(1, 1, size - 2, size - 2);
+  if (record.pieces) {
+    // The cross marks the dig site; a cache lies within one cell of it.
+    const centre = size / 2;
+    context.strokeStyle = '#8b1a10';
+    context.lineWidth = 4;
+    context.beginPath();
+    context.moveTo(centre - 9, centre - 9); context.lineTo(centre + 9, centre + 9);
+    context.moveTo(centre + 9, centre - 9); context.lineTo(centre - 9, centre + 9);
+    context.stroke();
+  }
+  return image.toDataURL();
 }
 
-function showTreasureMap() {
-  const clueTown = state.towns[state.treasureMap.clueTownIndex];
-  showDialog({
-    kicker: state.treasureMap.pieces >= 4 ? 'Completed treasure map' : 'Partial treasure map', title: `Somewhere near ${clueTown.name}`,
-    body: '<p>The original permits a search with even one fragment. Overland searching is not yet simulated, so choose whether to resolve the expedition provisionally now or keep collecting pieces.</p>',
-    actions: [
-      { label: 'Find the cache · provisional', run: resolveTreasureMap },
-      { label: 'Keep the map', secondary: true, run: showTavern },
-    ],
-  });
+function treasureMapBody(kind) {
+  const record = state.treasureMaps[kind];
+  const town = state.towns[record.townIndex];
+  const count = mapPieceCount(record);
+  const missing = ['north-west', 'north-east', 'south-west', 'south-east'].filter((_, bit) => !(record.pieces & (1 << bit)));
+  const alt = `${treasureMapTitle(kind)}: ${count} of 4 pieces, showing the land around a cross marked somewhere near ${town.name}${missing.length ? `; the ${missing.join(', ')} quarter${missing.length === 1 ? ' is' : 's are'} missing` : ''}.`;
+  return `<figure class="treasure-map"><img src="${treasureMapImage(record)}" alt="${alt}" width="320" height="320"><figcaption>Somewhere near ${town.name}</figcaption></figure><p>Land the party, walk to the cross and dig (<kbd>S</kbd>). Any piece is enough to dig; more pieces only show more of the land around the cache.</p>`;
 }
 
-function resolveTreasureMap() {
-  const clueTown = state.towns[state.treasureMap.clueTownIndex];
-  const gold = (5 + rng.int(9)) * 1000;
-  state.player.partyGold += gold;
-  state.treasureMap = { pieces: 0, clueTownIndex: null };
-  addLog(`Found a provisional treasure cache near ${clueTown.name}: ${gold} gold.`);
-  showDialog({
-    kicker: 'Provisional treasure outcome', title: `${gold.toLocaleString()} gold recovered`,
-    body: '<p>Your party follows the completed clues, recovers the cache, and returns safely to port.</p>',
-    actions: [{ label: 'Return to the tavern', run: showTavern }],
-  });
+// The Captain's Cabin "Treasure maps" item (0x29ECE for each record), offered
+// from the tavern, the search prompt and the M key.
+function showTreasureMaps(back, index = 0) {
+  const kinds = [MAP_KIND.BURIED, MAP_KIND.RELATIVE, MAP_KIND.LOST_CITY].filter((kind) => state.treasureMaps[kind].pieces);
+  if (!kinds.length) { back(); return; }
+  const kind = kinds[index % kinds.length];
+  const actions = [];
+  if (kinds.length > 1) actions.push({ label: 'Next map', run: () => showTreasureMaps(back, index + 1) });
+  actions.push({ label: 'Done', secondary: true, run: back });
+  state.paused = true;
+  showDialog({ kicker: 'Treasure maps', title: treasureMapTitle(kind), body: treasureMapBody(kind), actions });
 }
 
 function showShipwright() {
@@ -2634,8 +2905,13 @@ function showNotice(title, body) {
   showDialog({ kicker: 'Captain’s log', title, body: `<p>${body}</p>`, actions: [{ label: 'Continue', run: resumeSailing }] });
 }
 
+// An action's optional `key` is a one-letter keyboard shortcut, such as the
+// original's Y/N for "Disembark".
+let dialogShortcuts = new Map();
+
 function showDialog({ kicker, title, body, actions }) {
   if (dialog.open) dialog.close();
+  dialogShortcuts = new Map();
   dialogKicker.textContent = kicker;
   dialogTitle.textContent = title;
   dialogBody.innerHTML = body;
@@ -2646,6 +2922,7 @@ function showDialog({ kicker, title, body, actions }) {
     button.textContent = action.label;
     if (action.secondary) button.classList.add('secondary');
     button.addEventListener('click', () => { dialog.close(); action.run(); }, { once: true });
+    if (action.key) dialogShortcuts.set(action.key, button);
     dialogActions.append(button);
   });
   dialog.showModal();
@@ -2699,13 +2976,28 @@ function prosperity(growth) {
   return ['struggling', 'surviving', 'prospering', 'wealthy'][prosperityLevel(growth)];
 }
 
+function setControl(button, icon, label, ariaLabel) {
+  if (button.dataset.label === label) return;
+  button.dataset.label = label;
+  button.firstChild.textContent = icon;
+  button.querySelector('span').textContent = label;
+  button.setAttribute('aria-label', ariaLabel);
+}
+
 function updateInterface() {
   if (!state) return;
   const player = state.player;
   const inBattle = state.mode === 'battle' && state.battle;
-  dockButton.querySelector('span').textContent = inBattle ? 'Fire' : 'Land';
-  dockButton.setAttribute('aria-label', inBattle ? 'Fire loaded broadside' : 'Land a party to march inland');
-  dockButton.firstChild.textContent = inBattle ? '● ' : '⚓ ';
+  const onFoot = !inBattle && player.onFoot;
+  if (inBattle) setControl(dockButton, '● ', 'Fire', 'Fire loaded broadside');
+  else if (onFoot) setControl(dockButton, '⛏ ', 'Dig', 'Search for treasure here');
+  else setControl(dockButton, '✉ ', 'Maps', 'Study your treasure maps');
+  // On foot the four steering buttons walk the party (0x1B210).
+  setControl(turnLeftButton, onFoot ? '← ' : '↶ ', onFoot ? 'West' : 'Port', onFoot ? 'Walk west' : 'Turn to port');
+  setControl(turnRightButton, onFoot ? '→ ' : '↷ ', onFoot ? 'East' : 'Starboard', onFoot ? 'Walk east' : 'Turn to starboard');
+  setControl(lowerSailsButton, '↓ ', onFoot ? 'South' : 'Sails', onFoot ? 'Walk south' : 'Lower sails');
+  setControl(raiseSailsButton, '↑ ', onFoot ? 'North' : 'Sails', onFoot ? 'Walk north' : 'Raise sails');
+  controls.setAttribute('aria-label', onFoot ? 'Landing party controls' : 'Sailing controls');
   zoomOutButton.disabled = Boolean(inBattle);
   zoomInButton.disabled = Boolean(inBattle);
   if (inBattle) {
@@ -2728,14 +3020,15 @@ function updateInterface() {
   const distance = nearestTownDistance();
   labels.captain.textContent = `Captain ${state.captain} · ${state.nationality}`;
   labels.date.textContent = formatDate(state.calendar);
-  labels.speed.textContent = `${player.speed.toFixed(1)} cells/day`;
+  labels.speed.textContent = onFoot ? `On foot · 2 cells/day${fastTravel ? ' · fast' : ''}` : `${player.speed.toFixed(1)} cells/day${fastTravel ? ' · fast' : ''}`;
   labels.wind.textContent = WIND_NAMES[(player.wind >> 4) & 15];
-  labels.sails.textContent = { furled: 'Closed', battle: 'Low', full: 'High' }[player.sails];
+  labels.sails.previousElementSibling.textContent = onFoot ? 'Boat' : 'Sails';
+  labels.sails.textContent = onFoot ? boatBearing() : { furled: 'Closed', battle: 'Low', full: 'High' }[player.sails];
   labels.food.textContent = `${foodDays(player.foodFixed, player.crew)} days`;
   labels.crew.textContent = player.crew.toLocaleString();
   labels.gold.textContent = player.partyGold.toLocaleString();
   labels.nearest.textContent = `${town.name} · ${distance}`;
-  dockButton.disabled = state.paused || overlandMarchTargets().length === 0;
+  dockButton.disabled = state.paused || state.mode !== 'sailing' || (!onFoot && !state.treasureMaps.some(({ pieces }) => pieces));
   zoomOutButton.disabled = false;
   zoomInButton.disabled = false;
 }
@@ -2777,7 +3070,13 @@ function render() {
   }
   drawClouds(zoom, playerPose, clouds);
   drawTowns(zoom);
-  drawShip(zoom, playerPose);
+  if (state.player.onFoot && state.player.ship) {
+    drawShip(zoom, { ...state.player.ship, sails: 'furled' });
+    drawLandingSpot(zoom, state.player.landing);
+    drawParty(zoom, playerPose);
+  } else {
+    drawShip(zoom, playerPose);
+  }
   ctx.restore();
   drawMinimap(width, height, camera, zoom, playerPose);
   if (state.paused && state.mode === 'sailing' && !dialog.open) drawPaused(width, height, 'Voyage paused');
@@ -2914,6 +3213,42 @@ function drawShip(zoom, player) {
   ctx.restore();
 }
 
+// The rowboat marks the landing spot: walking into the water within reach
+// of it (dashed ring, REBOARD_REACH_CELLS) re-boards the party.
+function drawLandingSpot(zoom, landing) {
+  ctx.save();
+  ctx.translate(landing.x, landing.y);
+  ctx.strokeStyle = 'rgba(243,229,197,.75)';
+  ctx.lineWidth = 1.5 / zoom;
+  ctx.setLineDash([3 / zoom, 3 / zoom]);
+  ctx.beginPath(); ctx.arc(0, 0, REBOARD_REACH_CELLS, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.scale(1.6 / zoom, 1.6 / zoom);
+  ctx.fillStyle = '#6b3f22'; ctx.strokeStyle = '#29170e'; ctx.lineWidth = .8;
+  ctx.beginPath(); ctx.moveTo(-4, -1.2); ctx.lineTo(4, -1.2); ctx.lineTo(2.6, 1.8); ctx.lineTo(-2.6, 1.8); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+// Original placeholder for the landing party: two walkers and a pennant in
+// the captain's colours, bobbing with the walk cycle ((tick >> 2) & 3).
+function drawParty(zoom, pose) {
+  const step = (state.tick >> 2) & 3;
+  ctx.save();
+  ctx.translate(pose.x, pose.y);
+  ctx.scale(2.3 / zoom, 2.3 / zoom);
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(0, 3.6, 4.6, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+  for (const [offsetX, phase] of [[-1.8, 0], [1.8, 2]]) {
+    const bob = ((step + phase) & 3) < 2 ? 0 : -.5;
+    ctx.fillStyle = '#5c321b'; ctx.fillRect(offsetX - 1, -1.5 + bob, 2, 3.6);
+    ctx.fillStyle = '#e2c49a'; ctx.beginPath(); ctx.arc(offsetX, -2.7 + bob, 1.1, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.strokeStyle = '#2b2116'; ctx.lineWidth = .6;
+  ctx.beginPath(); ctx.moveTo(3.4, 3); ctx.lineTo(3.4, -6); ctx.stroke();
+  ctx.fillStyle = NATIONS[state.nationality]?.color ?? NATIONS.pirate.color;
+  ctx.beginPath(); ctx.moveTo(3.5, -6); ctx.lineTo(6.6, -5); ctx.lineTo(3.5, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
 function drawShipSails(sailState) {
   if (sailState === 'furled') {
     ctx.strokeStyle = '#d5c18e'; ctx.lineWidth = 1;
@@ -2965,13 +3300,21 @@ continueButton.addEventListener('click', async () => { const saved = loadGame();
 pauseButton.addEventListener('click', togglePause);
 dockButton.addEventListener('click', () => {
   if (state?.mode === 'battle') input.firePressed = true;
-  else showOverlandMarch();
+  else if (state?.player.onFoot) showDigPrompt();
+  else openTreasureMapsAtSea();
 });
 zoomOutButton.addEventListener('click', () => changeZoom(-ZOOM_STEP));
 zoomInButton.addEventListener('click', () => changeZoom(ZOOM_STEP));
 lowerSailsButton.addEventListener('click', () => changeSails(-1));
 raiseSailsButton.addEventListener('click', () => changeSails(1));
 dialog.addEventListener('cancel', (event) => event.preventDefault());
+dialog.addEventListener('keydown', (event) => {
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+  const button = dialogShortcuts.get(event.key.toLowerCase());
+  if (!button) return;
+  event.preventDefault();
+  button.click();
+});
 
 function changeZoom(delta) {
   if (state?.mode === 'battle') return;
@@ -2986,6 +3329,10 @@ function changeSails(delta) {
     return;
   }
   if (state.mode !== 'sailing') return;
+  if (state.player.onFoot) {
+    setWalk(delta > 0 ? { north: true } : { south: true });
+    return;
+  }
   const states = ['furled', 'battle', 'full'];
   const next = clamp(states.indexOf(state.player.sails) + delta, 0, states.length - 1);
   if (states[next] === state.player.sails) return;
@@ -2993,10 +3340,45 @@ function changeSails(delta) {
   addLog({ furled: 'The sails are closed.', battle: 'The sails are lowered.', full: 'The sails are raised high.' }[state.player.sails]);
 }
 
+// On foot a direction key replaces the walk vector, which persists until the
+// next one: the party keeps walking (0x1B210 has no stop key). Two held
+// arrows make a diagonal, like the original's diagonal keys.
+const walkKeys = { west: false, east: false, north: false, south: false };
+const WALK_KEYS = {
+  ArrowLeft: ['west'], ArrowRight: ['east'], ArrowUp: ['north'], ArrowDown: ['south'],
+  Home: ['north', 'west'], PageUp: ['north', 'east'], End: ['south', 'west'], PageDown: ['south', 'east'],
+};
+
+function onFootControls() {
+  return state?.mode === 'sailing' && state.player.onFoot && !state.paused;
+}
+
+function setWalk(directions) {
+  if (!onFootControls()) return;
+  const vector = walkVectorForDirections(directions);
+  if (vector) state.player.walk = vector;
+}
+
+function openTreasureMapsAtSea() {
+  if (state?.mode !== 'sailing' || state.paused || dialog.open || !state.treasureMaps.some(({ pieces }) => pieces)) return;
+  showTreasureMaps(continueVoyage);
+}
+
 for (const button of document.querySelectorAll('[data-hold]')) {
   const direction = button.dataset.hold;
-  const press = (event) => { event.preventDefault(); input[direction] = true; };
-  const release = (event) => { event.preventDefault(); input[direction] = false; };
+  const walkDirection = direction === 'left' ? 'west' : 'east';
+  const press = (event) => {
+    event.preventDefault();
+    if (state?.player.onFoot) {
+      walkKeys[walkDirection] = true;
+      setWalk(walkKeys);
+    } else input[direction] = true;
+  };
+  const release = (event) => {
+    event.preventDefault();
+    walkKeys[walkDirection] = false;
+    input[direction] = false;
+  };
   button.addEventListener('pointerdown', press);
   button.addEventListener('pointerup', release);
   button.addEventListener('pointercancel', release);
@@ -3005,16 +3387,31 @@ for (const button of document.querySelectorAll('[data-hold]')) {
 
 addEventListener('keydown', (event) => {
   if (dialog.open) return;
-  if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = true;
-  if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = true;
-  if (event.key === 'ArrowUp' && !event.repeat) changeSails(1);
-  if (event.key === 'ArrowDown' && !event.repeat) changeSails(-1);
+  const key = event.key.toLowerCase();
+  if (state?.player.onFoot && state.mode === 'sailing') {
+    const directions = WALK_KEYS[event.key];
+    if (directions) {
+      for (const direction of directions) walkKeys[direction] = true;
+      setWalk(directions.length === 2 ? Object.fromEntries(directions.map((direction) => [direction, true])) : walkKeys);
+      event.preventDefault();
+    }
+    if (key === 's' && !event.repeat && !state.paused) showDigPrompt();
+  } else {
+    if (event.key === 'ArrowLeft' || key === 'a') input.left = true;
+    if (event.key === 'ArrowRight' || key === 'd') input.right = true;
+    if (event.key === 'ArrowUp' && !event.repeat) changeSails(1);
+    if (event.key === 'ArrowDown' && !event.repeat) changeSails(-1);
+  }
   if (event.key === ' ' && !event.repeat) {
     if (state?.mode === 'battle' && !state.paused) input.firePressed = true;
     else togglePause();
   }
-  if ((event.key === 'Escape' || event.key.toLowerCase() === 'p') && !event.repeat) togglePause();
-  if (event.key.toLowerCase() === 'e' && !dockButton.disabled && state?.mode === 'sailing') showOverlandMarch();
+  if ((event.key === 'Escape' || key === 'p') && !event.repeat) togglePause();
+  if (key === 'm' && !event.repeat) openTreasureMapsAtSea();
+  if (key === 't' && !event.repeat && state?.mode === 'sailing') {
+    fastTravel = !fastTravel;
+    addLog(fastTravel ? 'Fast travel: time runs five times faster.' : 'Fast travel off.');
+  }
   if (event.key === '+' || event.key === '=') changeZoom(ZOOM_STEP);
   if (event.key === '-' || event.key === '_') changeZoom(-ZOOM_STEP);
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'].includes(event.key)) event.preventDefault();
@@ -3022,8 +3419,13 @@ addEventListener('keydown', (event) => {
 addEventListener('keyup', (event) => {
   if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = false;
   if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = false;
+  for (const direction of WALK_KEYS[event.key] ?? []) walkKeys[direction] = false;
 });
-addEventListener('blur', () => { input.left = false; input.right = false; });
+addEventListener('blur', () => {
+  input.left = false;
+  input.right = false;
+  Object.keys(walkKeys).forEach((direction) => { walkKeys[direction] = false; });
+});
 addEventListener('resize', resize);
 canvas.addEventListener('wheel', (event) => {
   if (event.deltaY === 0) return;
@@ -3074,7 +3476,7 @@ function frame(now) {
     if (catchup === 8) battleAccumulator = 0;
   } else {
     accumulator += elapsed;
-    while (accumulator >= TICK_SECONDS) { stepSimulation(); accumulator -= TICK_SECONDS; }
+    while (accumulator >= tickSeconds()) { stepSimulation(); accumulator -= tickSeconds(); }
   }
   updateInterface();
   render();
@@ -3088,6 +3490,10 @@ loadScenarios().then(() => {
   updateNationalityOptions();
   beginButton.disabled = false;
   const preview = new URLSearchParams(location.search).get('preview');
+  // Local previews expose the live state to the browser smoke checks.
+  if (preview && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    globalThis.piratesPreview = { get state() { return state; } };
+  }
   if (preview === 'plunder' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     startGame(previewState).then(() => {
@@ -3171,9 +3577,35 @@ loadScenarios().then(() => {
     return;
   }
   if (preview === 'landing' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // Panama 1560 is inland; the fleet lies at anchor four cells away.
+    // Panama 1560 is inland: the ship sails north onto the coast at (318, 441),
+    // two cells east of the town's trigger cells.
     const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    Object.assign(previewState.player, { x: 318.5, y: 443.5, speed: 0, sails: 'furled' });
+    Object.assign(previewState.player, { x: 318.5, y: 443.5, heading: 0, speed: 8, sails: 'full' });
+    startGame(previewState);
+    return;
+  }
+  if (preview === 'dig' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // A party ashore on the first dig site (259, 192 in Cuba) holding three
+    // pieces of its buried-treasure map; the ship waits at the nearest water.
+    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    const [siteX, siteY] = TREASURE_SITES[0];
+    Object.assign(previewState.player, { x: siteX + .5, y: siteY + .5 });
+    startGame(previewState).then(() => {
+      const player = state.player;
+      const shore = { x: player.x, y: player.y };
+      Object.assign(player, { ship: { ...shore, heading: player.heading }, landing: shore, onFoot: true, walk: null, x: siteX + .5, y: siteY + .5 });
+      state.treasureMaps[MAP_KIND.BURIED] = { pieces: 7, site: [siteX, siteY], townIndex: nearestTriggerTown(townTriggers(), siteX, siteY), city: 0 };
+      updateNearestTown();
+      resetSailingInterpolation();
+    });
+    return;
+  }
+  if (preview === 'reef' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // A frigate and a sloop sailing east over a run of shallow pixels in the
+    // reefs at (192, 288), 1560.
+    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    Object.assign(previewState.player, { x: 3079.5 / 16, y: 4607.5 / 16, heading: 64, speed: 4, sails: 'battle', crew: 300 });
+    previewState.player.ships = [shipRecord('Frigate'), shipRecord('Sloop')];
     startGame(previewState);
     return;
   }

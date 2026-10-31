@@ -57,6 +57,7 @@ test('the party walks two cells a day, stops at water, and boards only at the la
 
   const blocked = stepOnFoot({ party: { x: 20, y: 5 }, walk: { x: -150, y: 0 }, ship, landing, isLand: landEastOf(20), bounds });
   assert.deepEqual([blocked.outcome, blocked.x], ['blocked', 20]);
+  assert.equal(blocked.toX, 20 - PARTY_CELLS_PER_TICK);
 
   const back = stepOnFoot({ party: { x: 10, y: 5 }, walk: { x: -150, y: 150 }, ship, landing, isLand: landEastOf(10), bounds });
   assert.equal(back.outcome, 'board');

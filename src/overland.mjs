@@ -83,14 +83,17 @@ export function withinReboardReach(x, y, landingX, landingY) {
 //   'board'   water at the landing spot: back aboard at the ship.
 export function stepOnFoot({ party, walk, ship, landing, isLand, bounds }) {
   const { dx, dy, dirBits } = walkStep(walk);
-  if (dx === 0 && dy === 0) return { outcome: 'idle', x: party.x, y: party.y, dirBits };
   const x = clampTo(party.x + dx * PARTY_CELLS_PER_TICK, bounds.minX, bounds.maxX);
   const y = clampTo(party.y + dy * PARTY_CELLS_PER_TICK, bounds.minY, bounds.maxY);
-  if (isLand(x, y)) return { outcome: 'walk', x, y, dirBits };
+  // toX/toY: where the step went, for the town-arrival check that precedes
+  // the land/sea switch.
+  const move = { dirBits, toX: x, toY: y };
+  if (dx === 0 && dy === 0) return { outcome: 'idle', x: party.x, y: party.y, ...move };
+  if (isLand(x, y)) return { outcome: 'walk', x, y, ...move };
   if (withinReboardReach(x, y, landing.x, landing.y)) {
-    return { outcome: 'board', x: ship.x, y: ship.y, heading: boardingHeading(dirBits), dirBits };
+    return { outcome: 'board', x: ship.x, y: ship.y, heading: boardingHeading(dirBits), ...move };
   }
-  return { outcome: 'blocked', x: party.x, y: party.y, dirBits };
+  return { outcome: 'blocked', x: party.x, y: party.y, ...move };
 }
 
 function clampTo(value, min, max) {
