@@ -138,7 +138,8 @@ for future work.
   damage formulas, possible governor installation, and transferable plunder.
 - Hold named captains as prisoners with the original's prisoner word;
   Spanish and pirate captains offer treasure-fleet or silver-train news
-  first. Governors ransom any prisoner. The traced pirate hand-over
+  first. Governors ransom any prisoner, and leaving a town may let one jump
+  overboard (`0x17EFB`). The traced pirate hand-over
   (`0x12432`) never matches a stored prisoner, so, as in the original,
   governors do not take pirates.
 - Divide the plunder: a 104-day refit with the monthly world, then the fresh
@@ -165,7 +166,7 @@ for future work.
 | Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading, and governor missions (letter, papers, pirate hunt, rescue: offer, delivery, completion, failure and reward) | Richer governor actions |
 | Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, random town events, AI conquest, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, the villains' monthly moves, and the treasure fleet and silver train (step 6 of `0xCEB8`) |
 | Morale | Stored crew morale (recomputed each month and on load, +1 or +2 per captured prize; used for port desertion, battle reload and the month-end check), desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a provisional leader duel, and plunder division with crew satisfaction | A Party Status mood display (which recomputes morale in the original) and interactive mutiny combat |
-| Persistence | One versioned browser save slot and v1-v6 save migration (v7 adds the town-information bits; older voyages keep current information on every town) | Multiple slots, battle-state persistence, and import/export |
+| Persistence | One versioned browser save slot and v1-v6 save migration (v7 adds the town-information bits, and older voyages keep current information on every town; it also releases unnamed pirates held for delivery) | Multiple slots, battle-state persistence, and import/export |
 | Accessibility | Keyboard and touch controls, visible labels, focus styles, and text HUD | Complete keyboard dialog navigation testing, screen-reader alternatives for the canvas, and configurable controls |
 
 ## Missing gameplay systems

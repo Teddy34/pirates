@@ -646,6 +646,18 @@ export function captiveWordOf(captive) {
   return captive.word ?? ((captive.pirate ? 0x100 : 0) | ((captive.value ?? 0) & 0xff));
 }
 
+// Leaving a town (0x17EFB, after the crew desertion): slot = rnd(8); a
+// prisoner whose word has a non-zero low byte jumps overboard and escapes
+// (CSTR 110) and the slot is cleared, while 0x47ACA bit 1 (in a town) is set,
+// which it always is here. Returns the escaping captive's index or -1.
+// ASSUMED: the port keeps prisoners in a packed list, so slot i is the i-th
+// prisoner; the original leaves holes where prisoners were ransomed.
+export function prisonerEscape({ captives, rng }) {
+  const slot = rng.int(8);
+  const captive = captives[slot];
+  return captive && (captiveWordOf(captive) & 0xff) ? slot : -1;
+}
+
 // Pirate delivery at the governor (0x12432, deliver_pirates.asm), traced
 // literally: for each prisoner word v, the hand-over needs v & 0x8000 and
 // (v >> 8) & 4 == the governor's nation (0x4605C, 0 Spain .. 3 Holland). It
@@ -654,8 +666,9 @@ export function captiveWordOf(captive) {
 // bits 0 and 2 count and the gain is 1 or 3. README §4.3's "(v & 7)/2 + 1"
 // drops that mask.
 // Since no stored word has bit 15 (see captiveWord), this never hands anyone
-// over in the original, and the port keeps that: held captains are only
-// ransomed (0x127DA) or freed by captivity (0x1F88F).
+// over in the original, and the port keeps that: a held captain is ransomed
+// (0x127DA), escapes when you leave a town (prisonerEscape) or is freed by
+// captivity (0x1F88F).
 export function governorPirateHandover({ captives, governorNationIndex }) {
   const delivered = [];
   let favourGain = 0;

@@ -14,7 +14,7 @@ import {
   isEncounterHunter, hunterOvertakes, drawHunterCaptain, captainName, captainRenown,
   MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
   harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, beginDivisionRefit, freshFleet,
-  captiveWord, governorPirateHandover, governorPromotion, nationalStanding, governorAmnestyTerms,
+  captiveWord, governorPirateHandover, prisonerEscape, governorPromotion, nationalStanding, governorAmnestyTerms,
   captainRansomOffers, monthlyLandIncome, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -296,6 +296,13 @@ function loadGame() {
     // obsolete) to each town's flags. Earlier versions showed every town's
     // figures, so an older voyage keeps current information on every town.
     if (saved.version < 7) for (const town of saved.towns) town.flags = (town.flags ?? 0) | TOWN_INFO_CURRENT;
+    // Before version 7 any beaten pirate captain could be held "for delivery",
+    // with the ship kind as his value when he had no captain id. The original
+    // takes only captains with an id (0xDE33), so those unnamed pirates are
+    // released; named ones keep their id and stay ransomable like any prisoner.
+    if (saved.version < 7 && saved.player.capturedCaptains) {
+      saved.player.capturedCaptains = saved.player.capturedCaptains.filter(({ pirate, name }) => !pirate || name);
+    }
     // Version 6 replaces per-town alert with the original's single counter,
     // keeping the value of the town that was nearest when the game was saved.
     if (saved.alert === undefined) saved.alert = saved.towns[saved.nearestTownIndex ?? 0]?.alert ?? 0;
@@ -2672,6 +2679,23 @@ function tradeWithMerchant(kind, direction, requested) {
 }
 
 function leaveTown() {
+  // 0x17EFB, run as you leave: a prisoner may jump overboard (CSTR 110).
+  const slot = prisonerEscape({ captives: state.player.capturedCaptains, rng });
+  if (slot >= 0) {
+    const [captive] = state.player.capturedCaptains.splice(slot, 1);
+    const who = captive.name ?? `The ${captive.nation ?? 'captured'} captain`;
+    addLog(`${who} jumped overboard and escaped.`);
+    showDialog({
+      kicker: 'A prisoner escapes', title: 'Man overboard',
+      body: `<p>${who} jumps overboard and escapes!</p>`,
+      actions: [{ label: 'Put to sea', run: putToSea }],
+    });
+    return;
+  }
+  putToSea();
+}
+
+function putToSea() {
   const town = state.towns[state.visit.townIndex];
   placeForDeparture(state.visit.townIndex, state.visit.overland);
   state.visit = null;

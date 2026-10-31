@@ -7,7 +7,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
-  dividePlunder, beginDivisionRefit, freshFleet, captiveWord, governorPirateHandover, governorPromotion,
+  dividePlunder, beginDivisionRefit, freshFleet, captiveWord, governorPirateHandover, prisonerEscape, governorPromotion,
   nationalStanding, governorAmnestyTerms, captainRansomOffers, monthlyLandIncome, convoyReport,
   approximateDistance, cloudCountForMonth, targetSailingSpeed,
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
@@ -18,6 +18,7 @@ import {
 } from '../src/mechanics.mjs';
 import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
 
+const scripted = (value) => ({ int: () => value });
 const fixedRng = ({ integer = 0, unit = 0 } = {}) => ({ int: () => integer, unit: () => unit });
 
 test('relative heading uses sixteen compass sectors', () => {
@@ -367,6 +368,14 @@ test('a held captain stores the original prisoner word', () => {
   assert.equal(captiveWord({ flagIndex: 4, captainId: 0x2b }), 0x12b);
   assert.equal(captiveWord({ flagIndex: 2, captainId: 0xab }), 0xab);
   assert.equal(captiveWord({ flagIndex: 0, captainId: 0x1f }), 0x1f);
+});
+
+test('leaving a town lets the prisoner in a random slot escape', () => {
+  const captives = [{ word: 0x12b }, { word: 0x100 }, { word: 0x0ab }];
+  assert.equal(prisonerEscape({ captives, rng: scripted(0) }), 0);
+  assert.equal(prisonerEscape({ captives, rng: scripted(1) }), -1, 'a zero low byte is an empty slot');
+  assert.equal(prisonerEscape({ captives, rng: scripted(2) }), 2);
+  assert.equal(prisonerEscape({ captives, rng: scripted(7) }), -1);
 });
 
 test('pirate delivery follows the literal masks of 0x12432', () => {
