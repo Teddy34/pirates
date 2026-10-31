@@ -55,6 +55,10 @@ dialog h2 { font-size:34px; }
 #dialog-body .treasure-map figcaption { margin-top:4px; font-style:italic; }
 .ship-news { margin:0; padding-left:1.15em; }
 .ship-news li { margin:.5em 0; }
+.ship-news time { color:#725f43; font-family:"Source Sans 3",sans-serif; font-size:13px; }
+.city-info { margin:0; padding:0; list-style:none; }
+.city-info li { padding:7px 0; border-bottom:1px solid rgba(114,95,67,.3); }
+.city-info small { display:block; color:#725f43; font-family:"Source Sans 3",sans-serif; font-size:14px; }
 #dialog-actions { display:flex; flex-wrap:wrap; gap:8px; }
 #dialog-actions button { flex:1 1 140px; }
 #dialog-actions button.secondary { border-color:#8f713e; color:var(--paper-ink); }
@@ -94,7 +98,7 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
   .plunder-arrow { min-width:34px; min-height:36px; padding:3px 6px; }
   .plunder-take-all { min-width:0; min-height:36px; padding:5px 7px; }
 }
-@media (min-width:761px) and (max-width:1100px) { #controls{display:grid;grid-template-columns:repeat(4,1fr);width:min(620px,calc(100% - 20px))}#controls button{min-width:0}#log{bottom:126px} }
+@media (min-width:761px) and (max-width:1100px) { #controls{display:grid;grid-template-columns:repeat(5,1fr);width:min(620px,calc(100% - 20px))}#controls button{min-width:0}#log{bottom:126px} }
 @media (min-width:761px) and (max-width:900px) { form{grid-template-columns:repeat(3,1fr)} }
-@media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}.screen-panel{justify-items:stretch;text-align:left}.crest{margin-left:0}.lede{margin-left:0}#hud{display:grid;grid-template-columns:1fr 1fr}.hud-block{gap:10px;justify-content:space-around}.identity{grid-column:1/-1;min-height:auto}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(4,1fr);width:calc(100% - 20px)}#controls button{min-width:0;justify-content:center}#controls button span{display:none}#log{bottom:126px;width:calc(100% - 172px)} }
+@media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}.screen-panel{justify-items:stretch;text-align:left}.crest{margin-left:0}.lede{margin-left:0}#hud{display:grid;grid-template-columns:1fr 1fr}.hud-block{gap:10px;justify-content:space-around}.identity{grid-column:1/-1;min-height:auto}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(5,1fr);width:calc(100% - 20px)}#controls button{min-width:0;justify-content:center}#controls button span{display:none}#log{bottom:126px;width:calc(100% - 172px)} }
 @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }

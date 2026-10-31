@@ -1,6 +1,6 @@
-# Pirate's legacy!
+# Pirates' Legacy!
 
-`Pirate's legacy!` is an original browser game that reconstructs the documented systems of *Pirates! Gold*. It currently provides sailing and port-trading across all six historical eras.
+`Pirates' Legacy!` is an original browser game that reconstructs the documented systems of *Pirates! Gold*. It currently provides sailing and port-trading across all six historical eras.
 
 ## Run
 
