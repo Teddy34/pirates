@@ -62,13 +62,30 @@ for future work.
 - Apply the monthly land income and the decoded reputation decay
   (`rep -= rep >> 3`).
 - Pause, zoom, steer, and change sail from keyboard or touch controls.
+- Open the captain's logbook from the Log control (or `L`) at sea and from
+  the town menu: the Ship's Log lists the world news with dates, and City
+  information shows the known status of every town.
 
 ### World simulation
 
+- Run the monthly world in the original's order (`0xCEB8` step 5, in
+  `monthlyWorldUpdate`): town economy, AI conquest, diplomacy, then the random
+  town event. Town records are updated in place.
 - Update town growth, population, soldiers, and treasury each month.
-- Change diplomatic relations and publish wars, peace treaties, and alliances
-  as world news.
-- Apply simplified mine, malaria, raid, governor, and plunder events.
+- Let a town fall to an enemy nation at war with it (`0xC81B`): a larger
+  garrison within Manhattan distance 150 takes it, it gets a new governor,
+  and its flag, merchant, encounters and missions follow the new nation.
+- Change diplomatic relations and publish wars, peace treaties, alliances and
+  the alliance's pirate amnesty as world news.
+- Apply the decoded Indian, gold-mine, malaria, new-governor (with a new
+  daughter or niece) and pirate events to any town (`0xCA7F`).
+- Track what you know of each town with the original's information bits:
+  a new game knows each town when `rnd(4) + 1 > difficulty`; entering,
+  capturing or buying a traveller's report makes it current; a random event
+  there makes it obsolete ("Recent events in %s have made your information
+  obsolete").
+- Open the opening news with each war or alliance and a reported town event
+  for each pair of nations at peace (`0x13679`).
 - Track the single nearest-town alert (reset when the nearest town changes), national favour, ranks, reputation, stored crew morale, and time
   at sea.
 
@@ -117,6 +134,14 @@ for future work.
 - Save the voyage in browser storage while in town.
 - Resolve a provisional town assault, including the decoded treasury and town
   damage formulas, possible governor installation, and transferable plunder.
+- Hold named captains as prisoners with the original's prisoner word;
+  Spanish and pirate captains offer treasure-fleet or silver-train news
+  first. Governors ransom any prisoner. The traced pirate hand-over
+  (`0x12432`) never matches a stored prisoner, so, as in the original,
+  governors do not take pirates.
+- Divide the plunder: a 104-day refit with the monthly world, then the fresh
+  fleet (`0x1EF87`) with the flagship repaired, the old prisoners kept and
+  months at sea at 0.
 
 ### Presentation and engineering
 
@@ -135,10 +160,10 @@ for future work.
 | Sailing | Heading, wind, fleet speed, sails, collision, calendar, food, and seasonal clouds | Storms, exact reduced-sail behavior, and more faithful movement feedback |
 | Encounters | Sighting stages, identification, named hunter captains (title, surname and renown from the original's captain id), the pirate-mission override and the wanted pirate's id, news, escape, tactical combat, provisional boarding outcomes, and capture aftermath | Treasure fleet encounters, the captain id's battle and sword skill, coastal battle terrain, and interactive sword fights |
 | Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, promotions, titles, pardons, and nation-specific rewards |
-| Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading, and governor missions (letter, papers, pirate hunt, rescue: offer, delivery, completion, failure and reward) | Richer governor actions; the AI-conquest exclusion of a mission town waits for AI conquest |
-| Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, and treasure movements |
+| Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading, and governor missions (letter, papers, pirate hunt, rescue: offer, delivery, completion, failure and reward) | Richer governor actions |
+| Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, random town events, AI conquest, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, the villains' monthly moves, and the treasure fleet and silver train (step 6 of `0xCEB8`) |
 | Morale | Stored crew morale (recomputed each month and on load, +1 or +2 per captured prize; used for port desertion, battle reload and the month-end check), desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a provisional leader duel, and plunder division with crew satisfaction | A Party Status mood display (which recomputes morale in the original) and interactive mutiny combat |
-| Persistence | One versioned browser save slot and v1-v4 save migration | Multiple slots, battle-state persistence, and import/export |
+| Persistence | One versioned browser save slot and v1-v6 save migration (v7 adds the town-information bits; older voyages keep current information on every town) | Multiple slots, battle-state persistence, and import/export |
 | Accessibility | Keyboard and touch controls, visible labels, focus styles, and text HUD | Complete keyboard dialog navigation testing, screen-reader alternatives for the canvas, and configurable controls |
 
 ## Missing gameplay systems
