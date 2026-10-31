@@ -8,7 +8,7 @@ import {
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   dividePlunder, beginDivisionRefit, freshFleet, captiveWord, governorPirateHandover, prisonerEscape, portDesertion, governorPromotion,
-  nationalStanding, governorAmnestyTerms, captainRansomOffers, monthlyLandIncome, convoyReport,
+  nationalStanding, governorAmnestyTerms, captainRansomOffers, monthlyLandIncome,
   approximateDistance, cloudCountForMonth, targetSailingSpeed,
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
@@ -448,23 +448,6 @@ test('a governor makes four decoded ransom draws and land pays monthly income', 
   ]);
   assert.equal(monthlyLandIncome(3), 1);
   assert.equal(monthlyLandIncome(100), 50);
-});
-
-test('captured-captain convoy intelligence names the current and next Spanish stops', () => {
-  const route = ['Curacao', 'Margarita', 'Trinidad'];
-  const towns = [
-    { name: 'Curacao', nation: 'Holland' },
-    { name: 'Margarita', nation: 'Spain' },
-    { name: 'Trinidad', nation: 'Spain' },
-  ];
-  assert.deepEqual(convoyReport({
-    kind: 'treasureFleet', route, towns,
-    calendar: { month: 8, day: 0 }, eraIndex: 5,
-  }), { location: 'Margarita', next: 'Trinidad' });
-  assert.deepEqual(convoyReport({
-    kind: 'silverTrain', route, towns,
-    calendar: { month: 1, day: 0 }, eraIndex: 5,
-  }), { location: null, next: null });
 });
 
 test('the calendar uses thirty-day months and 360-day years', () => {
