@@ -82,10 +82,10 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 
 | # | Sev | Discrepancy |
 |---|---|---|
-| D33 | L | `implementation-status.md` lists "town assaults, capture, and plunder" as missing, but a provisional assault exists. It also lists promotions as still needed, but they are implemented. |
+| D33 | L | **Fixed in #32.** `implementation-status.md` lists "town assaults, capture, and plunder" as missing, but a provisional assault exists. It also lists promotions as still needed, but they are implemented. |
 | D34 | L | **Drift part fixed in #26; hit-box part fixed in #31.** `tactical-sea-combat-plan.md` treats drift and the −12..40 limit as confirmed, and the hit boxes as unverified. `sea_battles.md` says the opposite on both (see D12 and D14). |
 | D35 | L | **Fixed in #2.** The plan says the navigation map provides shallows; it doesn't (D1). |
-| D36 | L | **Fixed in feat/landing-overland.** The treasure-map clue town is a random town, not the town nearest a site from the documented list of treasure sites. This simplification isn't marked as an assumption (`game.mjs:1635`). |
+| D36 | L | **Fixed in #30.** The treasure-map clue town is a random town, not the town nearest a site from the documented list of treasure sites. This simplification isn't marked as an assumption (`game.mjs:1635`). |
 | D37 | L | The original only allows saving in town. The port also auto-saves at sea every 5 days and after battles. The porting guide allows this, but it isn't written down as a project decision. |
 | D38 | L | `applyProvisionalBattleOutcome` (`mechanics.mjs:129`) is no longer used by the game, only by tests. Its "sunk" and "lost" rules don't match the docs. |
 

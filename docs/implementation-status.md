@@ -205,7 +205,7 @@ for future work.
 | --- | --- | --- |
 | Sailing | Heading, wind, fleet speed, sails, collision, calendar, food, and seasonal clouds | Storms, exact reduced-sail behavior, and more faithful movement feedback |
 | Encounters | Sighting stages, identification, named hunter captains (title, surname and renown from the original's captain id), the pirate-mission override and the wanted pirate's id, news, escape, tactical combat, provisional boarding outcomes, capture aftermath, and the treasure fleet | The captain id's battle and sword skill, coastal battle terrain, and interactive sword fights |
-| Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, promotions, titles, pardons, and nation-specific rewards |
+| Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, titles, and nation-specific rewards (promotions, land grants, amnesty and commissions are in the governor audience) |
 | Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading, and governor missions (letter, papers, pirate hunt, rescue: offer, delivery, completion, failure and reward) | Richer governor actions |
 | Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, random town events, AI conquest, the treasure fleet and silver train, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, and the villains' monthly moves |
 | Morale | Stored crew morale (recomputed each month and on load, +1 or +2 per captured prize; used for port desertion, battle reload and the month-end check), desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a provisional leader duel, and plunder division with crew satisfaction | A Party Status mood display (which recomputes morale in the original) and interactive mutiny combat |
@@ -217,10 +217,12 @@ for future work.
 The following systems have no complete playable implementation:
 
 - interactive boarding and sword fighting;
-- fort bombardment, land battles, town assaults, capture, and plunder;
-- ship purchases and complete prize management;
+- fort bombardment and land battles (town assaults, capture and plunder are
+  resolved through a provisional outcome dialog);
+- complete prize management and ship reordering (the original has no ship
+  purchase);
 - complete cannon management;
-- named pirates;
+- the named captains' battle and sword skill;
 - lost relatives, villains, rumors, and rescue quests (the dig already rescues
   a relative and hands out lost-city pieces once a relative's map exists);
 - courtship, rival suitors, marriage, and family benefits;
