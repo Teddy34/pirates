@@ -303,6 +303,18 @@ export function thirdOfCrewDeserts({ crew, partyGold }) {
   return { deserters, goldLost, crew: crew - deserters, partyGold: partyGold - goldLost };
 }
 
+// Port desertion (0x17EFB, run as you leave a town): n = trunc((3 - morale)
+// * crew / 15), at most crew - 1; when n > 1, "Roll call reveals that %s crew
+// members have deserted" (CSTR 109) and 0x1F044(n) takes their share of the
+// gold. Returns null when nobody deserts.
+export function portDesertion({ crew, partyGold, morale }) {
+  let deserters = Math.trunc(((3 - morale) * crew) / 15);
+  if (deserters >= crew) deserters = crew - 1;
+  if (deserters <= 1) return null;
+  const goldLost = Math.trunc((deserters * partyGold) / crew);
+  return { deserters, goldLost, crew: crew - deserters, partyGold: partyGold - goldLost };
+}
+
 // Event 2 at 0x28537 with zero days left: the whole-ton food word becomes 5
 // (the fraction byte stays), and a third of the crew deserts via 0x1F044.
 export function starvationDesertion({ crew, partyGold, foodFixed }) {
@@ -453,7 +465,7 @@ export function rollGovernorMission({ towns, currentTownIndex, nation, favour, g
 // governor's own nation. Even types (papers, rescue) need an enemy town.
 function missionTarget({ type, towns, currentTownIndex, nation, diplomacy, rng }) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const index = rng.int(towns.length);
+    const index = rng.int(randomTownRange(towns)); // 0x12FE4
     if (index === currentTownIndex) continue;
     const town = towns[index];
     const relation = diplomacy[nation]?.[town.nation] ?? 0;
@@ -512,13 +524,23 @@ export function tavernRecruits({ townPopulation, reputation, difficulty, crew, c
   return recruits;
 }
 
-export function tavernSpecialEncounters({ mapPieces = 0, rng }) {
+export function tavernSpecialEncounters({ mapPieces = 0, towns = null, rng }) {
   // These are prepared in the original order when the tavern opens. A roll of
   // 50 suppresses the traveller; the map seller has a separate 1-in-5 roll.
-  const travellerPrice = (rng.int(10) + 5) * 10;
+  // 0x110D8: the traveller's town is rnd(random-town range), and price and
+  // town are drawn again while you already have current information on the
+  // town (unless the price is 50), so he reports on a town you don't know.
+  let travellerPrice;
+  let townIndex;
+  for (;;) {
+    travellerPrice = (rng.int(10) + 5) * 10;
+    if (!towns) break;
+    townIndex = rng.int(randomTownRange(towns));
+    if (!(towns[townIndex].flags & TOWN_INFO_CURRENT) || travellerPrice === 50) break;
+  }
   const encounters = travellerPrice === 50
     ? []
-    : [{ kind: 'traveller', price: travellerPrice }];
+    : [{ kind: 'traveller', price: travellerPrice, ...(towns ? { townIndex } : {}) }];
   if (mapPieces < 4 && rng.int(5) === 0) encounters.push({ kind: 'map-seller', price: 500 });
   return encounters;
 }
@@ -566,7 +588,7 @@ export function prizeMoraleBonus(kind) {
   return kind > 5 ? 2 : 1;
 }
 
-export function dividePlunder({ partyGold, crew, reputation, difficulty, flagshipSizeClass }) {
+export function dividePlunder({ partyGold, crew, reputation, difficulty }) {
   const crewShare = Math.round((0.8 * partyGold) / Math.max(1, crew));
   const shareRoot = Math.floor(Math.sqrt(crewShare));
   const satisfaction = Math.min(3, Math.floor(shareRoot / 23));
@@ -580,36 +602,105 @@ export function dividePlunder({ partyGold, crew, reputation, difficulty, flagshi
     captainTake: Math.floor(((difficulty + 1) * partyGold) / 20),
     officerShares: 2 * difficulty + 2,
     expeditionGold: Math.floor(partyGold / 10),
-    // The new-expedition routine retains the flagship and derives its initial
-    // company and stores from ship class. Months at sea follow the documented
-    // -16 reset; the binary's adjacent initialization remains ambiguous.
-    crew: Math.max(1, nextReputation + 16),
-    cannon: 2 * flagshipSizeClass + 6,
-    foodFixed: 15 * 256,
+  };
+}
+
+// The division itself (0x18203-0x18331, then 0x184F8): reputation is
+// averaged, the captain's take goes to personal wealth and months at sea is
+// set to -16 for the refit. The old crew, fleet and cargo stay until the
+// fresh fleet (0x1EF87) replaces them after the refit.
+export function beginDivisionRefit(player, division) {
+  return {
+    ...player,
+    personalWealth: (player.personalWealth ?? 0) + division.captainTake,
+    reputation: division.reputation,
     monthsAtSea: -16,
   };
 }
 
-export function startNewExpedition(player, division) {
-  const flagship = player.ships[0];
+// Fresh fleet (0x1EF87, ships.md §5), after dividing the plunder (gold = the
+// party gold) and after captivity (gold = 0: a tenth of personal wealth is
+// lost and a tenth of the rest funds the voyage). Only the flagship's type
+// is kept, with the damage bits cleared (flagship byte &= 7), so it comes
+// back repaired. Cannon 2·T + 6, 15 tons of food, no cargo, months at sea 0
+// (0x1F02F, after the division's -16). Prisoners (0x4720A) are untouched.
+// Crew = reputation + 16 (0x45E76), stored as an unsigned word and replaced
+// by 1 only when it is 0 (0x1F010-0x1F029). A negative sum wraps to tens of
+// thousands of men; ASSUMED: the port uses `minCrew` instead, which is 1
+// after a division (the original's value at exactly -16) and RESTART_MIN_CREW
+// after captivity. ships.md's "kept as is if <= 0" reading is not what the
+// code does: the store comes before the test.
+export function freshFleet(player, { gold, flagshipType, shipStats, minCrew = 1 }) {
+  let personalWealth = player.personalWealth ?? 0;
+  let funds = gold;
+  if (funds === 0) {
+    personalWealth -= Math.trunc(personalWealth / 10);
+    funds = personalWealth;
+  }
+  const typeIndex = shipStats[flagshipType].type;
+  const crew = player.reputation + 16;
   return {
     ...player,
-    personalWealth: (player.personalWealth ?? 0) + division.captainTake,
-    partyGold: division.expeditionGold,
-    reputation: division.reputation,
-    ships: [flagship],
-    crew: division.crew,
-    cannon: division.cannon,
-    foodFixed: division.foodFixed,
+    personalWealth,
+    partyGold: Math.trunc(funds / 10),
+    ships: [{ type: flagshipType, damage: 0 }],
+    cannon: 2 * typeIndex + 6,
+    foodFixed: 15 * 256,
     goods: 0,
     specialGoods: 0,
-    monthsAtSea: division.monthsAtSea,
-    capturedCaptains: [],
+    crew: Math.max(minCrew, crew),
+    monthsAtSea: 0,
   };
 }
 
-export function pirateCaptainTerms(value = 7) {
-  return { favourGain: Math.floor((value & 7) / 2) + 1 };
+// The prisoner word in 0x4720A (8 slots). 0xDF54 stores a captured named
+// captain as ((flag & 4) << 6) | captain id, so bit 8 marks a pirate (flag 4)
+// and Hostage Status (0xA4B9) prints "(pirate)" or "(hunter)" from it.
+// Captains with id 0 are not taken, and an id with bit 15 (the mission
+// pirate) completes the mission instead (0xDE48), so a stored word never has
+// bit 15 set.
+export function captiveWord({ flagIndex, captainId }) {
+  return (((flagIndex & 4) << 6) | captainId) & 0xffff;
+}
+
+// Old saves kept no word; rebuild it from the stored id and pirate flag.
+export function captiveWordOf(captive) {
+  return captive.word ?? ((captive.pirate ? 0x100 : 0) | ((captive.value ?? 0) & 0xff));
+}
+
+// Leaving a town (0x17EFB, after portDesertion): slot = rnd(8); a
+// prisoner whose word has a non-zero low byte jumps overboard and escapes
+// (CSTR 110) and the slot is cleared, while 0x47ACA bit 1 (in a town) is set,
+// which it always is here. Returns the escaping captive's index or -1.
+// ASSUMED: the port keeps prisoners in a packed list, so slot i is the i-th
+// prisoner; the original leaves holes where prisoners were ransomed.
+export function prisonerEscape({ captives, rng }) {
+  const slot = rng.int(8);
+  const captive = captives[slot];
+  return captive && (captiveWordOf(captive) & 0xff) ? slot : -1;
+}
+
+// Pirate delivery at the governor (0x12432, deliver_pirates.asm), traced
+// literally: for each prisoner word v, the hand-over needs v & 0x8000 and
+// (v >> 8) & 4 == the governor's nation (0x4605C, 0 Spain .. 3 Holland). It
+// is automatic: there is no choice to keep a matching prisoner. The favour
+// gain is ((v & 0x255) & 7) / 2 + 1; the mask is 0x255, not 255, so only
+// bits 0 and 2 count and the gain is 1 or 3. README §4.3's "(v & 7)/2 + 1"
+// drops that mask.
+// Since no stored word has bit 15 (see captiveWord), this never hands anyone
+// over in the original, and the port keeps that: a held captain is ransomed
+// (0x127DA), escapes when you leave a town (prisonerEscape) or is freed by
+// captivity (0x1F88F).
+export function governorPirateHandover({ captives, governorNationIndex }) {
+  const delivered = [];
+  let favourGain = 0;
+  for (const captive of captives) {
+    const word = captiveWordOf(captive);
+    if (!(word & 0x8000) || ((word >> 8) & 4) !== governorNationIndex) continue;
+    delivered.push(captive);
+    favourGain += (((word & 0x255) & 7) >> 1) + 1;
+  }
+  return { delivered, favourGain };
 }
 
 // New-game record copy (0x1386C): the start point is rnd(4) of the record's
@@ -657,9 +748,10 @@ export function captainRansomOffers({ captives, rng }) {
   const offers = [];
   for (let draw = 0; draw < 4; draw += 1) {
     const captain = captives[rng.int(8)];
-    if (!captain || captain.pirate) continue;
+    // 0x1280D reads every slot, pirates included (only the low byte counts).
+    if (!captain) continue;
     const multiplier = rng.int(3) + 1;
-    offers.push({ captain, gold: 500 * (((captain.value ?? 0) & 7) + 1) * multiplier });
+    offers.push({ captain, gold: 500 * ((captiveWordOf(captain) & 7) + 1) * multiplier });
   }
   return offers;
 }
@@ -722,6 +814,265 @@ export function updateTownMonthly(town, month, rng) {
     ? Math.min(255, town.soldiers + 1)
     : town.soldiers > target ? town.soldiers - 1 : town.soldiers;
   return { ...town, growth, population, soldiers, gold: town.gold + income };
+}
+
+// ---------------------------------------------------------------------------
+// The monthly world (0xCEB8 step 5, diplomacy_and_world.md §1). Each rule
+// below takes the world it changes and returns the news it logs as records
+// ({ event, ... }); `worldNewsMessage` turns a record into the log text.
+// Event numbers are the CSTN 20 log indices the original passes to 0x1E8CF.
+// ---------------------------------------------------------------------------
+
+export const NATION_ORDER = ['Spain', 'England', 'France', 'Holland'];
+
+export const WORLD_EVENT = Object.freeze({
+  AMNESTY: 10,
+  INDIANS: 11,
+  GOLD_MINE: 12,
+  MALARIA: 13,
+  NEW_GOVERNOR: 14,
+  PIRATES: 15,
+  WAR: 16,
+  PEACE: 17,
+  ALLIANCE: 18,
+  CONQUEST: 19,
+});
+
+// Runtime bits in the town's flag word (+0x00), next to the static trade
+// bits (town_economy.md §1): 0x80 = you have current information on the
+// town, 0x20 = a random event has made that information obsolete. The town
+// information routine 0x196D0 tests 0x80 first, then 0x20. Some towns carry
+// a static 0x20 bit (Charlesfort, Nassau, ...); the original reads it the
+// same way, so such a town reports obsolete information until visited.
+export const TOWN_INFO_CURRENT = 0x80;
+export const TOWN_INFO_OBSOLETE = 0x20;
+
+export function townInfoStatus(flags = 0) {
+  if (flags & TOWN_INFO_CURRENT) return 'current';
+  return flags & TOWN_INFO_OBSOLETE ? 'obsolete' : 'none';
+}
+
+// Entering a town (0x17EBB), capturing it (0x227AF) and buying a traveller's
+// report (0x115A0) set 0x80 and clear 0x20.
+export function learnTownInfo(flags = 0) {
+  return (flags | TOWN_INFO_CURRENT) & ~TOWN_INFO_OBSOLETE;
+}
+
+// 0xCAF4-0xCB07: 0x20 = old 0x80, then `and word, 0x7F` clears 0x80 (and
+// the unused high byte).
+export function obsoleteTownInfo(flags = 0) {
+  const marked = flags & TOWN_INFO_CURRENT ? flags | TOWN_INFO_OBSOLETE : flags & ~TOWN_INFO_OBSOLETE;
+  return marked & 0x7f;
+}
+
+// New-game town setup (0x1453C): each town is known when rnd(4) + 1 >
+// difficulty (always on Apprentice, one in four on Swashbuckler); the
+// governor's mood (w9) and w10 are cleared and his relative (w11) is
+// rnd(16). The two rolls are made town by town in that order. The loop runs
+// to the era header's count field 0x4607E (records - 1, 0x14548), so it
+// covers every real town (and the first placeholder, which the port lacks).
+export function newGameTowns(towns, difficulty, rng) {
+  return towns.map((town) => {
+    const known = rng.int(4) + 1 > difficulty;
+    const governorRelative = rng.int(16);
+    return {
+      ...town,
+      flags: known ? (town.flags ?? 0) | TOWN_INFO_CURRENT : town.flags ?? 0,
+      mood: 0,
+      governorRelative,
+    };
+  });
+}
+
+// 0xCA51, a new governor (random event 14 and AI conquest): mood 0 and a new
+// daughter or niece, unless you married into the family (w11 bit 0x40).
+export function installNewGovernor(town, rng) {
+  town.mood = 0;
+  if (!((town.governorRelative ?? 0) & 0x40)) town.governorRelative = rng.int(16);
+  return town;
+}
+
+// The original's town range 0x4605A is the era header's count field
+// 0x4607E minus 2 (0x134FE, 0x135F2, 0x1D8CC). That field is the record
+// count minus 1 (35 for 1560's 36 records), and the last two records are
+// the "Florida Channel" placeholders that tools/build_scenarios.mjs drops.
+// So the range is the real towns minus one: the last real town of each era
+// (1560 Yaguana, later Villa Hermosa) is never in it. The monthly economy
+// (0xC729), AI conquest (0xC81B), the random event (0xCA7F) and the opening
+// news (0x13679) all use this range, so that town never grows, falls to an
+// AI nation or gets an event. A faithful quirk, kept. The other readers of
+// 0x4605A: the governor's mission target (0x12FE4) and the tavern
+// traveller's town (0x110F9) use it here too; the villain records and their
+// moves and news (0xAAE4, 0xCBF7, 0x1224B, 0x18A02) wait for the lost
+// relatives (K7); the gazetteer loops (0xB97C, 0xBC82) run to the range
+// inclusive, i.e. every real town, as City information does; the Ship's Log
+// (0x1E1DF) prints a town name only for indexes below it; the nearest-town
+// search 0x1ADFC takes it as an argument (0x13988, 0x1F0F5, 0x2884F) but
+// never reads it; 0xB53A, 0x13EC8 and 0x16666 are not ported.
+export function randomTownRange(towns) {
+  return Math.max(0, towns.length - 1);
+}
+
+// Random town event (0xCA7F): i = rnd(64), no event when i >= the random
+// range (about half the months); e = 11 + rnd(5), rolled again while it is a
+// new governor in the town whose governor gave the open mission (0x471AC).
+export function rollRandomTownEvent({ townCount, protectedTownIndex = -1, rng }) {
+  const townIndex = rng.int(64);
+  if (townIndex >= townCount) return null;
+  let event = WORLD_EVENT.INDIANS + rng.int(5);
+  while (event === WORLD_EVENT.NEW_GOVERNOR && townIndex === protectedTownIndex) {
+    event = WORLD_EVENT.INDIANS + rng.int(5);
+  }
+  return { event, townIndex };
+}
+
+export function applyRandomTownEvent(town, event, rng) {
+  town.flags = obsoleteTownInfo(town.flags);
+  switch (event) {
+    case WORLD_EVENT.INDIANS:
+      town.soldiers >>= 1;
+      break;
+    case WORLD_EVENT.GOLD_MINE:
+      town.growth = town.growth >= 191 ? 255 : town.growth + 64;
+      town.gold = town.gold >= 243 ? 255 : town.gold + 12;
+      break;
+    case WORLD_EVENT.MALARIA:
+      town.soldiers >>= 1;
+      town.population >>= 1;
+      break;
+    case WORLD_EVENT.NEW_GOVERNOR:
+      installNewGovernor(town, rng);
+      break;
+    case WORLD_EVENT.PIRATES:
+      town.gold = 0;
+      town.growth -= town.growth >> 2;
+      break;
+    default:
+      break;
+  }
+  return town;
+}
+
+// AI conquest (0xC81B, one attempt a month). Town A = rnd(n); town B =
+// rnd(n), drawn again while it is the open mission's town (0x471AC with
+// 0x471AA != 0). B falls to A's nation when the two nations are at war,
+// 2 * B.soldiers < A.soldiers, |dx| + |dy| < 150 and B is not the town the
+// player is in or beside (0x46058). B gets a new governor (0xCA51); its
+// garrison, gold, growth and town information are untouched.
+export function rollAiConquest({ towns, diplomacy, playerTownIndex = -1, protectedTownIndex = -1, rng }) {
+  const count = randomTownRange(towns);
+  const attackerIndex = rng.int(count);
+  let defenderIndex = rng.int(count);
+  while (defenderIndex === protectedTownIndex) defenderIndex = rng.int(count);
+  const attacker = towns[attackerIndex];
+  const defender = towns[defenderIndex];
+  if ((diplomacy[attacker.nation]?.[defender.nation] ?? 0) !== -1) return null;
+  if (2 * defender.soldiers >= attacker.soldiers) return null;
+  if (Math.abs(attacker.x - defender.x) + Math.abs(attacker.y - defender.y) >= 150) return null;
+  if (defenderIndex === playerTownIndex) return null;
+  return { attackerIndex, defenderIndex };
+}
+
+// Diplomacy (0xC938): r = rnd(K); r >= 28 does nothing. The pair is
+// (r & 3, r >> 2 & 3), the step +1 when r & 16 and -1 otherwise, and a
+// relation already at the step's limit stays. Returns the change or null.
+export function rollDiplomacyChange({ diplomacy, k, rng }) {
+  const roll = rng.int(k);
+  if (roll >= 28) return null;
+  const first = roll & 3;
+  const second = (roll >> 2) & 3;
+  if (first === second) return null;
+  const nationA = NATION_ORDER[first];
+  const nationB = NATION_ORDER[second];
+  const delta = roll & 16 ? 1 : -1;
+  const from = diplomacy[nationA][nationB];
+  if (from === delta) return null;
+  return { nationA, nationB, from, to: from + delta };
+}
+
+// Applies a diplomacy change and returns its news: war (16), peace (17) or
+// alliance (18); an alliance falling back to peace is not logged. A new
+// alliance also logs "%s offers pirate amnesty!" (10) for the first nation
+// and lifts your favour with it to at least -3.
+export function applyDiplomacyChange(change, { diplomacy, favour }) {
+  const { nationA, nationB, from, to } = change;
+  diplomacy[nationA][nationB] = to;
+  diplomacy[nationB][nationA] = to;
+  if (to === 0 && from === 1) return [];
+  const news = [{ event: WORLD_EVENT.PEACE + to, nationA, nationB }];
+  if (to === 1) {
+    news.push({ event: WORLD_EVENT.AMNESTY, nation: nationA });
+    favour[nationA] = Math.max(-3, favour[nationA]);
+  }
+  return news;
+}
+
+// 0xC714, 0xC81B, 0xC938 and 0xCA7F in the original's order. The world is
+// changed in place: town records keep their identity, so a town held by the
+// caller (an open dialog, an encounter) sees the update. The villain moves
+// (0xCBA7) and the treasure fleet and silver train step (0xCDE9) that follow
+// in 0xCEB8 belong after this call.
+export function monthlyWorldUpdate({ towns, diplomacy, favour, month, diplomacyK, playerTownIndex = -1, protectedTownIndex = -1, rng }) {
+  const news = [];
+  const range = randomTownRange(towns);
+  for (const town of towns.slice(0, range)) Object.assign(town, updateTownMonthly(town, month, rng));
+
+  const conquest = rollAiConquest({ towns, diplomacy, playerTownIndex, protectedTownIndex, rng });
+  if (conquest) {
+    const town = towns[conquest.defenderIndex];
+    const nation = towns[conquest.attackerIndex].nation;
+    news.push({ event: WORLD_EVENT.CONQUEST, nation, previousNation: town.nation, townIndex: conquest.defenderIndex });
+    town.nation = nation;
+    installNewGovernor(town, rng);
+  }
+
+  const change = rollDiplomacyChange({ diplomacy, k: diplomacyK, rng });
+  if (change) news.push(...applyDiplomacyChange(change, { diplomacy, favour }));
+
+  const townEvent = rollRandomTownEvent({ townCount: range, protectedTownIndex, rng });
+  if (townEvent) {
+    applyRandomTownEvent(towns[townEvent.townIndex], townEvent.event, rng);
+    news.push(townEvent);
+  }
+  return news;
+}
+
+// Game start (0x13679): one log entry per nation pair, a < b: its war or
+// alliance, or for a pair at peace a random town event (e = 11 + rnd(5) at
+// town rnd(range), see randomTownRange) that is only reported, never applied.
+export function initialWorldNews({ diplomacy, townRange, rng }) {
+  const news = [];
+  for (let first = 0; first < NATION_ORDER.length - 1; first += 1) {
+    for (let second = first + 1; second < NATION_ORDER.length; second += 1) {
+      const nationA = NATION_ORDER[first];
+      const nationB = NATION_ORDER[second];
+      const relation = diplomacy[nationA][nationB];
+      if (relation !== 0) {
+        news.push({ event: WORLD_EVENT.PEACE + relation, nationA, nationB });
+      } else {
+        const event = WORLD_EVENT.INDIANS + rng.int(5);
+        news.push({ event, townIndex: rng.int(townRange) });
+      }
+    }
+  }
+  return news;
+}
+
+export function worldNewsMessage(entry, towns) {
+  const town = towns[entry.townIndex]?.name;
+  switch (entry.event) {
+    case WORLD_EVENT.AMNESTY: return `${entry.nation} offers pirate amnesty!`;
+    case WORLD_EVENT.INDIANS: return `Indians have attacked ${town}.`;
+    case WORLD_EVENT.GOLD_MINE: return `A new gold mine has opened at ${town}.`;
+    case WORLD_EVENT.MALARIA: return `Malaria has struck ${town}.`;
+    case WORLD_EVENT.NEW_GOVERNOR: return `${town} has a new governor.`;
+    case WORLD_EVENT.PIRATES: return `Pirates have plundered ${town}.`;
+    case WORLD_EVENT.WAR: return `${entry.nationA} is at war with ${entry.nationB}.`;
+    case WORLD_EVENT.PEACE: return `${entry.nationA} and ${entry.nationB} have made peace.`;
+    case WORLD_EVENT.ALLIANCE: return `${entry.nationA} has allied with ${entry.nationB}.`;
+    case WORLD_EVENT.CONQUEST: return `${entry.nation} has captured ${town} from ${entry.previousNation}.`;
+    default: return '';
+  }
 }
 
 export function advanceDate(calendar) {
@@ -790,21 +1141,7 @@ export function removeShipWithCargo(player, slot, shipStats) {
 export const RESTART_MIN_CREW = 8;
 
 export function restartAfterLastShip(player, flagship, shipStats) {
-  const typeIndex = shipStats[flagship.type].type;
-  const personalWealth = player.personalWealth - Math.trunc(player.personalWealth / 10);
-  const crew = Math.max(RESTART_MIN_CREW, player.reputation + 16);
-  return {
-    ...player,
-    personalWealth,
-    partyGold: Math.trunc(personalWealth / 10),
-    ships: [{ type: flagship.type, damage: 0 }],
-    cannon: 2 * typeIndex + 6,
-    foodFixed: 15 * 256,
-    goods: 0,
-    specialGoods: 0,
-    crew,
-    monthsAtSea: 0,
-  };
+  return freshFleet(player, { gold: 0, flagshipType: flagship.type, shipStats, minCrew: RESTART_MIN_CREW });
 }
 
 // Captivity after the last ship is lost (0x1F803, called by 0x1F2A1 for
@@ -822,12 +1159,13 @@ export function healthLevel({ yearsElapsed, wounds = 0, medicine = false }) {
   return Math.min(3, Math.trunc((yearsElapsed + wounds) / (medicine ? 4 : 3)));
 }
 
-// The rest of 0x1F803 after the fresh fleet: captured pirates are freed
-// (0x4720A cleared), and the difficulty drops one level unless it is already
-// Apprentice, so you return "as an apprentice/journeyman/... captain".
+// The rest of 0x1F803 after the fresh fleet: every prisoner is freed (all
+// eight 0x4720A slots are cleared at 0x1F88F, hunters and pirates alike), and
+// the difficulty drops one level unless it is already Apprentice, so you
+// return "as an apprentice/journeyman/... captain".
 export function releaseFromCaptivity(player, difficulty) {
   return {
-    player: { ...player, capturedCaptains: (player.capturedCaptains ?? []).filter(({ pirate }) => !pirate) },
+    player: { ...player, capturedCaptains: [] },
     difficulty: (difficulty & 3) !== 0 ? difficulty - 1 : difficulty,
   };
 }
