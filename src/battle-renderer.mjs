@@ -1,17 +1,11 @@
 import { NATIONS } from './data.mjs';
 import { BATTLE_SAIL_TRANSITION_FRAMES, broadsideState, damageLevel, hitBox } from './battle-mechanics.mjs';
-
-function sailSpread(ship) {
-  const current = ship.sails === 'full' ? 7 : 4;
-  if (!ship.sailTransition) return current;
-  const target = ship.targetSails === 'full' ? 7 : 4;
-  const progress = 1 - ship.sailTransition / BATTLE_SAIL_TRANSITION_FRAMES;
-  return current + (target - current) * progress;
-}
+import { headingSector, paintShipSprite, shipArtLength } from './ship-sprites.mjs';
+import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 
 // The hit box is fixed and axis-aligned (sea_battles.md §3), so it is drawn
-// unrotated as a faint outline, and the silhouette is scaled to about its size:
-// the unscaled hull is 21 + type pixels long.
+// unrotated as a faint outline, and the sprite's hull is drawn about as long
+// as the box's half-width plus half-height.
 function drawHitBox(context, ship, scale) {
   const { halfWidth, halfHeight } = hitBox(ship);
   context.save();
@@ -22,24 +16,25 @@ function drawHitBox(context, ship, scale) {
   context.restore();
 }
 
-function drawShip(context, ship, color) {
+const shipSpriteCache = new Map();
+
+// The pixel-art ship (ship-sprites.mjs): one sprite per heading sector, sail
+// state, flag, wind and damage level, drawn at a whole number of device
+// pixels per art pixel.
+function drawShip(context, ship, wind, scale) {
   const { halfWidth, halfHeight } = hitBox(ship);
-  const size = (halfWidth + halfHeight) / (21 + ship.type);
-  context.save();
-  context.translate(ship.x, ship.y);
-  context.rotate(ship.heading / 256 * Math.PI * 2);
-  context.scale(size, size);
-  context.fillStyle = 'rgba(0,0,0,.25)';
-  context.beginPath(); context.ellipse(2, 3, 6 + ship.type * .35, 11 + ship.type * .55, 0, 0, Math.PI * 2); context.fill();
-  context.fillStyle = '#63371f'; context.strokeStyle = '#24150d'; context.lineWidth = 1;
-  context.beginPath(); context.moveTo(0, -10 - ship.type * .5); context.lineTo(5 + ship.type * .3, 7); context.lineTo(0, 11 + ship.type * .5); context.lineTo(-5 - ship.type * .3, 7); context.closePath(); context.fill(); context.stroke();
-  context.strokeStyle = '#2b2116'; context.beginPath(); context.moveTo(0, -8); context.lineTo(0, 7); context.stroke();
-  const spread = sailSpread(ship);
-  context.fillStyle = ship.sailTransition ? '#c9b886' : '#ead9aa';
-  context.beginPath(); context.moveTo(0, -6); context.lineTo(spread, 2); context.lineTo(0, 5); context.closePath(); context.fill();
-  context.beginPath(); context.moveTo(0, -5); context.lineTo(-spread, 2); context.lineTo(0, 5); context.closePath(); context.fill();
-  context.fillStyle = color; context.beginPath(); context.moveTo(0, -10); context.lineTo(7, -7); context.lineTo(0, -5); context.closePath(); context.fill();
-  context.restore();
+  const length = shipArtLength(ship.type, 'battle');
+  const key = NATIONS[ship.flag] ? ship.flag : 'pirate';
+  const sector = headingSector(ship.heading);
+  const windSector = headingSector(wind);
+  const level = Math.min(4, ship.damage >> 4);
+  const sprite = cachedSprite(shipSpriteCache, `${ship.type}|${sector}|${ship.sails}|${key}|${windSector}|${level}`, () => paintShipSprite({
+    type: ship.type, heading: sector * 16, sails: ship.sails, nation: { key, ...NATIONS[key] },
+    wind: windSector * 16, damage: level * 16, length,
+  }));
+  if (!sprite) return;
+  const pixelScale = Math.max(1, Math.round(((halfWidth + halfHeight) * scale * devicePixelScale()) / length));
+  drawPixelSprite(context, sprite, ship.x, ship.y, pixelScale);
 }
 
 function shipStatus(ship, compact = false) {
@@ -101,8 +96,8 @@ export function renderBattle(context, battle, width, height) {
   }
   drawHitBox(context, battle.player, scale);
   drawHitBox(context, battle.enemy, scale);
-  drawShip(context, battle.player, NATIONS[battle.player.flag]?.color ?? NATIONS.pirate.color);
-  drawShip(context, battle.enemy, NATIONS[battle.enemy.flag]?.color ?? NATIONS.pirate.color);
+  // The nearer ship (lower on screen) is drawn last.
+  for (const ship of [battle.player, battle.enemy].sort((a, b) => a.y - b.y)) drawShip(context, ship, battle.wind.direction, scale);
   const windAngle = battle.wind.direction / 256 * Math.PI * 2;
   context.strokeStyle = '#f3e5c5'; context.fillStyle = '#f3e5c5'; context.lineWidth = 2 / scale;
   context.beginPath(); context.moveTo(30, 35); context.lineTo(30 + Math.sin(windAngle) * 24, 35 - Math.cos(windAngle) * 24); context.stroke();

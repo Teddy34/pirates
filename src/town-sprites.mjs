@@ -3,12 +3,12 @@
 // forts; only the flag shows who holds the town.
 // Presentation only; no rule depends on anything in this module.
 
+import { FLAG_DARK, createArt, rasterize } from './pixel-art.mjs';
+
 export const TOWN_SPRITE_WIDTH = 26;
 export const TOWN_SPRITE_HEIGHT = 26;
 // The art pixel that sits on the town's map cell centre.
 export const TOWN_SPRITE_ANCHOR = { x: 13, y: 19 };
-
-const rgb = (hex) => [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16));
 
 // One building style for every town: the flag alone shows allegiance. A
 // struggling settlement has thatched huts; better-off towns have tiled roofs.
@@ -16,28 +16,14 @@ const STYLE = { wall: '#ece0c2', wallShade: '#c3b28b', roofLight: '#cf6c4b', roo
 const THATCH = { wall: '#c9b48a', wallShade: '#a08a62', roofLight: '#d9be72', roof: '#b99a52', roofDark: '#8a7038' };
 
 const COMMON = {
-  outline: '#21180f', window: '#3b2b1d', glow: '#f2c55c', door: '#5a3b22',
+  window: '#3b2b1d', glow: '#f2c55c', door: '#5a3b22',
   stone: '#a49d8b', stoneLight: '#c2bba6', stoneDark: '#706a5c', pole: '#3a2a1a', cannon: '#1d1d1f',
 };
-
-const FLAG_DARK = { Spain: '#a8331f', England: '#f4f0e4', France: '#f4f0e4', Holland: '#2f4f9a', pirate: '#1b1b1b' };
 
 // Prosperity level from town growth (CSTN 9, town_economy.md): 0 struggling,
 // 1 surviving, 2 prospering, 3 wealthy.
 export function prosperityLevel(growth) {
   return Math.min(3, Math.max(0, growth >> 6));
-}
-
-function canvas() {
-  const pixels = new Array(TOWN_SPRITE_WIDTH * TOWN_SPRITE_HEIGHT).fill(null);
-  const set = (x, y, color) => {
-    if (x < 0 || y < 0 || x >= TOWN_SPRITE_WIDTH || y >= TOWN_SPRITE_HEIGHT) return;
-    pixels[y * TOWN_SPRITE_WIDTH + x] = color;
-  };
-  const rect = (x, y, w, h, color) => {
-    for (let row = y; row < y + h; row += 1) for (let col = x; col < x + w; col += 1) set(col, row, color);
-  };
-  return { pixels, set, rect };
 }
 
 // A house whose wall spans x..x+w-1 and stands on row `base` (exclusive).
@@ -136,7 +122,7 @@ function mansion(art, style, { x, base }) {
 
 // Paints a town marker. `nation` is { key, color, dark } from NATIONS.
 export function paintTownSprite({ nation, prosperity, forts: fortCount }) {
-  const art = canvas();
+  const art = createArt(TOWN_SPRITE_WIDTH, TOWN_SPRITE_HEIGHT);
   let flagAt;
   if (prosperity <= 0) {
     // Struggling: two thatched huts and a woodpile.
@@ -168,28 +154,5 @@ export function paintTownSprite({ nation, prosperity, forts: fortCount }) {
   }
   forts(art, fortCount);
   flag(art, nation, flagAt);
-  return rasterize(art.pixels);
-}
-
-// Outline every painted pixel, then drop a soft shadow to the south-east.
-function rasterize(pixels) {
-  const width = TOWN_SPRITE_WIDTH, height = TOWN_SPRITE_HEIGHT;
-  const painted = (x, y) => x >= 0 && y >= 0 && x < width && y < height && pixels[y * width + x] !== null;
-  const out = new Uint8ClampedArray(width * height * 4);
-  const outline = rgb(COMMON.outline);
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const offset = (y * width + x) * 4;
-      const color = pixels[y * width + x];
-      if (color !== null) {
-        const [r, g, b] = rgb(color);
-        out[offset] = r; out[offset + 1] = g; out[offset + 2] = b; out[offset + 3] = 255;
-      } else if (painted(x - 1, y) || painted(x + 1, y) || painted(x, y - 1) || painted(x, y + 1)) {
-        out[offset] = outline[0]; out[offset + 1] = outline[1]; out[offset + 2] = outline[2]; out[offset + 3] = 255;
-      } else if (painted(x - 2, y - 1) || painted(x - 1, y - 2)) {
-        out[offset + 3] = 80;
-      }
-    }
-  }
-  return out;
+  return rasterize(art);
 }
