@@ -125,10 +125,11 @@ test('health counts years and wounds in thirds, quarters with medicine', () => {
   assert.equal(healthLevel({ yearsElapsed: 20, wounds: 0 }), 3);
 });
 
-test('release from captivity frees held pirates and lowers the difficulty', () => {
+test('release from captivity frees every prisoner and lowers the difficulty', () => {
+  // 0x1F88F clears all eight 0x4720A slots, hunters as well as pirates.
   const captives = [{ pirate: true }, { pirate: false, nation: 'Spain' }];
   const released = releaseFromCaptivity({ capturedCaptains: captives }, 2);
-  assert.deepEqual(released.player.capturedCaptains, [{ pirate: false, nation: 'Spain' }]);
+  assert.deepEqual(released.player.capturedCaptains, []);
   assert.equal(released.difficulty, 1);
   assert.equal(releaseFromCaptivity({}, 0).difficulty, 0);
 });

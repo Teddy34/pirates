@@ -78,6 +78,13 @@ for (const [eraIndex, era] of eraOrder.entries()) {
         entry.ship, entry.flag, entry['b2_crew?'], entry['b3_guns?'], entry.b4_kind, entry['b5_gold?'], entry.b6,
       ]),
     ])),
+    // Nation slot 4, tier 0 (0x47112): the treasure fleet's galleon, in the
+    // same [ship, flag, crew/4, guns, kind, gold, cargo] order. Byte 5 is
+    // also the town-capture bonus of both convoys (0x47117).
+    treasureFleet: (() => {
+      const bytes = templates[era].templates.treasure_fleet.hex.match(/../g).map((value) => Number.parseInt(value, 16));
+      return [shipNames[bytes[0] & 7], ['Spain', 'England', 'France', 'Holland', 'pirate'][bytes[1]], ...bytes.slice(2)];
+    })(),
   };
 }
 
