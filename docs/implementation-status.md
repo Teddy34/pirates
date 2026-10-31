@@ -147,7 +147,8 @@ for future work.
 - Resolve a provisional town assault, including the decoded treasury and town
   damage formulas, possible governor installation, and transferable plunder.
 - See "The treasure fleet is in the harbor!" / "The silver train is in
-  town!" on the approach. An assault adds 10 soldiers per convoy in town
+  town!" on the approach (only the train's line when both are there, as the
+  original overwrites one with the other at `0x19193`). An assault adds 10 soldiers per convoy in town
   (`0x18B9C`); capturing the town adds 20 × the fleet template's byte 5 per
   convoy to the base loot (+51,000 shown in 1560), logs "Captured the
   treasure fleet!" / "Captured the silver train!" and finishes that convoy

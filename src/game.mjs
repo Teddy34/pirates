@@ -1446,11 +1446,18 @@ function showConvoyReport(kind, next) {
 
 // ASSUMED: the original's log strings "Treasure fleet in %s." and "Silver
 // train in %s." (CSTN 20, events 20 and 21) have no caller in the
-// executable. The port records each report the captain receives with them in
-// the captain's log so the intelligence can be read back later.
+// executable. The port records a report the captain receives with them in
+// the captain's log so the intelligence can be read back later, but only
+// when it differs from the last one noted for that convoy. `convoyNotes`
+// is optional in a save; an older voyage simply notes its next report.
 function noteConvoyReport(kind) {
   const report = convoyReport(kind, state.convoys[kind], state.towns);
-  addLog(`${kind === 'treasureFleet' ? 'Treasure fleet' : 'Silver train'} in ${report.place}.`);
+  const line = `${kind === 'treasureFleet' ? 'Treasure fleet' : 'Silver train'} in ${report.place}.`;
+  state.convoyNotes ??= {};
+  if (state.convoyNotes[kind] !== line) {
+    state.convoyNotes[kind] = line;
+    addLog(line);
+  }
   return report;
 }
 
@@ -1663,11 +1670,14 @@ function approachTown({ overland = false } = {}) {
   });
 }
 
-// CSTN 29 [2], [3]: the approach names a convoy lying in the town.
+// CSTN 29 [2], [3]: the approach names a convoy lying in the town. Both
+// lines are copied into the same buffer (0x19193-0x1920A), so with both
+// convoys in town only the silver train's line shows.
 function convoyArrivalLines(town) {
-  return convoysInTown(state.convoys, state.towns.indexOf(town))
-    .map((kind) => `<p class="convoy-news"><strong>${kind === 'treasureFleet' ? 'The treasure fleet is in the harbor!' : 'The silver train is in town!'}</strong></p>`)
-    .join('');
+  const present = convoysInTown(state.convoys, state.towns.indexOf(town));
+  if (!present.length) return '';
+  const line = present.includes('silverTrain') ? 'The silver train is in town!' : 'The treasure fleet is in the harbor!';
+  return `<p><strong>${line}</strong></p>`;
 }
 
 function showOverlandMarch() {
@@ -3359,12 +3369,17 @@ loadScenarios().then(() => {
     return;
   }
   if (preview === 'treasure-fleet' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // Both convoys lie in Havana 1560 as the ship arrives there.
+    // Both convoys lie in Campeche 1560, stop 13 of each route; the ship
+    // waits on the town's departure cell and opens the approach.
     const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    const havana = previewState.towns.findIndex((town) => town.name === 'Havana');
-    previewState.convoys = { treasureFleet: { position: 0, townIndex: havana }, silverTrain: { position: 9, townIndex: havana } };
-    Object.assign(previewState.player, { x: 244.5, y: 176.5, heading: 128, speed: 12 });
-    startGame(previewState);
+    const campeche = previewState.towns.findIndex((town) => town.name === 'Campeche');
+    previewState.convoys = { treasureFleet: { position: 13, townIndex: campeche }, silverTrain: { position: 13, townIndex: campeche } };
+    const [x, y, heading] = scenarios['1560'].towns[campeche].departure;
+    Object.assign(previewState.player, { x: x + 0.5, y: y + 0.5, heading, speed: 0, sails: 'furled' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = campeche;
+      approachTown();
+    });
     return;
   }
   if (preview === 'landing' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
