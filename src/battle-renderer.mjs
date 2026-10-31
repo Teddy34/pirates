@@ -1,5 +1,5 @@
 import { NATIONS } from './data.mjs';
-import { BATTLE_SAIL_TRANSITION_FRAMES, damageLevel } from './battle-mechanics.mjs';
+import { BATTLE_SAIL_TRANSITION_FRAMES, broadsideState, damageLevel, hitBox } from './battle-mechanics.mjs';
 
 function sailSpread(ship) {
   const current = ship.sails === 'full' ? 7 : 4;
@@ -9,10 +9,26 @@ function sailSpread(ship) {
   return current + (target - current) * progress;
 }
 
+// The hit box is fixed and axis-aligned (sea_battles.md §3), so it is drawn
+// unrotated as a faint outline, and the silhouette is scaled to about its size:
+// the unscaled hull is 21 + type pixels long.
+function drawHitBox(context, ship, scale) {
+  const { halfWidth, halfHeight } = hitBox(ship);
+  context.save();
+  context.strokeStyle = 'rgba(235,245,240,.16)';
+  context.lineWidth = 1 / scale;
+  context.setLineDash([3 / scale, 3 / scale]);
+  context.strokeRect(ship.x - halfWidth, ship.y - halfHeight, 2 * halfWidth, 2 * halfHeight);
+  context.restore();
+}
+
 function drawShip(context, ship, color) {
+  const { halfWidth, halfHeight } = hitBox(ship);
+  const size = (halfWidth + halfHeight) / (21 + ship.type);
   context.save();
   context.translate(ship.x, ship.y);
   context.rotate(ship.heading / 256 * Math.PI * 2);
+  context.scale(size, size);
   context.fillStyle = 'rgba(0,0,0,.25)';
   context.beginPath(); context.ellipse(2, 3, 6 + ship.type * .35, 11 + ship.type * .55, 0, 0, Math.PI * 2); context.fill();
   context.fillStyle = '#63371f'; context.strokeStyle = '#24150d'; context.lineWidth = 1;
@@ -33,7 +49,7 @@ function shipStatus(ship, compact = false) {
       ? `Sails ${ship.targetSails === 'full' ? '↑' : '↓'}${sailProgress}%`
       : `${ship.targetSails === 'full' ? 'Raising' : 'Lowering'} sail (${sailProgress}%)`
     : ship.sails === 'full' ? 'Full sails' : 'Battle sails';
-  const reload = ship.reload > 0 ? `Reload ${ship.reload}` : ship.guns > 0 ? 'Loaded' : 'Disarmed';
+  const reload = broadsideState(ship).label;
   const condition = damageLevel(ship.damage) || 'Sound';
   if (compact) return `${ship.men} crew · ${ship.guns} guns · ${sails}`;
   return `${ship.men} crew · ${ship.guns} guns · ${reload} · ${condition} · ${sails}`;
@@ -76,16 +92,15 @@ export function renderBattle(context, battle, width, height) {
     context.stroke();
   }
   for (const shot of battle.projectiles) {
-    const progress = 1 - shot.remaining / shot.total;
-    const x = shot.x + (shot.landingX - shot.x) * progress;
-    const y = shot.y + (shot.landingY - shot.y) * progress;
-    context.fillStyle = '#19130f'; context.beginPath(); context.arc(x, y, 1.8, 0, Math.PI * 2); context.fill();
+    context.fillStyle = '#19130f'; context.beginPath(); context.arc(shot.x, shot.y, 1.8, 0, Math.PI * 2); context.fill();
   }
   for (const effect of battle.effects) {
     const radius = Math.max(2, (24 - effect.life) / 2);
     context.strokeStyle = effect.kind === 'hit' ? '#f2ad4e' : effect.kind === 'smoke' ? 'rgba(230,225,205,.45)' : '#d5edf0';
     context.beginPath(); context.arc(effect.x, effect.y, radius, 0, Math.PI * 2); context.stroke();
   }
+  drawHitBox(context, battle.player, scale);
+  drawHitBox(context, battle.enemy, scale);
   drawShip(context, battle.player, NATIONS[battle.player.flag]?.color ?? NATIONS.pirate.color);
   drawShip(context, battle.enemy, NATIONS[battle.enemy.flag]?.color ?? NATIONS.pirate.color);
   const windAngle = battle.wind.direction / 256 * Math.PI * 2;

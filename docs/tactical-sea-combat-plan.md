@@ -57,6 +57,67 @@ reuse the finished naval engine in a later milestone.
   alert when cannon fire is heard.
 - Battle wind shifts every 512 frames: direction by `-16`, `0`, `+16`, or
   `+32`, and strength by `-1`, `0`, `0`, or `+1`, clamped to `0..2`.
+- Ships move in 24.8 fixed point, in units of 1/256 px: x by
+  `+4·sin(heading, s)` and y by `−4·cos(heading, s)` per frame, using the
+  original 128-byte sine table (`0x36628`, `0x23150`; cos is
+  `sin(angle + 64)`). That is about `s/64` pixels a frame, so 0.625 px at the
+  top speed of 40.
+- Hit boxes are fixed, axis-aligned half-sizes that do not turn with the ship
+  (tables `0x32B0C` / `0x32B20`): 20 × 10 for types 0–2, 30 × 20 for 3–5,
+  40 × 30 for 6–7, and 32 × 32 for the fort. Your shots test the enemy's box
+  enlarged to `half + k·(half >> 2)`, k = 3, 2, 1, 1, 1 for skill 0–4
+  (`0x9E38`); his shots test your exact box (`0x9EDA`). Boarding contact uses
+  a quarter of each half-size (`0x9C84`, the fort's box whole), and the
+  "close enough to strike" test twice (`0x9D53`).
+- The enemy's signed speed-table value is one less when it equals your
+  gunnery skill (`0x8BA0`, porting-guide quirk 19).
+- The enemy fires whenever he is loaded, has guns, has no ball out, and you
+  are less than 6 angle units off either beam, whatever his tactic
+  (`0x8EDF`). His sails change at once when his tactic is set (`0x8A57`),
+  unless an event was already set that frame (`0x8A25`).
+- Broadside side (`0x82EB` you, `0x8F86` him): heading + 64·sign of the
+  signed byte of your heading minus his bearing to you, or of that bearing
+  minus his heading. At sign 0 the ball goes forward: yours when he is dead
+  astern, his when you are dead ahead.
+- One event code per frame (`0x44A12`), cleared at the frame's start; each
+  event overwrites it, so the frame's last event wins. 1 your broadside, 2
+  loaded, 4 wind direction changed, 5 boarding contact, 6 out of range, 7 a
+  hit, 8 sunset, 9 he strikes, 10/11 your sail change starts/ends, 12 his
+  sails change. The driver (`0xEF06`, table `0x33030`) ends the battle on 5,
+  6, 8, 9 and 13, and on 7 checks your damage, then his, for a sinking
+  (`0xEBD7`). So a hit that sinks him on a frame where he then strikes makes
+  him strike, and a sinking whose hit is overwritten that frame waits for the
+  next hit. Within a frame the order is: sunset count (event when it passes
+  4,500, `0x7E38`), your rudder, sails and reload, movement and shot; his
+  reload, boarding contact, the wind (`0x87F6`), separation, his captain
+  (strike, then tactic, sails and course), movement and shot.
+- Your hit sets his wanted heading to the wind direction (`0x8650`), so he
+  turns downwind until his next decision.
+- The wind changes strength only when its direction changed (`0x87F6`).
+- Each ship has one shot counter (`0x44A02` you, `0x44A40` him). A ball fired
+  at distance `d` moves `4·sin(direction, 128)` per axis per frame (about 2 px)
+  and lands `d/2` frames later, tested where it is; the counter then runs
+  through a splash and clears 38 frames after landing, so the ship can fire
+  again 39 frames after its ball lands (`0x8395`, `0x85B0`, `0x84EC`, and
+  `0x9029`, `0x923B`, `0x9177` for him). Your reload is held at 1 while your
+  ball is out (`0x7F82`), so the guns read loaded only when you can fire.
+- Your reload doesn't count down in a frame that asks for a sail change or
+  while the 160-frame change runs (`0x7EE3`–`0x7F3E`); a request during a
+  change is ignored. His reload always counts down (`0x8729`).
+- Ship battles start mirrored about the field's centre (`0x9A79`–`0x9BD4`):
+  on each axis `r = rnd`, the offset is `32 + (r & 15)`, negated when
+  `r & 0x80`; you sit at centre + offset and he at centre − offset. You point
+  at him in one of eight directions; his heading is yours − 96 + `rnd(32)` −
+  16, and his first wanted heading a random byte. The port centres this on its
+  arena.
+
+### Deliberate deviations
+
+- **Quirk 18 is not reproduced.** The original reads your ship's speed-table
+  value unsigned (`0x7FBB`), so a square-rigger pointed dead into the wind
+  (table value −1) reads 255 and sails at the top speed of 40. It is
+  unconfirmed at runtime and would be an exploit, so the port reads the table
+  signed for both ships: your ship stops head to wind, as the enemy's does.
 
 ### Open points that must stay explicit
 
@@ -69,8 +130,9 @@ reuse the finished naval engine in a later milestone.
 - The real-time duration of one original battle frame is not established.
   Choose one named provisional duration, keep all mechanics in frame units,
   and mark the wall-clock conversion `ASSUMED` so it can be tuned later.
-- Exact initial ship placement, arena camera scale, collision boxes, and sprite
-  dimensions are presentation-compatible approximations until verified.
+- The arena size and camera scale, the placement's centre, and sprite
+  dimensions are presentation-compatible approximations until verified. Ship silhouettes are
+  drawn at about their hit box's size, with the box outlined faintly.
 - Enemy-ship prize cargo and the full captured-ship aftermath are incompletely
   decoded. The first slice may award the ship and template gold while leaving
   unknown cargo at zero.
@@ -235,11 +297,11 @@ the three tactics:
   downwind-course limit;
 - **duel**: battle sails, turn to keep the player on the nearer beam, unless
   that beam is more than 95 units from downwind, then take the other beam;
-  fire within six angle units of the beam;
 - **flee**: full sails, steer away while respecting the same wind limit.
 
-The wanted heading is set with the tactic every 64 frames and truncated to a
-multiple of 16. Check the surrender condition before the behavior table. Use the documented
+Whatever the tactic, he fires when loaded and armed with you less than six
+angle units off either beam. The wanted heading is set with the tactic every
+64 frames and truncated to a multiple of 16. Check the surrender condition before the behavior table. Use the documented
 enemy turn rate, `3 - floor((type + 2) / 4)`, every eight frames. Put all AI
 choice logic in pure functions and test the 27 table entries exhaustively.
 
@@ -306,7 +368,7 @@ and sail state must not rely on color alone.
 
 The visual style should remain original. Use simple vector silhouettes whose
 collision boxes are visible enough to learn, keep ship markers a stable screen
-size across camera changes, and let wakes show actual motion and drift. Do not
+size across camera changes, and let wakes show actual motion. Do not
 use extracted original sprites or sounds.
 
 ## Deterministic test matrix

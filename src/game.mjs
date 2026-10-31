@@ -23,14 +23,14 @@ import {
   merchantCommodityPrice, merchantFoodPrice, merchantStock, advanceDate,
   NATION_ORDER, monthlyWorldUpdate, initialWorldNews, randomTownRange, worldNewsMessage, newGameTowns,
   townInfoStatus, learnTownInfo, TOWN_INFO_CURRENT,
-  fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
+  fleetIsUndermanned, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
   escapeCostsShip,
   monthEndCrewEvent, mutinyOutcome,
   CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
-  createBattle, damageLevel, shipName, shipRecord, stepBattle,
+  broadsideState, createBattle, damageLevel, shipName, shipRecord, stepBattle,
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
 import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
@@ -1264,6 +1264,7 @@ function finishTacticalBattle() {
     ...battle.encounter,
     crew: Math.max(1, Math.ceil(battle.enemy.men / 4)),
     guns: battle.enemy.guns,
+    damage: battle.enemy.damage, // a kept prize carries it (0xDB7B reads 0x44A4A)
   };
 
   if (battle.event === 'enemy-struck') {
@@ -1343,7 +1344,7 @@ function beginShipCapture(enemy) {
   const freeHold = cargoRoom();
   showDialog({
     kicker: 'Prize taken', title: `The ${enemy.ship} has struck`,
-    body: `<p>She is a ${stats.cargo}-ton ${enemy.ship} carrying ${enemy.guns} guns. Your fleet has ${freeHold} tons of empty hold space.</p><p>Will you keep her or strip and sink her?</p>`,
+    body: `<p>She is a ${stats.cargo}-ton ${enemy.ship} carrying ${enemy.guns} guns${damageLevel(enemy.damage ?? 0) ? ` (${damageLevel(enemy.damage).toLowerCase()})` : ''}. Your fleet has ${freeHold} tons of empty hold space.</p><p>Will you keep her or strip and sink her?</p>`,
     actions: [
       { label: 'Send a prize crew', run: () => keepPrizeShip(enemy) },
       { label: 'Plunder and sink her', secondary: true, run: () => finishPrizeDecision(enemy, false) },
@@ -1352,10 +1353,9 @@ function beginShipCapture(enemy) {
 }
 
 function keepPrizeShip(enemy) {
+  const prize = { type: enemy.ship, damage: enemy.damage ?? 0 };
   if (state.player.ships.length < 8) {
-    const slotIndex = state.player.ships.length;
-    state.player.ships.push({ type: enemy.ship, damage: 0 });
-    state.player.crew = Math.max(state.player.crew, slotIndex * 8);
+    state.player = keepPrize(state.player, prize).player;
     addLog(`Sent a prize crew aboard the captured ${enemy.ship}.`);
     finishPrizeDecision(enemy, true);
     return;
@@ -1366,7 +1366,7 @@ function keepPrizeShip(enemy) {
     actions: state.player.ships.map((ship, index) => ({
       label: `Abandon ${describeShip(ship)} (${index + 1})`,
       run: () => {
-        state.player.ships[index] = { type: enemy.ship, damage: 0 };
+        state.player = keepPrize(state.player, prize, index).player;
         addLog(`Abandoned a ${shipName(ship)} and kept the captured ${enemy.ship}.`);
         finishPrizeDecision(enemy, true);
       },
@@ -2906,9 +2906,10 @@ function updateInterface() {
       : battle.player.sails === 'full' ? 'Full' : 'Battle';
     labels.food.textContent = 'Clock stopped';
     labels.crew.textContent = `${battle.player.men} aboard`;
-    labels.gold.textContent = battle.player.reload > 0 ? `Reload ${battle.player.reload}` : 'Loaded';
+    const guns = broadsideState(battle.player);
+    labels.gold.textContent = guns.label;
     labels.nearest.textContent = `${battle.enemy.men} crew · ${battle.enemy.guns} guns`;
-    dockButton.disabled = state.paused || battle.player.reload > 0 || battle.player.guns <= 0;
+    dockButton.disabled = state.paused || !guns.ready;
     logbookButton.disabled = true;
     return;
   }
@@ -3396,6 +3397,15 @@ loadScenarios().then(() => {
     const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     Object.assign(previewState.player, { x: 318.5, y: 443.5, speed: 0, sails: 'furled' });
     startGame(previewState);
+    return;
+  }
+  if (preview === 'battle' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // A sea battle against a Spanish Merchantman, for checking the battle
+    // screen and its pace.
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 20, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);
+    });
     return;
   }
   if (preview === 'shipwreck' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
