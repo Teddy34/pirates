@@ -48,10 +48,10 @@ export function createArt(width, height) {
 }
 
 // Outline every painted pixel, then drop a soft shadow to the south-east.
-export function rasterize({ pixels, width, height }) {
+export function rasterize({ pixels, width, height }, { outline: outlineColor = OUTLINE, shadow = true } = {}) {
   const painted = (x, y) => x >= 0 && y >= 0 && x < width && y < height && pixels[y * width + x] !== null;
   const out = new Uint8ClampedArray(width * height * 4);
-  const outline = rgb(OUTLINE);
+  const outline = outlineColor ? rgb(outlineColor) : null;
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const offset = (y * width + x) * 4;
@@ -59,9 +59,9 @@ export function rasterize({ pixels, width, height }) {
       if (color !== null) {
         const [r, g, b] = rgb(color);
         out[offset] = r; out[offset + 1] = g; out[offset + 2] = b; out[offset + 3] = 255;
-      } else if (painted(x - 1, y) || painted(x + 1, y) || painted(x, y - 1) || painted(x, y + 1)) {
+      } else if (outline && (painted(x - 1, y) || painted(x + 1, y) || painted(x, y - 1) || painted(x, y + 1))) {
         out[offset] = outline[0]; out[offset + 1] = outline[1]; out[offset + 2] = outline[2]; out[offset + 3] = 255;
-      } else if (painted(x - 2, y - 1) || painted(x - 1, y - 2)) {
+      } else if (shadow && (painted(x - 2, y - 1) || painted(x - 1, y - 2))) {
         out[offset + 3] = 80;
       }
     }

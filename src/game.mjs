@@ -43,6 +43,7 @@ import {
 import { TREASURE_SITES } from './treasure-sites.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
+import { CLOUD_ART_PIXEL, paintCloudSprite } from './cloud-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
@@ -3276,42 +3277,25 @@ function render() {
   if (state.paused && state.mode === 'sailing' && !dialog.open) drawPaused(width, height, 'Voyage paused');
 }
 
+// Clouds keep one screen size at every zoom; their shadow falls 30 screen
+// pixels to the south-west, as before.
+const cloudSpriteCache = new Map();
+const CLOUD_SHADOW_OFFSET = { x: -30, y: 30 };
+
 function drawClouds(zoom, playerPose, clouds) {
+  const scale = CLOUD_ART_PIXEL * devicePixelScale();
   for (const cloud of clouds) {
     const opacity = cloudWrapOpacity(cloud, playerPose.x, playerPose.y);
     if (opacity <= 0) continue;
+    const shadow = cachedSprite(cloudSpriteCache, `${cloud.shape}|shadow`, () => paintCloudSprite(cloud.shape, { shadow: true }));
+    const body = cachedSprite(cloudSpriteCache, `${cloud.shape}`, () => paintCloudSprite(cloud.shape));
+    if (!shadow || !body) continue;
     ctx.save();
-    ctx.globalAlpha = opacity;
-    ctx.translate(cloud.x, cloud.y);
-    ctx.scale(1 / zoom, 1 / zoom);
-
-    ctx.fillStyle = 'rgba(2, 20, 27, .3)';
-    drawCloudShape(cloud.shape, -30, 30);
-    ctx.fill();
-
-    const cloudGradient = ctx.createLinearGradient(0, -18, 0, 18);
-    cloudGradient.addColorStop(0, 'rgba(255, 252, 229, .96)');
-    cloudGradient.addColorStop(1, 'rgba(190, 211, 204, .92)');
-    ctx.fillStyle = cloudGradient;
-    ctx.strokeStyle = 'rgba(72, 95, 96, .55)';
-    ctx.lineWidth = 1.2;
-    drawCloudShape(cloud.shape, 0, 0);
-    ctx.fill();
-    ctx.stroke();
+    ctx.globalAlpha = opacity * .3;
+    drawPixelSprite(ctx, shadow, cloud.x + CLOUD_SHADOW_OFFSET.x / zoom, cloud.y + CLOUD_SHADOW_OFFSET.y / zoom, scale);
+    ctx.globalAlpha = opacity * .95;
+    drawPixelSprite(ctx, body, cloud.x, cloud.y, scale);
     ctx.restore();
-  }
-}
-
-function drawCloudShape(shape, offsetX, offsetY) {
-  const forms = [
-    [[-24, 6, 14], [-8, -3, 18], [11, 0, 16], [25, 7, 11]],
-    [[-27, 7, 11], [-15, 0, 16], [1, -6, 20], [20, 2, 15], [30, 8, 9]],
-    [[-22, 8, 13], [-7, 1, 15], [5, -7, 18], [18, 2, 13], [28, 8, 8]],
-  ];
-  ctx.beginPath();
-  for (const [x, y, radius] of forms[shape] ?? forms[0]) {
-    ctx.moveTo(offsetX + x + radius, offsetY + y);
-    ctx.arc(offsetX + x, offsetY + y, radius, 0, Math.PI * 2);
   }
 }
 

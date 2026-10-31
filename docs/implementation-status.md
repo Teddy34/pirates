@@ -52,6 +52,9 @@ for future work.
   rotated, and the sails show furled, battle or full canvas. In battle one
   art pixel is one battle pixel (the dashed hit box is larger), torn sails show damage level 1 and a
   lost foremast level 2, and sails being raised or lowered are shaded.
+- Draw the seasonal clouds as pixel-art puffs lit from the north-west, with
+  a soft outline and a flat pixel shadow on the sea (`src/cloud-sprites.mjs`).
+  They keep one screen size at every zoom.
 - Zoom from 16× to 64× without scaling town labels. Town and ship sprites
   step from 2 to 3 to 4 screen pixels per art pixel as the map zooms in.
 - Show every decoded town for the selected era, including eastern Caribbean
