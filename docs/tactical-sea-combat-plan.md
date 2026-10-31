@@ -57,9 +57,11 @@ reuse the finished naval engine in a later milestone.
   alert when cannon fire is heard.
 - Battle wind shifts every 512 frames: direction by `-16`, `0`, `+16`, or
   `+32`, and strength by `-1`, `0`, `0`, or `+1`, clamped to `0..2`.
-- Ships move `4·sin(heading, s)` per axis per frame in 24.8 fixed point,
-  using the original 128-byte sine table (`0x36628`, `0x23150`): about
-  `s/64` pixels a frame, so 0.625 px at the top speed of 40.
+- Ships move in 24.8 fixed point, in units of 1/256 px: x by
+  `+4·sin(heading, s)` and y by `−4·cos(heading, s)` per frame, using the
+  original 128-byte sine table (`0x36628`, `0x23150`; cos is
+  `sin(angle + 64)`). That is about `s/64` pixels a frame, so 0.625 px at the
+  top speed of 40.
 - Hit boxes are fixed, axis-aligned half-sizes that do not turn with the ship
   (tables `0x32B0C` / `0x32B20`): 20 × 10 for types 0–2, 30 × 20 for 3–5,
   40 × 30 for 6–7, and 32 × 32 for the fort. Your shots test the enemy's box
@@ -71,7 +73,27 @@ reuse the finished naval engine in a later milestone.
   gunnery skill (`0x8BA0`, porting-guide quirk 19).
 - The enemy fires whenever he is loaded, has guns, has no ball out, and you
   are less than 6 angle units off either beam, whatever his tactic
-  (`0x8EDF`). His sails change at once when his tactic is set (`0x8A57`).
+  (`0x8EDF`). His sails change at once when his tactic is set (`0x8A57`),
+  unless an event was already set that frame (`0x8A25`).
+- Broadside side (`0x82EB` you, `0x8F86` him): heading + 64·sign of the
+  signed byte of your heading minus his bearing to you, or of that bearing
+  minus his heading. At sign 0 the ball goes forward: yours when he is dead
+  astern, his when you are dead ahead.
+- One event code per frame (`0x44A12`), cleared at the frame's start; each
+  event overwrites it, so the frame's last event wins. 1 your broadside, 2
+  loaded, 4 wind direction changed, 5 boarding contact, 6 out of range, 7 a
+  hit, 8 sunset, 9 he strikes, 10/11 your sail change starts/ends, 12 his
+  sails change. The driver (`0xEF06`, table `0x33030`) ends the battle on 5,
+  6, 8, 9 and 13, and on 7 checks your damage, then his, for a sinking
+  (`0xEBD7`). So a hit that sinks him on a frame where he then strikes makes
+  him strike, and a sinking whose hit is overwritten that frame waits for the
+  next hit. Within a frame the order is: sunset count (event when it passes
+  4,500, `0x7E38`), your rudder, sails and reload, movement and shot; his
+  reload, boarding contact, the wind (`0x87F6`), separation, his captain
+  (strike, then tactic, sails and course), movement and shot.
+- Your hit sets his wanted heading to the wind direction (`0x8650`), so he
+  turns downwind until his next decision.
+- The wind changes strength only when its direction changed (`0x87F6`).
 - Each ship has one shot counter (`0x44A02` you, `0x44A40` him). A ball fired
   at distance `d` moves `4·sin(direction, 128)` per axis per frame (about 2 px)
   and lands `d/2` frames later, tested where it is; the counter then runs
