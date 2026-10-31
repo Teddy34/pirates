@@ -85,7 +85,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | D33 | L | `implementation-status.md` lists "town assaults, capture, and plunder" as missing, but a provisional assault exists. It also lists promotions as still needed, but they are implemented. |
 | D34 | L | `tactical-sea-combat-plan.md` treats drift and the −12..40 limit as confirmed, and the hit boxes as unverified. `sea_battles.md` says the opposite on both (see D12 and D14). |
 | D35 | L | **Fixed in #2.** The plan says the navigation map provides shallows; it doesn't (D1). |
-| D36 | L | The treasure-map clue town is a random town, not the town nearest a site from the documented list of treasure sites. This simplification isn't marked as an assumption (`game.mjs:1635`). |
+| D36 | L | **Fixed in feat/landing-overland.** The treasure-map clue town is a random town, not the town nearest a site from the documented list of treasure sites. This simplification isn't marked as an assumption (`game.mjs:1635`). |
 | D37 | L | The original only allows saving in town. The port also auto-saves at sea every 5 days and after battles. The porting guide allows this, but it isn't written down as a project decision. |
 | D38 | L | `applyProvisionalBattleOutcome` (`mechanics.mjs:129`) is no longer used by the game, only by tests. Its "sunk" and "lost" rules don't match the docs. |
 
@@ -93,7 +93,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 
 | # | Gap |
 |---|---|
-| K1 | Landing, walking on land, digging and reefs |
+| K1 | **Done in feat/landing-overland.** Landing, walking on land, digging and reefs. Sailing onto a land pixel asks "Disembark?" (No turns the ship round and re-boards it next tick); the party walks ½ px a tick on each axis in any terrain with a persistent walk vector, re-boards only within 10 px of the landing spot, loses half a day per tick pushing into water, and has no encounters or alert build-up. Towns are entered on foot and left from the town's own cell. Reefs wreck the last ship bigger than a sloop every 100 ticks on a shallow pixel. The three treasure-map records, the 256 dig sites (`0x34228`) and the dig (`0xA801`) follow the docs (any piece is enough). Assumptions: a party saved ashore stays ashore; a reef waits a tick when an encounter or food event opened in the same tick; an empty map record has no town; the map view's quarter order; the dig asks for confirmation. The relative branch of the dig waits for K7's villains to hand out pieces. |
 | K2 | **Fixed in #14.** Mutiny when morale ≤ −4. Traced (`0x1DD0E`): checked once after the months a voyage crosses, aboard at sea; a third of the crew deserts with their gold, the leader duel is provisional, and reputation drops by 4 (to −5 if the duel is lost). There is no marooning. |
 | K3 | Sword fights, fort battles and land battles |
 | K4 | Treasure fleet and silver train: monthly movement, encounter override and capture bonus |
