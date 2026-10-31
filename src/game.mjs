@@ -3177,6 +3177,15 @@ loadScenarios().then(() => {
     startGame(previewState);
     return;
   }
+  if (preview === 'battle' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // A sea battle against a Spanish Merchantman, for checking the battle
+    // screen and its pace.
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 20, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);
+    });
+    return;
+  }
   if (preview === 'shipwreck' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     // Four men cannot sail the last ship: the fleet check takes the at-sea
     // last-ship path to the uncharted island.
