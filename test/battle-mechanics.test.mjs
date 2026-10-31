@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SPEED_TABLE_1560 } from '../src/data.mjs';
 import {
-  BATTLE_SAIL_TRANSITION_FRAMES, BATTLE_SHOT_SPLASH_END, BATTLE_WIND_SHIFT_FRAMES,
+  BATTLE_EVENT, BATTLE_SAIL_TRANSITION_FRAMES, BATTLE_SHOT_SPLASH_END, BATTLE_WIND_SHIFT_FRAMES,
   PLAYER_RUDDER_INTERVAL, PLAYER_RUDDER_STEP,
-  applyCannonHit, battleDistance, battleSpeed, broadsideState, comparisonScore, cosScaled, createBattle,
+  applyCannonHit, battleDistance, battleSpeed, broadsideDirection, broadsideState, frameOutcome, shiftBattleWind, comparisonScore, cosScaled, createBattle,
   damageLevel, embarkedForBattle, enemyReloadTime, enemyTacticForScores, enemyWantedHeading,
   gunnerySkill, hitBox, initialPlacement, moveShip, playerReloadTime, shipRecord, shipsCloseEnoughToStrike,
   shipsTouch, shotHitsShip, sinScaled, stepBattle, stepPlayerSailsAndReload,
@@ -150,16 +150,93 @@ test('a beam-on broadside lands after the decoded travel delay and starts reload
 test('battle terminal boundaries cover sinking, collision, separation, and sunset', () => {
   const quiet = { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false };
   let battle = battleFixture();
+  // A sinking is checked only on a frame whose last event is a hit (0xEBD7),
+  // yours first.
   battle.player.damage = 64;
-  assert.equal(stepBattle(battle, quiet, zeroRng).event, 'player-sunk');
+  assert.equal(stepBattle(battle, quiet, zeroRng).event, null);
+  assert.equal(frameOutcome(BATTLE_EVENT.hit, battle), 'player-sunk');
   battle = battleFixture(); battle.enemy.damage = 64;
-  assert.equal(stepBattle(battle, quiet, zeroRng).event, 'enemy-sunk');
+  assert.equal(frameOutcome(BATTLE_EVENT.hit, battle), 'enemy-sunk');
+  battle.player.damage = 64;
+  assert.equal(frameOutcome(BATTLE_EVENT.hit, battle), 'player-sunk');
   battle = battleFixture(); battle.enemy.x = battle.player.x;
   assert.equal(stepBattle(battle, quiet, zeroRng).event, 'boarding');
   battle = battleFixture(); battle.player.x = 100; battle.enemy.x = 341;
   assert.equal(stepBattle(battle, quiet, zeroRng).event, 'escaped');
+  // 0x7E38 `jle`: the sun sets once the count passes 4,500.
   battle = battleFixture(); battle.noHitFrames = 4499;
+  assert.equal(stepBattle(battle, quiet, zeroRng).event, null);
+  battle = battleFixture(); battle.noHitFrames = 4500;
   assert.equal(stepBattle(battle, quiet, zeroRng).event, 'sunset');
+});
+
+test('the last event of a frame wins: a strike after a sinking hit is a strike (0x44A12)', () => {
+  const quiet = { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false };
+  const sinkingShot = (fireFrame, { canStrike = true } = {}) => {
+    let battle = battleFixture();
+    battle.enemy.x = 230; // 60 px: the ball flies 30 frames
+    battle.enemy.damage = 60;
+    // Out-gunning you (G > 0) he never strikes; his reload keeps him silent.
+    if (!canStrike) Object.assign(battle.enemy, { guns: 20, reload: 9999 });
+    battle.frame = fireFrame - 1;
+    battle = stepBattle(battle, { ...quiet, firePressed: true }, zeroRng);
+    while (!battle.event && battle.player.shotTimer < 0) battle = stepBattle(battle, quiet, zeroRng);
+    return battle;
+  };
+  // Landing on frame 128, a strike check: the hit (7) then the strike (9).
+  const struck = sinkingShot(98);
+  assert.equal(struck.frame, 128);
+  assert.ok(struck.enemy.damage >= 64);
+  assert.equal(struck.event, 'enemy-struck');
+  // When he can't strike, the same hit is the frame's last event: he explodes.
+  const sunk = sinkingShot(98, { canStrike: false });
+  assert.equal(sunk.frame, 128);
+  assert.equal(sunk.event, 'enemy-sunk');
+});
+
+test('broadsides follow the sign of the bearing, firing forward at the sign-0 bearing (0x82EB, 0x8F86)', () => {
+  // You: heading 0; he bears 64 from you (so 192 from him to you): starboard.
+  assert.equal(broadsideDirection('player', 0, 192), 64);
+  assert.equal(broadsideDirection('player', 0, 64), 192);
+  // He is dead astern of you (bearing to you 0): forward. Dead ahead (128): port.
+  assert.equal(broadsideDirection('player', 0, 0), 0);
+  assert.equal(broadsideDirection('player', 0, 128), 192);
+  // Him: heading 0, you dead ahead: forward; dead astern: port.
+  assert.equal(broadsideDirection('enemy', 0, 0), 0);
+  assert.equal(broadsideDirection('enemy', 0, 128), 192);
+  assert.equal(broadsideDirection('enemy', 0, 64), 64);
+});
+
+test('the battle wind changes strength only when its direction changed (0x87F6)', () => {
+  const draws = (values) => { let index = 0; return { int: () => values[index++] }; };
+  // rnd 1 → direction +0: no second draw, no event.
+  assert.deepEqual(shiftBattleWind({ direction: 64, strength: 1 }, draws([1, 3])), { wind: { direction: 64, strength: 1 }, changed: false });
+  // rnd 3 → +32; strength (3 − 1) >> 1 = +1. rnd 0 → −16; (0 − 1) >> 1 = −1.
+  assert.deepEqual(shiftBattleWind({ direction: 64, strength: 1 }, draws([3, 3])), { wind: { direction: 96, strength: 2 }, changed: true });
+  assert.deepEqual(shiftBattleWind({ direction: 0, strength: 0 }, draws([0, 0])), { wind: { direction: 240, strength: 0 }, changed: true });
+  assert.equal(shiftBattleWind({ direction: 0, strength: 1 }, draws([2, 2])).wind.strength, 1);
+});
+
+test('the wind shifts after his reload and before his captain, on frame 512', () => {
+  const battle = battleFixture();
+  battle.frame = 511;
+  battle.wind = { direction: 0, strength: 1 };
+  const rng = { int: (limit) => (limit === 4 ? 3 : 0) };
+  const next = stepBattle(battle, { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false }, rng);
+  assert.deepEqual(next.wind, { direction: 32, strength: 2 });
+  assert.equal(next.frameEvent, BATTLE_EVENT.wind);
+});
+
+test('his sails stay as they are on a 64-frame tick that already has an event (0x8A25)', () => {
+  const quiet = { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false };
+  const battle = battleFixture();
+  battle.frame = 63;
+  battle.enemy.men = 200; // close, so he wants full sails
+  assert.equal(stepBattle(battle, quiet, zeroRng).enemy.sails, 'full');
+  // Your broadside on that frame sets event 1 first.
+  const busy = stepBattle(battle, { ...quiet, firePressed: true }, zeroRng);
+  assert.equal(busy.enemy.tactic, 'close');
+  assert.equal(busy.enemy.sails, 'battle');
 });
 
 test('open-sea chases recenter instead of inventing land at the arena edge', () => {
