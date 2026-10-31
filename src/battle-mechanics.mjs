@@ -65,8 +65,10 @@ export function battleSpeed({ heading, wind, speedRow, type, damage = 0, sails =
   let speed = 4 * speedRow[relativeHeadingSector(heading, wind)] - Math.floor(damage / 4);
   if (sails === 'full') speed = Math.trunc(speed * 3 / 2);
   const windClass = Math.floor((type + 2) / 4);
-  speed = Math.trunc((8 * speed) / (8 - windClass * windStrength));
-  speed = clamp(speed, -12, 40);
+  // 0x9C5E returns 0 below 1, so a ship into the wind or badly damaged stops;
+  // the original's downwind-drift branch (0x8045) and −12 clamp never run.
+  const divisor = 8 - windClass * windStrength;
+  speed = 8 * speed < divisor ? 0 : Math.min(40, Math.floor((8 * speed) / divisor));
   return fort ? Math.trunc(speed / 2) : speed;
 }
 
@@ -179,6 +181,7 @@ export function createBattle({ player, enemy, flagshipIndex = 0, speedRows, diff
       kind: enemy.kind,
       flag: enemy.flag,
       tactic: 'duel',
+      wantedHeading: 0, // 0x9B2B: the starting heading
       aiCooldown: 0,
     },
     encounter: { ...enemy },
@@ -214,24 +217,34 @@ function constrainedDownwindCourse(course, wind) {
   return Math.abs(difference) <= 80 ? course : (wind + Math.sign(difference) * 80) & 0xff;
 }
 
-function steerEnemy(battle) {
-  const enemy = battle.enemy;
-  const player = battle.player;
+// Wanted heading (0x8A5D-0x8B21), recomputed with the tactic every 64 frames.
+// Close and flee courses are clamped to within 80 units of downwind. A duel
+// course takes the beam nearer the current heading, then switches to the other
+// beam if that one lies more than 95 units from downwind (within about 46° of
+// the wind), so a dueller never heads into the wind. The result is truncated
+// to a multiple of 16. The rules are the same for every ship type; only the
+// turn rate differs.
+export function enemyWantedHeading({ bearing, heading, wind, tactic }) {
   let target;
-  if (enemy.tactic === 'close') {
-    target = bearingByte(player.x - enemy.x, player.y - enemy.y);
-    target = constrainedDownwindCourse(target, battle.wind.direction);
-  } else if (enemy.tactic === 'flee') {
-    target = (bearingByte(player.x - enemy.x, player.y - enemy.y) + 128) & 0xff;
-    target = constrainedDownwindCourse(target, battle.wind.direction);
-  } else {
-    const bearing = bearingByte(player.x - enemy.x, player.y - enemy.y);
-    const port = (bearing + 64) & 0xff;
-    const starboard = (bearing - 64) & 0xff;
-    target = Math.abs(signedAngleDifference(port, enemy.heading)) < Math.abs(signedAngleDifference(starboard, enemy.heading)) ? port : starboard;
+  if (tactic === 'close') target = constrainedDownwindCourse(bearing, wind);
+  else if (tactic === 'flee') target = constrainedDownwindCourse((bearing + 128) & 0xff, wind);
+  else {
+    target = (bearing + 64) & 0xff;
+    if (Math.abs(signedAngleDifference(target, heading)) > 64) target = (target + 128) & 0xff;
+    if (Math.abs(signedAngleDifference(target, wind)) > 95) target = (target + 128) & 0xff;
   }
+  return target & 0xf0;
+}
+
+function aimEnemy(battle) {
+  const { enemy, player } = battle;
+  const bearing = bearingByte(player.x - enemy.x, player.y - enemy.y);
+  return { ...enemy, wantedHeading: enemyWantedHeading({ bearing, heading: enemy.heading, wind: battle.wind.direction, tactic: enemy.tactic }) };
+}
+
+function steerEnemy(enemy) {
   const rate = 3 - Math.floor((enemy.type + 2) / 4);
-  return { ...enemy, heading: turnToward(enemy.heading, target, rate) };
+  return { ...enemy, heading: turnToward(enemy.heading, enemy.wantedHeading, rate) };
 }
 
 function moveShip(ship, battle) {
@@ -240,9 +253,8 @@ function moveShip(ship, battle) {
     speedRow: battle.speedRows[ship.name], type: ship.type,
     damage: ship.damage, sails: ship.sails, windStrength: battle.wind.strength,
   });
-  const movementHeading = speed < 0 ? battle.wind.direction : ship.heading;
-  const angle = movementHeading / 256 * Math.PI * 2;
-  const distance = Math.abs(speed) / BATTLE_ASSUMPTIONS.movementDivisor;
+  const angle = ship.heading / 256 * Math.PI * 2;
+  const distance = speed / BATTLE_ASSUMPTIONS.movementDivisor;
   return { ...ship, x: ship.x + Math.sin(angle) * distance, y: ship.y - Math.cos(angle) * distance, speed };
 }
 
@@ -365,8 +377,9 @@ export function stepBattle(original, input, rng) {
     if (canEnemyStrike(battle.player, battle.enemy)) return { ...battle, event: 'enemy-struck' };
     battle.enemy = { ...battle.enemy, tactic: chooseEnemyTactic(battle.player, battle.enemy) };
     battle.enemy = requestSails(battle.enemy, battle.enemy.tactic === 'duel' ? 'battle' : 'full');
+    battle.enemy = aimEnemy(battle);
   }
-  if (battle.frame % 8 === 0) battle.enemy = steerEnemy(battle);
+  if (battle.frame % 8 === 0) battle.enemy = steerEnemy(battle.enemy);
 
   if (input.firePressed) battle = fire(battle.player, battle.enemy, 'player', battle);
   if (battle.enemy.tactic === 'duel' && beamDifference(battle.enemy, battle.player) <= 6) {

@@ -178,7 +178,8 @@ Implement and test:
   qualification that the template byte's scale is likely rather than proven;
 - gunnery skill calculation;
 - relative-wind sector and battle speed, including damage, wind strength,
-  full sails, downwind drift, and the `-12..40` clamp;
+  full sails, and the `0..40` result (speeds below 1 stop the ship; the
+  original's drift branch never runs);
 - original distance approximation and shot travel time;
 - target box enlargement for player shots only; enemy shots always test the
   player's exact box;
@@ -195,7 +196,7 @@ from **Close for battle**, initialize both ships and wind, and render a camera
 that keeps both ships legible. Add:
 
 - left/right steering;
-- heading-relative speed and drift;
+- heading-relative speed (a ship head to wind stops);
 - full-sail/battle-sail toggle with the 160-frame transition;
 - a wind arrow and sail-state indicator;
 - the 512-frame battle wind shift;
@@ -232,11 +233,13 @@ the three tactics:
 
 - **close**: full sails, steer toward the player while respecting the
   downwind-course limit;
-- **duel**: battle sails, turn to keep the player on the beam, fire within six
-  angle units of the beam;
+- **duel**: battle sails, turn to keep the player on the nearer beam, unless
+  that beam is more than 95 units from downwind, then take the other beam;
+  fire within six angle units of the beam;
 - **flee**: full sails, steer away while respecting the same wind limit.
 
-Check the surrender condition before the behavior table. Use the documented
+The wanted heading is set with the tactic every 64 frames and truncated to a
+multiple of 16. Check the surrender condition before the behavior table. Use the documented
 enemy turn rate, `3 - floor((type + 2) / 4)`, every eight frames. Put all AI
 choice logic in pure functions and test the 27 table entries exhaustively.
 
