@@ -122,7 +122,8 @@ for future work.
   captain fights a guard through a provisional duel dialog; either result
   returns to the approach menu, and losing sets reputation to −1.
 - Apply port desertion from low morale as you leave a town (`0x17EFB`):
-  the deserters take their share of the party gold.
+  the deserters take their share of the party gold, and the fleet check
+  that follows still counts as in town, so losing the last ship means prison.
 - Visit the governor, tavern, and merchant through dialog menus.
 - Receive current war and alliance briefings from governors.
 - Ask tavern staff for news, cultivate barmaid informants, recruit sailors,
