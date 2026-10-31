@@ -5,7 +5,7 @@ import {
   BATTLE_SAIL_TRANSITION_FRAMES, BATTLE_WIND_SHIFT_FRAMES,
   PLAYER_RUDDER_INTERVAL, PLAYER_RUDDER_STEP,
   applyCannonHit, battleDistance, battleSpeed, comparisonScore, createBattle,
-  damageLevel, embarkedForBattle, enemyReloadTime, enemyTacticForScores,
+  damageLevel, embarkedForBattle, enemyReloadTime, enemyTacticForScores, enemyWantedHeading,
   gunnerySkill, playerReloadTime, shipRecord, stepBattle,
 } from '../src/battle-mechanics.mjs';
 import { renderBattle } from '../src/battle-renderer.mjs';
@@ -36,13 +36,14 @@ test('documented reload and gunnery skill bounds are preserved', () => {
   assert.equal(gunnerySkill(4, false, 2), 4);
 });
 
-test('battle speed accounts for sails, damage, wind class, drift, and fort halving', () => {
+test('battle speed accounts for sails, damage, wind class, stopping, and fort halving', () => {
   const common = { heading: 0, wind: 0, speedRow: SPEED_TABLE_1560.Barque, type: 2, damage: 0, windStrength: 2 };
   assert.equal(battleSpeed({ ...common, sails: 'battle' }), 21);
   assert.equal(battleSpeed({ ...common, sails: 'full' }), 32);
   assert.equal(battleSpeed({ ...common, sails: 'battle', damage: 16 }), 16);
   assert.equal(battleSpeed({ ...common, sails: 'battle', fort: true }), 10);
-  assert.equal(battleSpeed({ heading: 128, wind: 0, speedRow: SPEED_TABLE_1560.Galleon, type: 7, damage: 32, sails: 'battle', windStrength: 0 }), -12);
+  assert.equal(battleSpeed({ heading: 128, wind: 0, speedRow: SPEED_TABLE_1560.Galleon, type: 7, damage: 32, sails: 'battle', windStrength: 0 }), 0);
+  assert.equal(battleSpeed({ heading: 128, wind: 0, speedRow: SPEED_TABLE_1560.Barque, type: 2, damage: 0, sails: 'battle', windStrength: 2 }), 5);
 });
 
 test('shot distance uses the decoded quarter-diagonal approximation and minimum', () => {
@@ -188,4 +189,21 @@ test('battle renderer supports desktop and narrow viewports', () => {
   const battle = battleFixture();
   assert.doesNotThrow(() => renderBattle(context, battle, 1440, 900));
   assert.doesNotThrow(() => renderBattle(context, battle, 390, 700));
+});
+
+test('a duelling enemy takes the beam that keeps him off the wind (0x8AC1)', () => {
+  // Wind 0 blows towards heading 0; heading 128 is dead into the wind.
+  // You bear 64: the beams are 128 and 0. Heading 112 is nearer 128, but that
+  // beam is 128 from downwind, so he takes the downwind beam instead.
+  assert.equal(enemyWantedHeading({ bearing: 64, heading: 112, wind: 0, tactic: 'duel' }), 0);
+  // A beam 80 from downwind is acceptable and the nearer one is kept.
+  assert.equal(enemyWantedHeading({ bearing: 16, heading: 80, wind: 0, tactic: 'duel' }), 80);
+  // A beam 96 from downwind (within about 46° of the wind) is refused.
+  assert.equal(enemyWantedHeading({ bearing: 32, heading: 96, wind: 0, tactic: 'duel' }), 224);
+});
+
+test('closing and fleeing courses stay within 80 units of downwind and are truncated to 16', () => {
+  assert.equal(enemyWantedHeading({ bearing: 128, heading: 0, wind: 0, tactic: 'close' }), 176);
+  assert.equal(enemyWantedHeading({ bearing: 0, heading: 0, wind: 0, tactic: 'flee' }), 176);
+  assert.equal(enemyWantedHeading({ bearing: 37, heading: 0, wind: 0, tactic: 'close' }), 32);
 });
