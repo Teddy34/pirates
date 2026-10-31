@@ -22,10 +22,16 @@ export const FORT_HIT_HALF_SIZE = 32;
 // Quarter-steps added to the enemy's box for your shots, by gunnery skill
 // (0x325AE, used at 0x9E38): half + k·(half >> 2).
 export const PLAYER_SHOT_BOX_STEPS = Object.freeze([3, 2, 1, 1, 1]);
-// After a ball lands, its splash counter runs from 1 up to 39 before it clears
-// (0x84EC you, 0x9177 him), and a ship can't fire while its counter is
-// non-zero (0x8284, 0x8EDF). So each ship has one ball out at a time.
-export const BATTLE_SHOT_SPLASH_FRAMES = 38;
+// Each ship has one shot counter (0x44A02 you, 0x44A40 him) and fires only
+// when it is 0 (0x8284, 0x8EDF). Firing sets it to −n, n = distance/2
+// (0x8395, 0x9029); every later frame moves the ball and adds 1, and the ball
+// lands when it reaches 0 (0x85B0, 0x923B), n frames after firing. The counter
+// is then 1 and counts up through the splash; at 39 it clears (0x84EC, 0x9177).
+// So a ship can fire again 39 frames after its ball lands.
+export const BATTLE_SHOT_SPLASH_END = 39;
+// The ball moves 4·sin(direction, 128) per axis per frame in 24.8, about two
+// pixels (0x854A, 0x91D5).
+const BALL_SPEED = 128;
 
 // 0x36628: 128-byte half-sine, round(255·sin(i·π/128)); it matches the binary
 // byte for byte.
@@ -212,12 +218,39 @@ export function shotHitsShip({ x, y }, target, { skill = null } = {}) {
     && Math.abs(pixel(y) - pixel(target.y)) <= enlarge(box.halfHeight);
 }
 
+// Ship-battle placement (0x9A79-0x9BD4). For each axis r = rnd, the offset is
+// 32 + (r & 15), negated when r & 0x80; you sit at centre + offset and he at
+// centre − offset, so he is always 64-94 px off on both axes. His wanted
+// heading is a random byte (0x9B2B); you point at him in one of eight
+// directions; his heading is yours − 96 + (rnd & 31) − 16. The original centre
+// is pixel 240 of its battle map; the port uses its arena's centre.
+export function initialPlacement(arena, rng) {
+  const offset = () => {
+    const r = rng.int(256);
+    const value = 32 + (r & 15);
+    return r & 0x80 ? -value : value;
+  };
+  const offsetX = offset();
+  const offsetY = offset();
+  const player = { x: arena.width / 2 + offsetX, y: arena.height / 2 + offsetY };
+  const enemy = { x: arena.width / 2 - offsetX, y: arena.height / 2 - offsetY };
+  const wantedHeading = rng.int(256);
+  let heading;
+  if (player.x > enemy.x) heading = player.y === enemy.y ? 0xc0 : player.y > enemy.y ? 0xe0 : 0xa0;
+  else heading = player.y === enemy.y ? 0x40 : player.y > enemy.y ? 0x20 : 0x60;
+  const enemyHeading = (heading + (rng.int(256) & 31) - 16 - 0x60) & 0xff;
+  return {
+    player: { ...player, heading },
+    enemy: { ...enemy, heading: enemyHeading, wantedHeading },
+  };
+}
+
 function initialShip({ name, x, y, heading, damage, men, guns, reloadTime, sails = 'battle' }) {
   const stats = SHIPS[name];
   return {
     name, type: stats.type, x, y, heading, damage, men, guns,
     reload: 0, reloadTime, sails, targetSails: sails, sailTransition: 0,
-    groundedCooldown: 0, shotSplash: 0,
+    groundedCooldown: 0, shotTimer: 0,
   };
 }
 
@@ -227,6 +260,7 @@ export function createBattle({ player, enemy, flagshipIndex = 0, speedRows, diff
   const [selected] = fleet.splice(flagshipIndex, 1);
   fleet.unshift(selected);
   const windStrength = rng.int(3); // ASSUMED: encounter wind-strength source is not traced.
+  const placement = initialPlacement(BATTLE_ASSUMPTIONS.arena, rng);
   return {
     frame: 0,
     noHitFrames: 0,
@@ -238,7 +272,7 @@ export function createBattle({ player, enemy, flagshipIndex = 0, speedRows, diff
     fleet,
     player: {
       ...initialShip({
-        name: embarked.flagship.type, x: 170, y: 160, heading: 0,
+        name: embarked.flagship.type, ...placement.player,
         damage: embarked.flagship.damage, men: embarked.men, guns: embarked.guns,
         reloadTime: playerReloadTime(crewMorale),
       }),
@@ -248,14 +282,14 @@ export function createBattle({ player, enemy, flagshipIndex = 0, speedRows, diff
     },
     enemy: {
       ...initialShip({
-        name: enemy.ship, x: 310, y: 160, heading: 0,
+        name: enemy.ship, x: placement.enemy.x, y: placement.enemy.y, heading: placement.enemy.heading,
         damage: 0, men: 4 * enemy.crew, guns: enemy.guns,
         reloadTime: enemyReloadTime(enemy.kind),
       }),
       kind: enemy.kind,
       flag: enemy.flag,
       tactic: 'duel',
-      wantedHeading: 0, // 0x9B2B: the starting heading
+      wantedHeading: placement.enemy.wantedHeading,
       aiCooldown: 0,
     },
     encounter: { ...enemy },
@@ -267,17 +301,42 @@ export function createBattle({ player, enemy, flagshipIndex = 0, speedRows, diff
   };
 }
 
-function requestSails(ship, sails) {
-  if (ship.sails === sails || ship.targetSails === sails) return ship;
-  return { ...ship, targetSails: sails, sailTransition: BATTLE_SAIL_TRANSITION_FRAMES };
+// Your sails and reload (0x7EE3-0x7F82). While a sail change runs, its timer
+// counts down and the reload doesn't; the frame a change is asked for starts
+// the 160-frame timer and doesn't count the reload either. A request during a
+// change is ignored. Otherwise the reload counts down, and if it reaches 0
+// while your ball is out it is held at 1 (0x7F82), so the guns read loaded
+// only when you can fire.
+export function stepPlayerSailsAndReload(ship, requestedSails = null) {
+  if (ship.sailTransition > 0) {
+    const sailTransition = ship.sailTransition - 1;
+    return sailTransition === 0
+      ? { ...ship, sailTransition, sails: ship.targetSails }
+      : { ...ship, sailTransition };
+  }
+  if (requestedSails && requestedSails !== ship.sails) {
+    return { ...ship, targetSails: requestedSails, sailTransition: BATTLE_SAIL_TRANSITION_FRAMES };
+  }
+  if (ship.reload <= 0) return ship;
+  const reload = ship.reload - 1;
+  return { ...ship, reload: reload === 0 && ship.shotTimer !== 0 ? 1 : reload };
 }
 
-function stepSails(ship) {
-  if (ship.sailTransition <= 0) return ship;
-  const sailTransition = ship.sailTransition - 1;
-  return sailTransition === 0
-    ? { ...ship, sailTransition, sails: ship.targetSails }
-    : { ...ship, sailTransition };
+// His reload counts down every frame (0x8729); his sails change at once when
+// his tactic is set (0x8A57): full to close or flee, battle sails to duel. The
+// original skips that while a battle message is showing (0x8A25); the port
+// shows none.
+function stepEnemyReload(ship) {
+  return { ...ship, reload: Math.max(0, ship.reload - 1) };
+}
+
+// What the HUD shows for a ship's guns, and whether the fire command works.
+export function broadsideState(ship) {
+  if (ship.guns <= 0) return { ready: false, label: 'Disarmed' };
+  if (ship.shotTimer < 0) return { ready: false, label: 'Ball in flight' };
+  if (ship.shotTimer > 0) return { ready: false, label: 'Ball landing' };
+  if (ship.reload > 0) return { ready: false, label: `Reload ${ship.reload}` };
+  return { ready: true, label: 'Loaded' };
 }
 
 function turnToward(current, target, amount) {
@@ -353,66 +412,72 @@ function recenterOpenSea(battle) {
     ...battle,
     player: shiftPoint(battle.player),
     enemy: shiftPoint(battle.enemy),
-    projectiles: battle.projectiles.map((shot) => ({
-      ...shiftPoint(shot), landingX: shot.landingX + shiftX, landingY: shot.landingY + shiftY,
-    })),
+    projectiles: battle.projectiles.map(shiftPoint),
     effects: battle.effects.map(shiftPoint),
   };
 }
 
-function shotOut(battle, owner) {
-  return battle[owner].shotSplash > 0 || battle.projectiles.some((shot) => shot.owner === owner);
-}
-
 function fire(shooter, target, owner, battle) {
-  if (shooter.reload > 0 || shooter.guns <= 0 || shotOut(battle, owner)) return battle;
+  if (shooter.shotTimer !== 0 || shooter.reload > 0 || shooter.guns <= 0) return battle;
   const targetBearing = bearingByte(target.x - shooter.x, target.y - shooter.y);
   const port = (shooter.heading - 64) & 0xff;
   const starboard = (shooter.heading + 64) & 0xff;
-  const firingAngle = Math.abs(signedAngleDifference(targetBearing, port)) < Math.abs(signedAngleDifference(targetBearing, starboard)) ? port : starboard;
-  const distance = battleDistance(target.x - shooter.x, target.y - shooter.y);
-  const radians = firingAngle / 256 * Math.PI * 2;
-  const projectile = {
-    owner, x: shooter.x, y: shooter.y,
-    landingX: shooter.x + Math.sin(radians) * distance,
-    landingY: shooter.y - Math.cos(radians) * distance,
-    remaining: Math.max(1, Math.floor(distance / 2)), total: Math.max(1, Math.floor(distance / 2)),
-    guns: shooter.guns,
-  };
+  const direction = Math.abs(signedAngleDifference(targetBearing, port)) < Math.abs(signedAngleDifference(targetBearing, starboard)) ? port : starboard;
+  const frames = Math.floor(battleDistance(target.x - shooter.x, target.y - shooter.y) / 2);
+  const projectile = { owner, x: shooter.x, y: shooter.y, direction, remaining: frames, total: frames };
   return {
     ...battle,
-    [owner]: { ...shooter, reload: shooter.reloadTime },
+    [owner]: { ...shooter, reload: shooter.reloadTime, shotTimer: -frames },
     projectiles: [...battle.projectiles, projectile],
     effects: [...battle.effects, { kind: 'smoke', x: shooter.x, y: shooter.y, life: 18 }],
   };
 }
 
-function landProjectiles(battle, rng) {
-  let next = battle;
-  const flying = [];
-  for (const projectile of battle.projectiles) {
-    if (projectile.remaining > 1) {
-      flying.push({ ...projectile, remaining: projectile.remaining - 1 });
-      continue;
-    }
-    const targetKey = projectile.owner === 'player' ? 'enemy' : 'player';
-    const target = next[targetKey];
-    const hit = shotHitsShip(
-      { x: projectile.landingX, y: projectile.landingY }, target,
-      { skill: projectile.owner === 'player' ? next.skill : null },
-    );
-    next = { ...next, [projectile.owner]: { ...next[projectile.owner], shotSplash: BATTLE_SHOT_SPLASH_FRAMES } };
-    const effect = { kind: hit ? 'hit' : 'splash', x: projectile.landingX, y: projectile.landingY, life: 24 };
-    next = { ...next, effects: [...next.effects, effect] };
-    if (hit) {
-      next = {
-        ...next,
-        [targetKey]: applyCannonHit(target, projectile.guns, { playerShot: projectile.owner === 'player', skill: next.skill, rng }),
-        noHitFrames: 0,
-      };
-    }
+// One frame of a ship's shot when it didn't fire this frame: count the splash
+// up, or move the ball and land it when its counter reaches 0. A landing ball
+// is tested where it is. The damage uses the shooter's guns at that moment
+// (0x85C4, 0x924F).
+function advanceShot(battle, owner, rng) {
+  const shooter = battle[owner];
+  if (shooter.shotTimer === 0) return battle;
+  if (shooter.shotTimer > 0) {
+    const shotTimer = shooter.shotTimer + 1;
+    return { ...battle, [owner]: { ...shooter, shotTimer: shotTimer === BATTLE_SHOT_SPLASH_END ? 0 : shotTimer } };
   }
-  return { ...next, projectiles: flying };
+  const projectile = battle.projectiles.find((shot) => shot.owner === owner);
+  const moved = {
+    ...projectile,
+    x: projectile.x + 4 * sinScaled(projectile.direction, BALL_SPEED) / 256,
+    y: projectile.y - 4 * cosScaled(projectile.direction, BALL_SPEED) / 256,
+    remaining: projectile.remaining - 1,
+  };
+  const others = battle.projectiles.filter((shot) => shot !== projectile);
+  const shotTimer = shooter.shotTimer + 1;
+  if (shotTimer < 0) return { ...battle, [owner]: { ...shooter, shotTimer }, projectiles: [...others, moved] };
+  const targetKey = owner === 'player' ? 'enemy' : 'player';
+  const target = battle[targetKey];
+  const hit = shotHitsShip(moved, target, { skill: owner === 'player' ? battle.skill : null });
+  let next = {
+    ...battle,
+    [owner]: { ...shooter, shotTimer: 1 },
+    projectiles: others,
+    effects: [...battle.effects, { kind: hit ? 'hit' : 'splash', x: moved.x, y: moved.y, life: 24 }],
+  };
+  if (hit) {
+    next = {
+      ...next,
+      [targetKey]: applyCannonHit(target, shooter.guns, { playerShot: owner === 'player', skill: battle.skill, rng }),
+      noHitFrames: 0,
+    };
+  }
+  return next;
+}
+
+// Fire if asked and able (only with the counter at 0), else advance the shot.
+function stepShot(battle, owner, wantsFire, rng) {
+  const target = battle[owner === 'player' ? 'enemy' : 'player'];
+  if (battle[owner].shotTimer === 0) return wantsFire ? fire(battle[owner], target, owner, battle) : battle;
+  return advanceShot(battle, owner, rng);
 }
 
 function shiftBattleWind(wind, rng) {
@@ -433,14 +498,9 @@ function terminalEvent(battle) {
   return null;
 }
 
-function countDown(ship) {
-  return {
-    ...ship,
-    reload: Math.max(0, ship.reload - 1),
-    shotSplash: Math.max(0, (ship.shotSplash ?? 0) - 1),
-  };
-}
-
+// Frame order follows the engine: your rudder, sails and reload, movement and
+// shot (0x7E97-0x8729), then his reload, captain, movement and shot
+// (0x8729-0x938C).
 export function stepBattle(original, input, rng) {
   if (original.event) return original;
   let battle = {
@@ -448,39 +508,32 @@ export function stepBattle(original, input, rng) {
     frame: original.frame + 1,
     noHitFrames: original.noHitFrames + 1,
     effects: original.effects.map((effect) => ({ ...effect, life: effect.life - 1 })).filter((effect) => effect.life > 1),
-    player: stepSails(countDown(original.player)),
-    enemy: stepSails(countDown(original.enemy)),
   };
 
-  if (input.raiseSailsPressed) battle.player = requestSails(battle.player, 'full');
-  if (input.lowerSailsPressed) battle.player = requestSails(battle.player, 'battle');
   if (input.turn && battle.frame % PLAYER_RUDDER_INTERVAL === 0) {
     battle.player = { ...battle.player, heading: (battle.player.heading + input.turn * PLAYER_RUDDER_STEP) & 0xff };
   }
+  const requestedSails = input.raiseSailsPressed ? 'full' : input.lowerSailsPressed ? 'battle' : null;
+  battle.player = stepPlayerSailsAndReload(battle.player, requestedSails);
+  battle.player = moveShip(battle.player, battle);
+  battle = stepShot(battle, 'player', Boolean(input.firePressed), rng);
 
+  battle.enemy = stepEnemyReload(battle.enemy);
   if (battle.frame % 64 === 0) {
     if (canEnemyStrike(battle.player, battle.enemy)) return { ...battle, event: 'enemy-struck' };
-    battle.enemy = { ...battle.enemy, tactic: chooseEnemyTactic(battle.player, battle.enemy) };
-    battle.enemy = requestSails(battle.enemy, battle.enemy.tactic === 'duel' ? 'battle' : 'full');
+    const tactic = chooseEnemyTactic(battle.player, battle.enemy);
+    battle.enemy = { ...battle.enemy, tactic, sails: tactic === 'duel' ? 'battle' : 'full' };
+    battle.enemy = { ...battle.enemy, targetSails: battle.enemy.sails };
     battle.enemy = aimEnemy(battle);
   }
   if (battle.frame % 8 === 0) battle.enemy = steerEnemy(battle.enemy);
-
-  if (input.firePressed) battle = fire(battle.player, battle.enemy, 'player', battle);
+  battle.enemy = moveShip(battle.enemy, battle, { enemySkill: battle.skill });
   // 0x8EDF: he fires whenever he is loaded, has guns, has no ball out, and you
   // are less than 6 units off either beam (0x8F6E `cmp ax,6; jge`), whatever
   // his tactic.
-  if (beamDifference(battle.enemy, battle.player) < 6) {
-    battle = fire(battle.enemy, battle.player, 'enemy', battle);
-  }
+  battle = stepShot(battle, 'enemy', beamDifference(battle.enemy, battle.player) < 6, rng);
 
-  battle = {
-    ...battle,
-    player: moveShip(battle.player, battle),
-    enemy: moveShip(battle.enemy, battle, { enemySkill: battle.skill }),
-  };
   battle = recenterOpenSea(battle);
-  battle = landProjectiles(battle, rng);
   if (battle.frame % BATTLE_WIND_SHIFT_FRAMES === 0) battle = { ...battle, wind: shiftBattleWind(battle.wind, rng) };
   const event = terminalEvent(battle);
   return event ? { ...battle, event } : battle;

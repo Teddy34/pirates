@@ -1,5 +1,5 @@
 import { NATIONS } from './data.mjs';
-import { BATTLE_SAIL_TRANSITION_FRAMES, damageLevel, hitBox } from './battle-mechanics.mjs';
+import { BATTLE_SAIL_TRANSITION_FRAMES, broadsideState, damageLevel, hitBox } from './battle-mechanics.mjs';
 
 function sailSpread(ship) {
   const current = ship.sails === 'full' ? 7 : 4;
@@ -49,7 +49,7 @@ function shipStatus(ship, compact = false) {
       ? `Sails ${ship.targetSails === 'full' ? '↑' : '↓'}${sailProgress}%`
       : `${ship.targetSails === 'full' ? 'Raising' : 'Lowering'} sail (${sailProgress}%)`
     : ship.sails === 'full' ? 'Full sails' : 'Battle sails';
-  const reload = ship.reload > 0 ? `Reload ${ship.reload}` : ship.guns > 0 ? 'Loaded' : 'Disarmed';
+  const reload = broadsideState(ship).label;
   const condition = damageLevel(ship.damage) || 'Sound';
   if (compact) return `${ship.men} crew · ${ship.guns} guns · ${sails}`;
   return `${ship.men} crew · ${ship.guns} guns · ${reload} · ${condition} · ${sails}`;
@@ -92,10 +92,7 @@ export function renderBattle(context, battle, width, height) {
     context.stroke();
   }
   for (const shot of battle.projectiles) {
-    const progress = 1 - shot.remaining / shot.total;
-    const x = shot.x + (shot.landingX - shot.x) * progress;
-    const y = shot.y + (shot.landingY - shot.y) * progress;
-    context.fillStyle = '#19130f'; context.beginPath(); context.arc(x, y, 1.8, 0, Math.PI * 2); context.fill();
+    context.fillStyle = '#19130f'; context.beginPath(); context.arc(shot.x, shot.y, 1.8, 0, Math.PI * 2); context.fill();
   }
   for (const effect of battle.effects) {
     const radius = Math.max(2, (24 - effect.life) / 2);

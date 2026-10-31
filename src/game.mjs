@@ -26,7 +26,7 @@ import {
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
-  createBattle, damageLevel, shipName, shipRecord, stepBattle,
+  broadsideState, createBattle, damageLevel, shipName, shipRecord, stepBattle,
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
 import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
@@ -2719,9 +2719,10 @@ function updateInterface() {
       : battle.player.sails === 'full' ? 'Full' : 'Battle';
     labels.food.textContent = 'Clock stopped';
     labels.crew.textContent = `${battle.player.men} aboard`;
-    labels.gold.textContent = battle.player.reload > 0 ? `Reload ${battle.player.reload}` : 'Loaded';
+    const guns = broadsideState(battle.player);
+    labels.gold.textContent = guns.label;
     labels.nearest.textContent = `${battle.enemy.men} crew · ${battle.enemy.guns} guns`;
-    dockButton.disabled = state.paused || battle.player.reload > 0 || battle.player.guns <= 0;
+    dockButton.disabled = state.paused || !guns.ready;
     return;
   }
   const town = nearestTown();

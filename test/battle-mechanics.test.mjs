@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SPEED_TABLE_1560 } from '../src/data.mjs';
 import {
-  BATTLE_SAIL_TRANSITION_FRAMES, BATTLE_SHOT_SPLASH_FRAMES, BATTLE_WIND_SHIFT_FRAMES,
+  BATTLE_SAIL_TRANSITION_FRAMES, BATTLE_SHOT_SPLASH_END, BATTLE_WIND_SHIFT_FRAMES,
   PLAYER_RUDDER_INTERVAL, PLAYER_RUDDER_STEP,
-  applyCannonHit, battleDistance, battleSpeed, comparisonScore, cosScaled, createBattle,
+  applyCannonHit, battleDistance, battleSpeed, broadsideState, comparisonScore, cosScaled, createBattle,
   damageLevel, embarkedForBattle, enemyReloadTime, enemyTacticForScores, enemyWantedHeading,
-  gunnerySkill, hitBox, moveShip, playerReloadTime, shipRecord, shipsCloseEnoughToStrike,
-  shipsTouch, shotHitsShip, sinScaled, stepBattle,
+  gunnerySkill, hitBox, initialPlacement, moveShip, playerReloadTime, shipRecord, shipsCloseEnoughToStrike,
+  shipsTouch, shotHitsShip, sinScaled, stepBattle, stepPlayerSailsAndReload,
 } from '../src/battle-mechanics.mjs';
 import { renderBattle } from '../src/battle-renderer.mjs';
 
@@ -91,6 +91,9 @@ function battleFixture() {
   });
   battle.speedRows = Object.fromEntries(Object.keys(SPEED_TABLE_1560).map((name) => [name, Array(16).fill(0)]));
   battle.enemy.guns = 0;
+  // A fixed beam-on layout: he lies 140 px due east, both heading north.
+  Object.assign(battle.player, { x: 170, y: 160, heading: 0 });
+  Object.assign(battle.enemy, { x: 310, y: 160, heading: 0, wantedHeading: 0 });
   return battle;
 }
 
@@ -314,18 +317,72 @@ test('the enemy fires whenever loaded, armed and within 6 of his beam, whatever 
   assert.equal(stepBattle(near, quiet, zeroRng).projectiles.length, 1);
 });
 
-test('a ship has one ball out at a time, including its 38-frame splash', () => {
+test('a ball lands n = d/2 frames after firing and the ship refires 39 frames later', () => {
   const quiet = { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false };
   const fire = { ...quiet, firePressed: true };
   let battle = battleFixture();
   battle.player.reloadTime = 1;
+  battle = stepBattle(battle, fire, zeroRng); // frame 1: fired, 140 px away, so n = 70
+  assert.equal(battle.player.shotTimer, -70);
+  assert.equal(battle.projectiles[0].x, 170);
+  // The reload is held at 1 while the ball is out, so the guns don't read loaded.
   battle = stepBattle(battle, fire, zeroRng);
-  battle = stepBattle(battle, fire, zeroRng);
+  assert.equal(battle.player.reload, 1);
+  assert.deepEqual(broadsideState(battle.player), { ready: false, label: 'Ball in flight' });
+  while (battle.frame < 70) battle = stepBattle(battle, fire, zeroRng);
   assert.equal(battle.projectiles.length, 1);
-  while (battle.projectiles.length) battle = stepBattle(battle, quiet, zeroRng);
-  assert.equal(battle.player.shotSplash, BATTLE_SHOT_SPLASH_FRAMES);
-  for (let frame = 1; frame < BATTLE_SHOT_SPLASH_FRAMES; frame += 1) battle = stepBattle(battle, fire, zeroRng);
+  battle = stepBattle(battle, fire, zeroRng); // frame 71 = 1 + 70: it lands
   assert.equal(battle.projectiles.length, 0);
-  battle = stepBattle(battle, fire, zeroRng);
+  assert.equal(battle.player.shotTimer, 1);
+  // It flew 70 steps of 4·sin(64, 128)/256 = 4·127/256 px.
+  assert.equal(battle.effects.at(-1).x, 170 + 70 * 4 * 127 / 256);
+  assert.deepEqual(broadsideState(battle.player), { ready: false, label: 'Ball landing' });
+  while (battle.frame < 71 + BATTLE_SHOT_SPLASH_END - 2) battle = stepBattle(battle, fire, zeroRng);
+  assert.equal(battle.projectiles.length, 0);
+  battle = stepBattle(battle, fire, zeroRng); // frame 109: the counter clears
+  assert.equal(battle.player.shotTimer, 0);
+  // The held reload is released on the next frame's countdown, before the fire check.
+  assert.equal(battle.player.reload, 1);
+  battle = stepBattle(battle, fire, zeroRng); // frame 110 = landing + 39: fires again
   assert.equal(battle.projectiles.length, 1);
+  assert.deepEqual(broadsideState({ guns: 4, reload: 0, shotTimer: 0 }), { ready: true, label: 'Loaded' });
+  assert.deepEqual(broadsideState({ guns: 0, reload: 0, shotTimer: 0 }), { ready: false, label: 'Disarmed' });
+});
+
+test('your reload stands still while a sail change is asked for or runs (0x7EE3)', () => {
+  const ship = { sails: 'battle', targetSails: 'battle', sailTransition: 0, reload: 50, shotTimer: 0 };
+  const asked = stepPlayerSailsAndReload(ship, 'full');
+  assert.equal(asked.reload, 50);
+  assert.equal(asked.sailTransition, BATTLE_SAIL_TRANSITION_FRAMES);
+  let changing = asked;
+  for (let frame = 0; frame < BATTLE_SAIL_TRANSITION_FRAMES; frame += 1) changing = stepPlayerSailsAndReload(changing, 'battle');
+  assert.equal(changing.sails, 'full');
+  assert.equal(changing.reload, 50);
+  assert.equal(stepPlayerSailsAndReload(changing).reload, 49);
+  assert.equal(stepPlayerSailsAndReload({ ...ship, reload: 1 }).reload, 0);
+  assert.equal(stepPlayerSailsAndReload({ ...ship, reload: 1, shotTimer: 5 }).reload, 1);
+});
+
+test('the enemy sets his sails at once with his tactic (0x8A57)', () => {
+  const battle = battleFixture();
+  battle.frame = 63;
+  battle.enemy.men = 200; // D 1, G 0, M 1: close
+  const next = stepBattle(battle, { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false }, zeroRng);
+  assert.equal(next.enemy.tactic, 'close');
+  assert.equal(next.enemy.sails, 'full');
+  assert.equal(next.enemy.sailTransition, 0);
+});
+
+test('ships start mirrored about the centre, you pointing at him (0x9A79)', () => {
+  const arena = { width: 480, height: 320 };
+  const draws = (values) => { let index = 0; return { int: () => values[index++] }; };
+  // x: r = 5 → +37; y: r = 0x83 → −35; wanted 200; jitter 31 → +15.
+  const placed = initialPlacement(arena, draws([5, 0x83, 200, 31]));
+  assert.deepEqual(placed.player, { x: 277, y: 125, heading: 0xa0 });
+  assert.deepEqual(placed.enemy, { x: 203, y: 195, heading: (0xa0 + 15 - 0x60) & 0xff, wantedHeading: 200 });
+  // He is east and south of you: you head south-east.
+  const other = initialPlacement(arena, draws([0x80, 0x8f, 0, 0]));
+  assert.deepEqual(other.player, { x: 208, y: 113, heading: 0x60 });
+  assert.equal(other.enemy.x, 272);
+  assert.equal(other.enemy.heading, (0x60 - 16 - 0x60) & 0xff);
 });
