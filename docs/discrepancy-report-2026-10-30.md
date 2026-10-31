@@ -96,7 +96,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | K1 | Landing, walking on land, digging and reefs |
 | K2 | **Fixed in #14.** Mutiny when morale ≤ −4. Traced (`0x1DD0E`): checked once after the months a voyage crosses, aboard at sea; a third of the crew deserts with their gold, the leader duel is provisional, and reputation drops by 4 (to −5 if the duel is lost). There is no marooning. |
 | K3 | Sword fights, fort battles and land battles |
-| K4 | Treasure fleet and silver train: monthly movement, encounter override and capture bonus |
+| K4 | **Done in feat/treasure-fleet.** Treasure fleet and silver train: monthly movement (`0xCDE9`), encounter override (`0xD44F`) and capture bonus (`0x2297B`), with the approach line, the assault's +10 garrison per convoy (`0x18B9C`), the new-game placement (`0x13679`) and the prisoner and informant reports (`0x1E953`, `0x1EA24`). The original has no land encounter with the silver train: it is met only by taking the town it lies in. Taking the fleet's galleon at sea does not stop the fleet. The log lines "Treasure fleet in %s." / "Silver train in %s." (events 20, 21) have no caller; the port uses them to note reports in the captain's log (ASSUMED). |
 | K5 | Quest encounters and named-captain identities. **Hunter names done in #19; governor missions and the wanted pirate done in #22.** |
 | K6 | Battle shallows, beaching and terrain backdrops (the "beached" ending can never happen) |
 | K7 | Lost relatives and villains |
