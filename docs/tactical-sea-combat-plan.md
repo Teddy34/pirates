@@ -57,6 +57,31 @@ reuse the finished naval engine in a later milestone.
   alert when cannon fire is heard.
 - Battle wind shifts every 512 frames: direction by `-16`, `0`, `+16`, or
   `+32`, and strength by `-1`, `0`, `0`, or `+1`, clamped to `0..2`.
+- Ships move `4·sin(heading, s)` per axis per frame in 24.8 fixed point,
+  using the original 128-byte sine table (`0x36628`, `0x23150`): about
+  `s/64` pixels a frame, so 0.625 px at the top speed of 40.
+- Hit boxes are fixed, axis-aligned half-sizes that do not turn with the ship
+  (tables `0x32B0C` / `0x32B20`): 20 × 10 for types 0–2, 30 × 20 for 3–5,
+  40 × 30 for 6–7, and 32 × 32 for the fort. Your shots test the enemy's box
+  enlarged to `half + k·(half >> 2)`, k = 3, 2, 1, 1, 1 for skill 0–4
+  (`0x9E38`); his shots test your exact box (`0x9EDA`). Boarding contact uses
+  a quarter of each half-size (`0x9C84`, the fort's box whole), and the
+  "close enough to strike" test twice (`0x9D53`).
+- The enemy's signed speed-table value is one less when it equals your
+  gunnery skill (`0x8BA0`, porting-guide quirk 19).
+- The enemy fires whenever he is loaded, has guns, has no ball out, and you
+  are less than 6 angle units off either beam, whatever his tactic
+  (`0x8EDF`). Each ship has one ball out at a time: neither fires while its
+  ball flies or during the 38 frames of its splash (`0x8284`, `0x84EC`,
+  `0x9177`).
+
+### Deliberate deviations
+
+- **Quirk 18 is not reproduced.** The original reads your ship's speed-table
+  value unsigned (`0x7FBB`), so a square-rigger pointed dead into the wind
+  (table value −1) reads 255 and sails at the top speed of 40. It is
+  unconfirmed at runtime and would be an exploit, so the port reads the table
+  signed for both ships: your ship stops head to wind, as the enemy's does.
 
 ### Open points that must stay explicit
 
@@ -69,8 +94,9 @@ reuse the finished naval engine in a later milestone.
 - The real-time duration of one original battle frame is not established.
   Choose one named provisional duration, keep all mechanics in frame units,
   and mark the wall-clock conversion `ASSUMED` so it can be tuned later.
-- Exact initial ship placement, arena camera scale, collision boxes, and sprite
-  dimensions are presentation-compatible approximations until verified.
+- Exact initial ship placement, arena camera scale, and sprite dimensions are
+  presentation-compatible approximations until verified. Ship silhouettes are
+  drawn at about their hit box's size, with the box outlined faintly.
 - Enemy-ship prize cargo and the full captured-ship aftermath are incompletely
   decoded. The first slice may award the ship and template gold while leaving
   unknown cargo at zero.
@@ -235,11 +261,11 @@ the three tactics:
   downwind-course limit;
 - **duel**: battle sails, turn to keep the player on the nearer beam, unless
   that beam is more than 95 units from downwind, then take the other beam;
-  fire within six angle units of the beam;
 - **flee**: full sails, steer away while respecting the same wind limit.
 
-The wanted heading is set with the tactic every 64 frames and truncated to a
-multiple of 16. Check the surrender condition before the behavior table. Use the documented
+Whatever the tactic, he fires when loaded and armed with you less than six
+angle units off either beam. The wanted heading is set with the tactic every
+64 frames and truncated to a multiple of 16. Check the surrender condition before the behavior table. Use the documented
 enemy turn rate, `3 - floor((type + 2) / 4)`, every eight frames. Put all AI
 choice logic in pure functions and test the 27 table entries exhaustively.
 
@@ -306,7 +332,7 @@ and sail state must not rely on color alone.
 
 The visual style should remain original. Use simple vector silhouettes whose
 collision boxes are visible enough to learn, keep ship markers a stable screen
-size across camera changes, and let wakes show actual motion and drift. Do not
+size across camera changes, and let wakes show actual motion. Do not
 use extracted original sprites or sounds.
 
 ## Deterministic test matrix

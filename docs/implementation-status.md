@@ -82,13 +82,18 @@ for future work.
 - Sail away and apply the decoded town-alert consequence.
 - Fight tactical battles on a fixed-step clock with flagship choice, steering,
   sail changes, broadsides, damage, enemy tactics, surrender, sinking, escape,
-  and explicit provisional boarding outcomes.
+  and explicit provisional boarding outcomes. Movement, hit boxes, boarding
+  contact and enemy fire follow the traced engine; the one deliberate
+  deviation is that your ship stops head to wind (porting-guide quirk 18 is
+  not reproduced).
 - Lose a sunk flagship, or a reserve ship taken during an escape, with its
   decoded share of gold, food, goods, the era commodity, and cannon; losing
   the last ship ends in a shipwreck restart.
 - Carry surviving crew, cannon, flagship damage, captured ships, reputation,
   and nearby-town alert back into the campaign. Captures continue through
-  prize-ship choice, named-captain handling, plunder, and volunteers.
+  prize-ship choice, named-captain handling, plunder, and volunteers. A kept
+  prize keeps her battle damage, and keeping one raises the crew to 8 × her
+  slot (quirk 14).
 
 ### Ports
 

@@ -36,11 +36,11 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 
 | # | Sev | Discrepancy |
 |---|---|---|
-| D12 | H | **Hit boxes are far too small.** The docs give fixed, non-rotating half-sizes of 20×10, 30×20 and 40×30 depending on ship size, read from the code. The port uses rotated boxes of about 4×8 to 7×13 (`:293-302`), so a pinnace is roughly 6× harder to hit. Boarding contact (a quarter of the half-size) and the "close enough to strike" test (twice the half-size) use circles instead (`:126-137`). |
-| D13 | H | **Ships move 4× too fast.** The doc's formula works out to speed/64 pixels per frame. The port uses speed/16 (`:13`, `:245`). Shot flight time (distance/2 frames) and the 240-pixel escape distance are unchanged, so aiming and escaping are both easier than in the original. |
+| D12 | H | **Fixed in fix/battle-fidelity.** **Hit boxes are far too small.** The docs give fixed, non-rotating half-sizes of 20×10, 30×20 and 40×30 depending on ship size, read from the code. The port uses rotated boxes of about 4×8 to 7×13 (`:293-302`), so a pinnace is roughly 6× harder to hit. Boarding contact (a quarter of the half-size) and the "close enough to strike" test (twice the half-size) use circles instead (`:126-137`). |
+| D13 | H | **Fixed in fix/battle-fidelity.** **Ships move 4× too fast.** The doc's formula works out to speed/64 pixels per frame. The port uses speed/16 (`:13`, `:245`). Shot flight time (distance/2 frames) and the 240-pixel escape distance are unchanged, so aiming and escaping are both easier than in the original. |
 | D14 | M | **Fixed in #26.** **Ships drift downwind instead of stopping.** The docs say speeds below 1 become 0, and the drift branch and −12 limit never run (quirk 20, "keep: ships stop"). The port keeps both (`:69`, `:243`). |
-| D15 | M | The enemy's "table value equals your skill, so subtract 1" rule (quirk 19) is missing. The port also hasn't recorded a decision on the player's unsigned-read upwind bug (quirk 18). |
-| D16 | M | **The enemy only fires when duelling** (`:372`). The docs say he fires whenever loaded, armed, and within ±6 of his beam, whatever his tactic. |
+| D15 | M | **Fixed in fix/battle-fidelity** (quirk 18 recorded as a deliberate deviation: your ship reads the table signed and stops head to wind). The enemy's "table value equals your skill, so subtract 1" rule (quirk 19) is missing. The port also hasn't recorded a decision on the player's unsigned-read upwind bug (quirk 18). |
+| D16 | M | **Fixed in fix/battle-fidelity** (from `0x8EDF`: the beam test is strictly less than 6, and he fires only with no ball of his out, the same one-ball rule as yours at `0x8284`). **The enemy only fires when duelling** (`:372`). The docs say he fires whenever loaded, armed, and within ±6 of his beam, whatever his tactic. |
 | D17 | L | The battle wind's strength changes even when its direction didn't (`:329-336`); the docs say only if the direction changed. |
 | D18 | L | **Fixed in #26.** The enemy's wanted heading isn't rounded to 16. The same fix restores the duel wind check (`0x8AE9`): a beam course more than 95 units from downwind is swapped for the other beam, so a duelling enemy no longer sits head to wind. |
 | D19 | M | **Fixed in #9.** The "enemy takes a ship when you escape" penalty also applies at sunset (`game.mjs:773`). The docs limit it to escape (event 6). |
@@ -50,7 +50,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 
 | # | Sev | Discrepancy |
 |---|---|---|
-| D21 | M | **Captured ships arrive repaired.** The docs keep the prize's battle damage; the port sets it to 0 (`game.mjs:839`, `851`). The "raise crew to 8 × slot" quirk is also skipped when a prize replaces a ship in a full fleet. |
+| D21 | M | **Fixed in fix/battle-fidelity.** **Captured ships arrive repaired.** The docs keep the prize's battle damage; the port sets it to 0 (`game.mjs:839`, `851`). The "raise crew to 8 × slot" quirk is also skipped when a prize replaces a ship in a full fleet. |
 | D22 | M | **Fixed in #17.** **Crew morale isn't stored.** The original keeps a morale value that rises by 1 per capture (2 for kind > 5) and is recalculated monthly. The port recalculates it on every use (`game.mjs:687`, `1222`), so the capture bonus never affects reload time or desertion. |
 | D23 | M | **Captive value partly fixed in #19** (named captives now carry the captain id). **Pirate delivery differs from the original (from the disassembly).** `deliver_pirates.asm` (`0x12461–0x1248F`) appears to check each prisoner against the governor's nation and hand them over automatically. The port delivers to any governor and lets you keep them. The port also uses the ship's kind as the value, so the favour gain is always +4. The original value comes from the captain's ID, so (v&7)/2+1 gives 1–4. The focused docs only give the formula, so treat this one as medium confidence. |
 
@@ -83,7 +83,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | # | Sev | Discrepancy |
 |---|---|---|
 | D33 | L | `implementation-status.md` lists "town assaults, capture, and plunder" as missing, but a provisional assault exists. It also lists promotions as still needed, but they are implemented. |
-| D34 | L | **Drift part fixed in #26.** `tactical-sea-combat-plan.md` treats drift and the −12..40 limit as confirmed, and the hit boxes as unverified. `sea_battles.md` says the opposite on both (see D12 and D14). |
+| D34 | L | **Drift part fixed in #26; hit-box part fixed in fix/battle-fidelity.** `tactical-sea-combat-plan.md` treats drift and the −12..40 limit as confirmed, and the hit boxes as unverified. `sea_battles.md` says the opposite on both (see D12 and D14). |
 | D35 | L | **Fixed in #2.** The plan says the navigation map provides shallows; it doesn't (D1). |
 | D36 | L | The treasure-map clue town is a random town, not the town nearest a site from the documented list of treasure sites. This simplification isn't marked as an assumption (`game.mjs:1635`). |
 | D37 | L | The original only allows saving in town. The port also auto-saves at sea every 5 days and after battles. The porting guide allows this, but it isn't written down as a project decision. |
