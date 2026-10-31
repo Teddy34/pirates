@@ -71,9 +71,23 @@ reuse the finished naval engine in a later milestone.
   gunnery skill (`0x8BA0`, porting-guide quirk 19).
 - The enemy fires whenever he is loaded, has guns, has no ball out, and you
   are less than 6 angle units off either beam, whatever his tactic
-  (`0x8EDF`). Each ship has one ball out at a time: neither fires while its
-  ball flies or during the 38 frames of its splash (`0x8284`, `0x84EC`,
-  `0x9177`).
+  (`0x8EDF`). His sails change at once when his tactic is set (`0x8A57`).
+- Each ship has one shot counter (`0x44A02` you, `0x44A40` him). A ball fired
+  at distance `d` moves `4·sin(direction, 128)` per axis per frame (about 2 px)
+  and lands `d/2` frames later, tested where it is; the counter then runs
+  through a splash and clears 38 frames after landing, so the ship can fire
+  again 39 frames after its ball lands (`0x8395`, `0x85B0`, `0x84EC`, and
+  `0x9029`, `0x923B`, `0x9177` for him). Your reload is held at 1 while your
+  ball is out (`0x7F82`), so the guns read loaded only when you can fire.
+- Your reload doesn't count down in a frame that asks for a sail change or
+  while the 160-frame change runs (`0x7EE3`–`0x7F3E`); a request during a
+  change is ignored. His reload always counts down (`0x8729`).
+- Ship battles start mirrored about the field's centre (`0x9A79`–`0x9BD4`):
+  on each axis `r = rnd`, the offset is `32 + (r & 15)`, negated when
+  `r & 0x80`; you sit at centre + offset and he at centre − offset. You point
+  at him in one of eight directions; his heading is yours − 96 + `rnd(32)` −
+  16, and his first wanted heading a random byte. The port centres this on its
+  arena.
 
 ### Deliberate deviations
 
@@ -94,8 +108,8 @@ reuse the finished naval engine in a later milestone.
 - The real-time duration of one original battle frame is not established.
   Choose one named provisional duration, keep all mechanics in frame units,
   and mark the wall-clock conversion `ASSUMED` so it can be tuned later.
-- Exact initial ship placement, arena camera scale, and sprite dimensions are
-  presentation-compatible approximations until verified. Ship silhouettes are
+- The arena size and camera scale, the placement's centre, and sprite
+  dimensions are presentation-compatible approximations until verified. Ship silhouettes are
   drawn at about their hit box's size, with the box outlined faintly.
 - Enemy-ship prize cargo and the full captured-ship aftermath are incompletely
   decoded. The first slice may award the ship and template gold while leaving
