@@ -18,7 +18,9 @@ import {
   captainRansomOffers, monthlyLandIncome, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
-  merchantCommodityPrice, merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
+  merchantCommodityPrice, merchantFoodPrice, merchantStock, advanceDate,
+  NATION_ORDER, monthlyWorldUpdate, initialWorldNews, worldNewsMessage, newGameTowns,
+  townInfoStatus, learnTownInfo, TOWN_INFO_CURRENT,
   fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
   escapeCostsShip,
   monthEndCrewEvent, mutinyOutcome,
@@ -36,12 +38,11 @@ import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSpr
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
 const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
 const TICK_SECONDS = 0.125;
 const ZOOM_STEP = 4;
 const MIN_ZOOM = 16;
 const MAX_ZOOM = 64;
-const NATION_ORDER = ['Spain', 'England', 'France', 'Holland'];
 const RANK_NAMES = ['Mr.', 'Ensign', 'Captain', 'Major', 'Colonel', 'Admiral', 'Baron', 'Count', 'Marquis', 'Duke'];
 const DIFFICULTY_NAMES = ['Apprentice', 'Journeyman', 'Adventurer', 'Swashbuckler'];
 // 0x184F8: the refit after a division runs the calendar four times, 26 days each.
@@ -64,6 +65,7 @@ const controls = document.querySelector('#controls');
 const logElement = document.querySelector('#log');
 const dockButton = document.querySelector('#dock-button');
 const pauseButton = document.querySelector('#pause-button');
+const logbookButton = document.querySelector('#logbook-button');
 const zoomOutButton = document.querySelector('#zoom-out-button');
 const zoomInButton = document.querySelector('#zoom-in-button');
 const lowerSailsButton = document.querySelector('#lower-sails-button');
@@ -168,6 +170,16 @@ function newState(options) {
   const diplomacy = Object.fromEntries(NATION_ORDER.map((nation, row) => [
     nation, Object.fromEntries(NATION_ORDER.map((other, column) => [other, start.diplomacy[row][column]])),
   ]));
+  // The original's new game (0x133B9) seeds the opening news (0x13679), then
+  // sets up the towns (0x1451E), then copies the start record. ASSUMED: the
+  // port draws the news and town rolls from the start stream in that order
+  // after the start point, and dates the news at the start (the original
+  // spreads the entries over the preceding months).
+  const scenarioTowns = scenario.towns;
+  const calendar = { day: 0, month: 0, year: Number(era) };
+  const worldNews = initialWorldNews({ diplomacy, townCount: scenarioTowns.length, rng: startRng })
+    .map((entry) => ({ message: worldNewsMessage(entry, scenarioTowns), month: calendar.month, year: calendar.year }));
+  const towns = newGameTowns(scenarioTowns, difficulty, startRng);
   const logs = ['A westward trade wind fills the sails.', `The ${start.name} expedition begins.`];
   if (favour[nationality] >= 2) logs.push(`Your ${nationality} letter of marque is in good standing.`);
   return {
@@ -180,7 +192,7 @@ function newState(options) {
     seed,
     rngState: startRng.state,
     mode: 'sailing', paused: false, tick: 0,
-    calendar: { day: 0, month: 0, year: Number(era) },
+    calendar,
     player: {
       x: startX, y: startY, heading: 128, speed: 4, wind: 192, sails: 'full',
       ships: start.ships.map(shipRecord), crew: start.crew, cannon: start.cannon,
@@ -190,13 +202,13 @@ function newState(options) {
       barmaidRapport: {}, barmaidInformants: [],
       favour, ranks,
     },
-    towns: scenario.towns.map((town) => ({ ...town })),
+    towns,
     nearestTownIndex: 0,
     // One alert counter belongs to whichever town is nearest; it resets when
     // the nearest town changes (town_attack_and_plunder.md §1).
     alert: 0,
     diplomacy,
-    worldNews: initialDiplomacyNews(diplomacy, { month: 0, year: Number(era) }),
+    worldNews,
     treasureMap: { pieces: 0, clueTownIndex: null },
     portTrade: { townIndex: null, merchantCash: null, shipwrightCash: null },
     logs,
@@ -279,7 +291,11 @@ function saveGame(showMessage = true) {
 function loadGame() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(PREVIOUS_SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY));
-    if (![1, 2, 3, 4, 5, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
+    if (![1, 2, 3, 4, 5, 6, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
+    // Version 7 adds the town-information bits (0x80 current, 0x20
+    // obsolete) to each town's flags. Earlier versions showed every town's
+    // figures, so an older voyage keeps current information on every town.
+    if (saved.version < 7) for (const town of saved.towns) town.flags = (town.flags ?? 0) | TOWN_INFO_CURRENT;
     // Version 6 replaces per-town alert with the original's single counter,
     // keeping the value of the town that was nearest when the game was saved.
     if (saved.alert === undefined) saved.alert = saved.towns[saved.nearestTownIndex ?? 0]?.alert ?? 0;
@@ -971,10 +987,28 @@ function monthlyUpdate({ newsLog = true } = {}) {
   player.monthsAtSea += player.partyGold > 32767 ? 2 : 1;
   player.reputation -= player.reputation >> 3;
   for (const nation of NATION_ORDER) player.favour[nation] = clamp(player.favour[nation], -100, 100);
-  state.towns = state.towns.map((town) => updateTownMonthly(town, state.calendar.month, rng));
-  updateDiplomacy();
-  applyRandomTownEvent();
-  if (newsLog) addLog(`${MONTHS[state.calendar.month]} begins. The Caribbean shifts around you.`);
+  const news = monthlyWorldUpdate({
+    towns: state.towns,
+    diplomacy: state.diplomacy,
+    favour: player.favour,
+    month: state.calendar.month,
+    diplomacyK: scenarios[state.era].diplomacyK,
+    // 0x46058: the town you are in, or the nearest town at sea.
+    playerTownIndex: state.visit?.townIndex ?? state.nearestTownIndex,
+    // 0x471AC while 0x471AA != 0: the town whose governor gave the mission.
+    protectedTownIndex: state.mission ? state.mission.issuer : -1,
+    rng,
+  });
+  const messages = news.map((entry) => worldNewsMessage(entry, state.towns));
+  messages.forEach(addWorldNews);
+  // Step 6 of 0xCEB8, the treasure fleet and silver train (0xCDE9), runs
+  // here once it is simulated.
+  // The original writes these events to the event log its Ship's Log lists
+  // (0x1E8CF, 0x1FC0F); the captain's log line points the player there.
+  if (newsLog) {
+    addLog(`${MONTHS[state.calendar.month]} begins.`);
+    messages.forEach((message) => addLog(`News: ${message}`));
+  }
   // 0x1DD0E recomputes the stored morale after each month's update (0x1DDB7).
   refreshCrewMorale();
 }
@@ -994,61 +1028,6 @@ function formatDate({ day, month, year }) {
 function addWorldNews(message) {
   state.worldNews.unshift({ message, month: state.calendar.month, year: state.calendar.year });
   state.worldNews = state.worldNews.slice(0, 24);
-}
-
-function updateDiplomacy() {
-  const roll = rng.int(scenarios[state.era].diplomacyK);
-  if (roll >= 28) return;
-  const first = roll & 3;
-  const second = (roll >> 2) & 3;
-  if (first === second) return;
-  const nationA = NATION_ORDER[first];
-  const nationB = NATION_ORDER[second];
-  const delta = roll & 16 ? 1 : -1;
-  const current = state.diplomacy[nationA][nationB];
-  if (current === delta) return;
-  const next = current + delta;
-  state.diplomacy[nationA][nationB] = next;
-  state.diplomacy[nationB][nationA] = next;
-  if (next === -1) addWorldNews(`${nationA} is at war with ${nationB}.`);
-  else if (next === 0 && current === -1) addWorldNews(`${nationA} and ${nationB} have made peace.`);
-  else if (next === 1) {
-    addWorldNews(`${nationA} has allied with ${nationB}.`);
-    state.player.favour[nationA] = Math.max(-3, state.player.favour[nationA]);
-  }
-}
-
-function applyRandomTownEvent() {
-  const townIndex = rng.int(64);
-  if (townIndex >= state.towns.length - 2) return;
-  const town = state.towns[townIndex];
-  // 0xCAC4: the issuing town of an open mission keeps its governor.
-  let event = rng.int(5);
-  while (event === 3 && state.mission && townIndex === state.mission.issuer) event = rng.int(5);
-  switch (event) {
-    case 0:
-      town.soldiers = Math.floor(town.soldiers / 2);
-      addWorldNews(`Indians have attacked ${town.name}.`);
-      break;
-    case 1:
-      town.growth = Math.min(255, town.growth + 64);
-      town.gold = Math.min(255, town.gold + 12);
-      addWorldNews(`A new gold mine has opened at ${town.name}.`);
-      break;
-    case 2:
-      town.soldiers = Math.floor(town.soldiers / 2);
-      town.population = Math.floor(town.population / 2);
-      addWorldNews(`Malaria has struck ${town.name}.`);
-      break;
-    case 3:
-      town.mood = 0;
-      addWorldNews(`${town.name} has a new governor.`);
-      break;
-    default:
-      town.gold = 0;
-      town.growth -= Math.floor(town.growth / 4);
-      addWorldNews(`Pirates have plundered ${town.name}.`);
-  }
 }
 
 function openSighting(town, distance) {
@@ -1636,9 +1615,11 @@ function approachTown({ overland = false } = {}) {
   // an overland visit, which leaves the fleet where it lay.
   state.player.arrivalGuard = true;
   const fortText = town.forts === 0 ? 'No fort guards the harbor.' : `${town.forts === 1 ? 'One fort guards' : `${town.forts} forts guard`} the harbor.`;
+  // 0x19C62 shows the town's information screen (0x196D0), which has the
+  // figures only for a town you have current information on.
   showDialog({
-    kicker: `${town.nation} · ${prosperity(town.growth)}`, title: town.name,
-    body: `<p>You have arrived at ${town.name}. ${fortText}</p><dl><dt>Citizens</dt><dd>${town.population * 100}</dd><dt>Soldiers</dt><dd>${town.soldiers * 5}</dd><dt>Treasury</dt><dd>${town.gold * 1000} gold</dd></dl>`,
+    kicker: townInfoStatus(town.flags) === 'current' ? `${town.nation} · ${prosperity(town.growth)}` : town.nation, title: town.name,
+    body: `<p>You have arrived at ${town.name}. ${fortText}</p>${townInfoBody(town, { brief: true })}`,
     actions: [
       { label: overland ? 'March into town' : 'Sail into the harbor', run: () => tryHarbor(town) },
       { label: 'Sneak into town', run: () => trySneak(town) },
@@ -1710,6 +1691,8 @@ function resolveTownCapture(town) {
   town.growth = Math.max(0, town.growth - 20);
   const loot = capturedTownPlunder({ town, alert: state.alert, rng });
   Object.assign(town, applyTownCapture(town, loot));
+  // 0x227AF: taking the town gives current information on it.
+  town.flags = learnTownInfo(town.flags);
   state.player.reputation += loot.gold > 990 ? 2 : 0;
   propagateFavour(oldNation, -1);
   if (loot.gold > 990) propagateFavour(oldNation, -2);
@@ -1810,6 +1793,8 @@ function enterTown(town, sneaking) {
     addLog(`${deserters} crewmen deserted at ${town.name}.`);
   }
   state.visit = { townIndex: state.nearestTownIndex, sneaking, overland: Boolean(state.approach?.overland), recruited: false, merchant: null };
+  // 0x17EBB: entering a town makes your information on it current.
+  town.flags = learnTownInfo(town.flags);
   if (state.portTrade.townIndex !== state.nearestTownIndex) {
     state.portTrade = { townIndex: state.nearestTownIndex, merchantCash: null, shipwrightCash: null };
   }
@@ -1946,6 +1931,7 @@ function showTownMenu() {
     ...(!state.visit.sneaking ? [{ label: 'Merchant', run: openMerchant }] : []),
     { label: 'Shipwright', run: showShipwright },
     { label: 'Divide the plunder', run: showPlunderDivision },
+    { label: 'Logbook', secondary: true, run: () => showLogbook(showTownMenu) },
     { label: 'Save voyage', secondary: true, run: () => { saveGame(); showTownMenu(); } },
     { label: 'Put to sea', secondary: true, run: leaveTown },
   );
@@ -2223,6 +2209,17 @@ function showTavernRecruits() {
   });
 }
 
+// The town information screen (0x196D0, CSTN 23): figures for a town you
+// have current information on, otherwise "(no info)" or, after a random event
+// there, "Recent events in %s have made your information obsolete."
+function townInfoBody(town, { brief = false } = {}) {
+  const status = townInfoStatus(town.flags);
+  if (status === 'obsolete') return `<p>Recent events in ${town.name} have made your information obsolete.</p>`;
+  if (status === 'none') return `<p>You have no information on ${town.name}.</p>`;
+  const forts = town.forts === 0 ? 'None' : town.forts;
+  return `<dl>${brief ? '' : `<dt>Flag</dt><dd>${town.nation}</dd><dt>Prosperity</dt><dd>${prosperity(town.growth)}</dd><dt>Forts</dt><dd>${forts}</dd>`}<dt>Treasury</dt><dd>${(town.gold * 1000).toLocaleString()} gold</dd><dt>Soldiers</dt><dd>${(town.soldiers * 5).toLocaleString()}</dd><dt>Citizens</dt><dd>${(town.population * 100).toLocaleString()}</dd></dl>`;
+}
+
 function newsBody(items, emptyMessage = 'There is no fresh news.') {
   return items.length
     ? `<ul class="ship-news">${items.map((item) => {
@@ -2230,6 +2227,65 @@ function newsBody(items, emptyMessage = 'There is no fresh news.') {
       return `<li><time>${MONTHS[item.month]} ${item.year}</time> — ${item.message}</li>`;
     }).join('')}</ul>`
     : `<p>${emptyMessage}</p>`;
+}
+
+// The captain's logbook (0xC46E): the Ship's Log lists the event log the
+// monthly world writes to (0x1FC0F), and the map's gazetteer gives the known
+// status of every city (0xB464, CSTN 24 "City Information"). The original
+// opens both from the cabin; the port opens them from the Log control at sea
+// and from the town menu, without the cabin's time cost (porting_guide §17).
+function showLogbook(close) {
+  showDialog({
+    kicker: `Captain ${state.captain} · ${formatDate(state.calendar)}`, title: 'The captain’s logbook',
+    body: '<p>Your log records the news of the Caribbean as it reaches you, and the gazetteer holds what you know of each city.</p>',
+    actions: [
+      { label: 'Ship’s log', run: () => showShipsLog(close) },
+      { label: 'City information', run: () => showCityInformation(close) },
+      { label: 'Close the logbook', secondary: true, run: close },
+    ],
+  });
+}
+
+function showShipsLog(close) {
+  showDialog({
+    kicker: 'The captain’s logbook', title: 'Ship’s log',
+    body: newsBody(state.worldNews, 'No entries.'),
+    actions: [
+      { label: 'Back to the logbook', run: () => showLogbook(close) },
+      { label: 'Close the logbook', secondary: true, run: close },
+    ],
+  });
+}
+
+function cityInformationLine(town) {
+  const status = townInfoStatus(town.flags);
+  if (status === 'none') return `<li><b>${town.name}</b><small>No information</small></li>`;
+  if (status === 'obsolete') return `<li><b>${town.name}</b><small>Recent events in ${town.name} have made your information obsolete.</small></li>`;
+  const forts = town.forts === 0 ? 'no fort' : `${town.forts} fort${town.forts === 1 ? '' : 's'}`;
+  return `<li><b>${town.name}</b> (${town.nation}) · ${prosperity(town.growth)}<small>${forts} · ${(town.gold * 1000).toLocaleString()} gold · ${(town.soldiers * 5).toLocaleString()} soldiers · ${(town.population * 100).toLocaleString()} citizens</small></li>`;
+}
+
+function showCityInformation(close) {
+  const towns = [...state.towns].sort((a, b) => a.name.localeCompare(b.name));
+  showDialog({
+    kicker: 'The captain’s logbook', title: 'City information',
+    body: `<ul class="city-info">${towns.map(cityInformationLine).join('')}</ul>`,
+    actions: [
+      { label: 'Back to the logbook', run: () => showLogbook(close) },
+      { label: 'Close the logbook', secondary: true, run: close },
+    ],
+  });
+}
+
+function openLogbookAtSea() {
+  if (!state || state.mode !== 'sailing' || dialog.open) return;
+  const wasPaused = state.paused;
+  state.paused = true;
+  showLogbook(() => {
+    state.paused = wasPaused;
+    if (!wasPaused) resetSailingInterpolation();
+    updateInterface();
+  });
 }
 
 function showBartenderNews() {
@@ -2327,11 +2383,13 @@ function buyTravellerNews(encounter) {
   encounter.resolved = true;
   addLog(`Bought intelligence in ${state.towns[state.visit.townIndex].name} for ${encounter.price} gold.`);
   const reportedTown = state.towns[encounter.townIndex];
-  // ASSUMED: prominent-person quests are not implemented yet, so the paid
-  // traveller report exposes useful facts about the same remote town instead.
+  // 0x115A0: the report sets the town's current-information bit and shows
+  // its status (0x196D0). ASSUMED: prominent-person quests are not
+  // implemented yet, so the traveller always reports on a town.
+  reportedTown.flags = learnTownInfo(reportedTown.flags);
   showDialog({
     kicker: 'The traveller’s report', title: `Intelligence from ${reportedTown.name}`,
-    body: `<dl><dt>Flag</dt><dd>${reportedTown.nation}</dd><dt>Prosperity</dt><dd>${prosperity(reportedTown.growth)}</dd><dt>Garrison</dt><dd>${reportedTown.soldiers}</dd><dt>Forts</dt><dd>${reportedTown.forts}</dd></dl>${newsBody(state.worldNews.slice(0, 3), 'No wider news reached the traveller.')}`,
+    body: `${townInfoBody(reportedTown)}${newsBody(state.worldNews.slice(0, 3), 'No wider news reached the traveller.')}`,
     actions: [{ label: 'Return to the tavern', run: showTavern }],
   });
 }
@@ -2649,7 +2707,9 @@ function showDialog({ kicker, title, body, actions }) {
     dialogActions.append(button);
   });
   dialog.showModal();
-  dialogActions.querySelector('button')?.focus();
+  // Long dialogs (the ship's log, the gazetteer) open at the top.
+  dialogActions.querySelector('button')?.focus({ preventScroll: true });
+  dialog.scrollTop = 0;
 }
 
 // Every return to the sailing map starts a new voyage, and each voyage begins
@@ -2722,6 +2782,7 @@ function updateInterface() {
     labels.gold.textContent = battle.player.reload > 0 ? `Reload ${battle.player.reload}` : 'Loaded';
     labels.nearest.textContent = `${battle.enemy.men} crew · ${battle.enemy.guns} guns`;
     dockButton.disabled = state.paused || battle.player.reload > 0 || battle.player.guns <= 0;
+    logbookButton.disabled = true;
     return;
   }
   const town = nearestTown();
@@ -2738,6 +2799,7 @@ function updateInterface() {
   dockButton.disabled = state.paused || overlandMarchTargets().length === 0;
   zoomOutButton.disabled = false;
   zoomInButton.disabled = false;
+  logbookButton.disabled = state.mode !== 'sailing';
 }
 
 function render() {
@@ -2963,6 +3025,7 @@ form.addEventListener('submit', async (event) => {
 
 continueButton.addEventListener('click', async () => { const saved = loadGame(); if (saved && scenarios) await startGame(saved); });
 pauseButton.addEventListener('click', togglePause);
+logbookButton.addEventListener('click', openLogbookAtSea);
 dockButton.addEventListener('click', () => {
   if (state?.mode === 'battle') input.firePressed = true;
   else showOverlandMarch();
@@ -3015,6 +3078,7 @@ addEventListener('keydown', (event) => {
   }
   if ((event.key === 'Escape' || event.key.toLowerCase() === 'p') && !event.repeat) togglePause();
   if (event.key.toLowerCase() === 'e' && !dockButton.disabled && state?.mode === 'sailing') showOverlandMarch();
+  if (event.key.toLowerCase() === 'l' && !event.repeat) openLogbookAtSea();
   if (event.key === '+' || event.key === '=') changeZoom(ZOOM_STEP);
   if (event.key === '-' || event.key === '_') changeZoom(-ZOOM_STEP);
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'].includes(event.key)) event.preventDefault();
@@ -3160,6 +3224,16 @@ loadScenarios().then(() => {
         body: newsBody(state.worldNews.slice(0, 6)),
         actions: [{ label: 'Return to the tavern', run: () => {} }],
       });
+    });
+    return;
+  }
+  if (preview === 'logbook' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // A Swashbuckler year of the monthly world, then the logbook at sea.
+    const previewState = newState({ era: '1660', captain: 'Preview', nationality: 'England', difficulty: 3, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      passDays(360);
+      updateInterface();
+      openLogbookAtSea();
     });
     return;
   }

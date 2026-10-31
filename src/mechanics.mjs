@@ -724,6 +724,248 @@ export function updateTownMonthly(town, month, rng) {
   return { ...town, growth, population, soldiers, gold: town.gold + income };
 }
 
+// ---------------------------------------------------------------------------
+// The monthly world (0xCEB8 step 5, diplomacy_and_world.md §1). Each rule
+// below takes the world it changes and returns the news it logs as records
+// ({ event, ... }); `worldNewsMessage` turns a record into the log text.
+// Event numbers are the CSTN 20 log indices the original passes to 0x1E8CF.
+// ---------------------------------------------------------------------------
+
+export const NATION_ORDER = ['Spain', 'England', 'France', 'Holland'];
+
+export const WORLD_EVENT = Object.freeze({
+  AMNESTY: 10,
+  INDIANS: 11,
+  GOLD_MINE: 12,
+  MALARIA: 13,
+  NEW_GOVERNOR: 14,
+  PIRATES: 15,
+  WAR: 16,
+  PEACE: 17,
+  ALLIANCE: 18,
+  CONQUEST: 19,
+});
+
+// Runtime bits in the town's flag word (+0x00), next to the static trade
+// bits (town_economy.md §1): 0x80 = you have current information on the
+// town, 0x20 = a random event has made that information obsolete. The town
+// information routine 0x196D0 tests 0x80 first, then 0x20. Some towns carry
+// a static 0x20 bit (Charlesfort, Nassau, ...); the original reads it the
+// same way, so such a town reports obsolete information until visited.
+export const TOWN_INFO_CURRENT = 0x80;
+export const TOWN_INFO_OBSOLETE = 0x20;
+
+export function townInfoStatus(flags = 0) {
+  if (flags & TOWN_INFO_CURRENT) return 'current';
+  return flags & TOWN_INFO_OBSOLETE ? 'obsolete' : 'none';
+}
+
+// Entering a town (0x17EBB), capturing it (0x227AF) and buying a traveller's
+// report (0x115A0) set 0x80 and clear 0x20.
+export function learnTownInfo(flags = 0) {
+  return (flags | TOWN_INFO_CURRENT) & ~TOWN_INFO_OBSOLETE;
+}
+
+// 0xCAF4-0xCB07: 0x20 = old 0x80, then `and word, 0x7F` clears 0x80 (and
+// the unused high byte).
+export function obsoleteTownInfo(flags = 0) {
+  const marked = flags & TOWN_INFO_CURRENT ? flags | TOWN_INFO_OBSOLETE : flags & ~TOWN_INFO_OBSOLETE;
+  return marked & 0x7f;
+}
+
+// New-game town setup (0x1453C): each town is known when rnd(4) + 1 >
+// difficulty (always on Apprentice, one in four on Swashbuckler); the
+// governor's mood (w9) and w10 are cleared and his relative (w11) is
+// rnd(16). The two rolls are made town by town in that order.
+export function newGameTowns(towns, difficulty, rng) {
+  return towns.map((town) => {
+    const known = rng.int(4) + 1 > difficulty;
+    const governorRelative = rng.int(16);
+    return {
+      ...town,
+      flags: known ? (town.flags ?? 0) | TOWN_INFO_CURRENT : town.flags ?? 0,
+      mood: 0,
+      governorRelative,
+    };
+  });
+}
+
+// 0xCA51, a new governor (random event 14 and AI conquest): mood 0 and a new
+// daughter or niece, unless you married into the family (w11 bit 0x40).
+export function installNewGovernor(town, rng) {
+  town.mood = 0;
+  if (!((town.governorRelative ?? 0) & 0x40)) town.governorRelative = rng.int(16);
+  return town;
+}
+
+// The original's 0x4605A is the town count minus its two "Florida Channel"
+// placeholder records. tools/build_scenarios.mjs drops those records, so
+// every port town is in the original's random-town range.
+export function randomTownRange(towns) {
+  return towns.length;
+}
+
+// Random town event (0xCA7F): i = rnd(64), no event when i >= the random
+// range (about half the months); e = 11 + rnd(5), rolled again while it is a
+// new governor in the town whose governor gave the open mission (0x471AC).
+export function rollRandomTownEvent({ townCount, protectedTownIndex = -1, rng }) {
+  const townIndex = rng.int(64);
+  if (townIndex >= townCount) return null;
+  let event = WORLD_EVENT.INDIANS + rng.int(5);
+  while (event === WORLD_EVENT.NEW_GOVERNOR && townIndex === protectedTownIndex) {
+    event = WORLD_EVENT.INDIANS + rng.int(5);
+  }
+  return { event, townIndex };
+}
+
+export function applyRandomTownEvent(town, event, rng) {
+  town.flags = obsoleteTownInfo(town.flags);
+  switch (event) {
+    case WORLD_EVENT.INDIANS:
+      town.soldiers >>= 1;
+      break;
+    case WORLD_EVENT.GOLD_MINE:
+      town.growth = town.growth >= 191 ? 255 : town.growth + 64;
+      town.gold = town.gold >= 243 ? 255 : town.gold + 12;
+      break;
+    case WORLD_EVENT.MALARIA:
+      town.soldiers >>= 1;
+      town.population >>= 1;
+      break;
+    case WORLD_EVENT.NEW_GOVERNOR:
+      installNewGovernor(town, rng);
+      break;
+    case WORLD_EVENT.PIRATES:
+      town.gold = 0;
+      town.growth -= town.growth >> 2;
+      break;
+    default:
+      break;
+  }
+  return town;
+}
+
+// AI conquest (0xC81B, one attempt a month). Town A = rnd(n); town B =
+// rnd(n), drawn again while it is the open mission's town (0x471AC with
+// 0x471AA != 0). B falls to A's nation when the two nations are at war,
+// 2 * B.soldiers < A.soldiers, |dx| + |dy| < 150 and B is not the town the
+// player is in or beside (0x46058). B gets a new governor (0xCA51); its
+// garrison, gold, growth and town information are untouched.
+export function rollAiConquest({ towns, diplomacy, playerTownIndex = -1, protectedTownIndex = -1, rng }) {
+  const count = randomTownRange(towns);
+  const attackerIndex = rng.int(count);
+  let defenderIndex = rng.int(count);
+  while (defenderIndex === protectedTownIndex) defenderIndex = rng.int(count);
+  const attacker = towns[attackerIndex];
+  const defender = towns[defenderIndex];
+  if ((diplomacy[attacker.nation]?.[defender.nation] ?? 0) !== -1) return null;
+  if (2 * defender.soldiers >= attacker.soldiers) return null;
+  if (Math.abs(attacker.x - defender.x) + Math.abs(attacker.y - defender.y) >= 150) return null;
+  if (defenderIndex === playerTownIndex) return null;
+  return { attackerIndex, defenderIndex };
+}
+
+// Diplomacy (0xC938): r = rnd(K); r >= 28 does nothing. The pair is
+// (r & 3, r >> 2 & 3), the step +1 when r & 16 and -1 otherwise, and a
+// relation already at the step's limit stays. Returns the change or null.
+export function rollDiplomacyChange({ diplomacy, k, rng }) {
+  const roll = rng.int(k);
+  if (roll >= 28) return null;
+  const first = roll & 3;
+  const second = (roll >> 2) & 3;
+  if (first === second) return null;
+  const nationA = NATION_ORDER[first];
+  const nationB = NATION_ORDER[second];
+  const delta = roll & 16 ? 1 : -1;
+  const from = diplomacy[nationA][nationB];
+  if (from === delta) return null;
+  return { nationA, nationB, from, to: from + delta };
+}
+
+// Applies a diplomacy change and returns its news: war (16), peace (17) or
+// alliance (18); an alliance falling back to peace is not logged. A new
+// alliance also logs "%s offers pirate amnesty!" (10) for the first nation
+// and lifts your favour with it to at least -3.
+export function applyDiplomacyChange(change, { diplomacy, favour }) {
+  const { nationA, nationB, from, to } = change;
+  diplomacy[nationA][nationB] = to;
+  diplomacy[nationB][nationA] = to;
+  if (to === 0 && from === 1) return [];
+  const news = [{ event: WORLD_EVENT.PEACE + to, nationA, nationB }];
+  if (to === 1) {
+    news.push({ event: WORLD_EVENT.AMNESTY, nation: nationA });
+    favour[nationA] = Math.max(-3, favour[nationA]);
+  }
+  return news;
+}
+
+// 0xC714, 0xC81B, 0xC938 and 0xCA7F in the original's order. The world is
+// changed in place: town records keep their identity, so a town held by the
+// caller (an open dialog, an encounter) sees the update. The villain moves
+// (0xCBA7) and the treasure fleet and silver train step (0xCDE9) that follow
+// in 0xCEB8 belong after this call.
+export function monthlyWorldUpdate({ towns, diplomacy, favour, month, diplomacyK, playerTownIndex = -1, protectedTownIndex = -1, rng }) {
+  const news = [];
+  for (const town of towns) Object.assign(town, updateTownMonthly(town, month, rng));
+
+  const conquest = rollAiConquest({ towns, diplomacy, playerTownIndex, protectedTownIndex, rng });
+  if (conquest) {
+    const town = towns[conquest.defenderIndex];
+    const nation = towns[conquest.attackerIndex].nation;
+    news.push({ event: WORLD_EVENT.CONQUEST, nation, previousNation: town.nation, townIndex: conquest.defenderIndex });
+    town.nation = nation;
+    installNewGovernor(town, rng);
+  }
+
+  const change = rollDiplomacyChange({ diplomacy, k: diplomacyK, rng });
+  if (change) news.push(...applyDiplomacyChange(change, { diplomacy, favour }));
+
+  const townEvent = rollRandomTownEvent({ townCount: randomTownRange(towns), protectedTownIndex, rng });
+  if (townEvent) {
+    applyRandomTownEvent(towns[townEvent.townIndex], townEvent.event, rng);
+    news.push(townEvent);
+  }
+  return news;
+}
+
+// Game start (0x13679): one log entry per nation pair, a < b: its war or
+// alliance, or for a pair at peace a random town event (e = 11 + rnd(5) at
+// town rnd(range)) that is only reported, never applied.
+export function initialWorldNews({ diplomacy, townCount, rng }) {
+  const news = [];
+  for (let first = 0; first < NATION_ORDER.length - 1; first += 1) {
+    for (let second = first + 1; second < NATION_ORDER.length; second += 1) {
+      const nationA = NATION_ORDER[first];
+      const nationB = NATION_ORDER[second];
+      const relation = diplomacy[nationA][nationB];
+      if (relation !== 0) {
+        news.push({ event: WORLD_EVENT.PEACE + relation, nationA, nationB });
+      } else {
+        const event = WORLD_EVENT.INDIANS + rng.int(5);
+        news.push({ event, townIndex: rng.int(townCount) });
+      }
+    }
+  }
+  return news;
+}
+
+export function worldNewsMessage(entry, towns) {
+  const town = towns[entry.townIndex]?.name;
+  switch (entry.event) {
+    case WORLD_EVENT.AMNESTY: return `${entry.nation} offers pirate amnesty!`;
+    case WORLD_EVENT.INDIANS: return `Indians have attacked ${town}.`;
+    case WORLD_EVENT.GOLD_MINE: return `A new gold mine has opened at ${town}.`;
+    case WORLD_EVENT.MALARIA: return `Malaria has struck ${town}.`;
+    case WORLD_EVENT.NEW_GOVERNOR: return `${town} has a new governor.`;
+    case WORLD_EVENT.PIRATES: return `Pirates have plundered ${town}.`;
+    case WORLD_EVENT.WAR: return `${entry.nationA} is at war with ${entry.nationB}.`;
+    case WORLD_EVENT.PEACE: return `${entry.nationA} and ${entry.nationB} have made peace.`;
+    case WORLD_EVENT.ALLIANCE: return `${entry.nationA} has allied with ${entry.nationB}.`;
+    case WORLD_EVENT.CONQUEST: return `${entry.nation} has captured ${town} from ${entry.previousNation}.`;
+    default: return '';
+  }
+}
+
 export function advanceDate(calendar) {
   let { day, month, year } = calendar;
   day += 1;
