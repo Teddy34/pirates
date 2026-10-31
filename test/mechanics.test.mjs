@@ -7,7 +7,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
-  dividePlunder, startNewExpedition, pirateCaptainTerms, governorPromotion,
+  dividePlunder, beginDivisionRefit, freshFleet, pirateCaptainTerms, governorPromotion,
   nationalStanding, governorAmnestyTerms, captainRansomOffers, monthlyLandIncome, convoyReport,
   approximateDistance, cloudCountForMonth, targetSailingSpeed,
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
@@ -293,9 +293,9 @@ test('morale declines with time at sea and difficulty', () => {
   assert.equal(morale({ partyGold: 1000, crew: 100, monthsAtSea: 6, difficulty: 3 }), -3);
 });
 
-test('dividing plunder follows the decoded shares and starts a fresh expedition', () => {
+test('dividing plunder follows the decoded shares', () => {
   assert.deepEqual(dividePlunder({
-    partyGold: 10000, crew: 80, reputation: 2, difficulty: 1, flagshipSizeClass: 2,
+    partyGold: 10000, crew: 80, reputation: 2, difficulty: 1,
   }), {
     crewShare: 100,
     satisfaction: 0,
@@ -303,46 +303,63 @@ test('dividing plunder follows the decoded shares and starts a fresh expedition'
     captainTake: 1000,
     officerShares: 4,
     expeditionGold: 1000,
-    crew: 22,
-    cannon: 10,
-    foodFixed: 3840,
-    monthsAtSea: -16,
   });
 });
 
 test('plunder satisfaction and captain share are capped at documented values', () => {
   const result = dividePlunder({
-    partyGold: 200000, crew: 1, reputation: -10, difficulty: 3, flagshipSizeClass: 0,
+    partyGold: 200000, crew: 1, reputation: -10, difficulty: 3,
   });
   assert.equal(result.satisfaction, 3);
   assert.equal(result.captainTake, 40000);
   assert.equal(result.officerShares, 8);
   assert.equal(result.expeditionGold, 20000);
   assert.equal(result.reputation, -61);
-  assert.equal(result.crew, 1);
 });
 
-test('a new expedition retains only the flagship and banks the captain share', () => {
+test('the division refit banks the share and keeps the old company until the fresh fleet', () => {
   const player = {
-    ships: ['Barque', 'Pinnace'], crew: 80, cannon: 12, foodFixed: 40 * 256,
-    goods: 20, partyGold: 10000, personalWealth: 500, reputation: 2,
+    ships: [{ type: 'Barque', damage: 32 }, { type: 'Pinnace', damage: 0 }], crew: 80, cannon: 12,
+    foodFixed: 40 * 256, goods: 20, specialGoods: 3, partyGold: 10000, personalWealth: 500, reputation: 2,
     monthsAtSea: 8, capturedCaptains: [{ nation: 'Spain' }], heading: 64,
   };
-  const division = dividePlunder({
-    partyGold: player.partyGold, crew: player.crew, reputation: player.reputation,
-    difficulty: 1, flagshipSizeClass: 2,
-  });
-  const next = startNewExpedition(player, division);
-  assert.deepEqual(next.ships, ['Barque']);
-  assert.equal(next.personalWealth, 1500);
+  const division = dividePlunder({ partyGold: player.partyGold, crew: player.crew, reputation: player.reputation, difficulty: 1 });
+  const refit = beginDivisionRefit(player, division);
+  assert.equal(refit.personalWealth, 1500);
+  assert.equal(refit.reputation, 6);
+  assert.equal(refit.monthsAtSea, -16);
+  assert.equal(refit.crew, 80);
+  assert.equal(refit.partyGold, 10000);
+  assert.equal(refit.ships.length, 2);
+
+  // 0x1EF87 with the party gold: the flagship comes back repaired (byte & 7).
+  const next = freshFleet(refit, { gold: refit.partyGold, flagshipType: 'Barque', shipStats: SHIPS });
+  assert.deepEqual(next.ships, [{ type: 'Barque', damage: 0 }]);
   assert.equal(next.partyGold, 1000);
+  assert.equal(next.personalWealth, 1500);
   assert.equal(next.crew, 22);
   assert.equal(next.cannon, 10);
   assert.equal(next.foodFixed, 15 * 256);
   assert.equal(next.goods, 0);
-  assert.deepEqual(next.capturedCaptains, []);
+  assert.equal(next.specialGoods, 0);
+  // 0x1F02F overwrites the division's -16 after the refit.
+  assert.equal(next.monthsAtSea, 0);
+  // Prisoners (0x4720A) survive a division.
+  assert.deepEqual(next.capturedCaptains, [{ nation: 'Spain' }]);
   assert.equal(next.heading, 64);
-  assert.deepEqual(player.ships, ['Barque', 'Pinnace']);
+  assert.equal(player.ships.length, 2);
+});
+
+test('the fresh fleet crew is reputation + 16, and 1 when that is not positive', () => {
+  const base = { personalWealth: 0, partyGold: 100, ships: [{ type: 'Sloop', damage: 16 }] };
+  const crewAt = (reputation) => freshFleet({ ...base, reputation, crew: 50 }, { gold: 100, flagshipType: 'Sloop', shipStats: SHIPS }).crew;
+  assert.equal(crewAt(-9), 7);
+  assert.equal(crewAt(-16), 1);
+  assert.equal(crewAt(-40), 1);
+  // Zero gold takes the restart branch: a tenth of personal wealth is lost.
+  const broke = freshFleet({ ...base, personalWealth: 1000, reputation: 0 }, { gold: 0, flagshipType: 'Sloop', shipStats: SHIPS });
+  assert.equal(broke.personalWealth, 900);
+  assert.equal(broke.partyGold, 90);
 });
 
 test('a captured pirate earns the documented favour gain', () => {

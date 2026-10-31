@@ -13,7 +13,7 @@ import {
   triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
   isEncounterHunter, hunterOvertakes, drawHunterCaptain, captainName, captainRenown,
   MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
-  harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, startNewExpedition,
+  harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, beginDivisionRefit, freshFleet,
   pirateCaptainTerms, governorPromotion, nationalStanding, governorAmnestyTerms,
   captainRansomOffers, monthlyLandIncome, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
@@ -1950,7 +1950,6 @@ function showPlunderDivision() {
     crew: player.crew,
     reputation: player.reputation,
     difficulty: state.difficulty,
-    flagshipSizeClass: statsFor(flagship).sizeClass,
   });
   const satisfaction = ['angry', 'unhappy', 'pleased', 'happy'][division.satisfaction];
   const actions = [
@@ -1974,8 +1973,7 @@ function showPlunderDivision() {
 function finishPlunderDivision(division, nextDifficulty) {
   const oldCrew = state.player.crew;
   const flagship = state.player.ships[0];
-  state.player = startNewExpedition(state.player, division);
-  const player = state.player;
+  state.player = beginDivisionRefit(state.player, division);
   state.difficulty = nextDifficulty;
   // The decoded new-expedition initializer clears the current visit flags,
   // including clandestine entry and one-off tavern/merchant state.
@@ -1987,6 +1985,11 @@ function finishPlunderDivision(division, nextDifficulty) {
   // not run while the ship lies in port.
   const refitStart = { ...state.calendar };
   for (let step = 0; step < DIVISION_REFIT_STEPS; step += 1) passCalendarDays(DIVISION_REFIT_STEP_DAYS);
+  // 0x1852D: then the fresh fleet with the party gold, which the division
+  // has not touched: a tenth of it, the flagship repaired, a new crew of
+  // reputation + 16. Zero party gold takes 0x1EF87's restart branch.
+  state.player = freshFleet(state.player, { gold: state.player.partyGold, flagshipType: shipName(flagship), shipStats: SHIPS });
+  const player = state.player;
   addLog(`The ${shipName(flagship)} was careened and refitted, ${DIVISION_REFIT_STEPS * DIVISION_REFIT_STEP_DAYS} days ashore from ${formatDate(refitStart)}.`);
   addLog(`A new expedition begins aboard the ${shipName(flagship)} with ${player.crew} loyal hands.`);
   saveGame(false);

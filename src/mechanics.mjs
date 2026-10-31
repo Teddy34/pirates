@@ -566,7 +566,7 @@ export function prizeMoraleBonus(kind) {
   return kind > 5 ? 2 : 1;
 }
 
-export function dividePlunder({ partyGold, crew, reputation, difficulty, flagshipSizeClass }) {
+export function dividePlunder({ partyGold, crew, reputation, difficulty }) {
   const crewShare = Math.round((0.8 * partyGold) / Math.max(1, crew));
   const shareRoot = Math.floor(Math.sqrt(crewShare));
   const satisfaction = Math.min(3, Math.floor(shareRoot / 23));
@@ -580,31 +580,54 @@ export function dividePlunder({ partyGold, crew, reputation, difficulty, flagshi
     captainTake: Math.floor(((difficulty + 1) * partyGold) / 20),
     officerShares: 2 * difficulty + 2,
     expeditionGold: Math.floor(partyGold / 10),
-    // The new-expedition routine retains the flagship and derives its initial
-    // company and stores from ship class. Months at sea follow the documented
-    // -16 reset; the binary's adjacent initialization remains ambiguous.
-    crew: Math.max(1, nextReputation + 16),
-    cannon: 2 * flagshipSizeClass + 6,
-    foodFixed: 15 * 256,
+  };
+}
+
+// The division itself (0x18203-0x18331, then 0x184F8): reputation is
+// averaged, the captain's take goes to personal wealth and months at sea is
+// set to -16 for the refit. The old crew, fleet and cargo stay until the
+// fresh fleet (0x1EF87) replaces them after the refit.
+export function beginDivisionRefit(player, division) {
+  return {
+    ...player,
+    personalWealth: (player.personalWealth ?? 0) + division.captainTake,
+    reputation: division.reputation,
     monthsAtSea: -16,
   };
 }
 
-export function startNewExpedition(player, division) {
-  const flagship = player.ships[0];
+// Fresh fleet (0x1EF87, ships.md §5), after dividing the plunder (gold = the
+// party gold) and after captivity (gold = 0: a tenth of personal wealth is
+// lost and a tenth of the rest funds the voyage). Only the flagship's type
+// is kept, with the damage bits cleared (flagship byte &= 7), so it comes
+// back repaired. Cannon 2·T + 6, 15 tons of food, no cargo, months at sea 0
+// (0x1F02F, after the division's -16). Prisoners (0x4720A) are untouched.
+// Crew = reputation + 16 (0x45E76), stored as an unsigned word and replaced
+// by 1 only when it is 0 (0x1F010-0x1F029). A negative sum wraps to tens of
+// thousands of men; ASSUMED: the port uses `minCrew` instead, which is 1
+// after a division (the original's value at exactly -16) and RESTART_MIN_CREW
+// after captivity. ships.md's "kept as is if <= 0" reading is not what the
+// code does: the store comes before the test.
+export function freshFleet(player, { gold, flagshipType, shipStats, minCrew = 1 }) {
+  let personalWealth = player.personalWealth ?? 0;
+  let funds = gold;
+  if (funds === 0) {
+    personalWealth -= Math.trunc(personalWealth / 10);
+    funds = personalWealth;
+  }
+  const typeIndex = shipStats[flagshipType].type;
+  const crew = player.reputation + 16;
   return {
     ...player,
-    personalWealth: (player.personalWealth ?? 0) + division.captainTake,
-    partyGold: division.expeditionGold,
-    reputation: division.reputation,
-    ships: [flagship],
-    crew: division.crew,
-    cannon: division.cannon,
-    foodFixed: division.foodFixed,
+    personalWealth,
+    partyGold: Math.trunc(funds / 10),
+    ships: [{ type: flagshipType, damage: 0 }],
+    cannon: 2 * typeIndex + 6,
+    foodFixed: 15 * 256,
     goods: 0,
     specialGoods: 0,
-    monthsAtSea: division.monthsAtSea,
-    capturedCaptains: [],
+    crew: Math.max(minCrew, crew),
+    monthsAtSea: 0,
   };
 }
 
@@ -1032,21 +1055,7 @@ export function removeShipWithCargo(player, slot, shipStats) {
 export const RESTART_MIN_CREW = 8;
 
 export function restartAfterLastShip(player, flagship, shipStats) {
-  const typeIndex = shipStats[flagship.type].type;
-  const personalWealth = player.personalWealth - Math.trunc(player.personalWealth / 10);
-  const crew = Math.max(RESTART_MIN_CREW, player.reputation + 16);
-  return {
-    ...player,
-    personalWealth,
-    partyGold: Math.trunc(personalWealth / 10),
-    ships: [{ type: flagship.type, damage: 0 }],
-    cannon: 2 * typeIndex + 6,
-    foodFixed: 15 * 256,
-    goods: 0,
-    specialGoods: 0,
-    crew,
-    monthsAtSea: 0,
-  };
+  return freshFleet(player, { gold: 0, flagshipType: flagship.type, shipStats, minCrew: RESTART_MIN_CREW });
 }
 
 // Captivity after the last ship is lost (0x1F803, called by 0x1F2A1 for
