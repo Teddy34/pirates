@@ -10,9 +10,39 @@ export const PLAYER_RUDDER_INTERVAL = 8;
 
 export const BATTLE_ASSUMPTIONS = Object.freeze({
   frameSeconds: BATTLE_FRAME_SECONDS,
-  movementDivisor: 16,
   arena: { width: 480, height: 320 },
 });
+
+// Hit-box half-sizes in battle pixels by ship type (tables 0x32B0C / 0x32B20,
+// loaded at 0xE367 / 0xE4C3). The boxes are axis-aligned and do not turn with
+// the ship. The fort's 32 × 32 is set directly at 0xE410.
+export const BATTLE_HIT_HALF_WIDTH = Object.freeze([20, 20, 20, 30, 30, 30, 40, 40]);
+export const BATTLE_HIT_HALF_HEIGHT = Object.freeze([10, 10, 10, 20, 20, 20, 30, 30]);
+export const FORT_HIT_HALF_SIZE = 32;
+// Quarter-steps added to the enemy's box for your shots, by gunnery skill
+// (0x325AE, used at 0x9E38): half + k·(half >> 2).
+export const PLAYER_SHOT_BOX_STEPS = Object.freeze([3, 2, 1, 1, 1]);
+// After a ball lands, its splash counter runs from 1 up to 39 before it clears
+// (0x84EC you, 0x9177 him), and a ship can't fire while its counter is
+// non-zero (0x8284, 0x8EDF). So each ship has one ball out at a time.
+export const BATTLE_SHOT_SPLASH_FRAMES = 38;
+
+// 0x36628: 128-byte half-sine, round(255·sin(i·π/128)); it matches the binary
+// byte for byte.
+const SINE_TABLE = Object.freeze(Array.from({ length: 128 }, (_, index) => Math.round(255 * Math.sin(index * Math.PI / 128))));
+
+// sin(angle, magnitude) at 0x23150: magnitude·table >> 8, floored, with the
+// magnitude negated for angles 128–255. cos is sin(angle + 64) (0x23146).
+export function sinScaled(angle, magnitude) {
+  let index = angle & 0xff;
+  let value = magnitude;
+  if (index >= 128) { value = -value; index -= 128; }
+  return Math.floor(value * SINE_TABLE[index] / 256);
+}
+
+export function cosScaled(angle, magnitude) {
+  return sinScaled(angle + 64, magnitude);
+}
 
 const TACTICS = [
   'flee', 'duel', 'close', 'duel', 'duel', 'duel', 'duel', 'duel', 'duel',
@@ -61,8 +91,15 @@ export function battleDistance(dx, dy) {
   return Math.max(16, major + Math.floor(minor / 4));
 }
 
-export function battleSpeed({ heading, wind, speedRow, type, damage = 0, sails = 'battle', windStrength = 0, fort = false }) {
-  let speed = 4 * speedRow[relativeHeadingSector(heading, wind)] - Math.floor(damage / 4);
+// `enemySkill` is your gunnery skill, passed only for the enemy's ship: when
+// his signed table value equals it he uses one less (0x8BA0, quirk 19).
+// DELIBERATE DEVIATION (quirk 18): the original reads your ship's table value
+// unsigned (0x7FBB), so a square-rigger's −1 dead upwind becomes 255 and top
+// speed 40. The port reads it signed for both ships, so you stop there too.
+export function battleSpeed({ heading, wind, speedRow, type, damage = 0, sails = 'battle', windStrength = 0, fort = false, enemySkill = null }) {
+  let tableValue = speedRow[relativeHeadingSector(heading, wind)];
+  if (enemySkill !== null && tableValue === enemySkill) tableValue -= 1;
+  let speed = 4 * tableValue - Math.floor(damage / 4);
   if (sails === 'full') speed = Math.trunc(speed * 3 / 2);
   const windClass = Math.floor((type + 2) / 4);
   // 0x9C5E returns 0 below 1, so a ship into the wind or badly damaged stops;
@@ -125,17 +162,54 @@ export function enemyTacticForScores(damage, guns, men) {
   return TACTICS[9 * damage + 3 * guns + men];
 }
 
-export function shipsTouch(first, second) {
-  const firstRadius = 7 + first.type;
-  const secondRadius = 7 + second.type;
-  return Math.hypot(first.x - second.x, first.y - second.y) <= firstRadius + secondRadius;
+export function hitBox(ship) {
+  if (ship.fort) return { halfWidth: FORT_HIT_HALF_SIZE, halfHeight: FORT_HIT_HALF_SIZE };
+  return { halfWidth: BATTLE_HIT_HALF_WIDTH[ship.type], halfHeight: BATTLE_HIT_HALF_HEIGHT[ship.type] };
+}
+
+// Ship positions here are box centres. The original stores the sprite corner
+// and adds a centre offset (40, 30 for ships, 16 for the fort) in every test,
+// so the comparisons come out the same. Tests use the whole-pixel part of the
+// 24.8 position (`shr eax, 8`).
+function pixel(value) {
+  return Math.floor(value);
+}
+
+// The two boxes, each half-size scaled the way the original shifts it, overlap
+// on both axes. Edges count as overlapping (`jl` / `jg`).
+function boxesOverlap(first, second, scaleHalf, { secondWhole = false } = {}) {
+  const one = hitBox(first);
+  const two = hitBox(second);
+  const reachX = scaleHalf(one.halfWidth) + (secondWhole ? two.halfWidth : scaleHalf(two.halfWidth));
+  const reachY = scaleHalf(one.halfHeight) + (secondWhole ? two.halfHeight : scaleHalf(two.halfHeight));
+  return Math.abs(pixel(first.x) - pixel(second.x)) <= reachX
+    && Math.abs(pixel(first.y) - pixel(second.y)) <= reachY;
+}
+
+// Boarding contact (0x9C84): a quarter of each half-size. In a fort battle the
+// fort's box is used whole.
+export function shipsTouch(player, enemy) {
+  return boxesOverlap(player, enemy, (half) => half >> 2, { secondWhole: Boolean(enemy.fort) });
+}
+
+// "Close enough to strike" (0x9D53): twice each half-size.
+export function shipsCloseEnoughToStrike(player, enemy) {
+  return boxesOverlap(player, enemy, (half) => half * 2);
 }
 
 export function canEnemyStrike(player, enemy) {
   const score = comparisonScore(player, enemy);
-  const closeDistance = 2 * ((7 + player.type) + (7 + enemy.type));
-  return score.damage === 0 && score.guns === 0 && score.men === 0
-    && Math.hypot(player.x - enemy.x, player.y - enemy.y) <= closeDistance;
+  return score.damage === 0 && score.guns === 0 && score.men === 0 && shipsCloseEnoughToStrike(player, enemy);
+}
+
+// Shot hit test. Your shots (0x9E38) test the enemy's box enlarged by skill:
+// half + k·(half >> 2), k = 3, 2, 1, 1, 1 for skill 0–4. His shots (0x9EDA)
+// test your exact box (pass no skill).
+export function shotHitsShip({ x, y }, target, { skill = null } = {}) {
+  const box = hitBox(target);
+  const enlarge = (half) => (skill === null ? half : half + PLAYER_SHOT_BOX_STEPS[skill] * (half >> 2));
+  return Math.abs(pixel(x) - pixel(target.x)) <= enlarge(box.halfWidth)
+    && Math.abs(pixel(y) - pixel(target.y)) <= enlarge(box.halfHeight);
 }
 
 function initialShip({ name, x, y, heading, damage, men, guns, reloadTime, sails = 'battle' }) {
@@ -143,7 +217,7 @@ function initialShip({ name, x, y, heading, damage, men, guns, reloadTime, sails
   return {
     name, type: stats.type, x, y, heading, damage, men, guns,
     reload: 0, reloadTime, sails, targetSails: sails, sailTransition: 0,
-    groundedCooldown: 0,
+    groundedCooldown: 0, shotSplash: 0,
   };
 }
 
@@ -188,7 +262,6 @@ export function createBattle({ player, enemy, flagshipIndex = 0, speedRows, diff
     projectiles: [], effects: [], event: null,
     assumptions: [
       'Wall-clock battle frame duration is assumed.',
-      'Ship collision dimensions are assumed.',
       'Encounter gunnery extra is zero and wind strength is randomly chosen.',
     ],
   };
@@ -247,25 +320,33 @@ function steerEnemy(enemy) {
   return { ...enemy, heading: turnToward(enemy.heading, enemy.wantedHeading, rate) };
 }
 
-function moveShip(ship, battle) {
+// Movement (0x8077 you, the same for him): the 24.8 position moves by
+// 4·sin(heading, s) and −4·cos(heading, s) per frame, about s/64 pixels. The
+// steps are multiples of 1/256, so plain numbers hold the 24.8 value exactly.
+export function moveShip(ship, battle, { enemySkill = null } = {}) {
   const speed = battleSpeed({
     heading: ship.heading, wind: battle.wind.direction,
     speedRow: battle.speedRows[ship.name], type: ship.type,
     damage: ship.damage, sails: ship.sails, windStrength: battle.wind.strength,
+    enemySkill,
   });
-  const angle = ship.heading / 256 * Math.PI * 2;
-  const distance = speed / BATTLE_ASSUMPTIONS.movementDivisor;
-  return { ...ship, x: ship.x + Math.sin(angle) * distance, y: ship.y - Math.cos(angle) * distance, speed };
+  return {
+    ...ship,
+    x: ship.x + 4 * sinScaled(ship.heading, speed) / 256,
+    y: ship.y - 4 * cosScaled(ship.heading, speed) / 256,
+    speed,
+  };
 }
 
 function recenterOpenSea(battle) {
   if (battle.terrain !== 'open-sea') return battle;
   const midpointX = (battle.player.x + battle.enemy.x) / 2;
   const midpointY = (battle.player.y + battle.enemy.y) / 2;
+  // Whole-pixel shifts keep positions on the 24.8 grid.
   const shiftX = midpointX < 120 || midpointX > battle.arena.width - 120
-    ? battle.arena.width / 2 - midpointX : 0;
+    ? Math.round(battle.arena.width / 2 - midpointX) : 0;
   const shiftY = midpointY < 80 || midpointY > battle.arena.height - 80
-    ? battle.arena.height / 2 - midpointY : 0;
+    ? Math.round(battle.arena.height / 2 - midpointY) : 0;
   if (shiftX === 0 && shiftY === 0) return battle;
   const shiftPoint = (point) => ({ ...point, x: point.x + shiftX, y: point.y + shiftY });
   return {
@@ -279,8 +360,12 @@ function recenterOpenSea(battle) {
   };
 }
 
+function shotOut(battle, owner) {
+  return battle[owner].shotSplash > 0 || battle.projectiles.some((shot) => shot.owner === owner);
+}
+
 function fire(shooter, target, owner, battle) {
-  if (shooter.reload > 0 || shooter.guns <= 0) return battle;
+  if (shooter.reload > 0 || shooter.guns <= 0 || shotOut(battle, owner)) return battle;
   const targetBearing = bearingByte(target.x - shooter.x, target.y - shooter.y);
   const port = (shooter.heading - 64) & 0xff;
   const starboard = (shooter.heading + 64) & 0xff;
@@ -302,17 +387,6 @@ function fire(shooter, target, owner, battle) {
   };
 }
 
-function pointHitsShip(projectile, target, enlargement) {
-  const dx = projectile.landingX - target.x;
-  const dy = projectile.landingY - target.y;
-  const radians = -target.heading / 256 * Math.PI * 2;
-  const localX = dx * Math.cos(radians) - dy * Math.sin(radians);
-  const localY = dx * Math.sin(radians) + dy * Math.cos(radians);
-  const halfWidth = (4 + target.type * .45) * enlargement;
-  const halfLength = (8 + target.type * .7) * enlargement;
-  return Math.abs(localX) <= halfWidth && Math.abs(localY) <= halfLength;
-}
-
 function landProjectiles(battle, rng) {
   let next = battle;
   const flying = [];
@@ -323,8 +397,11 @@ function landProjectiles(battle, rng) {
     }
     const targetKey = projectile.owner === 'player' ? 'enemy' : 'player';
     const target = next[targetKey];
-    const enlargement = projectile.owner === 'player' ? 1 + [3, 2, 1, 1, 1][next.skill] / 4 : 1;
-    const hit = pointHitsShip(projectile, target, enlargement);
+    const hit = shotHitsShip(
+      { x: projectile.landingX, y: projectile.landingY }, target,
+      { skill: projectile.owner === 'player' ? next.skill : null },
+    );
+    next = { ...next, [projectile.owner]: { ...next[projectile.owner], shotSplash: BATTLE_SHOT_SPLASH_FRAMES } };
     const effect = { kind: hit ? 'hit' : 'splash', x: projectile.landingX, y: projectile.landingY, life: 24 };
     next = { ...next, effects: [...next.effects, effect] };
     if (hit) {
@@ -356,6 +433,14 @@ function terminalEvent(battle) {
   return null;
 }
 
+function countDown(ship) {
+  return {
+    ...ship,
+    reload: Math.max(0, ship.reload - 1),
+    shotSplash: Math.max(0, (ship.shotSplash ?? 0) - 1),
+  };
+}
+
 export function stepBattle(original, input, rng) {
   if (original.event) return original;
   let battle = {
@@ -363,8 +448,8 @@ export function stepBattle(original, input, rng) {
     frame: original.frame + 1,
     noHitFrames: original.noHitFrames + 1,
     effects: original.effects.map((effect) => ({ ...effect, life: effect.life - 1 })).filter((effect) => effect.life > 1),
-    player: stepSails({ ...original.player, reload: Math.max(0, original.player.reload - 1) }),
-    enemy: stepSails({ ...original.enemy, reload: Math.max(0, original.enemy.reload - 1) }),
+    player: stepSails(countDown(original.player)),
+    enemy: stepSails(countDown(original.enemy)),
   };
 
   if (input.raiseSailsPressed) battle.player = requestSails(battle.player, 'full');
@@ -382,11 +467,18 @@ export function stepBattle(original, input, rng) {
   if (battle.frame % 8 === 0) battle.enemy = steerEnemy(battle.enemy);
 
   if (input.firePressed) battle = fire(battle.player, battle.enemy, 'player', battle);
-  if (battle.enemy.tactic === 'duel' && beamDifference(battle.enemy, battle.player) <= 6) {
+  // 0x8EDF: he fires whenever he is loaded, has guns, has no ball out, and you
+  // are less than 6 units off either beam (0x8F6E `cmp ax,6; jge`), whatever
+  // his tactic.
+  if (beamDifference(battle.enemy, battle.player) < 6) {
     battle = fire(battle.enemy, battle.player, 'enemy', battle);
   }
 
-  battle = { ...battle, player: moveShip(battle.player, battle), enemy: moveShip(battle.enemy, battle) };
+  battle = {
+    ...battle,
+    player: moveShip(battle.player, battle),
+    enemy: moveShip(battle.enemy, battle, { enemySkill: battle.skill }),
+  };
   battle = recenterOpenSea(battle);
   battle = landProjectiles(battle, rng);
   if (battle.frame % BATTLE_WIND_SHIFT_FRAMES === 0) battle = { ...battle, wind: shiftBattleWind(battle.wind, rng) };

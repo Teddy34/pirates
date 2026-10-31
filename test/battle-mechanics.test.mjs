@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SPEED_TABLE_1560 } from '../src/data.mjs';
 import {
-  BATTLE_SAIL_TRANSITION_FRAMES, BATTLE_WIND_SHIFT_FRAMES,
+  BATTLE_SAIL_TRANSITION_FRAMES, BATTLE_SHOT_SPLASH_FRAMES, BATTLE_WIND_SHIFT_FRAMES,
   PLAYER_RUDDER_INTERVAL, PLAYER_RUDDER_STEP,
-  applyCannonHit, battleDistance, battleSpeed, comparisonScore, createBattle,
+  applyCannonHit, battleDistance, battleSpeed, comparisonScore, cosScaled, createBattle,
   damageLevel, embarkedForBattle, enemyReloadTime, enemyTacticForScores, enemyWantedHeading,
-  gunnerySkill, playerReloadTime, shipRecord, stepBattle,
+  gunnerySkill, hitBox, moveShip, playerReloadTime, shipRecord, shipsCloseEnoughToStrike,
+  shipsTouch, shotHitsShip, sinScaled, stepBattle,
 } from '../src/battle-mechanics.mjs';
 import { renderBattle } from '../src/battle-renderer.mjs';
 
@@ -206,4 +207,125 @@ test('closing and fleeing courses stay within 80 units of downwind and are trunc
   assert.equal(enemyWantedHeading({ bearing: 128, heading: 0, wind: 0, tactic: 'close' }), 176);
   assert.equal(enemyWantedHeading({ bearing: 0, heading: 0, wind: 0, tactic: 'flee' }), 176);
   assert.equal(enemyWantedHeading({ bearing: 37, heading: 0, wind: 0, tactic: 'close' }), 32);
+});
+
+test('sin and cos follow the original byte table and floor (0x23150)', () => {
+  assert.equal(sinScaled(0, 24), 0);
+  assert.equal(sinScaled(64, 24), 23);
+  assert.equal(sinScaled(192, 24), -24);
+  assert.equal(cosScaled(0, 40), 39);
+  assert.equal(cosScaled(128, 40), -40);
+});
+
+test('ships move 4·sin(heading, s) in 24.8 units per frame, about s/64 pixels', () => {
+  const battle = battleFixture();
+  battle.speedRows = SPEED_TABLE_1560;
+  battle.wind = { direction: 0, strength: 0 };
+  // Barque at rel 4 (beam reach), battle sails, light wind: table 5, s = 20.
+  const ship = { ...battle.player, heading: 64, x: 100, y: 100 };
+  const moved = moveShip(ship, battle);
+  assert.equal(moved.speed, 20);
+  assert.equal(moved.x - 100, 4 * 19 / 256); // sin(64, 20) = floor(20·255/256) = 19
+  assert.equal(moved.y, 100);
+  // Top speed 40 north for 64 frames: 64 · 4 · cos(0, 40) / 256 = 39 pixels.
+  let north = { ...battle.player, heading: 0, x: 100, y: 200, sails: 'full', name: 'War galleon', type: 6 };
+  const strong = { ...battle, wind: { direction: 0, strength: 2 } };
+  for (let frame = 0; frame < 64; frame += 1) north = moveShip(north, strong);
+  assert.equal(north.speed, 40);
+  assert.equal(200 - north.y, 39);
+});
+
+test('hit boxes are fixed axis-aligned half-sizes by type (0x32B0C / 0x32B20)', () => {
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 7].map((type) => hitBox({ type })), [
+    { halfWidth: 20, halfHeight: 10 }, { halfWidth: 20, halfHeight: 10 }, { halfWidth: 20, halfHeight: 10 },
+    { halfWidth: 30, halfHeight: 20 }, { halfWidth: 30, halfHeight: 20 }, { halfWidth: 30, halfHeight: 20 },
+    { halfWidth: 40, halfHeight: 30 }, { halfWidth: 40, halfHeight: 30 },
+  ]);
+  assert.deepEqual(hitBox({ type: 8, fort: true }), { halfWidth: 32, halfHeight: 32 });
+  // The box does not turn with the ship.
+  const pinnace = { type: 0, x: 100, y: 100, heading: 64 };
+  assert.equal(shotHitsShip({ x: 120, y: 110 }, pinnace), true);
+  assert.equal(shotHitsShip({ x: 121, y: 100 }, pinnace), false);
+  assert.equal(shotHitsShip({ x: 100, y: 111 }, pinnace), false);
+  assert.equal(shotHitsShip({ x: 120, y: 110 }, { ...pinnace, heading: 0 }), true);
+});
+
+test('your shots test a box enlarged by gunnery skill; his test your exact box (0x9E38, 0x9EDA)', () => {
+  const pinnace = { type: 0, x: 100, y: 100 };
+  // Skill 0: 20 + 3·5 = 35 wide, 10 + 3·2 = 16 high.
+  assert.equal(shotHitsShip({ x: 135, y: 116 }, pinnace, { skill: 0 }), true);
+  assert.equal(shotHitsShip({ x: 136, y: 100 }, pinnace, { skill: 0 }), false);
+  assert.equal(shotHitsShip({ x: 100, y: 117 }, pinnace, { skill: 0 }), false);
+  // Skill 1: 30 × 14. Skill 2–4: 25 × 12.
+  assert.equal(shotHitsShip({ x: 130, y: 114 }, pinnace, { skill: 1 }), true);
+  assert.equal(shotHitsShip({ x: 131, y: 100 }, pinnace, { skill: 1 }), false);
+  for (const skill of [2, 3, 4]) {
+    assert.equal(shotHitsShip({ x: 125, y: 112 }, pinnace, { skill }), true);
+    assert.equal(shotHitsShip({ x: 126, y: 100 }, pinnace, { skill }), false);
+  }
+  assert.equal(shotHitsShip({ x: 121, y: 100 }, pinnace), false);
+});
+
+test('boarding contact uses a quarter of each half-size, striking twice (0x9C84, 0x9D53)', () => {
+  const barque = { type: 2, x: 100, y: 100 };
+  const galleon = { type: 7, x: 100, y: 100 };
+  // Quarter reach on x: 5 + 10 = 15; on y: 2 + 7 = 9.
+  assert.equal(shipsTouch(barque, { ...galleon, x: 115, y: 109 }), true);
+  assert.equal(shipsTouch(barque, { ...galleon, x: 116 }), false);
+  assert.equal(shipsTouch(barque, { ...galleon, y: 110 }), false);
+  // A fort's box counts whole: 5 + 32.
+  assert.equal(shipsTouch(barque, { type: 8, fort: true, x: 137, y: 100 }), true);
+  assert.equal(shipsTouch(barque, { type: 8, fort: true, x: 138, y: 100 }), false);
+  // Twice: 40 + 80 = 120 on x, 20 + 60 = 80 on y.
+  assert.equal(shipsCloseEnoughToStrike(barque, { ...galleon, x: 220, y: 180 }), true);
+  assert.equal(shipsCloseEnoughToStrike(barque, { ...galleon, x: 221 }), false);
+  assert.equal(shipsCloseEnoughToStrike(barque, { ...galleon, y: 181 }), false);
+});
+
+test('the enemy uses one less when his speed value equals your skill (quirk 19)', () => {
+  const common = { heading: 0, wind: 0, speedRow: SPEED_TABLE_1560.Barque, type: 2, sails: 'battle', windStrength: 0 };
+  // rel 0 has table value 4: 16·8/8 = 16, or 12 with the quirk.
+  assert.equal(battleSpeed(common), 16);
+  assert.equal(battleSpeed({ ...common, enemySkill: 4 }), 12);
+  assert.equal(battleSpeed({ ...common, enemySkill: 3 }), 16);
+});
+
+test('your ship reads the speed table signed: dead upwind stops a square-rigger (quirk 18 not kept)', () => {
+  const upwind = { heading: 128, wind: 0, speedRow: SPEED_TABLE_1560.Merchantman, type: 4, sails: 'battle', windStrength: 0 };
+  assert.equal(SPEED_TABLE_1560.Merchantman[8], -1);
+  assert.equal(battleSpeed(upwind), 0);
+  assert.equal(battleSpeed({ ...upwind, sails: 'full', windStrength: 2 }), 0);
+});
+
+test('the enemy fires whenever loaded, armed and within 6 of his beam, whatever his tactic (0x8EDF)', () => {
+  const quiet = { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false };
+  for (const tactic of ['close', 'duel', 'flee']) {
+    const battle = battleFixture();
+    battle.enemy.guns = 8; battle.enemy.tactic = tactic;
+    // You bear 192 from him; heading 0 puts you exactly on his port beam.
+    const fired = stepBattle(battle, quiet, zeroRng);
+    assert.equal(fired.projectiles.filter((shot) => shot.owner === 'enemy').length, 1, tactic);
+  }
+  const off = battleFixture();
+  off.enemy.guns = 8; off.enemy.heading = 6; off.enemy.wantedHeading = 6;
+  assert.equal(stepBattle(off, quiet, zeroRng).projectiles.length, 0);
+  const near = battleFixture();
+  near.enemy.guns = 8; near.enemy.heading = 5; near.enemy.wantedHeading = 5;
+  assert.equal(stepBattle(near, quiet, zeroRng).projectiles.length, 1);
+});
+
+test('a ship has one ball out at a time, including its 38-frame splash', () => {
+  const quiet = { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false };
+  const fire = { ...quiet, firePressed: true };
+  let battle = battleFixture();
+  battle.player.reloadTime = 1;
+  battle = stepBattle(battle, fire, zeroRng);
+  battle = stepBattle(battle, fire, zeroRng);
+  assert.equal(battle.projectiles.length, 1);
+  while (battle.projectiles.length) battle = stepBattle(battle, quiet, zeroRng);
+  assert.equal(battle.player.shotSplash, BATTLE_SHOT_SPLASH_FRAMES);
+  for (let frame = 1; frame < BATTLE_SHOT_SPLASH_FRAMES; frame += 1) battle = stepBattle(battle, fire, zeroRng);
+  assert.equal(battle.projectiles.length, 0);
+  battle = stepBattle(battle, fire, zeroRng);
+  assert.equal(battle.projectiles.length, 1);
 });
