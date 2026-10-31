@@ -19,7 +19,7 @@ import {
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   merchantCommodityPrice, merchantFoodPrice, merchantStock, updateTownMonthly, advanceDate,
-  fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
+  fleetIsUndermanned, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
   escapeCostsShip,
   monthEndCrewEvent, mutinyOutcome,
   CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
@@ -1244,6 +1244,7 @@ function finishTacticalBattle() {
     ...battle.encounter,
     crew: Math.max(1, Math.ceil(battle.enemy.men / 4)),
     guns: battle.enemy.guns,
+    damage: battle.enemy.damage, // a kept prize carries it (0xDB7B reads 0x44A4A)
   };
 
   if (battle.event === 'enemy-struck') {
@@ -1323,7 +1324,7 @@ function beginShipCapture(enemy) {
   const freeHold = cargoRoom();
   showDialog({
     kicker: 'Prize taken', title: `The ${enemy.ship} has struck`,
-    body: `<p>She is a ${stats.cargo}-ton ${enemy.ship} carrying ${enemy.guns} guns. Your fleet has ${freeHold} tons of empty hold space.</p><p>Will you keep her or strip and sink her?</p>`,
+    body: `<p>She is a ${stats.cargo}-ton ${enemy.ship} carrying ${enemy.guns} guns${damageLevel(enemy.damage ?? 0) ? ` (${damageLevel(enemy.damage).toLowerCase()})` : ''}. Your fleet has ${freeHold} tons of empty hold space.</p><p>Will you keep her or strip and sink her?</p>`,
     actions: [
       { label: 'Send a prize crew', run: () => keepPrizeShip(enemy) },
       { label: 'Plunder and sink her', secondary: true, run: () => finishPrizeDecision(enemy, false) },
@@ -1332,10 +1333,9 @@ function beginShipCapture(enemy) {
 }
 
 function keepPrizeShip(enemy) {
+  const prize = { type: enemy.ship, damage: enemy.damage ?? 0 };
   if (state.player.ships.length < 8) {
-    const slotIndex = state.player.ships.length;
-    state.player.ships.push({ type: enemy.ship, damage: 0 });
-    state.player.crew = Math.max(state.player.crew, slotIndex * 8);
+    state.player = keepPrize(state.player, prize).player;
     addLog(`Sent a prize crew aboard the captured ${enemy.ship}.`);
     finishPrizeDecision(enemy, true);
     return;
@@ -1346,7 +1346,7 @@ function keepPrizeShip(enemy) {
     actions: state.player.ships.map((ship, index) => ({
       label: `Abandon ${describeShip(ship)} (${index + 1})`,
       run: () => {
-        state.player.ships[index] = { type: enemy.ship, damage: 0 };
+        state.player = keepPrize(state.player, prize, index).player;
         addLog(`Abandoned a ${shipName(ship)} and kept the captured ${enemy.ship}.`);
         finishPrizeDecision(enemy, true);
       },

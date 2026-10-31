@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
+  fleetIsUndermanned, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
   CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
 } from '../src/mechanics.mjs';
 import { SHIPS } from '../src/data.mjs';
@@ -29,6 +29,33 @@ test('abandoning a ship for lack of crew keeps every cargo', () => {
     assert.equal(after[key], before[key]);
   }
   assert.throws(() => abandonShip(player({ ships: [{ type: 'Sloop', damage: 0 }] }), 0));
+});
+
+test('a kept prize keeps her battle damage level (0xDD81)', () => {
+  const { player: after, replaced } = keepPrize(player(), { type: 'Barque', damage: 37 });
+  assert.equal(replaced, null);
+  assert.deepEqual(after.ships.at(-1), { type: 'Barque', damage: 32 });
+  assert.equal(keepPrize(player(), { type: 'Barque', damage: 63 }).player.ships.at(-1).damage, 48);
+  assert.equal(keepPrize(player(), { type: 'Barque', damage: 15 }).player.ships.at(-1).damage, 0);
+});
+
+test('keeping a prize raises the crew to 8 × slot on both paths (quirk 14)', () => {
+  // Appended in slot 3 with 20 men: raised to 24.
+  assert.equal(keepPrize(player({ crew: 20 }), { type: 'Sloop', damage: 0 }).player.crew, 24);
+  assert.equal(keepPrize(player({ crew: 30 }), { type: 'Sloop', damage: 0 }).player.crew, 30);
+  // A full fleet: the prize overwrites the picked slot, whose cargo stays.
+  const full = player({
+    crew: 10,
+    ships: Array.from({ length: 8 }, (_, index) => ({ type: index === 6 ? 'Galleon' : 'Pinnace', damage: 0 })),
+  });
+  const { player: after, replaced } = keepPrize(full, { type: 'Frigate', damage: 16 }, 6);
+  assert.deepEqual(replaced, { type: 'Galleon', damage: 0 });
+  assert.equal(after.ships.length, 8);
+  assert.deepEqual(after.ships[6], { type: 'Frigate', damage: 16 });
+  assert.equal(after.crew, 48);
+  for (const key of ['cannon', 'foodFixed', 'goods', 'specialGoods', 'partyGold']) assert.equal(after[key], full[key]);
+  assert.equal(keepPrize(full, { type: 'Frigate', damage: 0 }, 0).player.crew, 10);
+  assert.throws(() => keepPrize(full, { type: 'Frigate', damage: 0 }));
 });
 
 test('a lost ship takes its share of the hold with the decoded rounding', () => {

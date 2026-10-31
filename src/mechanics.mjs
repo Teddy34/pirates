@@ -754,6 +754,20 @@ export function abandonShip(player, slot) {
   return { player: { ...player, ships: player.ships.filter((_, index) => index !== slot) }, lost: player.ships[slot] };
 }
 
+// Keeping a prize (0xDD4C-0xDDB5, ships.md §3): with fewer than 8 ships she
+// takes a new slot; with 8 she overwrites the ship you pick, whose cargo
+// stays. She keeps her battle damage, as the level bits (`damage & 0xF0`,
+// at most 48 since level 4 sinks her). Then, on either path, if 8·slot is
+// more than the crew, the crew is raised to 8·slot (quirk 14, kept: free men).
+export function keepPrize(player, prize, slot = player.ships.length) {
+  if (slot > player.ships.length || slot >= 8) throw new Error('no slot for the prize');
+  const ship = { type: prize.type, damage: Math.min(48, (prize.damage ?? 0) & 0xf0) };
+  const ships = [...player.ships];
+  const replaced = slot < ships.length ? ships[slot] : null;
+  ships[slot] = ship;
+  return { player: { ...player, ships, crew: Math.max(player.crew, CREW_PER_SHIP * slot) }, replaced };
+}
+
 // remove_ship with cargo lost (0x1F2A1, keep_cargo = 0): the ship takes its
 // share of the hold, 2·(T+1) of the fleet's units, as a fraction of the gold,
 // food (8.8 fixed point), goods, third good and cannon. Gold is truncated;
