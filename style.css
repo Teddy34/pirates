@@ -49,6 +49,10 @@ dialog h2 { font-size:34px; }
 #dialog-body dl { display:grid; grid-template-columns:1fr auto; gap:5px 20px; margin:16px 0 0; font-family:"Source Sans 3",sans-serif; font-size:14px; }
 #dialog-body dt { color:#725f43; }
 #dialog-body dd { margin:0; font-weight:700; }
+#dialog-body kbd { padding:0 5px; border:1px solid #8f713e; border-radius:2px; font-family:"Source Sans 3",sans-serif; font-size:14px; }
+#dialog-body .treasure-map { margin:6px auto 10px; max-width:320px; text-align:center; }
+#dialog-body .treasure-map img { display:block; width:100%; height:auto; image-rendering:pixelated; border:3px solid #6b4a26; }
+#dialog-body .treasure-map figcaption { margin-top:4px; font-style:italic; }
 .ship-news { margin:0; padding-left:1.15em; }
 .ship-news li { margin:.5em 0; }
 #dialog-actions { display:flex; flex-wrap:wrap; gap:8px; }
