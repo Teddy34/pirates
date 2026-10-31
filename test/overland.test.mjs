@@ -126,7 +126,20 @@ test('digging needs one piece and a cell within one of the site', () => {
   assert.ok(buriedGold >= 5000 && buriedGold <= 13000 && buriedGold % 1000 === 0);
   assert.equal(hit.finds[1].gold, 100000);
   assert.equal(hit.gold, buriedGold + 100000);
-  assert.deepEqual(hit.records, emptyMapRecords());
+  // The dig clears only the pieces (0xABB0); site and town stay.
+  assert.deepEqual(hit.records.map(({ pieces }) => pieces), [0, 0, 0]);
+  assert.equal(hit.records[MAP_KIND.BURIED].townIndex, 2);
+});
+
+test('a new map avoids the towns of earlier, already dug maps', () => {
+  const records = emptyMapRecords();
+  // Town 1 belonged to a dug buried map, town 2 to a dug lost-city map.
+  records[MAP_KIND.BURIED] = { pieces: 0, site: [50, 50], townIndex: 1, city: 0 };
+  records[MAP_KIND.LOST_CITY] = { pieces: 0, site: [90, 90], townIndex: 2, city: 0 };
+  for (let seed = 1; seed < 40; seed += 1) {
+    const next = giveMapPiece({ records, kind: MAP_KIND.BURIED, sites, nearestTown, currentTownIndex: 0, difficulty: 1, rng: createRng(seed) });
+    assert.equal(next[MAP_KIND.BURIED].townIndex, 3);
+  }
 });
 
 test('a rescue hands out a lost-city piece before the rescue count rises', () => {

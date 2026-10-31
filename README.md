@@ -16,7 +16,7 @@ Open <http://localhost:8000>. Node.js 18 or later is sufficient; there are no pa
 - Raise and lower sail with the up and down arrow keys or the on-screen sail controls. The three states are closed, low, and high.
 - Zoom from `16×` to `64×` with the `+` and `-` keys, the mouse wheel, or the on-screen controls.
 - Sail onto a town's harbor cells to arrive there automatically.
-- Sail onto any other coast to land a party (answer the **Disembark?** prompt with `Y` or `N`). On foot the arrow keys or the on-screen West/South/North/East buttons set the walking direction, which persists; two held arrows walk diagonally. Walk onto a town to march in, and walk back into the water at the rowboat to re-board.
+- Sail onto any other coast to land a party (answer the **Disembark?** prompt with `Y` or `N`). On foot the arrow keys, `W`, `A`, `D` (`S` searches) or the on-screen West/South/North/East buttons set the walking direction, which persists; two held arrows walk diagonally. Walk onto a town to march in, and walk back into the water at the rowboat to re-board.
 - On foot, press `S` or choose **Dig** to search for treasure. Press `M` or choose **Maps** to study your treasure maps. `T` toggles fast travel.
 - Press Space or choose **Pause** to pause the voyage.
 - Save from any town. The save remains in the current browser's local storage.

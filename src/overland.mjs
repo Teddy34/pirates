@@ -147,14 +147,19 @@ export function mapPieceCount(record) {
 // give_piece(n) (0x1F08A). A new map rolls its site from `sites` until the
 // site's nearest town is neither the current town nor any map's town; more
 // pieces never move it. Apprentice gets the whole map at once.
-// ASSUMED: an empty record has no town. The original clears the whole
-// record, so its +8 town reads as town 0 and may also exclude that town.
+// The check (0x1F11F-0x1F13E) compares the +8 town of all three records,
+// whether or not they hold pieces, including this record's own: a dug map
+// keeps its town (the dig clears only the pieces word), so a new map never
+// starts near a town an earlier map pointed to.
+// ASSUMED: a record that never held a map has no town. In the original its
+// +8 word is presumably 0 from the new-game reset, which would also exclude
+// town 0 until all three records have been used; the port does not.
 export function giveMapPiece({ records, kind, sites, nearestTown, currentTownIndex, difficulty, relativesRescued = 0, rng }) {
   const next = records.map((record) => ({ ...record }));
   const record = next[kind];
   if (kind === MAP_KIND.LOST_CITY) record.city = relativesRescued;
   if (record.pieces === 0) {
-    const taken = new Set(next.filter(({ pieces }) => pieces !== 0).map(({ townIndex }) => townIndex));
+    const taken = new Set(next.map(({ townIndex }) => townIndex).filter((townIndex) => townIndex !== null));
     for (let attempt = 0; ; attempt += 1) {
       const site = sites[rng.int(sites.length)];
       const townIndex = nearestTown(site[0], site[1]);
@@ -179,6 +184,9 @@ export function giveMapPiece({ records, kind, sites, nearestTown, currentTownInd
 // also hands out a lost-city piece (before relatives_rescued is raised).
 // Gold is party gold. The villain wipe that follows a rescue belongs to the
 // family quest (K7) and is left to the caller.
+// Not replicated: the original's gold amount [ebp-0x58] is not reset between
+// records, so one dig that finds buried treasure and a relative at once pays
+// the treasure twice (0xA80E, 0xABA0).
 export function digForTreasure({ records, cellX, cellY, rng, relativesRescued = 0, giveLostCityPiece }) {
   let next = records.map((record) => ({ ...record }));
   let rescued = relativesRescued;
@@ -190,7 +198,8 @@ export function digForTreasure({ records, cellX, cellY, rng, relativesRescued = 
     const find = { kind, townIndex: record.townIndex, gold: 0 };
     if (kind === MAP_KIND.BURIED) find.gold = (5 + rng.int(9)) * 1000;
     if (kind === MAP_KIND.LOST_CITY) { find.gold = 100000; find.city = record.city; }
-    next[kind] = emptyMapRecord();
+    // 0xABB0 clears only the pieces word: the site and town stay.
+    next[kind] = { ...record, pieces: 0 };
     if (kind === MAP_KIND.RELATIVE) {
       find.relative = rescued;
       if (giveLostCityPiece) next = giveLostCityPiece(next, rescued);

@@ -128,6 +128,17 @@ try {
     await clickButton('Leave town');
     await until('the party outside Panama', `${S}.player.onFoot && !${S}.paused && Math.floor(${S}.player.x) === ${S}.towns.find((t) => t.name === 'Panama').x`);
 
+    // Walking into water away from the boat is blocked, and the HUD says so.
+    await evaluate(`Object.assign(${S}.player, { x: 322.5, y: 441.7 })`);
+    await press('s');
+    await until('the search prompt from S', `${dialogTitle} === 'Search for treasure?'`);
+    await clickButton('Keep walking');
+    await press('ArrowDown');
+    await until('the blocked warning', `${S}.player.blockedByWater && document.querySelector('#speed-label').textContent.includes('Blocked')`);
+    await screenshot(`${viewport.name}-blocked`);
+    await press('w');
+    await until('walking north again', `!${S}.player.blockedByWater && ${S}.player.walk.y < 0`);
+
     // Walk back to the boat: stand just north of the landing spot and walk south.
     await evaluate(`Object.assign(${S}.player, { x: ${S}.player.landing.x, y: ${S}.player.landing.y - .2 })`);
     await press('ArrowDown');

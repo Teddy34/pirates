@@ -1733,7 +1733,7 @@ function continueVoyage() {
 }
 
 function clearLandingParty() {
-  Object.assign(state.player, { onFoot: false, ship: null, landing: null, walk: null });
+  Object.assign(state.player, { onFoot: false, ship: null, landing: null, walk: null, blockedByWater: false });
 }
 
 // The on-foot branch of the tick (0x235A3, porting_guide.md §5 and §8).
@@ -1750,20 +1750,20 @@ function stepPartyOnLand(previousX, previousY) {
   if (result.outcome === 'walk') {
     player.x = result.x;
     player.y = result.y;
-    player.blockedNoticeShown = false;
+    player.blockedByWater = false;
   } else if (result.outcome === 'blocked') {
     // Pushing against the water costs half a day a tick; food, wind and
     // encounters stand still until the party turns (landing_and_overland.md §3).
     player.voyageTick = roundUpToHalfDay(player.voyageTick);
-    if (!player.blockedNoticeShown) addLog('Water blocks the party; time slips by until it turns inland or walks back to its boat.');
-    player.blockedNoticeShown = true;
+    if (!player.blockedByWater) addLog('Water blocks the party; time slips by until it turns inland or walks back to its boat.');
+    player.blockedByWater = true;
   } else if (result.outcome === 'board') {
     player.voyageTick = roundUpToHalfDay(player.voyageTick);
     player.x = result.x;
     player.y = result.y;
     player.heading = result.heading;
     player.speed = 0;
-    player.blockedNoticeShown = false;
+    player.blockedByWater = false;
     clearLandingParty();
     resetSailingInterpolation();
     addLog('The landing party is back aboard.');
@@ -3020,7 +3020,7 @@ function updateInterface() {
   const distance = nearestTownDistance();
   labels.captain.textContent = `Captain ${state.captain} · ${state.nationality}`;
   labels.date.textContent = formatDate(state.calendar);
-  labels.speed.textContent = onFoot ? `On foot · 2 cells/day${fastTravel ? ' · fast' : ''}` : `${player.speed.toFixed(1)} cells/day${fastTravel ? ' · fast' : ''}`;
+  labels.speed.textContent = onFoot ? (player.blockedByWater ? '⚠ Blocked' : `On foot · 2 cells/day${fastTravel ? ' · fast' : ''}`) : `${player.speed.toFixed(1)} cells/day${fastTravel ? ' · fast' : ''}`;
   labels.wind.textContent = WIND_NAMES[(player.wind >> 4) & 15];
   labels.sails.previousElementSibling.textContent = onFoot ? 'Boat' : 'Sails';
   labels.sails.textContent = onFoot ? boatBearing() : { furled: 'Closed', battle: 'Low', full: 'High' }[player.sails];
@@ -3079,6 +3079,7 @@ function render() {
   }
   ctx.restore();
   drawMinimap(width, height, camera, zoom, playerPose);
+  if (state.player.onFoot && state.player.blockedByWater && !state.paused) drawBlockedWarning(width);
   if (state.paused && state.mode === 'sailing' && !dialog.open) drawPaused(width, height, 'Voyage paused');
 }
 
@@ -3282,6 +3283,25 @@ function drawMinimap(width, height, camera, zoom, playerPose) {
   ctx.restore();
 }
 
+// The faithful rule (landing_and_overland.md §3) burns half a day for every
+// tick the party pushes into water away from its boat, so say so plainly
+// for as long as it lasts, in words as well as colour.
+function drawBlockedWarning(width) {
+  const lines = ['⚠ Water blocks the party: half a day passes every step.', 'Turn inland, or walk back into the water at the rowboat.'];
+  const compact = width <= 760;
+  ctx.save();
+  ctx.font = `${compact ? 14 : 17}px "Source Sans 3", sans-serif`;
+  ctx.textAlign = 'center';
+  const boxWidth = Math.min(width - 24, Math.max(...lines.map((line) => ctx.measureText(line).width)) + 32);
+  const lineHeight = compact ? 19 : 23;
+  const top = compact ? 150 : 92;
+  ctx.fillStyle = 'rgba(58,16,10,.88)'; ctx.fillRect((width - boxWidth) / 2, top, boxWidth, lineHeight * 2 + 16);
+  ctx.strokeStyle = '#f0c36a'; ctx.lineWidth = 2; ctx.strokeRect((width - boxWidth) / 2, top, boxWidth, lineHeight * 2 + 16);
+  ctx.fillStyle = '#fbe9c6';
+  lines.forEach((line, index) => ctx.fillText(line, width / 2, top + 8 + lineHeight * (index + .8), boxWidth - 16));
+  ctx.restore();
+}
+
 function drawPaused(width, height, message) {
   ctx.fillStyle = 'rgba(4,18,23,.45)'; ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = '#f3e5c5'; ctx.textAlign = 'center'; ctx.font = '32px "IM Fell English", Georgia, serif'; ctx.fillText(message, width / 2, height / 2);
@@ -3342,12 +3362,15 @@ function changeSails(delta) {
 
 // On foot a direction key replaces the walk vector, which persists until the
 // next one: the party keeps walking (0x1B210 has no stop key). Two held
-// arrows make a diagonal, like the original's diagonal keys.
+// arrows make a diagonal, like the original's diagonal keys. W, A and D walk
+// too; S stays the original's search key, so south is the down arrow.
 const walkKeys = { west: false, east: false, north: false, south: false };
 const WALK_KEYS = {
   ArrowLeft: ['west'], ArrowRight: ['east'], ArrowUp: ['north'], ArrowDown: ['south'],
   Home: ['north', 'west'], PageUp: ['north', 'east'], End: ['south', 'west'], PageDown: ['south', 'east'],
+  w: ['north'], a: ['west'], d: ['east'],
 };
+const walkKeyDirections = (event) => WALK_KEYS[event.key] ?? WALK_KEYS[event.key.toLowerCase()];
 
 function onFootControls() {
   return state?.mode === 'sailing' && state.player.onFoot && !state.paused;
@@ -3389,7 +3412,7 @@ addEventListener('keydown', (event) => {
   if (dialog.open) return;
   const key = event.key.toLowerCase();
   if (state?.player.onFoot && state.mode === 'sailing') {
-    const directions = WALK_KEYS[event.key];
+    const directions = walkKeyDirections(event);
     if (directions) {
       for (const direction of directions) walkKeys[direction] = true;
       setWalk(directions.length === 2 ? Object.fromEntries(directions.map((direction) => [direction, true])) : walkKeys);
@@ -3419,7 +3442,7 @@ addEventListener('keydown', (event) => {
 addEventListener('keyup', (event) => {
   if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = false;
   if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = false;
-  for (const direction of WALK_KEYS[event.key] ?? []) walkKeys[direction] = false;
+  for (const direction of walkKeyDirections(event) ?? []) walkKeys[direction] = false;
 });
 addEventListener('blur', () => {
   input.left = false;
