@@ -631,8 +631,41 @@ export function freshFleet(player, { gold, flagshipType, shipStats, minCrew = 1 
   };
 }
 
-export function pirateCaptainTerms(value = 7) {
-  return { favourGain: Math.floor((value & 7) / 2) + 1 };
+// The prisoner word in 0x4720A (8 slots). 0xDF54 stores a captured named
+// captain as ((flag & 4) << 6) | captain id, so bit 8 marks a pirate (flag 4)
+// and Hostage Status (0xA4B9) prints "(pirate)" or "(hunter)" from it.
+// Captains with id 0 are not taken, and an id with bit 15 (the mission
+// pirate) completes the mission instead (0xDE48), so a stored word never has
+// bit 15 set.
+export function captiveWord({ flagIndex, captainId }) {
+  return (((flagIndex & 4) << 6) | captainId) & 0xffff;
+}
+
+// Old saves kept no word; rebuild it from the stored id and pirate flag.
+export function captiveWordOf(captive) {
+  return captive.word ?? ((captive.pirate ? 0x100 : 0) | ((captive.value ?? 0) & 0xff));
+}
+
+// Pirate delivery at the governor (0x12432, deliver_pirates.asm), traced
+// literally: for each prisoner word v, the hand-over needs v & 0x8000 and
+// (v >> 8) & 4 == the governor's nation (0x4605C, 0 Spain .. 3 Holland). It
+// is automatic: there is no choice to keep a matching prisoner. The favour
+// gain is ((v & 0x255) & 7) / 2 + 1; the mask is 0x255, not 255, so only
+// bits 0 and 2 count and the gain is 1 or 3. README §4.3's "(v & 7)/2 + 1"
+// drops that mask.
+// Since no stored word has bit 15 (see captiveWord), this never hands anyone
+// over in the original, and the port keeps that: held captains are only
+// ransomed (0x127DA) or freed by captivity (0x1F88F).
+export function governorPirateHandover({ captives, governorNationIndex }) {
+  const delivered = [];
+  let favourGain = 0;
+  for (const captive of captives) {
+    const word = captiveWordOf(captive);
+    if (!(word & 0x8000) || ((word >> 8) & 4) !== governorNationIndex) continue;
+    delivered.push(captive);
+    favourGain += (((word & 0x255) & 7) >> 1) + 1;
+  }
+  return { delivered, favourGain };
 }
 
 // New-game record copy (0x1386C): the start point is rnd(4) of the record's
@@ -680,9 +713,10 @@ export function captainRansomOffers({ captives, rng }) {
   const offers = [];
   for (let draw = 0; draw < 4; draw += 1) {
     const captain = captives[rng.int(8)];
-    if (!captain || captain.pirate) continue;
+    // 0x1280D reads every slot, pirates included (only the low byte counts).
+    if (!captain) continue;
     const multiplier = rng.int(3) + 1;
-    offers.push({ captain, gold: 500 * (((captain.value ?? 0) & 7) + 1) * multiplier });
+    offers.push({ captain, gold: 500 * ((captiveWordOf(captain) & 7) + 1) * multiplier });
   }
   return offers;
 }
@@ -1073,12 +1107,13 @@ export function healthLevel({ yearsElapsed, wounds = 0, medicine = false }) {
   return Math.min(3, Math.trunc((yearsElapsed + wounds) / (medicine ? 4 : 3)));
 }
 
-// The rest of 0x1F803 after the fresh fleet: captured pirates are freed
-// (0x4720A cleared), and the difficulty drops one level unless it is already
-// Apprentice, so you return "as an apprentice/journeyman/... captain".
+// The rest of 0x1F803 after the fresh fleet: every prisoner is freed (all
+// eight 0x4720A slots are cleared at 0x1F88F, hunters and pirates alike), and
+// the difficulty drops one level unless it is already Apprentice, so you
+// return "as an apprentice/journeyman/... captain".
 export function releaseFromCaptivity(player, difficulty) {
   return {
-    player: { ...player, capturedCaptains: (player.capturedCaptains ?? []).filter(({ pirate }) => !pirate) },
+    player: { ...player, capturedCaptains: [] },
     difficulty: (difficulty & 3) !== 0 ? difficulty - 1 : difficulty,
   };
 }

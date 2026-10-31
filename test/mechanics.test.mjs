@@ -7,7 +7,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
-  dividePlunder, beginDivisionRefit, freshFleet, pirateCaptainTerms, governorPromotion,
+  dividePlunder, beginDivisionRefit, freshFleet, captiveWord, governorPirateHandover, governorPromotion,
   nationalStanding, governorAmnestyTerms, captainRansomOffers, monthlyLandIncome, convoyReport,
   approximateDistance, cloudCountForMonth, targetSailingSpeed,
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
@@ -362,9 +362,27 @@ test('the fresh fleet crew is reputation + 16, and 1 when that is not positive',
   assert.equal(broke.partyGold, 90);
 });
 
-test('a captured pirate earns the documented favour gain', () => {
-  assert.deepEqual(pirateCaptainTerms(7), { favourGain: 4 });
-  assert.deepEqual(pirateCaptainTerms(2), { favourGain: 2 });
+test('a held captain stores the original prisoner word', () => {
+  // ((flag & 4) << 6) | id: bit 8 marks a pirate.
+  assert.equal(captiveWord({ flagIndex: 4, captainId: 0x2b }), 0x12b);
+  assert.equal(captiveWord({ flagIndex: 2, captainId: 0xab }), 0xab);
+  assert.equal(captiveWord({ flagIndex: 0, captainId: 0x1f }), 0x1f);
+});
+
+test('pirate delivery follows the literal masks of 0x12432', () => {
+  const words = (list) => list.map((word) => ({ word }));
+  // Stored words never carry bit 15, so no governor takes anyone.
+  for (let nation = 0; nation < 4; nation += 1) {
+    assert.deepEqual(governorPirateHandover({ captives: words([0x12b, 0x1ff, 0x7, 0xab]), governorNationIndex: nation }), { delivered: [], favourGain: 0 });
+  }
+  // A word with bit 15 is handed over when (v >> 8) & 4 equals the nation:
+  // gain = ((v & 0x255) & 7) / 2 + 1, so 1 or 3, never 2 or 4.
+  const spanish = governorPirateHandover({ captives: words([0x8007, 0x8002, 0x8405]), governorNationIndex: 0 });
+  assert.equal(spanish.delivered.length, 2);
+  assert.equal(spanish.favourGain, 3 + 1);
+  assert.equal(governorPirateHandover({ captives: words([0x8405]), governorNationIndex: 1 }).delivered.length, 0);
+  // Old saves without a word rebuild it from the pirate flag and the id.
+  assert.equal(governorPirateHandover({ captives: [{ pirate: true, value: 7 }], governorNationIndex: 0 }).delivered.length, 0);
 });
 
 test('a governor awards one documented promotion and converts excess favour into land', () => {

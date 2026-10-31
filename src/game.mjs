@@ -14,7 +14,7 @@ import {
   isEncounterHunter, hunterOvertakes, drawHunterCaptain, captainName, captainRenown,
   MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
   harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, beginDivisionRefit, freshFleet,
-  pirateCaptainTerms, governorPromotion, nationalStanding, governorAmnestyTerms,
+  captiveWord, governorPirateHandover, governorPromotion, nationalStanding, governorAmnestyTerms,
   captainRansomOffers, monthlyLandIncome, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -1351,55 +1351,44 @@ function finishPrizeDecision(enemy, keepShip) {
     completeMission(() => openShipPlunder(enemy));
     return;
   }
-  if (enemy.flag === 'pirate') {
-    resolvePirateCaptain(enemy, () => openShipPlunder(enemy));
-    return;
-  }
-  if (enemy.namedCaptain) {
+  if (enemy.captainId) {
     resolveNamedCaptain(enemy, () => openShipPlunder(enemy));
     return;
   }
   openShipPlunder(enemy);
 }
 
-function resolvePirateCaptain(enemy, next) {
-  // The captive's value is the captain's id (0x4720A), so a named captain's
-  // favour reward follows his id; an unnamed one falls back to the kind.
-  const value = enemy.captainId ?? enemy.kind;
-  const terms = pirateCaptainTerms(value);
-  const who = enemy.captainName ?? 'The pirate captain';
-  const hasRoom = state.player.capturedCaptains.length < 8;
-  showDialog({
-    kicker: 'A pirate prisoner', title: `${who} yields`,
-    body: '<p>You may hold the captain for delivery to a governor. The Crown will remember the service.</p>',
-    actions: [
-      ...(hasRoom ? [{ label: 'Take the captain prisoner', run: () => {
-        state.player.capturedCaptains.push({ pirate: true, ship: enemy.ship, value, name: enemy.captainName, ...terms });
-        addLog(`Captured ${enemy.captainName ?? 'a pirate captain'} for delivery to a governor.`);
-        next();
-      } }] : []),
-      { label: hasRoom ? 'Release the captain' : 'No room for another prisoner', secondary: true, run: next },
-    ],
-  });
-}
-
+// 0xDE33-0xDF80: a captured captain becomes a prisoner only if he has an id
+// (a named hunter or pirate). Bit 15 (the mission pirate) completes the
+// mission instead. When the flag's low two bits are 0 (Spain, and pirates,
+// flag 4) the captain offers news of the treasure fleet or the silver train
+// or is held for ransom (CSTR 165); any other captain is held. The prisoner
+// word is ((flag & 4) << 6) | id in the first free of eight slots.
 function resolveNamedCaptain(enemy, next) {
   state.player.capturedCaptains ??= [];
-  if (enemy.flag !== 'Spain') {
+  const flagIndex = enemy.flag === 'pirate' ? 4 : NATION_ORDER.indexOf(enemy.flag);
+  const who = enemy.captainName ?? `The ${enemy.flag} captain`;
+  const hold = () => {
     if (state.player.capturedCaptains.length < 8) {
-      state.player.capturedCaptains.push({ nation: enemy.flag, ship: enemy.ship, pirate: false, value: enemy.captainId ?? enemy.kind, name: enemy.captainName });
-      addLog(`${enemy.captainName ?? `The ${enemy.flag} captain`} is held for delivery to a governor.`);
+      state.player.capturedCaptains.push({
+        nation: enemy.flag, ship: enemy.ship, pirate: flagIndex === 4, value: enemy.captainId, name: enemy.captainName,
+        word: captiveWord({ flagIndex, captainId: enemy.captainId }),
+      });
+      addLog(`${who} is held for ransom.`);
     }
     next();
+  };
+  if ((flagIndex & 3) !== 0) {
+    hold();
     return;
   }
   showDialog({
-    kicker: 'A notable prisoner', title: `${enemy.captainName ?? `The ${enemy.flag} captain`} yields`,
-    body: '<p>The original offers information about Spanish treasure movements, or lets you hold the captain for ransom.</p>',
+    kicker: enemy.flag === 'pirate' ? 'A pirate prisoner' : 'A notable prisoner', title: `${who} yields`,
+    body: '<p>“Spare me, captain, and I will tell you what I know of the Spanish treasure.”</p>',
     actions: [
       { label: 'Ask about the treasure fleet', run: () => showConvoyReport('treasureFleet', next) },
       { label: 'Ask about the silver train', run: () => showConvoyReport('silverTrain', next) },
-      { label: 'Hold for ransom', run: () => { if (state.player.capturedCaptains.length < 8) state.player.capturedCaptains.push({ nation: enemy.flag, ship: enemy.ship, pirate: false, value: enemy.captainId ?? enemy.kind, name: enemy.captainName }); addLog(`Held ${enemy.captainName ?? `the ${enemy.flag} captain`} for ransom.`); next(); } },
+      { label: 'Hold for ransom', run: hold },
     ],
   });
 }
@@ -2020,25 +2009,27 @@ function showGovernor() {
   governorMission(town, () => deliverGovernorPirates(town));
 }
 
+// 0x12432 hands over, without asking, every prisoner that matches the
+// governor's nation (see governorPirateHandover). With the words the capture
+// code stores, nobody ever matches, so the audience moves straight on; the
+// dialog stays for saves or future captives that do match.
 function deliverGovernorPirates(town) {
-  const capturedPirates = state.player.capturedCaptains.filter(({ pirate }) => pirate);
-  if (capturedPirates.length === 0) {
+  const { delivered, favourGain } = governorPirateHandover({
+    captives: state.player.capturedCaptains,
+    governorNationIndex: NATION_ORDER.indexOf(town.nation),
+  });
+  if (delivered.length === 0) {
     continueGovernorAudience(town);
     return;
   }
-  const favourGain = capturedPirates.reduce((sum, captain) => sum + (captain.favourGain ?? pirateCaptainTerms(captain.value).favourGain), 0);
+  state.player.favour[town.nation] += favourGain;
+  state.player.capturedCaptains = state.player.capturedCaptains.filter((captive) => !delivered.includes(captive));
+  const names = delivered.map(({ name, ship }) => name ?? `the captain of a ${ship}`).join(', ');
+  addLog(`Turned over ${names} in ${town.name}; ${town.nation} favour rose by ${favourGain}.`);
   showDialog({
-    kicker: `${town.nation} governor`, title: capturedPirates.length === 1 ? 'A pirate brought to justice' : `${capturedPirates.length} pirates brought to justice`,
-    body: `${capturedPirates.some(({ name }) => name) ? `<p>Your prisoners: ${capturedPirates.map(({ name, ship }) => name ?? `the captain of a ${ship}`).join(', ')}.</p>` : ''}<p>The governor accepts the ${capturedPirates.length === 1 ? 'captain' : 'captains'} and promises that the Crown will remember your service.</p><dl><dt>${town.nation} favour reward</dt><dd>+${favourGain}</dd><dt>Current national favour</dt><dd>${state.player.favour[town.nation]}</dd><dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
-    actions: [
-      { label: `Turn ${capturedPirates.length === 1 ? 'him' : 'them'} over`, run: () => {
-        state.player.favour[town.nation] += favourGain;
-        state.player.capturedCaptains = state.player.capturedCaptains.filter(({ pirate }) => !pirate);
-        addLog(`Turned over ${capturedPirates.length} pirate ${capturedPirates.length === 1 ? 'captain' : 'captains'} in ${town.name}; ${town.nation} favour rose by ${favourGain}.`);
-        continueGovernorAudience(town);
-      } },
-      { label: 'Keep the prisoners', secondary: true, run: () => continueGovernorAudience(town) },
-    ],
+    kicker: `${town.nation} governor`, title: delivered.length === 1 ? 'A pirate brought to justice' : `${delivered.length} pirates brought to justice`,
+    body: `<p>The governor takes ${names} into custody and promises that the Crown will remember your service.</p>`,
+    actions: [{ label: 'Continue the audience', run: () => continueGovernorAudience(town) }],
   });
 }
 
