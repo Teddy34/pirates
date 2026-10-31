@@ -7,7 +7,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
-  dividePlunder, beginDivisionRefit, freshFleet, captiveWord, governorPirateHandover, prisonerEscape, governorPromotion,
+  dividePlunder, beginDivisionRefit, freshFleet, captiveWord, governorPirateHandover, prisonerEscape, portDesertion, governorPromotion,
   nationalStanding, governorAmnestyTerms, captainRansomOffers, monthlyLandIncome, convoyReport,
   approximateDistance, cloudCountForMonth, targetSailingSpeed,
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
@@ -368,6 +368,14 @@ test('a held captain stores the original prisoner word', () => {
   assert.equal(captiveWord({ flagIndex: 4, captainId: 0x2b }), 0x12b);
   assert.equal(captiveWord({ flagIndex: 2, captainId: 0xab }), 0xab);
   assert.equal(captiveWord({ flagIndex: 0, captainId: 0x1f }), 0x1f);
+});
+
+test('leaving a town costs deserters from low morale and their share of gold', () => {
+  // (3 - 0) * 50 / 15 = 10 men, each taking 1000 / 50.
+  assert.deepEqual(portDesertion({ crew: 50, partyGold: 1000, morale: 0 }), { deserters: 10, goldLost: 200, crew: 40, partyGold: 800 });
+  assert.equal(portDesertion({ crew: 10, partyGold: 100, morale: 1 }), null, 'one deserter is not enough');
+  assert.equal(portDesertion({ crew: 50, partyGold: 100, morale: 3 }), null);
+  assert.equal(portDesertion({ crew: 4, partyGold: 100, morale: -20 }).crew, 1, 'never the last man');
 });
 
 test('leaving a town lets the prisoner in a random slot escape', () => {

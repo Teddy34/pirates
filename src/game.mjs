@@ -14,7 +14,7 @@ import {
   isEncounterHunter, hunterOvertakes, drawHunterCaptain, captainName, captainRenown,
   MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
   harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, beginDivisionRefit, freshFleet,
-  captiveWord, governorPirateHandover, prisonerEscape, governorPromotion, nationalStanding, governorAmnestyTerms,
+  captiveWord, governorPirateHandover, prisonerEscape, portDesertion, governorPromotion, nationalStanding, governorAmnestyTerms,
   captainRansomOffers, monthlyLandIncome, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -1783,11 +1783,6 @@ function trySneak(town) {
 function enterTown(town, sneaking) {
   state.mode = 'town';
   state.paused = true;
-  const deserters = Math.min(state.player.crew - 1, Math.floor(((3 - state.player.crewMorale) * state.player.crew) / 15));
-  if (deserters > 1) {
-    state.player.crew -= deserters;
-    addLog(`${deserters} crewmen deserted at ${town.name}.`);
-  }
   state.visit = { townIndex: state.nearestTownIndex, sneaking, overland: Boolean(state.approach?.overland), recruited: false, merchant: null };
   // 0x17EBB: entering a town makes your information on it current.
   town.flags = learnTownInfo(town.flags);
@@ -2678,8 +2673,27 @@ function tradeWithMerchant(kind, direction, requested) {
   return amount;
 }
 
+// 0x17EFB, which the town loop runs as you leave (0x1DA91): first the crew
+// desertion, then a prisoner may jump overboard (CSTR 110), then the fleet
+// check and the departure (putToSea -> resumeSailing).
 function leaveTown() {
-  // 0x17EFB, run as you leave: a prisoner may jump overboard (CSTR 110).
+  const player = state.player;
+  const desertion = portDesertion({ crew: player.crew, partyGold: player.partyGold, morale: player.crewMorale });
+  if (desertion) {
+    Object.assign(player, { crew: desertion.crew, partyGold: desertion.partyGold });
+    const town = state.towns[state.visit.townIndex];
+    addLog(`${desertion.deserters} crewmen deserted at ${town.name} with ${desertion.goldLost} gold.`);
+    showDialog({
+      kicker: 'Roll call', title: 'Deserters',
+      body: `<p>Roll call reveals that ${desertion.deserters} crew members have deserted.</p>`,
+      actions: [{ label: 'Continue', run: releasePrisonerOverboard }],
+    });
+    return;
+  }
+  releasePrisonerOverboard();
+}
+
+function releasePrisonerOverboard() {
   const slot = prisonerEscape({ captives: state.player.capturedCaptains, rng });
   if (slot >= 0) {
     const [captive] = state.player.capturedCaptains.splice(slot, 1);

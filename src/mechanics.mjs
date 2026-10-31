@@ -303,6 +303,18 @@ export function thirdOfCrewDeserts({ crew, partyGold }) {
   return { deserters, goldLost, crew: crew - deserters, partyGold: partyGold - goldLost };
 }
 
+// Port desertion (0x17EFB, run as you leave a town): n = trunc((3 - morale)
+// * crew / 15), at most crew - 1; when n > 1, "Roll call reveals that %s crew
+// members have deserted" (CSTR 109) and 0x1F044(n) takes their share of the
+// gold. Returns null when nobody deserts.
+export function portDesertion({ crew, partyGold, morale }) {
+  let deserters = Math.trunc(((3 - morale) * crew) / 15);
+  if (deserters >= crew) deserters = crew - 1;
+  if (deserters <= 1) return null;
+  const goldLost = Math.trunc((deserters * partyGold) / crew);
+  return { deserters, goldLost, crew: crew - deserters, partyGold: partyGold - goldLost };
+}
+
 // Event 2 at 0x28537 with zero days left: the whole-ton food word becomes 5
 // (the fraction byte stays), and a third of the crew deserts via 0x1F044.
 export function starvationDesertion({ crew, partyGold, foodFixed }) {
@@ -646,7 +658,7 @@ export function captiveWordOf(captive) {
   return captive.word ?? ((captive.pirate ? 0x100 : 0) | ((captive.value ?? 0) & 0xff));
 }
 
-// Leaving a town (0x17EFB, after the crew desertion): slot = rnd(8); a
+// Leaving a town (0x17EFB, after portDesertion): slot = rnd(8); a
 // prisoner whose word has a non-zero low byte jumps overboard and escapes
 // (CSTR 110) and the slot is cleared, while 0x47ACA bit 1 (in a town) is set,
 // which it always is here. Returns the escaping captive's index or -1.
