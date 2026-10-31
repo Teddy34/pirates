@@ -21,9 +21,19 @@ for future work.
 
 - Sail on the original 640×480 world-tile grid: 307,200 logical tiles.
 - Load a separate coastline and navigation mask for every era.
-- Block ships from entering land while allowing movement along coastlines.
-  Land is tested per map pixel with the original colour classes, so coastal
-  tiles have their drawn shoreline and shallow water is recorded.
+- Test land per map pixel with the original colour classes, so coastal tiles
+  have their drawn shoreline. Sailing onto a land pixel stops the ship and
+  asks "Disembark?" (Y/N); No turns the ship round (landing_and_overland.md §2).
+- Walk a landing party overland (`src/overland.mjs`): two cells a day on each
+  axis in any terrain, a persistent walk direction set by the arrows (two held
+  arrows or Home/PgUp/End/PgDn walk diagonally), food, wind and time running,
+  no encounters or alert build-up, and half a day lost per tick spent pushing
+  into water. The ship waits where it landed; the party re-boards only by
+  walking into the water within 10 px of the landing spot (§3–§4).
+- Wreck the last ship bigger than a sloop once per 100 ticks over shallow
+  pixels; men who no longer fit drown, and a lone big ship takes the shipwreck
+  path (§5).
+- Toggle the original's fast mode with `T` (ticks five times faster).
 - Paint the sea and land as pixel art at the navigation mask's own
   resolution (16 pixels per tile). Sea depth comes from distance to land, and
   the coast gets surf and a beach. Inland there are grass, forest and shaded
@@ -127,8 +137,13 @@ for future work.
 
 - Arrive automatically on a town's decoded trigger cells; the nearest town is
   chosen from the trigger table as in the original.
-- Send a provisional landing party to inland towns (overland travel is not
-  playable yet).
+- March into any town on foot by walking onto its trigger cells; leaving puts
+  the party on the town's own cell with the ship still where it landed.
+- Keep the three treasure-map records (buried treasure, lost relative, lost
+  city) with the decoded 256 dig sites. Tavern map pieces pick a site away from
+  the current town; any piece lets the party dig (`S` or Dig on foot) within a
+  cell of the site for 5,000–13,000 gold. Maps are drawn from the navigation
+  mask, one quarter per piece, and can be studied with `M` or Maps.
 - Attempt open harbor entry, including fort fire that can sink any ship with
   its share of the cargo, or the last ship and send you to prison. A refused
   entry returns to the approach menu for another try.
@@ -194,7 +209,7 @@ for future work.
 | Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading, and governor missions (letter, papers, pirate hunt, rescue: offer, delivery, completion, failure and reward) | Richer governor actions |
 | Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, random town events, AI conquest, the treasure fleet and silver train, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, and the villains' monthly moves |
 | Morale | Stored crew morale (recomputed each month and on load, +1 or +2 per captured prize; used for port desertion, battle reload and the month-end check), desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a provisional leader duel, and plunder division with crew satisfaction | A Party Status mood display (which recomputes morale in the original) and interactive mutiny combat |
-| Persistence | One versioned browser save slot and v1-v7 save migration (v7 adds the town-information bits, and older voyages keep current information on every town, and releases unnamed pirates held for delivery; v8 adds the treasure fleet and silver train, placed for an older voyage as a new game would on its current day) | Multiple slots, battle-state persistence, and import/export |
+| Persistence | One versioned browser save slot and v1-v8 save migration (v7 adds the town-information bits, and older voyages keep current information on every town, and releases unnamed pirates held for delivery; v8 adds the treasure fleet and silver train, placed for an older voyage as a new game would on its current day; v9 adds the landing party and three treasure-map records) | Multiple slots, battle-state persistence, and import/export |
 | Accessibility | Keyboard and touch controls, visible labels, focus styles, and text HUD | Complete keyboard dialog navigation testing, screen-reader alternatives for the canvas, and configurable controls |
 
 ## Missing gameplay systems
@@ -205,8 +220,9 @@ The following systems have no complete playable implementation:
 - fort bombardment, land battles, town assaults, capture, and plunder;
 - ship purchases and complete prize management;
 - complete cannon management;
-- overland treasure-map searching and named pirates;
-- lost relatives, villains, rumors, and rescue quests;
+- named pirates;
+- lost relatives, villains, rumors, and rescue quests (the dig already rescues
+  a relative and hands out lost-city pieces once a relative's map exists);
 - courtship, rival suitors, marriage, and family benefits;
 - aging and illness effects beyond the captivity message, ransom, and the
   retirement check at the start of captivity;
