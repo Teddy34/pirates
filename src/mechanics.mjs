@@ -218,8 +218,10 @@ export function capturedShipPlunder({ enemy, nearbyTownGrowth, shipStats, rng })
   };
 }
 
-export function capturedTownPlunder({ town, alert, rng }) {
-  const baseGold = Math.floor((town.gold * 1500) / (alert + 15));
+// `convoyBonus` is the treasure fleet and silver train bonus (captureConvoys),
+// added to the base loot before the treasury loss is taken from it.
+export function capturedTownPlunder({ town, alert, rng, convoyBonus = 0 }) {
+  const baseGold = Math.floor((town.gold * 1500) / (alert + 15)) + convoyBonus;
   const food = rng.int(town.growth);
   const goods = rng.int(town.growth);
   const specialGoods = rng.int(town.growth);
@@ -750,24 +752,120 @@ export function monthlyLandIncome(landUnits) {
   return Math.trunc(landUnits / 2);
 }
 
-export function convoyReport({ kind, route, towns, calendar, eraIndex }) {
-  const dayOfYear = calendar.month * 30 + calendar.day;
-  // ASSUMED: full monthly convoy state is not simulated yet. Advancing one
-  // route stop every 15 days is the deterministic midpoint of the documented
-  // one-or-two-stop monthly movement and preserves the decoded restart dates.
-  let position = Math.floor(dayOfYear / 15) + (kind === 'treasureFleet' ? -18 : -6) + 2 * (eraIndex & 1);
-  if (position < 0) position += 24;
-  while (position < route.length) {
-    const location = towns.find(town => town.name === route[position]);
-    if (location?.nation === 'Spain') {
-      const next = route.slice(position + 1)
-        .map(name => towns.find(town => town.name === name))
-        .find(town => town?.nation === 'Spain');
-      return { location: location.name, next: next?.name ?? null };
-    }
-    position += 1;
+// ---------------------------------------------------------------------------
+// The treasure fleet and the silver train (treasure_fleet_silver_train.md).
+// Each convoy is { position, townIndex }: the route position byte (0x45E8D /
+// 0x45E8E) and the town it lies in (0x45E71 / 0x45E70), null for 0xFF (in
+// Spain or Peru, away from the Caribbean). Routes are the era header's 15
+// stops as indices into the scenario's towns. The routes are fixed, so the
+// random-town range (0x4605A) plays no part here.
+// ---------------------------------------------------------------------------
+
+export const CONVOY_KINDS = Object.freeze(['treasureFleet', 'silverTrain']);
+export const CONVOY_STOPS = 15;
+// 0x229E2 / 0x22A61: a captured convoy is finished for the year.
+export const CONVOY_CAPTURED_POSITION = 16;
+
+export function convoyRouteIndices(routeNames, towns) {
+  return routeNames.map((name) => {
+    const index = towns.findIndex((town) => town.name === name);
+    if (index < 0) throw new Error(`convoy stop ${name} is not a town`);
+    return index;
+  });
+}
+
+// 0xCEB8: the fleet restarts in October (month 9) and the train in April
+// (month 3), a month earlier in odd-numbered eras. Months count from 0.
+export function convoyRestartMonth(kind, eraIndex) {
+  return (kind === 'treasureFleet' ? 9 : 3) - (eraIndex & 1);
+}
+
+// New game (0x136AD-0x13754): the position follows from the day of the
+// year; the starting town is the route stop without the Spanish check, and
+// no town is changed.
+export function initialConvoys({ routes, dayOfYear, eraIndex }) {
+  const convoys = {};
+  for (const kind of CONVOY_KINDS) {
+    let position = Math.trunc((dayOfYear % 360) / 15) + (kind === 'treasureFleet' ? -18 : -6) + 2 * (eraIndex & 1);
+    if (position < 0) position += 24;
+    convoys[kind] = { position, townIndex: position < CONVOY_STOPS ? routes[kind][position] : null };
   }
-  return { location: null, next: null };
+  return convoys;
+}
+
+// 0xCDE9: one convoy's monthly step. It moves on one or two stops, skipping
+// any stop that is no longer Spanish (each skip moves the base on one and
+// re-rolls the one-or-two), and is gone from stop 15 on. The town it reaches
+// grows by 10 (245 and above become 255); the fleet also carries off three
+// quarters of its gold. The town record is changed in place.
+export function stepConvoy({ convoy, route, towns, restart, loadsTreasure, rng }) {
+  let start = restart ? -1 : convoy.position;
+  let position;
+  let townIndex;
+  for (;;) {
+    position = start + 1 + rng.int(2);
+    if (position >= CONVOY_STOPS) { townIndex = null; break; }
+    townIndex = route[position];
+    if (towns[townIndex].nation === 'Spain') break;
+    start += 1;
+  }
+  if (townIndex !== null) {
+    const town = towns[townIndex];
+    town.growth = town.growth >= 245 ? 255 : town.growth + 10;
+    if (loadsTreasure) town.gold = Math.floor(town.gold / 4);
+  }
+  // The position is stored as a byte.
+  return { position: position & 0xff, townIndex };
+}
+
+// Step 6 of 0xCEB8: the fleet, then the train. `month` is the month the
+// update runs in, as the rest of the monthly world sees it.
+export function monthlyConvoyStep({ convoys, routes, towns, month, eraIndex, rng }) {
+  const next = {};
+  for (const kind of CONVOY_KINDS) {
+    next[kind] = stepConvoy({
+      convoy: convoys[kind], route: routes[kind], towns,
+      restart: month === convoyRestartMonth(kind, eraIndex),
+      loadsTreasure: kind === 'treasureFleet', rng,
+    });
+  }
+  return next;
+}
+
+export function convoysInTown(convoys, townIndex) {
+  return CONVOY_KINDS.filter((kind) => convoys[kind].townIndex !== null && convoys[kind].townIndex === townIndex);
+}
+
+// 0xD44F: in the waters of the fleet's town the sail is the treasure fleet
+// when rnd(24) > alert. The roll is made only there.
+export function meetsTreasureFleet({ convoys, nearestTownIndex, alert, rng }) {
+  const fleetTown = convoys.treasureFleet.townIndex;
+  if (fleetTown === null || fleetTown !== nearestTownIndex) return false;
+  return rng.int(24) > alert;
+}
+
+// 0x18B9C: each convoy in the town adds 10 soldiers to its garrison when you
+// attack, capped at 255.
+export function convoyGarrison(soldiers, convoysPresent) {
+  return Math.min(255, soldiers + 10 * convoysPresent);
+}
+
+// 0x2297B-0x22A6F: each convoy in a captured town adds 20 x the fleet
+// template's byte 5 (0x47117, shared by both) to the base loot, before the
+// treasury loss and the x10 display factor, and is finished for the year.
+export function captureConvoys({ convoys, townIndex, goldByte }) {
+  const captured = convoysInTown(convoys, townIndex);
+  const next = { ...convoys };
+  for (const kind of captured) next[kind] = { position: CONVOY_CAPTURED_POSITION, townIndex: null };
+  return { convoys: next, captured, bonus: 20 * goldByte * captured.length };
+}
+
+// 0x1E953 / 0x1EA24 (CSTN 27, CSTR 45/46): "The Treasure Fleet is in
+// Havana." Away, the fleet is "in Spain" and the train "in Peru".
+export function convoyReport(kind, convoy, towns) {
+  const name = kind === 'treasureFleet' ? 'Treasure Fleet' : 'Silver Train';
+  const place = convoy.townIndex === null ? (kind === 'treasureFleet' ? 'Spain' : 'Peru') : towns[convoy.townIndex].name;
+  return { name, place, away: convoy.townIndex === null, message: `The ${name} is in ${place}.` };
 }
 
 export function merchantFoodPrice({ growth, month, producesFood, familyDiscount = false }) {

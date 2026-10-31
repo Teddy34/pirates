@@ -15,7 +15,9 @@ import {
   MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
   harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, beginDivisionRefit, freshFleet,
   captiveWord, governorPirateHandover, prisonerEscape, portDesertion, governorPromotion, nationalStanding, governorAmnestyTerms,
-  captainRansomOffers, monthlyLandIncome, convoyReport,
+  captainRansomOffers, monthlyLandIncome,
+  convoyRouteIndices, initialConvoys, monthlyConvoyStep, convoysInTown, meetsTreasureFleet, convoyGarrison,
+  captureConvoys, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   merchantCommodityPrice, merchantFoodPrice, merchantStock, advanceDate,
@@ -38,7 +40,7 @@ import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSpr
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
 const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
-const SAVE_VERSION = 7;
+const SAVE_VERSION = 8;
 const TICK_SECONDS = 0.125;
 const ZOOM_STEP = 4;
 const MIN_ZOOM = 16;
@@ -209,10 +211,24 @@ function newState(options) {
     alert: 0,
     diplomacy,
     worldNews,
+    // 0x13679 places the treasure fleet and silver train before the news.
+    convoys: initialConvoys({ routes: convoyRoutesFor(era, towns), dayOfYear: dayOfYear(calendar), eraIndex: eraIndexOf(era) }),
     treasureMap: { pieces: 0, clueTownIndex: null },
     portTrade: { townIndex: null, merchantCash: null, shipwrightCash: null },
     logs,
     visit: null,
+  };
+}
+
+const eraIndexOf = (era) => Object.keys(scenarios).indexOf(era);
+const dayOfYear = (calendar) => calendar.month * 30 + calendar.day;
+
+// The era header's convoy stops as indices into the voyage's towns.
+function convoyRoutesFor(era, towns) {
+  const routes = scenarios[era].convoyRoutes;
+  return {
+    treasureFleet: convoyRouteIndices(routes.treasureFleet, towns),
+    silverTrain: convoyRouteIndices(routes.silverTrain, towns),
   };
 }
 
@@ -243,6 +259,9 @@ async function startGame(nextState) {
   state.player.ships = state.player.ships.map(shipRecord);
   state.diplomacy ??= newState({ era: state.era, captain: state.captain, nationality: state.nationality, difficulty: state.difficulty, ability: state.ability }).diplomacy;
   state.worldNews ??= initialDiplomacyNews(state.diplomacy, state.calendar);
+  // Version 8 adds the treasure fleet and silver train. An older voyage
+  // places them as a new game would on the current day of the year.
+  state.convoys ??= initialConvoys({ routes: convoyRoutesFor(state.era, state.towns), dayOfYear: dayOfYear(state.calendar), eraIndex: eraIndexOf(state.era) });
   state.treasureMap ??= { pieces: 0, clueTownIndex: null };
   state.hunterNameRows ??= 0;
   state.mission ??= null;
@@ -291,7 +310,7 @@ function saveGame(showMessage = true) {
 function loadGame() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(PREVIOUS_SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY));
-    if (![1, 2, 3, 4, 5, 6, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
+    if (![1, 2, 3, 4, 5, 6, 7, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
     // Version 7 adds the town-information bits (0x80 current, 0x20
     // obsolete) to each town's flags. Earlier versions showed every town's
     // figures, so an older voyage keeps current information on every town.
@@ -1008,8 +1027,16 @@ function monthlyUpdate({ newsLog = true } = {}) {
   });
   const messages = news.map((entry) => worldNewsMessage(entry, state.towns));
   messages.forEach(addWorldNews);
-  // Step 6 of 0xCEB8, the treasure fleet and silver train (0xCDE9), runs
-  // here once it is simulated.
+  // Step 6 of 0xCEB8: the treasure fleet and silver train (0xCDE9). Their
+  // movement is secret; nothing is logged.
+  state.convoys = monthlyConvoyStep({
+    convoys: state.convoys,
+    routes: convoyRoutesFor(state.era, state.towns),
+    towns: state.towns,
+    month: state.calendar.month,
+    eraIndex: eraIndexOf(state.era),
+    rng,
+  });
   // The original writes these events to the event log its Ship's Log lists
   // (0x1E8CF, 0x1FC0F); the captain's log line points the player there.
   if (newsLog) {
@@ -1071,6 +1098,13 @@ function revealEncounter(town, distance) {
   const missionWaters = mission?.type === MISSION.PIRATE && !mission.done && mission.target === state.nearestTownIndex;
   if (missionWaters && rng.int(5) !== 0) {
     template = encounters[mission.nation].find((entry) => entry[1] === 'pirate') ?? template;
+  }
+  // 0xD44F: in the waters of the treasure fleet's town, unless the town is
+  // alerted, the sail is the fleet's galleon (nation slot 4, tier 0). The
+  // original announces nothing more: she is a heavily manned Spanish
+  // Galleon with a rich hold. Taking her at sea does not stop the fleet.
+  if (meetsTreasureFleet({ convoys: state.convoys, nearestTownIndex: state.nearestTownIndex, alert: state.alert, rng })) {
+    template = scenarios[state.era].treasureFleet;
   }
   const [ship, flag, crew, guns, kind, gold, cargo] = template;
   // 0xD525: any pirate met there is the wanted man, and he always gives chase.
@@ -1400,24 +1434,28 @@ function resolveNamedCaptain(enemy, next) {
   });
 }
 
+// 0x1E953 / 0x1EA24: where the convoy is now. Asking sets the captain free.
 function showConvoyReport(kind, next) {
-  const label = kind === 'treasureFleet' ? 'treasure fleet' : 'silver train';
-  const report = convoyReport({
-    kind,
-    route: scenarios[state.era].convoyRoutes[kind],
-    towns: state.towns,
-    calendar: state.calendar,
-    eraIndex: Object.keys(scenarios).indexOf(state.era),
-  });
-  const message = report.location
-    ? `The ${label} was last reported at ${report.location}${report.next ? `, bound next for ${report.next}` : ''}.`
-    : `The ${label} has completed its Caribbean run and sailed for Spain.`;
-  addLog(message);
+  const report = noteConvoyReport(kind);
   showDialog({
-    kicker: 'Intelligence from a prisoner', title: report.location ?? 'Gone to Spain',
-    body: `<p>${message}</p>`,
+    kicker: 'Intelligence from a prisoner', title: report.name,
+    body: `<p>${report.message}</p>`,
     actions: [{ label: 'Continue to the captured ship', run: next }],
   });
+}
+
+// ASSUMED: the original's log strings "Treasure fleet in %s." and "Silver
+// train in %s." (CSTN 20, events 20 and 21) have no caller in the
+// executable. The port records each report the captain receives with them in
+// the captain's log so the intelligence can be read back later.
+function noteConvoyReport(kind) {
+  const report = convoyReport(kind, state.convoys[kind], state.towns);
+  addLog(`${kind === 'treasureFleet' ? 'Treasure fleet' : 'Silver train'} in ${report.place}.`);
+  return report;
+}
+
+function convoyReportsBody() {
+  return ['treasureFleet', 'silverTrain'].map((kind) => `<p>${noteConvoyReport(kind).message}</p>`).join('');
 }
 
 function openShipPlunder(enemy) {
@@ -1615,7 +1653,7 @@ function approachTown({ overland = false } = {}) {
   // figures only for a town you have current information on.
   showDialog({
     kicker: townInfoStatus(town.flags) === 'current' ? `${town.nation} · ${prosperity(town.growth)}` : town.nation, title: town.name,
-    body: `<p>You have arrived at ${town.name}. ${fortText}</p>${townInfoBody(town, { brief: true })}`,
+    body: `<p>You have arrived at ${town.name}. ${fortText}</p>${convoyArrivalLines(town)}${townInfoBody(town, { brief: true })}`,
     actions: [
       { label: overland ? 'March into town' : 'Sail into the harbor', run: () => tryHarbor(town) },
       { label: 'Sneak into town', run: () => trySneak(town) },
@@ -1623,6 +1661,13 @@ function approachTown({ overland = false } = {}) {
       { label: 'Leave town', secondary: true, run: () => { departFromApproach(); resumeSailing(); } },
     ],
   });
+}
+
+// CSTN 29 [2], [3]: the approach names a convoy lying in the town.
+function convoyArrivalLines(town) {
+  return convoysInTown(state.convoys, state.towns.indexOf(town))
+    .map((kind) => `<p class="convoy-news"><strong>${kind === 'treasureFleet' ? 'The treasure fleet is in the harbor!' : 'The silver train is in town!'}</strong></p>`)
+    .join('');
 }
 
 function showOverlandMarch() {
@@ -1658,6 +1703,8 @@ function marchOverland(townIndex, days) {
 }
 
 function attackTown(town) {
+  // 0x18B9C: the convoys' guards join the garrison at every assault.
+  town.soldiers = convoyGarrison(town.soldiers, convoysInTown(state.convoys, state.towns.indexOf(town)).length);
   showDialog({
     kicker: 'Assault', title: `Attack ${town.name}`,
     body: `<p>Town and land combat are not playable yet. Choose the provisional result of the assault; capture now leads into the documented plunder sequence.</p>`,
@@ -1685,7 +1732,11 @@ function captureTown(town) {
 function resolveTownCapture(town) {
   const oldNation = town.nation;
   town.growth = Math.max(0, town.growth - 20);
-  const loot = capturedTownPlunder({ town, alert: state.alert, rng });
+  // 0x2297B: a treasure fleet or silver train in the town adds its bonus
+  // to the loot and is finished for the year.
+  const convoys = captureConvoys({ convoys: state.convoys, townIndex: state.towns.indexOf(town), goldByte: scenarios[state.era].treasureFleet[5] });
+  state.convoys = convoys.convoys;
+  const loot = capturedTownPlunder({ town, alert: state.alert, rng, convoyBonus: convoys.bonus });
   Object.assign(town, applyTownCapture(town, loot));
   // 0x227AF: taking the town gives current information on it.
   town.flags = learnTownInfo(town.flags);
@@ -1694,13 +1745,41 @@ function resolveTownCapture(town) {
   if (loot.gold > 990) propagateFavour(oldNation, -2);
   const threshold = 10 * town.population + rng.int(10 * town.population);
   addLog(`Captured ${town.name} from ${oldNation}.`);
-  // 0x2285C: taking the rescue mission's town frees the governor's son.
-  const mission = state.mission;
-  if (mission?.type === MISSION.RESCUE && !mission.done && mission.target === state.towns.indexOf(town)) {
-    completeMission(() => settleCapturedTown(town, oldNation, loot, threshold));
-    return;
-  }
-  settleCapturedTown(town, oldNation, loot, threshold);
+  const settle = () => {
+    // 0x2285C: taking the rescue mission's town frees the governor's son.
+    const mission = state.mission;
+    if (mission?.type === MISSION.RESCUE && !mission.done && mission.target === state.towns.indexOf(town)) {
+      completeMission(() => settleCapturedTown(town, oldNation, loot, threshold));
+      return;
+    }
+    settleCapturedTown(town, oldNation, loot, threshold);
+  };
+  showConvoyCaptures(convoys.captured, settle);
+}
+
+// CSTR 186 / 187 and log events 24 / 25, the fleet first.
+const CONVOY_CAPTURE_TEXTS = {
+  treasureFleet: {
+    title: 'The treasure fleet is yours!',
+    body: 'You have captured the royal Spanish treasure fleet! A flood of gold and jewels pours into the hold of your ship.',
+    log: 'Captured the treasure fleet!',
+  },
+  silverTrain: {
+    title: 'The silver train is yours!',
+    body: 'You have captured the silver train, bearing a fortune in silver from the mines of Peru! The crew sings lustily as they haul it aboard.',
+    log: 'Captured the silver train!',
+  },
+};
+
+function showConvoyCaptures(captured, next) {
+  if (!captured.length) { next(); return; }
+  const text = CONVOY_CAPTURE_TEXTS[captured[0]];
+  addLog(text.log);
+  showDialog({
+    kicker: 'Spanish treasure', title: text.title,
+    body: `<p>${text.body}</p>`,
+    actions: [{ label: 'Continue', run: () => showConvoyCaptures(captured.slice(1), next) }],
+  });
 }
 
 function settleCapturedTown(town, oldNation, loot, threshold) {
@@ -2300,7 +2379,10 @@ function showBarmaid() {
   if (isInformant) {
     showDialog({
       kicker: `The barmaid · ${town.name}`, title: 'Your informant has been listening',
-      body: newsBody(state.worldNews.slice(0, 4), 'Even your informant has heard nothing new.'),
+      // ASSUMED: the barmaid stands in for the original's informant at the
+      // governor's house (CSTN 26), who reports the treasure fleet and then
+      // the silver train (0x1292D-0x12A0D) with the news.
+      body: `${convoyReportsBody()}${newsBody(state.worldNews.slice(0, 4), 'Even your informant has heard nothing new.')}`,
       actions: [{ label: 'Return to the tavern', run: showTavern }],
     });
     return;
@@ -3272,6 +3354,15 @@ loadScenarios().then(() => {
   if (preview === 'arrival' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     // Havana 1560: the coast cell (244, 178) south of the ship is a trigger cell.
     const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    Object.assign(previewState.player, { x: 244.5, y: 176.5, heading: 128, speed: 12 });
+    startGame(previewState);
+    return;
+  }
+  if (preview === 'treasure-fleet' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // Both convoys lie in Havana 1560 as the ship arrives there.
+    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    const havana = previewState.towns.findIndex((town) => town.name === 'Havana');
+    previewState.convoys = { treasureFleet: { position: 0, townIndex: havana }, silverTrain: { position: 9, townIndex: havana } };
     Object.assign(previewState.player, { x: 244.5, y: 176.5, heading: 128, speed: 12 });
     startGame(previewState);
     return;
