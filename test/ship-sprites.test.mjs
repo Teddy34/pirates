@@ -38,4 +38,6 @@ test('only the flag shows allegiance, and damage shows on the rig', () => {
   // Level 2 (lost a mast) takes the foremast and its sails.
   assert.ok(opaque(paint({ damage: 32 })) < opaque(paint({ damage: 0 })));
   assert.ok(!same(paint({ damage: 16 }), paint({ damage: 0 })));
+  for (const type of [0, 1]) for (const heading of [0, 64]) assert.ok(!same(paint({ type, heading, damage: 16 }), paint({ type, heading })), `type ${type}`);
+  assert.ok(!same(paint({ changing: true }), paint({})));
 });

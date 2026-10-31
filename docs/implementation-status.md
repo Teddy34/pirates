@@ -49,9 +49,9 @@ for future work.
   streaming downwind. The rig follows the ship type (gaff-rigged pinnace and
   sloop, two to four square-rigged masts, stern castles, a gilded wale on
   warships), each of the sixteen heading sectors is painted rather than
-  rotated, and the sails show furled, battle or full canvas. In battle the
-  hull is about as long as the hit box, torn sails show damage level 1 and a
-  lost foremast level 2.
+  rotated, and the sails show furled, battle or full canvas. In battle one
+  art pixel is one battle pixel (the dashed hit box is larger), torn sails show damage level 1 and a
+  lost foremast level 2, and sails being raised or lowered are shaded.
 - Zoom from 16× to 64× without scaling town labels. Town and ship sprites
   step from 2 to 3 to 4 screen pixels per art pixel as the map zooms in.
 - Show every decoded town for the selected era, including eastern Caribbean

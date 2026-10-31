@@ -45,7 +45,8 @@ export function headingSector(heading) {
 // Paints a ship. `nation` is { key, color, dark } from NATIONS; `wind` is
 // the direction the wind blows towards (an angle byte, as the speed tables
 // use it); `damage` follows the battle levels (16 per level).
-export function paintShipSprite({ type, heading, sails = 'full', nation, wind = 0, damage = 0, length = shipArtLength(type) }) {
+// `changing` marks sails being raised or lowered (drawn in the shade colour).
+export function paintShipSprite({ type, heading, sails = 'full', changing = false, nation, wind = 0, damage = 0, length = shipArtLength(type) }) {
   const rig = RIGS[Math.max(0, Math.min(7, type))];
   const angle = (headingSector(heading) * 16) / 256 * Math.PI * 2;
   const sin = Math.sin(angle), cos = Math.cos(angle);
@@ -54,6 +55,7 @@ export function paintShipSprite({ type, heading, sails = 'full', nation, wind = 
   const depth = Math.max(2, Math.round(length * .16));
   const mastHeight = Math.round(length * .9);
   const level = damage >> 4;
+  const canvas = changing ? COLORS.sailShade : COLORS.sail;
   // (u along the hull, v to starboard, h up) → screen, before centring.
   const project = (u, v, h) => [u * sin + v * cos, (-u * cos + v * sin) * SLANT - h];
   const bow = [sin, -cos * SLANT];
@@ -93,7 +95,7 @@ export function paintShipSprite({ type, heading, sails = 'full', nation, wind = 
       layers.push({ shape: aft.map(([u, v]) => project(u, v, h)), color: h === depth + rig.castle ? palette.deckLight : palette.side });
     }
     const lantern = project(-half, 0, depth + rig.castle + 1);
-    add(project(-half * .8, 0, 0)[1], (art, at) => {
+    add(project(-half * .8, 0, depth)[1], (art, at) => {
       for (const layer of layers) art.polygon(layer.shape.map(at), layer.color);
       if (rig.lantern) { const [x, y] = at(lantern); art.set(Math.floor(x), Math.floor(y), COLORS.glow); }
     }, [...layers.flatMap((layer) => layer.shape), lantern]);
@@ -123,7 +125,7 @@ export function paintShipSprite({ type, heading, sails = 'full', nation, wind = 
         project(mast.u - length * .3, swing * .8, depth + reach * mast.height), project(mast.u, 0, depth + reach * mast.height),
       ];
       if (sails === 'furled') sailOps.push({ line: [quad[0], quad[1]], color: COLORS.furled });
-      else sailOps.push({ quad, color: COLORS.sail, shade: false });
+      else sailOps.push({ quad, color: canvas, shade: false, holes: level >= 1 });
       if (rig.jib && sails !== 'furled') {
         sailOps.push({ quad: [project(half + length * .16, 0, depth + 2), top, project(mast.u, -swing * .2, depth + 1)], color: COLORS.sailShade });
       }
@@ -143,7 +145,7 @@ export function paintShipSprite({ type, heading, sails = 'full', nation, wind = 
         sailOps.push({
           quad: [[upper[0] - width * .85, upper[1]], [upper[0] + width * .85, upper[1]], [lower[0] + width, lower[1]], [lower[0] - width, lower[1]]],
           split: [[upper[0], upper[1]], [lower[0], lower[1]]],
-          color: COLORS.sail, shade: true, holes: level >= 1,
+          color: canvas, shade: true, holes: level >= 1,
         });
         shapes.push([upper[0] - width, upper[1]], [upper[0] + width, upper[1]], [lower[0] + width, lower[1]], [lower[0] - width, lower[1]]);
       }
@@ -163,7 +165,8 @@ export function paintShipSprite({ type, heading, sails = 'full', nation, wind = 
           art.line(quad[0], quad[1], COLORS.yard);
         }
         if (sail.holes) {
-          const [x, y] = at(sail.split[1]);
+          const xs = quad.map(([x]) => x), ys = quad.map(([, y]) => y);
+          const x = (Math.min(...xs) + Math.max(...xs)) / 2, y = (Math.min(...ys) + 2 * Math.max(...ys)) / 3;
           art.set(Math.floor(x) - 2, Math.floor(y) - 1, COLORS.hole);
           art.set(Math.floor(x) + 1, Math.floor(y) - 2, COLORS.hole);
         }

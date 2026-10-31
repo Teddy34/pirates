@@ -4,8 +4,7 @@ import { headingSector, paintShipSprite, shipArtLength } from './ship-sprites.mj
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 
 // The hit box is fixed and axis-aligned (sea_battles.md §3), so it is drawn
-// unrotated as a faint outline, and the sprite's hull is drawn about as long
-// as the box's half-width plus half-height.
+// unrotated as a faint outline around the smaller sprite.
 function drawHitBox(context, ship, scale) {
   const { halfWidth, halfHeight } = hitBox(ship);
   context.save();
@@ -19,21 +18,26 @@ function drawHitBox(context, ship, scale) {
 const shipSpriteCache = new Map();
 
 // The pixel-art ship (ship-sprites.mjs): one sprite per heading sector, sail
-// state, flag, wind and damage level, drawn at a whole number of device
-// pixels per art pixel.
+// state (shaded while changing), flag, wind and damage level. The hull is
+// shipArtLength battle pixels long; on large screens the sprite is painted
+// at `detail` art pixels per battle pixel so an art pixel stays at most
+// about MAX_ART_PIXEL device pixels.
+const MAX_ART_PIXEL = 3;
 function drawShip(context, ship, wind, scale) {
-  const { halfWidth, halfHeight } = hitBox(ship);
-  const length = shipArtLength(ship.type, 'battle');
+  const devicePixels = scale * devicePixelScale();
+  const detail = Math.max(1, Math.ceil(devicePixels / MAX_ART_PIXEL));
+  const length = shipArtLength(ship.type, 'battle') * detail;
   const key = NATIONS[ship.flag] ? ship.flag : 'pirate';
   const sector = headingSector(ship.heading);
   const windSector = headingSector(wind);
   const level = Math.min(4, ship.damage >> 4);
-  const sprite = cachedSprite(shipSpriteCache, `${ship.type}|${sector}|${ship.sails}|${key}|${windSector}|${level}`, () => paintShipSprite({
-    type: ship.type, heading: sector * 16, sails: ship.sails, nation: { key, ...NATIONS[key] },
+  const changing = ship.sailTransition > 0;
+  const sprite = cachedSprite(shipSpriteCache, `${ship.type}|${sector}|${ship.sails}|${changing}|${key}|${windSector}|${level}|${detail}`, () => paintShipSprite({
+    type: ship.type, heading: sector * 16, sails: ship.sails, changing, nation: { key, ...NATIONS[key] },
     wind: windSector * 16, damage: level * 16, length,
   }));
   if (!sprite) return;
-  const pixelScale = Math.max(1, Math.round(((halfWidth + halfHeight) * scale * devicePixelScale()) / length));
+  const pixelScale = Math.max(1, Math.round(devicePixels / detail));
   drawPixelSprite(context, sprite, ship.x, ship.y, pixelScale);
 }
 
