@@ -467,7 +467,7 @@ export function rollGovernorMission({ towns, currentTownIndex, nation, favour, g
 // governor's own nation. Even types (papers, rescue) need an enemy town.
 function missionTarget({ type, towns, currentTownIndex, nation, diplomacy, rng }) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const index = rng.int(towns.length);
+    const index = rng.int(randomTownRange(towns)); // 0x12FE4
     if (index === currentTownIndex) continue;
     const town = towns[index];
     const relation = diplomacy[nation]?.[town.nation] ?? 0;
@@ -526,13 +526,23 @@ export function tavernRecruits({ townPopulation, reputation, difficulty, crew, c
   return recruits;
 }
 
-export function tavernSpecialEncounters({ mapPieces = 0, rng }) {
+export function tavernSpecialEncounters({ mapPieces = 0, towns = null, rng }) {
   // These are prepared in the original order when the tavern opens. A roll of
   // 50 suppresses the traveller; the map seller has a separate 1-in-5 roll.
-  const travellerPrice = (rng.int(10) + 5) * 10;
+  // 0x110D8: the traveller's town is rnd(random-town range), and price and
+  // town are drawn again while you already have current information on the
+  // town (unless the price is 50), so he reports on a town you don't know.
+  let travellerPrice;
+  let townIndex;
+  for (;;) {
+    travellerPrice = (rng.int(10) + 5) * 10;
+    if (!towns) break;
+    townIndex = rng.int(randomTownRange(towns));
+    if (!(towns[townIndex].flags & TOWN_INFO_CURRENT) || travellerPrice === 50) break;
+  }
   const encounters = travellerPrice === 50
     ? []
-    : [{ kind: 'traveller', price: travellerPrice }];
+    : [{ kind: 'traveller', price: travellerPrice, ...(towns ? { townIndex } : {}) }];
   if (mapPieces < 4 && rng.int(5) === 0) encounters.push({ kind: 'map-seller', price: 500 });
   return encounters;
 }
@@ -988,7 +998,15 @@ export function installNewGovernor(town, rng) {
 // (1560 Yaguana, later Villa Hermosa) is never in it. The monthly economy
 // (0xC729), AI conquest (0xC81B), the random event (0xCA7F) and the opening
 // news (0x13679) all use this range, so that town never grows, falls to an
-// AI nation or gets an event. A faithful quirk, kept.
+// AI nation or gets an event. A faithful quirk, kept. The other readers of
+// 0x4605A: the governor's mission target (0x12FE4) and the tavern
+// traveller's town (0x110F9) use it here too; the villain records and their
+// moves and news (0xAAE4, 0xCBF7, 0x1224B, 0x18A02) wait for the lost
+// relatives (K7); the gazetteer loops (0xB97C, 0xBC82) run to the range
+// inclusive, i.e. every real town, as City information does; the Ship's Log
+// (0x1E1DF) prints a town name only for indexes below it; the nearest-town
+// search 0x1ADFC takes it as an argument (0x13988, 0x1F0F5, 0x2884F) but
+// never reads it; 0xB53A, 0x13EC8 and 0x16666 are not ported.
 export function randomTownRange(towns) {
   return Math.max(0, towns.length - 1);
 }

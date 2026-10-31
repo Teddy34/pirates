@@ -2237,13 +2237,11 @@ function completeGovernorPurchase(town, terms) {
 function showTavern() {
   const town = state.towns[state.visit.townIndex];
   if (!state.visit.tavernEncounters) {
-    state.visit.tavernEncounters = tavernSpecialEncounters({ mapPieces: state.treasureMap.pieces, rng })
+    state.visit.tavernEncounters = tavernSpecialEncounters({ mapPieces: state.treasureMap.pieces, towns: state.towns, rng })
       .map((encounter) => ({
         ...encounter,
         resolved: false,
-        townIndex: encounter.kind === 'traveller'
-          ? (state.visit.townIndex + 1 + rng.int(state.towns.length - 1)) % state.towns.length
-          : null,
+        townIndex: encounter.townIndex ?? null,
       }));
   }
   const encounters = state.visit.tavernEncounters.filter(({ resolved }) => !resolved);
@@ -2767,7 +2765,8 @@ function tradeWithMerchant(kind, direction, requested) {
 
 // 0x17EFB, which the town loop runs as you leave (0x1DA91): first the crew
 // desertion, then a prisoner may jump overboard (CSTR 110), then the fleet
-// check and the departure (putToSea -> resumeSailing).
+// check while still in the town (0x180B0, 0x47ACA bit 1 set), so too few men
+// for the last ship means prison (CSTR 175), then the departure (0x19B9E).
 function leaveTown() {
   const player = state.player;
   const desertion = portDesertion({ crew: player.crew, partyGold: player.partyGold, morale: player.crewMorale });
@@ -2794,11 +2793,15 @@ function releasePrisonerOverboard() {
     showDialog({
       kicker: 'A prisoner escapes', title: 'Man overboard',
       body: `<p>${who} jumps overboard and escapes!</p>`,
-      actions: [{ label: 'Put to sea', run: putToSea }],
+      actions: [{ label: 'Put to sea', run: departureFleetCheck }],
     });
     return;
   }
-  putToSea();
+  departureFleetCheck();
+}
+
+function departureFleetCheck() {
+  runFleetCheck({ inTown: true, done: putToSea });
 }
 
 function putToSea() {
@@ -3361,10 +3364,16 @@ loadScenarios().then(() => {
     });
     return;
   }
-  if (preview === 'arrival' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+  if (['arrival', 'deserters'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     // Havana 1560: the coast cell (244, 178) south of the ship is a trigger cell.
     const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     Object.assign(previewState.player, { x: 244.5, y: 176.5, heading: 128, speed: 12 });
+    // Deserters: one ship, 8 men and morale -2, so leaving Havana costs 2
+    // men and the departure fleet check sends the captain to prison.
+    if (preview === 'deserters') {
+      Object.assign(previewState.player, { crew: 8, partyGold: 0, monthsAtSea: 5 });
+      previewState.player.ships = previewState.player.ships.slice(0, 1);
+    }
     startGame(previewState);
     return;
   }

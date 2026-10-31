@@ -278,6 +278,15 @@ test('tavern prepares traveller and map seller independently in decoded order', 
   assert.deepEqual(tavernSpecialEncounters({ mapPieces: 0, rng: fixedRng({ integer: 4 }) }), [
     { kind: 'traveller', price: 90 },
   ]);
+  // 0x110D8: the traveller reports on a town in the range you have no
+  // current information on; price and town are drawn again otherwise.
+  const towns = [{ flags: 0x80 }, { flags: 0 }, { flags: 0x80 }, { flags: 0 }];
+  const draws = [3, 0, 3, 2, 3, 1, 4];
+  const limits = [];
+  assert.deepEqual(tavernSpecialEncounters({ mapPieces: 0, towns, rng: { int: (n) => { limits.push(n); return draws.shift(); } } }), [
+    { kind: 'traveller', price: 80, townIndex: 1 },
+  ]);
+  assert.deepEqual(limits, [10, 3, 10, 3, 10, 3, 5]);
 });
 
 test('shipwright prices account for type, damage, season, and town size', () => {
@@ -574,6 +583,8 @@ const missionTowns = [
   { name: 'Inland', nation: 'France', flags: 0x40 },
   { name: 'Enemy', nation: 'Spain', flags: 0 },
   { name: 'Neutral', nation: 'Holland', flags: 0 },
+  // The last town is outside the random-town range (0x12FE4 rolls rnd(0x4605A)).
+  { name: 'Last', nation: 'France', flags: 0 },
 ];
 const missionDiplomacy = { France: { France: 0, Spain: -1, Holland: 0, England: 0 } };
 
@@ -597,6 +608,12 @@ test('governor missions pick targets by type as 0x12FC1 does', () => {
   assert.equal(roll([3, 3], 15), null);
   assert.equal(roll([0, 1], 3), null);
   assert.equal(roll([0, 1], 16, -1), null);
+  const limits = [];
+  rollGovernorMission({
+    towns: missionTowns, currentTownIndex: 0, nation: 'France', favour: 16, governorMood: 0,
+    diplomacy: missionDiplomacy, rng: { int: (n) => { limits.push(n); return limits.length === 1 ? 0 : 1; } },
+  });
+  assert.deepEqual(limits, [5, 5]);
 });
 
 test('the wanted pirate id carries bit 15 and a title-less low byte', () => {
