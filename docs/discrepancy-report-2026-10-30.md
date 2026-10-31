@@ -38,11 +38,11 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 |---|---|---|
 | D12 | H | **Hit boxes are far too small.** The docs give fixed, non-rotating half-sizes of 20×10, 30×20 and 40×30 depending on ship size, read from the code. The port uses rotated boxes of about 4×8 to 7×13 (`:293-302`), so a pinnace is roughly 6× harder to hit. Boarding contact (a quarter of the half-size) and the "close enough to strike" test (twice the half-size) use circles instead (`:126-137`). |
 | D13 | H | **Ships move 4× too fast.** The doc's formula works out to speed/64 pixels per frame. The port uses speed/16 (`:13`, `:245`). Shot flight time (distance/2 frames) and the 240-pixel escape distance are unchanged, so aiming and escaping are both easier than in the original. |
-| D14 | M | **Ships drift downwind instead of stopping.** The docs say speeds below 1 become 0, and the drift branch and −12 limit never run (quirk 20, "keep: ships stop"). The port keeps both (`:69`, `:243`). |
+| D14 | M | **Fixed in #26.** **Ships drift downwind instead of stopping.** The docs say speeds below 1 become 0, and the drift branch and −12 limit never run (quirk 20, "keep: ships stop"). The port keeps both (`:69`, `:243`). |
 | D15 | M | The enemy's "table value equals your skill, so subtract 1" rule (quirk 19) is missing. The port also hasn't recorded a decision on the player's unsigned-read upwind bug (quirk 18). |
 | D16 | M | **The enemy only fires when duelling** (`:372`). The docs say he fires whenever loaded, armed, and within ±6 of his beam, whatever his tactic. |
 | D17 | L | The battle wind's strength changes even when its direction didn't (`:329-336`); the docs say only if the direction changed. |
-| D18 | L | The enemy's wanted heading isn't rounded to 16. |
+| D18 | L | **Fixed in #26.** The enemy's wanted heading isn't rounded to 16. The same fix restores the duel wind check (`0x8AE9`): a beam course more than 95 units from downwind is swapped for the other beam, so a duelling enemy no longer sits head to wind. |
 | D19 | M | **Fixed in #9.** The "enemy takes a ship when you escape" penalty also applies at sunset (`game.mjs:773`). The docs limit it to escape (event 6). |
 | D20 | M | **Fixed in #7** (with D7). When the flagship sinks, the port halves the crew (`game.mjs:761`). Nothing in the docs supports this and it isn't marked as an assumption. |
 
@@ -83,7 +83,7 @@ Severity: **H** = changes how the game plays, **M** = noticeable rule difference
 | # | Sev | Discrepancy |
 |---|---|---|
 | D33 | L | `implementation-status.md` lists "town assaults, capture, and plunder" as missing, but a provisional assault exists. It also lists promotions as still needed, but they are implemented. |
-| D34 | L | `tactical-sea-combat-plan.md` treats drift and the −12..40 limit as confirmed, and the hit boxes as unverified. `sea_battles.md` says the opposite on both (see D12 and D14). |
+| D34 | L | **Drift part fixed in #26.** `tactical-sea-combat-plan.md` treats drift and the −12..40 limit as confirmed, and the hit boxes as unverified. `sea_battles.md` says the opposite on both (see D12 and D14). |
 | D35 | L | **Fixed in #2.** The plan says the navigation map provides shallows; it doesn't (D1). |
 | D36 | L | The treasure-map clue town is a random town, not the town nearest a site from the documented list of treasure sites. This simplification isn't marked as an assumption (`game.mjs:1635`). |
 | D37 | L | The original only allows saving in town. The port also auto-saves at sea every 5 days and after battles. The porting guide allows this, but it isn't written down as a project decision. |
