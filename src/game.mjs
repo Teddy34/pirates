@@ -19,7 +19,7 @@ import {
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   merchantCommodityPrice, merchantFoodPrice, merchantStock, advanceDate,
-  NATION_ORDER, monthlyWorldUpdate, initialWorldNews, worldNewsMessage, newGameTowns,
+  NATION_ORDER, monthlyWorldUpdate, initialWorldNews, randomTownRange, worldNewsMessage, newGameTowns,
   townInfoStatus, learnTownInfo, TOWN_INFO_CURRENT,
   fleetIsUndermanned, abandonShip, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
   escapeCostsShip,
@@ -177,7 +177,7 @@ function newState(options) {
   // spreads the entries over the preceding months).
   const scenarioTowns = scenario.towns;
   const calendar = { day: 0, month: 0, year: Number(era) };
-  const worldNews = initialWorldNews({ diplomacy, townCount: scenarioTowns.length, rng: startRng })
+  const worldNews = initialWorldNews({ diplomacy, townRange: randomTownRange(scenarioTowns), rng: startRng })
     .map((entry) => ({ message: worldNewsMessage(entry, scenarioTowns), month: calendar.month, year: calendar.year }));
   const towns = newGameTowns(scenarioTowns, difficulty, startRng);
   const logs = ['A westward trade wind fills the sails.', `The ${start.name} expedition begins.`];

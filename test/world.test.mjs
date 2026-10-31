@@ -63,15 +63,15 @@ test('a new governor resets the mood and re-rolls the relative unless you marrie
   assert.equal(married.governorRelative, 0x41);
 });
 
-test('every port town is in the random-event range', () => {
-  // The original's 0x4605A is its town count minus the two Florida Channel
-  // placeholders that build_scenarios.mjs already removes (D28).
+test('the random-town range leaves out the last real town', () => {
+  // 0x4605A = header field 0x4607E (records - 1 = 35 in 1560) - 2 = 33:
+  // 1560's 34 real towns minus one, so Yaguana (index 33) is never drawn (D28).
   const towns = Array.from({ length: 34 }, () => town());
-  assert.equal(randomTownRange(towns), 34);
-  assert.deepEqual(rollRandomTownEvent({ townCount: 34, rng: scripted(33, 0) }), { event: WORLD_EVENT.INDIANS, townIndex: 33 });
-  assert.deepEqual(rollRandomTownEvent({ townCount: 34, rng: scripted(32, 4) }), { event: WORLD_EVENT.PIRATES, townIndex: 32 });
-  assert.equal(rollRandomTownEvent({ townCount: 34, rng: scripted(34) }), null);
-  assert.equal(rollRandomTownEvent({ townCount: 34, rng: scripted(63) }), null);
+  assert.equal(randomTownRange(towns), 33);
+  assert.deepEqual(rollRandomTownEvent({ townCount: 33, rng: scripted(32, 4) }), { event: WORLD_EVENT.PIRATES, townIndex: 32 });
+  assert.deepEqual(rollRandomTownEvent({ townCount: 33, rng: scripted(0, 0) }), { event: WORLD_EVENT.INDIANS, townIndex: 0 });
+  assert.equal(rollRandomTownEvent({ townCount: 33, rng: scripted(33) }), null);
+  assert.equal(rollRandomTownEvent({ townCount: 33, rng: scripted(63) }), null);
 });
 
 test('the mission governor is never replaced by a random event', () => {
@@ -96,17 +96,18 @@ test('AI conquest needs war, a garrison twice as large and Manhattan distance be
     town({ name: 'A', nation: 'England', soldiers: 41, x: 100, y: 100 }),
     town({ name: 'B', nation: 'Spain', soldiers: 20, x: 200, y: 149 }),
     town({ name: 'C', nation: 'Spain', soldiers: 20, x: 300, y: 100 }),
+    town({ name: 'Last', nation: 'Spain', soldiers: 1, x: 110, y: 100 }), // outside the range
   ];
   const war = atWar(peace(), 'England', 'Spain');
   assert.deepEqual(rollAiConquest({ towns, diplomacy: war, rng: scripted(0, 1) }), { attackerIndex: 0, defenderIndex: 1 });
   assert.equal(rollAiConquest({ towns, diplomacy: peace(), rng: scripted(0, 1) }), null);
   assert.equal(rollAiConquest({ towns, diplomacy: war, rng: scripted(0, 2) }), null, 'distance 200');
-  assert.equal(rollAiConquest({ towns: [town({ ...towns[0], soldiers: 40 }), towns[1]], diplomacy: war, rng: scripted(0, 1) }), null, '2 * 20 is not below 40');
+  assert.equal(rollAiConquest({ towns: [town({ ...towns[0], soldiers: 40 }), towns[1], towns[3]], diplomacy: war, rng: scripted(0, 1) }), null, '2 * 20 is not below 40');
   assert.equal(rollAiConquest({ towns, diplomacy: war, playerTownIndex: 1, rng: scripted(0, 1) }), null);
   // The mission town is drawn again (0xC85B).
   const rng = scripted(0, 1, 1, 1, 2);
   assert.equal(rollAiConquest({ towns, diplomacy: war, protectedTownIndex: 1, rng }), null);
-  assert.deepEqual(rng.calls, [3, 3, 3, 3, 3]);
+  assert.deepEqual(rng.calls, [3, 3, 3, 3, 3], 'both draws use the range, not the town count');
   // Nations at war conquer in either direction; a town never takes itself.
   assert.equal(rollAiConquest({ towns, diplomacy: war, rng: scripted(1, 1) }), null);
 });
@@ -140,12 +141,14 @@ test('the monthly world runs economy, conquest, diplomacy and the random event i
   const towns = [
     town({ name: 'Port Royale', nation: 'England', soldiers: 60, x: 100, y: 100, flags: 0x80 }),
     town({ name: 'Santiago', nation: 'Spain', soldiers: 20, x: 140, y: 120, flags: 0x80, governorRelative: 2 }),
+    town({ name: 'Yaguana', nation: 'Spain', soldiers: 1, x: 120, y: 110 }),
   ];
+  const lastTown = { ...towns[2] };
   const held = towns[1];
   const diplomacy = atWar(peace(), 'England', 'Spain');
   const favour = { Spain: 0, England: 0, France: 0, Holland: 0 };
   const rng = scripted(
-    1, 1, // economy: neither town updates (rnd(4) != 0)
+    1, 1, // economy: neither town updates (rnd(4) != 0); the last town is not rolled
     0, 1, // conquest: Port Royale takes Santiago
     7, // new governor's relative
     149, // diplomacy: no change
@@ -162,6 +165,7 @@ test('the monthly world runs economy, conquest, diplomacy and the random event i
   assert.equal(held.governorRelative, 7);
   assert.equal(held.soldiers, 10);
   assert.equal(held.flags, 0x20);
+  assert.deepEqual(towns[2], lastTown, 'the last real town stays static');
   assert.deepEqual(news.map((entry) => worldNewsMessage(entry, towns)), [
     'England has captured Santiago from Spain.',
     'Indians have attacked Santiago.',
@@ -174,7 +178,7 @@ test('the opening news reports wars and alliances, and a town event for each pai
   diplomacy.Holland.England = 1;
   const towns = Array.from({ length: 10 }, (_, index) => town({ name: `T${index}` }));
   const rng = scripted(0, 3, 1, 4, 2, 5, 3, 6);
-  const news = initialWorldNews({ diplomacy, townCount: towns.length, rng });
+  const news = initialWorldNews({ diplomacy, townRange: towns.length, rng });
   assert.deepEqual(news.map((entry) => worldNewsMessage(entry, towns)), [
     'Indians have attacked T3.', // Spain-England at peace
     'Spain is at war with France.',

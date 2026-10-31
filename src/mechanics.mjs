@@ -833,7 +833,9 @@ export function obsoleteTownInfo(flags = 0) {
 // New-game town setup (0x1453C): each town is known when rnd(4) + 1 >
 // difficulty (always on Apprentice, one in four on Swashbuckler); the
 // governor's mood (w9) and w10 are cleared and his relative (w11) is
-// rnd(16). The two rolls are made town by town in that order.
+// rnd(16). The two rolls are made town by town in that order. The loop runs
+// to the era header's count field 0x4607E (records - 1, 0x14548), so it
+// covers every real town (and the first placeholder, which the port lacks).
 export function newGameTowns(towns, difficulty, rng) {
   return towns.map((town) => {
     const known = rng.int(4) + 1 > difficulty;
@@ -855,11 +857,17 @@ export function installNewGovernor(town, rng) {
   return town;
 }
 
-// The original's 0x4605A is the town count minus its two "Florida Channel"
-// placeholder records. tools/build_scenarios.mjs drops those records, so
-// every port town is in the original's random-town range.
+// The original's town range 0x4605A is the era header's count field
+// 0x4607E minus 2 (0x134FE, 0x135F2, 0x1D8CC). That field is the record
+// count minus 1 (35 for 1560's 36 records), and the last two records are
+// the "Florida Channel" placeholders that tools/build_scenarios.mjs drops.
+// So the range is the real towns minus one: the last real town of each era
+// (1560 Yaguana, later Villa Hermosa) is never in it. The monthly economy
+// (0xC729), AI conquest (0xC81B), the random event (0xCA7F) and the opening
+// news (0x13679) all use this range, so that town never grows, falls to an
+// AI nation or gets an event. A faithful quirk, kept.
 export function randomTownRange(towns) {
-  return towns.length;
+  return Math.max(0, towns.length - 1);
 }
 
 // Random town event (0xCA7F): i = rnd(64), no event when i >= the random
@@ -963,7 +971,8 @@ export function applyDiplomacyChange(change, { diplomacy, favour }) {
 // in 0xCEB8 belong after this call.
 export function monthlyWorldUpdate({ towns, diplomacy, favour, month, diplomacyK, playerTownIndex = -1, protectedTownIndex = -1, rng }) {
   const news = [];
-  for (const town of towns) Object.assign(town, updateTownMonthly(town, month, rng));
+  const range = randomTownRange(towns);
+  for (const town of towns.slice(0, range)) Object.assign(town, updateTownMonthly(town, month, rng));
 
   const conquest = rollAiConquest({ towns, diplomacy, playerTownIndex, protectedTownIndex, rng });
   if (conquest) {
@@ -977,7 +986,7 @@ export function monthlyWorldUpdate({ towns, diplomacy, favour, month, diplomacyK
   const change = rollDiplomacyChange({ diplomacy, k: diplomacyK, rng });
   if (change) news.push(...applyDiplomacyChange(change, { diplomacy, favour }));
 
-  const townEvent = rollRandomTownEvent({ townCount: randomTownRange(towns), protectedTownIndex, rng });
+  const townEvent = rollRandomTownEvent({ townCount: range, protectedTownIndex, rng });
   if (townEvent) {
     applyRandomTownEvent(towns[townEvent.townIndex], townEvent.event, rng);
     news.push(townEvent);
@@ -987,8 +996,8 @@ export function monthlyWorldUpdate({ towns, diplomacy, favour, month, diplomacyK
 
 // Game start (0x13679): one log entry per nation pair, a < b: its war or
 // alliance, or for a pair at peace a random town event (e = 11 + rnd(5) at
-// town rnd(range)) that is only reported, never applied.
-export function initialWorldNews({ diplomacy, townCount, rng }) {
+// town rnd(range), see randomTownRange) that is only reported, never applied.
+export function initialWorldNews({ diplomacy, townRange, rng }) {
   const news = [];
   for (let first = 0; first < NATION_ORDER.length - 1; first += 1) {
     for (let second = first + 1; second < NATION_ORDER.length; second += 1) {
@@ -999,7 +1008,7 @@ export function initialWorldNews({ diplomacy, townCount, rng }) {
         news.push({ event: WORLD_EVENT.PEACE + relation, nationA, nationB });
       } else {
         const event = WORLD_EVENT.INDIANS + rng.int(5);
-        news.push({ event, townIndex: rng.int(townCount) });
+        news.push({ event, townIndex: rng.int(townRange) });
       }
     }
   }

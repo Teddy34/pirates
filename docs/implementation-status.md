@@ -78,7 +78,9 @@ for future work.
 - Change diplomatic relations and publish wars, peace treaties, alliances and
   the alliance's pirate amnesty as world news.
 - Apply the decoded Indian, gold-mine, malaria, new-governor (with a new
-  daughter or niece) and pirate events to any town (`0xCA7F`).
+  daughter or niece) and pirate events to any town (`0xCA7F`). As in the original,
+  the last real town of each era lies outside the random-town range
+  (`0x4605A`) and never grows, falls or gets an event.
 - Track what you know of each town with the original's information bits:
   a new game knows each town when `rnd(4) + 1 > difficulty`; entering,
   capturing or buying a traveller's report makes it current; a random event
