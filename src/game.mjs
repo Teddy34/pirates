@@ -677,7 +677,7 @@ function loseLastShip({ inTown, done, cause = '' }) {
   // aboard at the release point.
   clearLandingParty();
   showDialog({
-    kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
+    vignette: inTown ? undefined : 'marooned', kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
     body: inTown
       ? `${cause}<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${town.name}.</p>`
       : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p>`,
@@ -1829,6 +1829,7 @@ function approachTown({ overland = Boolean(state.player.onFoot) } = {}) {
   // 0x19C62 shows the town's information screen (0x196D0), which has the
   // figures only for a town you have current information on.
   showDialog({
+    vignette: { id: overland ? 'shore-arrival' : 'harbour-arrival', flag: town.nation },
     kicker: townInfoStatus(town.flags) === 'current' ? `${town.nation} · ${prosperity(town.growth)}` : town.nation, title: town.name,
     body: `<p>You have arrived at ${town.name}. ${fortText}</p>${convoyArrivalLines(town)}${townInfoBody(town, { brief: true })}`,
     actions: [
@@ -1978,7 +1979,7 @@ function strikeReef(slot) {
     const drowned = before - state.player.crew;
     addLog(`The ${shipName(lost)} sank on a reef${drowned ? ` with ${drowned} men` : ''}.`);
     showDialog({
-      kicker: 'Shallows', title: `The ${shipName(lost)} is lost`,
+      vignette: 'shipwreck', kicker: 'Shallows', title: `The ${shipName(lost)} is lost`,
       body: `${REEF_TEXT}<p>Her share of the cargo goes down with her.${drowned ? ` ${drowned} men who cannot fit aboard the remaining ships are lost.` : ''}</p><p>Pinnaces and sloops cross shallows safely; bigger ships risk the reefs.</p>`,
       actions: [{ label: 'Continue', run: resumeSailing }],
     });
@@ -2965,7 +2966,7 @@ function showTreasureMaps(back, index = 0) {
 function showShipwright() {
   const town = state.towns[state.visit.townIndex];
   if (town.nation === 'Spain' && 25 * state.player.ranks.Spain + scenarios[state.era].merchantThreshold < town.growth) {
-    showDialog({ kicker: 'The shipwright', title: '“We do not trade with pirates!”', body: '<p>The shipwright dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: '“We do not trade with pirates!”', body: '<p>The shipwright dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
     return;
   }
   state.portTrade.shipwrightCash ??= shipwrightCash({
@@ -2975,7 +2976,7 @@ function showShipwright() {
   });
   const damaged = state.player.ships.filter((ship) => ship.damage > 0).length;
   showDialog({
-    kicker: `The shipwright · ${town.name}`, title: 'What business brings you to the yard?',
+    vignette: 'shipwright', kicker: `The shipwright · ${town.name}`, title: 'What business brings you to the yard?',
     body: `<dl><dt>Your fleet</dt><dd>${state.player.ships.length} ship${state.player.ships.length === 1 ? '' : 's'}</dd><dt>Damaged</dt><dd>${damaged}</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd><dt>Shipwright’s cash</dt><dd>${state.portTrade.shipwrightCash}</dd></dl>`,
     actions: [
       { label: 'Repair a ship', run: showRepairShips },
@@ -2991,11 +2992,11 @@ function showRepairShips() {
     .map((ship, index) => ({ ship, index }))
     .filter(({ ship }) => ship.damage > 0);
   if (!damaged.length) {
-    showDialog({ kicker: 'The shipwright', title: 'Nothing needs repair', body: '<p>The shipwright finds no damage worth his attention.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'Nothing needs repair', body: '<p>The shipwright finds no damage worth his attention.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   showDialog({
-    kicker: 'The shipwright', title: 'Choose a ship to repair',
+    vignette: 'shipwright', kicker: 'The shipwright', title: 'Choose a ship to repair',
     body: '<p>The quoted price clears all recorded damage from the selected ship.</p>',
     actions: [
       ...damaged.map(({ ship, index }) => {
@@ -3009,7 +3010,7 @@ function showRepairShips() {
 
 function repairShip(index, price) {
   if (state.player.partyGold <= price) {
-    showDialog({ kicker: 'The shipwright', title: 'You cannot afford the work', body: `<p>The repair costs ${price} gold, and the shipwright insists you keep something in your purse.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'You cannot afford the work', body: `<p>The repair costs ${price} gold, and the shipwright insists you keep something in your purse.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   const ship = state.player.ships[index];
@@ -3022,11 +3023,11 @@ function repairShip(index, price) {
 
 function showSellShips() {
   if (state.player.ships.length < 2) {
-    showDialog({ kicker: 'The shipwright', title: 'Your only ship', body: '<p>The shipwright will not leave you stranded ashore.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'Your only ship', body: '<p>The shipwright will not leave you stranded ashore.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   showDialog({
-    kicker: 'The shipwright', title: 'Choose a ship to sell',
+    vignette: 'shipwright', kicker: 'The shipwright', title: 'Choose a ship to sell',
     body: '<p>Crew, cannon, and cargo remain with your fleet. You cannot sell your last ship.</p>',
     actions: [
       ...state.player.ships.map((ship, index) => {
@@ -3044,7 +3045,7 @@ function sellShip(index, price) {
     return;
   }
   if (state.portTrade.shipwrightCash < price) {
-    showDialog({ kicker: 'The shipwright', title: 'The yard lacks the cash', body: `<p>The shipwright cannot cover the ${price}-gold price.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'The yard lacks the cash', body: `<p>The shipwright cannot cover the ${price}-gold price.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   const [ship] = state.player.ships.splice(index, 1);
@@ -3059,15 +3060,15 @@ function showSellCannon() {
   const available = Math.max(0, state.player.cannon - 1);
   const affordable = Math.min(available, Math.floor(state.portTrade.shipwrightCash / 50));
   if (available === 0) {
-    showDialog({ kicker: 'The shipwright', title: 'Your only cannon', body: '<p>The shipwright refuses to buy the last gun protecting your fleet.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'Your only cannon', body: '<p>The shipwright refuses to buy the last gun protecting your fleet.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   if (affordable === 0) {
-    showDialog({ kicker: 'The shipwright', title: 'The yard lacks the cash', body: '<p>The shipwright cannot afford another cannon.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'The yard lacks the cash', body: '<p>The shipwright cannot afford another cannon.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   showDialog({
-    kicker: 'The shipwright', title: 'Cannon fetch 50 gold apiece',
+    vignette: 'shipwright', kicker: 'The shipwright', title: 'Cannon fetch 50 gold apiece',
     body: `<p>The yard can buy up to ${affordable}. At least one cannon must remain with your fleet.</p>`,
     actions: [
       { label: 'Sell one cannon · 50 gold', run: () => sellCannon(1) },
@@ -3913,6 +3914,29 @@ loadScenarios().then(() => {
     });
     return;
   }
+  // The town approach, by sea or (`arrival-land`) overland.
+  if (['arrival', 'arrival-land'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      approachTown({ overland: preview === 'arrival-land' });
+    });
+    return;
+  }
+  if (preview === 'marooned' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.paused = true;
+      loseLastShip({ inTown: false, cause: REEF_TEXT, done: resumeSailing });
+    });
+    return;
+  }
+  if (preview === 'reef-loss' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    previewState.player.ships = [shipRecord('Sloop'), shipRecord('Frigate')];
+    startGame(previewState).then(() => strikeReef(1));
+    return;
+  }
   if (preview === 'tavern' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     startGame(previewState).then(() => {
@@ -3921,6 +3945,17 @@ loadScenarios().then(() => {
       state.paused = true;
       state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
       showTavern();
+    });
+    return;
+  }
+  if (preview === 'shipwright' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showShipwright();
     });
     return;
   }

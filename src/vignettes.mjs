@@ -35,7 +35,12 @@ const DESCRIPTIONS = {
   'enemy-destroyed': 'An enemy ship explodes at dusk',
   'divide-plunder': 'The plunder is counted and divided in a counting house',
   tavern: 'A smoky waterfront tavern',
+  'harbour-arrival': 'Sailing into a colonial harbour town',
+  'shore-arrival': 'A landing party comes out of the jungle above a town',
+  shipwreck: 'A ship breaking up on a reef',
+  marooned: 'Washed ashore on an uncharted island',
   merchant: 'Portrait of the merchant',
+  shipwright: 'Portrait of the shipwright',
 };
 
 export function vignetteDescription(id) {
@@ -419,6 +424,191 @@ function drawMerchant(picture) {
   p.rect(42, 51, 12, 1, '#f4f0e4');
 }
 
+function house(p, x, y, w, h, wall = '#e8e0cc') {
+  p.outlined([[x, y, w, h, wall]]);
+  for (let row = 0; row < 4; row += 1) p.rect(x - 1 + row, y - 4 + row, w + 2 - 2 * row, 1, '#b8562e');
+  p.rect(x - 2, y - 1, w + 4, 1, '#8a3a22');
+  p.rect(x + 2, y + 3, 2, 3, WOOD_DARK);
+  if (w > 9) p.rect(x + w - 5, y + 3, 2, 3, WOOD_DARK);
+}
+
+function flagpole(p, x, y, nation, height = 14) {
+  const [field, mark] = FLAGS[nation] ?? FLAGS.pirate;
+  p.rect(x, y - height, 1, height, OUTLINE);
+  p.rect(x + 1, y - height, 9, 6, field);
+  p.rect(x + 4, y - height + 1, 3, 4, mark);
+}
+
+function palm(p, x, y, height = 20) {
+  for (let row = 0; row < height; row += 1) p.rect(x + Math.round(Math.sin(row / 6) * 2), y - row, 2, 1, '#6b4a2e');
+  const top = y - height;
+  for (const [dx, dy, w] of [[-9, 1, 9], [2, 1, 9], [-6, -2, 6], [2, -2, 6], [-11, 3, 3], [10, 3, 3]]) p.rect(x + dx, top + dy, w, 2, '#3f7a3a');
+  p.rect(x - 1, top + 1, 4, 2, '#2f5a2a');
+}
+
+// Seen over the bow rail: a whitewashed town climbing a green hill above
+// the harbour, a fort at the harbour mouth flying the town's flag, a
+// moored merchantman and fishing boats.
+function drawHarbourArrival(p, { flag = 'Spain' } = {}) {
+  sky(p, ['#8fc0d0', '#a4cdd6', '#bcd9d6', '#d4e4d0'], 60);
+  for (const [cx, cy, w] of [[20, 10, 30], [120, 16, 40]]) { p.rect(cx, cy, w, 4, '#eef3ee'); p.rect(cx + 5, cy - 3, w - 12, 3, '#eef3ee'); }
+  // The hill.
+  for (let row = 0; row < 40; row += 1) {
+    const half = 30 + row * 2.2;
+    p.rect(120 - half, 30 + row, half * 2, 1, row % 9 === 0 ? '#4a8a4a' : '#5a9a4a');
+  }
+  p.rect(0, 64, 224, 6, '#5a9a4a');
+  // Houses up the hill and a church.
+  for (const [x, y, w] of [[96, 44, 12], [112, 40, 10], [126, 46, 12], [84, 54, 10], [100, 56, 12], [118, 54, 14], [138, 56, 10], [150, 60, 12], [72, 62, 12], [90, 64, 10], [106, 66, 12], [124, 64, 12], [140, 66, 10]]) house(p, x, y, w, 6);
+  p.outlined([[112, 26, 8, 14, '#e8e0cc']]);
+  p.rect(115, 22, 2, 4, OUTLINE); p.rect(114, 23, 4, 1, OUTLINE);
+  p.rect(114, 30, 4, 4, WOOD_DARK);
+  // The fort on a headland at the harbour mouth.
+  p.outlined([[160, 58, 44, 14, '#b4a68a'], [168, 50, 20, 8, '#b4a68a']]);
+  for (let x = 160; x < 204; x += 6) p.rect(x, 56, 3, 2, '#b4a68a');
+  for (const x of [166, 178, 190]) p.rect(x, 64, 4, 2, OUTLINE);
+  flagpole(p, 178, 50, flag, 16);
+  palm(p, 30, 72, 22); palm(p, 46, 72, 16); palm(p, 210, 60, 14);
+  sea(p, 72, '#3a8a8a', '#7ab8b0');
+  p.rect(0, 72, 224, 1, '#e8f0e0');
+  ship(p, 70, 88, { facing: 1, flag, scale: 0.6 });
+  for (const x of [130, 150]) { p.outlined([[x, 84, 10, 3, WOOD]]); p.rect(x + 5, 76, 1, 8, OUTLINE); p.rect(x + 2, 77, 3, 5, PARCHMENT); }
+  // Our bow and rail in the foreground, the captain seen from behind.
+  p.rect(0, 112, 224, 16, WOOD);
+  p.rect(0, 110, 224, 3, WOOD_LIGHT);
+  for (let x = 4; x < 224; x += 14) p.rect(x, 113, 3, 15, WOOD_DARK);
+  p.rect(150, 98, 74, 12, WOOD_LIGHT);
+  p.rect(150, 98, 74, 2, BRASS);
+  captain(p, 54, 128, { skin: WOOD_DARK });
+}
+
+// A landing party at the jungle's edge looks down a dirt road on a
+// palisaded town with a church tower and the town's flag.
+function drawShoreArrival(p, { flag = 'Spain' } = {}) {
+  sky(p, ['#b4cdc4', '#c4d6c4', '#d4dcc4'], 44);
+  // Far hills and the town in the valley below.
+  for (let row = 0; row < 20; row += 1) p.rect(0, 30 + row, 224, 1, row < 6 ? '#7aa07a' : '#6a9a5a');
+  p.rect(0, 50, 224, 30, '#6a9a5a');
+  p.rect(110, 46, 92, 2, '#8a6a42');
+  for (let x = 110; x < 202; x += 3) p.rect(x, 40, 2, 7, '#8a6a42');
+  for (const [x, y, w] of [[118, 40, 12], [134, 38, 10], [160, 40, 12], [178, 38, 12]]) house(p, x, y, w, 6);
+  p.outlined([[148, 26, 7, 18, '#e8e0cc']]);
+  p.rect(150, 30, 3, 3, WOOD_DARK);
+  p.rect(151, 22, 1, 4, OUTLINE); p.rect(150, 23, 3, 1, OUTLINE);
+  flagpole(p, 194, 38, flag, 14);
+  // The dirt road winding down from the party.
+  for (let row = 0; row < 48; row += 1) p.rect(70 + row * 1.2 + Math.sin(row / 7) * 6, 128 - row * 1.7, 14 - row * 0.2, 2, '#b89a6a');
+  // Hazy jungle edge on both sides.
+  for (const [x, h] of [[0, 30], [14, 40], [196, 36], [210, 28]]) palm(p, x, 128, h);
+  for (let x = 0; x < 50; x += 6) p.disc(x, 108 - (x % 12), 9, x % 12 ? '#2f6a32' : '#3f7a3a');
+  for (let x = 176; x < 230; x += 6) p.disc(x, 106 - (x % 12), 9, x % 12 ? '#2f6a32' : '#3f7a3a');
+  // The landing party, the captain in front with a hand raised.
+  const coats = ['#7a3a2a', '#4a5a3a', '#6a5a7a', '#8a6a3a', '#5a3a2a', '#3a4a5a'];
+  coats.forEach((coat, index) => figure(p, 92 + (index % 3) * 13 + (index > 2 ? 6 : 0), 108 + (index > 2 ? 10 : 0), { coat, legs: PARCHMENT, hat: index % 2 ? '#a8331f' : undefined, skin: index === 4 ? '#8a5a3a' : SKIN }));
+  for (const x of [98, 111, 124]) p.rect(x, 78, 1, 14, '#3a3a3a');
+  captain(p, 76, 124);
+  p.outlined([[82, 94, 2, 8, SKIN]]);
+}
+
+// A ship heeled over on a reef, masts gone by the board, the sea breaking
+// over her and her crew in the water and on a spar.
+function drawShipwreck(p) {
+  sky(p, ['#5a6a7a', '#6a7a86', '#7a8a90', '#8a9a98'], 64);
+  for (const [cx, cy, w] of [[10, 12, 60], [96, 20, 70], [170, 8, 50]]) { p.rect(cx, cy, w, 6, '#4a5a68'); p.rect(cx + 6, cy - 4, w - 14, 4, '#4a5a68'); }
+  sea(p, 64, '#2a5a60', '#5a8a88');
+  // The wreck, hull canted on the reef.
+  for (let row = 0; row < 18; row += 1) {
+    const x = 76 + row * 0.8;
+    p.rect(x - 1, 92 - row, 70 - row * 1.4 + 2, 1, OUTLINE);
+    p.rect(x, 92 - row, 70 - row * 1.4, 1, row === 6 ? BRASS : row % 5 === 0 ? WOOD_DARK : WOOD);
+  }
+  p.rect(84, 78, 6, 6, '#2a5a60'); p.rect(110, 84, 8, 4, '#1f3a45');
+  // Masts leaning, one snapped, with torn sails.
+  for (let step = 0; step < 34; step += 1) p.rect(100 + step * 0.7, 74 - step, 2, 1, WOOD_DARK);
+  for (let step = 0; step < 18; step += 1) p.rect(126 + step * 1.1, 76 - step * 0.6, 2, 1, WOOD_DARK);
+  p.outlined([[106, 52, 12, 10, '#c7b48a'], [110, 62, 6, 4, '#c7b48a']]);
+  p.outlined([[136, 64, 8, 4, '#c7b48a']]);
+  // Reef rocks and the breaking sea.
+  for (const [x, w] of [[64, 14], [140, 20], [170, 10]]) { p.rect(x, 90, w, 4, '#3a3a36'); p.rect(x + 2, 88, w - 4, 2, '#4a4a44'); }
+  for (const [x, y, w] of [[60, 86, 24], [138, 84, 30], [96, 94, 50], [168, 86, 14]]) { p.rect(x, y, w, 2, '#e8f0ee'); p.rect(x + 4, y - 2, w - 10, 2, '#cfe0dc'); }
+  // Crew clinging to a spar and swimming.
+  p.rect(30, 104, 40, 3, WOOD);
+  for (const x of [36, 50, 62]) p.outlined([[x, 100, 5, 5, SKIN], [x - 1, 105, 7, 3, '#7a3a2a']]);
+  for (const [x, y] of [[164, 110], [186, 102]]) { p.outlined([[x, y, 5, 5, SKIN]]); p.rect(x - 4, y + 5, 13, 1, '#e8f0ee'); }
+  p.outlined([[150, 112, 18, 4, WOOD_LIGHT]]);
+}
+
+// A castaway on a palm-fringed beach shares a driftwood fire with island
+// people who bring him fruit and fish; the wreck lies broken on the reef.
+function drawMarooned(p) {
+  sky(p, ['#8fc0d0', '#a8d0d4', '#c4dcd0'], 54);
+  sea(p, 54, '#3a8a8a', '#7ab8b0');
+  // The wreck far out on the reef.
+  for (let row = 0; row < 6; row += 1) p.rect(168 + row, 64 - row, 30 - row * 2, 1, WOOD_DARK);
+  p.rect(178, 46, 1, 14, WOOD_DARK);
+  for (let step = 0; step < 10; step += 1) p.rect(186 + step, 58 - step, 1, 1, WOOD_DARK);
+  p.rect(160, 64, 46, 1, '#e8f0ee');
+  // Beach and surf.
+  for (let row = 0; row < 56; row += 1) p.rect(0, 72 + row, 224, 1, row < 2 ? '#e8f0ee' : row < 6 ? '#d8c890' : '#e4d4a0');
+  for (let x = 0; x < 224; x += 9) p.rect(x, 74 + (x % 4), 4, 1, '#c8b880');
+  palm(p, 20, 112, 50); palm(p, 40, 106, 36); palm(p, 206, 108, 44);
+  // Driftwood fire.
+  p.rect(100, 112, 22, 3, '#6b4a2e');
+  p.rect(104, 110, 14, 2, '#8a6a42');
+  p.rect(107, 102, 8, 8, '#e07a2a');
+  p.rect(109, 98, 4, 6, GOLD);
+  p.rect(110, 90, 2, 6, '#b8b0a0');
+  // The castaway captain, ragged, beside two islanders with fruit and fish.
+  figure(p, 88, 120, { coat: '#d8ccb0', legs: '#2c3f63', hair: WOOD_DARK });
+  for (const x of [134, 152]) figure(p, x, 120, { coat: '#8a5a3a', legs: '#c46a3a', skin: '#8a5a3a', hair: '#1d1710' });
+  p.outlined([[126, 104, 6, 4, '#e0b33a'], [140, 100, 4, 3, '#a8331f']]);
+  p.outlined([[158, 104, 10, 3, '#9ab0b4']]);
+}
+
+// A burly, bald shipwright with a short beard, rolled sleeves and a
+// leather apron, an adze on his shoulder, before the ribs of a hull on the
+// slipway.
+function drawShipwright(picture) {
+  ['#8fc0d0', '#a4cdd6', '#bcd9d6'].forEach((color, band) => picture.rect(0, band * 16, 96, 16, color));
+  picture.rect(0, 48, 96, 80, '#d8c890');
+  // The ribs and keel of a hull under construction.
+  picture.rect(0, 96, 96, 4, WOOD_DARK);
+  for (let x = 2; x < 96; x += 9) {
+    for (let row = 0; row < 60; row += 1) picture.rect(x + Math.round((row * row) / 300), 96 - row, 3, 1, row < 2 ? WOOD_DARK : '#a87a4a');
+  }
+  picture.rect(0, 50, 96, 2, '#7a5a36');
+  const p = zoomed(picture, 1.2, 48, 0);
+  // Heavy shoulders and arms in a rolled-sleeve shirt, under a leather apron.
+  for (let row = 0; row < 64; row += 1) {
+    const half = Math.min(46, 14 + row * 3);
+    p.rect(48 - half - 1, 60 + row, half * 2 + 2, 1, OUTLINE);
+    p.rect(48 - half, 60 + row, half * 2, 1, row < 1 ? OUTLINE : '#d8ccb0');
+  }
+  p.rect(6, 82, 12, 46, SKIN); p.rect(78, 82, 12, 46, SKIN);
+  p.rect(6, 80, 12, 3, '#b8ac90'); p.rect(78, 80, 12, 3, '#b8ac90');
+  p.outlined([[30, 72, 36, 56, '#8a5a32']]);
+  p.rect(30, 72, 4, 56, '#6b4422'); p.rect(62, 72, 4, 56, '#6b4422');
+  p.rect(34, 64, 2, 9, '#6b4422'); p.rect(60, 64, 2, 9, '#6b4422');
+  p.outlined([[40, 92, 16, 10, '#7a4a2a']]);
+  p.rect(43, 90, 1, 6, '#b8b0a0'); p.rect(47, 89, 1, 7, '#8a6a42');
+  // The adze over his right shoulder.
+  for (let step = 0; step < 40; step += 1) p.rect(66 + step * 0.45, 92 - step, 3, 1, '#8a6a42');
+  p.outlined([[78, 46, 12, 5, '#8a8a8a']]);
+  p.rect(78, 50, 4, 3, '#6a6a6a');
+  // A broad bald head with a fringe, heavy brows and a short beard.
+  p.outlined([[40, 54, 16, 10, '#c08a64'], [30, 18, 36, 40, SKIN]]);
+  p.rect(36, 19, 14, 3, '#f0c8a0');
+  p.rect(29, 30, 4, 14, '#5a4030'); p.rect(63, 30, 4, 14, '#5a4030');
+  p.rect(26, 34, 4, 8, SKIN); p.rect(66, 34, 4, 8, SKIN);
+  p.rect(36, 32, 9, 3, '#4a3526'); p.rect(51, 32, 9, 3, '#4a3526');
+  for (const ex of [38, 53]) { p.rect(ex, 36, 5, 2, '#f4f0e4'); p.rect(ex + 2, 36, 2, 2, '#2a1e14'); }
+  p.rect(46, 36, 4, 9, '#c08a64');
+  p.rect(45, 44, 6, 2, '#a8714a');
+  p.outlined([[33, 47, 30, 11, '#5a4030']]);
+  p.rect(41, 50, 14, 2, '#8a3a2a');
+  p.rect(37, 49, 22, 1, '#4a3526');
+}
+
 function drawMissing(p) {
   p.rect(0, 0, 224, 128, '#3b2b1d');
 }
@@ -430,6 +620,11 @@ const SCENES = {
   'divide-plunder': { shape: 'landscape', draw: drawDividePlunder },
   tavern: { shape: 'landscape', draw: drawTavern },
   merchant: { shape: 'portrait', draw: drawMerchant },
+  shipwright: { shape: 'portrait', draw: drawShipwright },
+  'harbour-arrival': { shape: 'landscape', draw: drawHarbourArrival },
+  'shore-arrival': { shape: 'landscape', draw: drawShoreArrival },
+  shipwreck: { shape: 'landscape', draw: drawShipwreck },
+  marooned: { shape: 'landscape', draw: drawMarooned },
 };
 
 // The shared 8 px carved frame with a brass fillet and corner pieces
