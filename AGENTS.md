@@ -68,6 +68,7 @@ The project has no build step or third-party dependency:
 - `src/mechanics.mjs` contains deterministic, DOM-free game rules.
 - `src/overland.mjs` contains the DOM-free landing, walking, reef, treasure-map and dig rules; `src/treasure-sites.mjs` holds the 256 decoded dig sites.
 - `src/retirement.mjs` contains the DOM-free retirement score, career summary, post-career line and hall-of-fame rules.
+- `src/vignettes.mjs` draws the framed scene pictures above dialog text (`docs/scene-vignettes.md`). Places and events are 224×128 landscapes above the text; people are 96×128 portraits beside it (stacked on narrow screens). The governor and merchant portraits and the prize, enemy-destroyed, divide-plunder and tavern landscapes are simple code-drawn placeholders until real art is approved; check them with `?preview=governor-promotion`, `merchant`, `tavern`, `prize`, `enemy-destroyed` and `retirement`.
 - `src/game.mjs` owns state, input, modes, canvas rendering, and browser saves.
 - `style.css` makes the canvas fill the viewport.
 - `server.js` serves the directory at `http://localhost:8000`.

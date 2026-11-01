@@ -24,6 +24,7 @@ syntax:
 	node --check src/overland.mjs
 	node --check src/treasure-sites.mjs
 	node --check src/retirement.mjs
+	node --check src/vignettes.mjs
 	node --check server.js
 	node --check tools/build_scenarios.mjs
 	node --check tools/check_plunder_hold.mjs

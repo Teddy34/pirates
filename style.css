@@ -59,6 +59,14 @@ dialog h2 { font-size:34px; }
 .city-info { margin:0; padding:0; list-style:none; }
 .city-info li { padding:7px 0; border-bottom:1px solid rgba(114,95,67,.3); }
 .city-info small { display:block; color:#725f43; font-family:"Source Sans 3",sans-serif; font-size:14px; }
+.vignette { margin:0 auto 18px; width:max-content; line-height:0; }
+.vignette canvas { display:block; width:calc(var(--art-width) * 2px); height:calc(var(--art-height) * 2px); image-rendering:pixelated; }
+/* A portrait floats left of the kicker, title and text; text wraps beneath it, while wide tables and the actions clear it. */
+dialog.has-portrait { width:min(760px,calc(100% - 28px)); }
+dialog.has-portrait .vignette { float:left; margin:0 26px 14px 0; }
+dialog.has-portrait #dialog-body ul { display:flow-root; }
+dialog.has-portrait .plunder-manifest,dialog.has-portrait #dialog-actions { clear:both; }
+dialog.has-portrait #dialog-actions { padding-top:6px; }
 #dialog-actions { display:flex; flex-wrap:wrap; gap:8px; }
 #dialog-actions button { flex:1 1 140px; }
 #dialog-actions button.secondary { border-color:#8f713e; color:var(--paper-ink); }
@@ -82,7 +90,17 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 .plunder-take-all { min-width:84px; padding:7px 12px; }
 .plunder-take-everything { width:100%; min-height:46px; padding:9px 16px; }
 .plunder-arrow:disabled,.plunder-take-all:disabled,.plunder-take-everything:disabled { cursor:default; opacity:.38; }
+/* Whole-number scales only: 1 screen px per art pixel on narrow or short viewports. */
+/* A landscape drops to 1× on short screens too; a portrait beside the text does not add height. */
+@media (max-width:520px),(max-height:820px) { dialog:not(.has-portrait) .vignette canvas { width:calc(var(--art-width) * 1px); height:calc(var(--art-height) * 1px); } .vignette { margin-bottom:12px; } }
+@media (max-width:640px) {
+  dialog.has-portrait .vignette { float:none; margin:0 auto 14px; }
+  dialog.has-portrait .vignette canvas { width:calc(var(--art-width) * 1px); height:calc(var(--art-height) * 1px); }
+}
+/* A portrait over a trading table would push the table off a short screen. */
+@media (max-height:820px) { dialog.has-portrait:has(.plunder-manifest) .vignette canvas { width:calc(var(--art-width) * 1px); height:calc(var(--art-height) * 1px); } }
 @media (max-width:520px) {
+  dialog:has(.vignette:not(.hidden)) { padding:20px 16px; }
   dialog:has(.plunder-manifest) { padding:20px 14px; }
   .plunder-manifest { font-size:13px; }
   .plunder-manifest th,.plunder-manifest td { padding:8px 4px; }
