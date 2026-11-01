@@ -41,11 +41,15 @@ import {
   reefVictim, crewAfterReef, emptyMapRecords, mapPieceCount, giveMapPiece, digForTreasure,
 } from './overland.mjs';
 import { TREASURE_SITES } from './treasure-sites.mjs';
+import {
+  ENDING_TIERS, RETIREMENT_JOBS, careerSummary, mayReturnToPirating, recordInHallOfFame, retirementHappiness, retirementLine, retirementScore,
+} from './retirement.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
 const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
+const HALL_OF_FAME_KEY = 'fortune-and-freedom-hall-of-fame';
 const SAVE_VERSION = 9;
 const TICK_SECONDS = 0.125;
 const ZOOM_STEP = 4;
@@ -686,32 +690,146 @@ const CAPTIVITY_TEXT = [
 ];
 const DIFFICULTY_ARTICLES = ['an apprentice', 'a journeyman', 'an adventurer', 'a swashbuckler'];
 
+const careerYears = () => state.calendar.year - Number(state.era);
+
 function captainHealth() {
   return healthLevel({
-    yearsElapsed: state.calendar.year - Number(state.era),
+    yearsElapsed: careerYears(),
     wounds: state.player.wounds ?? 0,
     medicine: state.ability === 'medicine',
   });
 }
 
-// 0x1F1D7 runs first: in poor health (3) the captain retires (CSTR 160) and
-// the career ends. Retirement and the final score are not playable yet (K9),
-// so the player chooses a provisional outcome. The famous-expedition branch
-// (CSTR 159) does not apply: every port game is a career.
+// 0x1F1D7 runs first: in poor health (3) the captain retires (CSTR 160).
+// The famous-expedition branch (CSTR 159) does not apply: every port game is
+// a career. A prisoner in a town may answer the lure of the sea; the
+// original then jumps to the division refit (0x1D899 -> 0x184A8) with no
+// ship left. ASSUMED: the port serves the captivity instead, which ends in
+// the decoded fresh fleet.
 function serveCaptivity({ inTown, town, lost, done }) {
   if (captainHealth() < 3) {
     beginCaptivity({ inTown, town, lost, done });
     return;
   }
+  forcedRetirement({ inTown, onReturn: () => beginCaptivity({ inTown, town, lost, done }) });
+}
+
+// CSTR 160, shown by 0x1F1D7 before the retirement driver.
+function forcedRetirement({ inTown, onReturn }) {
   showDialog({
-    kicker: 'Poor health', title: 'Time to retire?',
-    body: '<p>Your crew scatters to the winds. Age and old battle wounds sap your strength, and your officers sign on with a younger captain.</p><p>Retirement and the final score are not playable yet. Choose a provisional outcome.</p>',
+    kicker: 'Poor health', title: 'Time to retire',
+    body: '<p>Your crew scatters to the winds. Advancing age and old battle wounds combine to sap your strength. Your ship\'s officers sign on with a younger, more active captain. You reluctantly decide it is time to retire.</p>',
+    actions: [{ label: 'Continue', run: () => retire({ inTown, onReturn }) }],
+  });
+}
+
+// The retirement driver (0x45D0): the title card and career summary
+// (0x4A1A), the new life the score buys (0x51C2), then the lure of the sea
+// (CSTR 72), the hall of fame (CSTR 73) and another game (CSTR 80). `inTown`
+// is 0x47ACE; `onReturn` resumes play if the captain returns to pirating.
+function retire({ inTown, onReturn }) {
+  const player = state.player;
+  const wasPaused = state.paused;
+  state.paused = true;
+  const years = careerYears();
+  const career = {
+    ranks: player.ranks,
+    personalWealth: player.personalWealth ?? 0,
+    land: player.land ?? 0,
+    reputation: player.reputation ?? 0,
+    relativesRescued: state.relativesRescued ?? 0,
+    // Courtship is not playable yet (non-battle plan row 9): never married.
+    married: 0,
+    wounds: player.wounds ?? 0,
+    careerYears: years,
+  };
+  const score = retirementScore({ ...career, rankSum: Object.values(player.ranks).reduce((sum, rank) => sum + rank, 0) });
+  const summary = careerSummary({ ...career, happiness: retirementHappiness(career) });
+  const town = state.visit ? state.towns[state.visit.townIndex] : nearestTown();
+  const line = retirementLine({ job: score.job, townName: town.name, rng });
+  const returnOffered = mayReturnToPirating({ inTown, difficulty: state.difficulty, careerYears: years, wounds: career.wounds, medicine: state.ability === 'medicine' });
+
+  const finish = () => {
+    addLog(`Retired from privateering at the age of ${years + 25}: ${score.points} pirate points.`);
+    // Older save keys still load as a fallback, so the ended career goes too.
+    for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, LEGACY_SAVE_KEY]) localStorage.removeItem(key);
+    // 0x47BA: outside a town the driver skips both the lure and the hall of fame.
+    if (inTown) offerHallOfFame(score, town); else offerAnotherGame();
+  };
+  const lureOfTheSea = () => {
+    if (!returnOffered) { finish(); return; }
+    showDialog({
+      kicker: 'Retirement', title: 'The lure of the sea',
+      body: '<p>The lure of the sea is strong, and you may still have a few good years left in you.</p><p>Will you…</p>',
+      actions: [
+        { label: 'Remain in retirement', run: finish },
+        { label: 'Return to pirating', secondary: true, run: () => {
+          addLog('The lure of the sea is too strong: you return to pirating.');
+          state.paused = wasPaused;
+          onReturn();
+        } },
+      ],
+    });
+  };
+  showDialog({
+    kicker: 'Retirement', title: `The Further Adventures of the Pirate ${state.captain}…`,
+    body: summary.map((paragraph) => `<p>${paragraph}</p>`).join(''),
+    actions: [{ label: 'Continue', run: () => showDialog({
+      kicker: `${ENDING_TIERS[score.tier]} retirement`, title: 'Your pirating days are over',
+      body: `<p>${line}</p><dl><dt>Pirate points</dt><dd>${score.points}/100</dd></dl>`,
+      actions: [{ label: 'Continue', run: lureOfTheSea }],
+    }) }],
+  });
+}
+
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (character) => `&#${character.charCodeAt(0)};`);
+
+function loadHallOfFame() {
+  try {
+    const entries = JSON.parse(localStorage.getItem(HALL_OF_FAME_KEY));
+    return Array.isArray(entries) ? entries : [];
+  } catch {
+    return [];
+  }
+}
+
+// 0x4833: the hall of fame is offered only for a score of 0 or more.
+function offerHallOfFame(score, town) {
+  if (score.points < 0) { offerAnotherGame(); return; }
+  showDialog({
+    kicker: 'Retirement', title: 'The Pirate Hall of Fame',
+    body: '<p>Do you wish to have your exploits recorded in the Pirate Hall of Fame?</p>',
     actions: [
-      { label: 'Retire and end this career', run: () => {
-        localStorage.removeItem(SAVE_KEY);
-        location.reload();
+      { label: 'Yes (Y)', key: 'y', run: () => {
+        const entry = {
+          captain: state.captain, nationality: state.nationality, era: state.era,
+          year: state.calendar.year, points: score.points, job: RETIREMENT_JOBS[score.job], town: town.name,
+        };
+        const entries = recordInHallOfFame(loadHallOfFame(), entry);
+        localStorage.setItem(HALL_OF_FAME_KEY, JSON.stringify(entries));
+        showDialog({
+          kicker: 'Retirement', title: 'The Pirate Hall of Fame',
+          body: `<ol class="hall-of-fame">${entries.map((item) => `<li${item === entry ? ' aria-current="true"' : ''}><strong>${escapeHtml(item.captain)}</strong>, ${item.job} in ${item.town} (${item.nationality}, ${item.era}–${item.year}): ${item.points} points</li>`).join('')}</ol>`,
+          actions: [{ label: 'Continue', run: offerAnotherGame }],
+        });
       } },
-      { label: 'Carry on for one more voyage', secondary: true, run: () => beginCaptivity({ inTown, town, lost, done }) },
+      { label: 'No (N)', key: 'n', secondary: true, run: offerAnotherGame },
+    ],
+  });
+}
+
+function offerAnotherGame() {
+  const newCareer = () => location.reload();
+  showDialog({
+    kicker: 'Retirement', title: 'Another game?',
+    body: '<p>Do you wish to play another game of Pirates?</p>',
+    actions: [
+      { label: 'Yes (Y)', key: 'y', run: newCareer },
+      { label: 'No (N)', key: 'n', secondary: true, run: () => showDialog({
+        kicker: 'Retirement', title: 'Farewell',
+        body: '<p>Thank you and goodbye.</p>',
+        actions: [{ label: 'Return to the title screen', run: newCareer }],
+      }) },
     ],
   });
 }
@@ -2230,33 +2348,67 @@ function showPlunderDivision() {
     difficulty: state.difficulty,
   });
   const satisfaction = ['angry', 'unhappy', 'pleased', 'happy'][division.satisfaction];
-  const actions = [
-    { label: 'Begin a new expedition', run: () => finishPlunderDivision(division, state.difficulty) },
-  ];
-  if (state.difficulty < 3) {
+  // 0x18351: once the crew is paid, 0x1F1D7 retires a captain in poor
+  // health before the choice of another expedition (CSTR 157).
+  const poorHealth = captainHealth() === 3;
+  const actions = poorHealth
+    ? [{ label: 'Divide the plunder', run: () => {
+      settlePlunderDivision(division);
+      forcedRetirement({ inTown: true, onReturn: () => refitAfterDivision(division, state.difficulty) });
+    } }]
+    : [{ label: 'Begin a new expedition', run: () => finishPlunderDivision(division, state.difficulty) }];
+  if (!poorHealth && state.difficulty < 3) {
     actions.push({
       label: `Raise to ${DIFFICULTY_NAMES[state.difficulty + 1]} and begin`,
       run: () => finishPlunderDivision(division, state.difficulty + 1),
     });
   }
+  if (!poorHealth) actions.push({ label: 'Retire from privateering', secondary: true, run: () => confirmRetirement(division) });
   actions.push({ label: 'Keep sailing together', secondary: true, run: showTownMenu });
 
   showDialog({
     kicker: 'The counting house', title: 'Divide the plunder?',
-    body: `<p>Ending this expedition will disperse the crew and divide every ship, cannon, and cargo except your flagship.</p><dl><dt>Each crew member receives</dt><dd>${division.crewShare.toLocaleString()} gold</dd><dt>Crew reaction</dt><dd>${satisfaction}</dd><dt>Your share (${division.officerShares} portions)</dt><dd>${division.captainTake.toLocaleString()} gold</dd><dt>Funds for the next voyage</dt><dd>${division.expeditionGold.toLocaleString()} gold</dd><dt>Flagship retained</dt><dd>${describeShip(flagship)}</dd></dl>`,
+    body: `<p>Ending this expedition will disperse the crew and divide every ship, cannon, and cargo except your flagship.</p>${poorHealth ? '<p>Your health is poor: once the crew is paid off, your career will end.</p>' : ''}<dl><dt>Each crew member receives</dt><dd>${division.crewShare.toLocaleString()} gold</dd><dt>Crew reaction</dt><dd>${satisfaction}</dd><dt>Your share (${division.officerShares} portions)</dt><dd>${division.captainTake.toLocaleString()} gold</dd><dt>Funds for the next voyage</dt><dd>${division.expeditionGold.toLocaleString()} gold</dd><dt>Flagship retained</dt><dd>${describeShip(flagship)}</dd></dl>`,
     actions,
   });
 }
 
+// CSTR 157's "Retire from privateering?" asks CSTR 86 with CSTR 96. The
+// original pays the crew first and plans another expedition after a No;
+// the port asks before paying and a No returns to the division.
+function confirmRetirement(division) {
+  showDialog({
+    kicker: 'The counting house', title: 'Retire from privateering?',
+    body: '<p>Are you sure you want to end the game?</p>',
+    actions: [
+      { label: 'Yes (Y)', key: 'y', run: () => {
+        settlePlunderDivision(division);
+        retire({ inTown: true, onReturn: () => refitAfterDivision(division, state.difficulty) });
+      } },
+      { label: 'No (N)', key: 'n', secondary: true, run: showPlunderDivision },
+    ],
+  });
+}
+
 function finishPlunderDivision(division, nextDifficulty) {
+  settlePlunderDivision(division);
+  refitAfterDivision(division, nextDifficulty);
+}
+
+function settlePlunderDivision(division) {
   const oldCrew = state.player.crew;
-  const flagship = state.player.ships[0];
   state.player = beginDivisionRefit(state.player, division);
-  state.difficulty = nextDifficulty;
   // The decoded new-expedition initializer clears the current visit flags,
   // including clandestine entry and one-off tavern/merchant state.
   state.visit = { ...state.visit, sneaking: false, recruited: false, merchant: null };
   addLog(`Divided the plunder: ${oldCrew} crew received ${division.crewShare} gold each.`);
+}
+
+// 0x184A8, also where the main loop sends a captain who returns from
+// retirement (0x1D899).
+function refitAfterDivision(division, nextDifficulty) {
+  const flagship = state.player.ships[0];
+  state.difficulty = nextDifficulty;
   // 0x184A8: the refit takes four 26-day calls of the calendar routine
   // (0x1E018), 104 days with every month's update, after months at sea is
   // reset to -16. ASSUMED: as for a town prison, the month-end crew check is
@@ -3755,6 +3907,28 @@ loadScenarios().then(() => {
       state.paused = true;
       state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
       showTownMenu();
+    });
+    return;
+  }
+  // A career ready to end at the counting house; `retirement-poor` is nine
+  // years in with two wounds, poor health that still allows a return.
+  if (['retirement', 'retirement-poor'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      Object.assign(state.player, { personalWealth: 50000, land: 20, reputation: 20, wounds: 1, partyGold: 8000 });
+      state.player.ranks.France = 4;
+      state.player.ranks.England = 2;
+      state.relativesRescued = 1;
+      state.calendar.year += 6;
+      if (preview === 'retirement-poor') {
+        state.calendar.year += 3;
+        state.player.wounds = 2;
+      }
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showPlunderDivision();
     });
     return;
   }
