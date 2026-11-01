@@ -21,9 +21,14 @@ syntax:
 	node --check src/terrain.mjs
 	node --check src/terrain-worker.mjs
 	node --check src/town-sprites.mjs
+	node --check src/pixel-art.mjs
+	node --check src/ship-sprites.mjs
+	node --check src/sprite-canvas.mjs
+	node --check src/cloud-sprites.mjs
 	node --check src/overland.mjs
 	node --check src/treasure-sites.mjs
 	node --check src/retirement.mjs
+	node --check src/vignettes.mjs
 	node --check server.js
 	node --check tools/build_scenarios.mjs
 	node --check tools/check_plunder_hold.mjs

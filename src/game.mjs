@@ -44,7 +44,11 @@ import { TREASURE_SITES } from './treasure-sites.mjs';
 import {
   ENDING_TIERS, RETIREMENT_JOBS, careerSummary, mayReturnToPirating, recordInHallOfFame, retirementHappiness, retirementLine, retirementScore,
 } from './retirement.mjs';
+import { drawVignette, vignetteDescription, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
+import { headingSector, paintShipSprite } from './ship-sprites.mjs';
+import { CLOUD_ART_PIXEL, paintCloudSprite } from './cloud-sprites.mjs';
+import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
@@ -72,6 +76,8 @@ const dialogKicker = document.querySelector('#dialog-kicker');
 const dialogTitle = document.querySelector('#dialog-title');
 const dialogBody = document.querySelector('#dialog-body');
 const dialogActions = document.querySelector('#dialog-actions');
+const dialogVignette = document.querySelector('#dialog-vignette');
+const dialogVignetteCanvas = dialogVignette.querySelector('canvas');
 const hud = document.querySelector('#hud');
 const controls = document.querySelector('#controls');
 const logElement = document.querySelector('#log');
@@ -674,7 +680,7 @@ function loseLastShip({ inTown, done, cause = '' }) {
   // aboard at the release point.
   clearLandingParty();
   showDialog({
-    kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
+    vignette: inTown ? undefined : 'marooned', kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
     body: inTown
       ? `${cause}<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${town.name}.</p>`
       : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p>`,
@@ -1447,7 +1453,7 @@ function finishTacticalBattle() {
     state.player.reputation += 1;
     // Likely trade-loss target per sea_battles.md; the nearest-town pointer is not fully confirmed.
     nearestTown().growth = Math.max(0, nearestTown().growth - 10);
-    endBattleToSailing(`The ${enemy.ship} exploded and sank. No prize remained.`);
+    showEnemyDestroyed(enemy, () => endBattleToSailing(`The ${enemy.ship} exploded and sank. No prize remained.`));
     return;
   }
   if (escapeCostsShip({ event: battle.event, shipCount: state.player.ships.length, enemyDamage: battle.enemy.damage, enemyTactic: battle.enemy.tactic })) {
@@ -1465,6 +1471,15 @@ function finishTacticalBattle() {
   };
   if (battle.event === 'beached') state.player.reputation -= 1;
   endBattleToSailing(messages[battle.event] ?? 'The battle ended.');
+}
+
+// CSTR 168, shown with the sinking picture's explosion variant.
+function showEnemyDestroyed(enemy, done) {
+  showDialog({
+    vignette: { id: 'enemy-destroyed', flag: enemy.flag }, kicker: 'Victory at sea', title: `The ${enemy.ship} is destroyed`,
+    body: '<p>The enemy ship catches fire, and is destroyed as the flames reach the gunpowder magazine.</p><p>No prize remains to be taken.</p>',
+    actions: [{ label: 'Continue', run: done }],
+  });
 }
 
 function offerProvisionalBoarding(enemy) {
@@ -1501,7 +1516,7 @@ function beginShipCapture(enemy) {
   const stats = SHIPS[enemy.ship];
   const freeHold = cargoRoom();
   showDialog({
-    kicker: 'Prize taken', title: `The ${enemy.ship} has struck`,
+    vignette: { id: 'prize-plunder', flag: enemy.flag }, kicker: 'Prize taken', title: `The ${enemy.ship} has struck`,
     body: `<p>She is a ${stats.cargo}-ton ${enemy.ship} carrying ${enemy.guns} guns${damageLevel(enemy.damage ?? 0) ? ` (${damageLevel(enemy.damage).toLowerCase()})` : ''}. Your fleet has ${freeHold} tons of empty hold space.</p><p>Will you keep her or strip and sink her?</p>`,
     actions: [
       { label: 'Send a prize crew', run: () => keepPrizeShip(enemy) },
@@ -1817,6 +1832,7 @@ function approachTown({ overland = Boolean(state.player.onFoot) } = {}) {
   // 0x19C62 shows the town's information screen (0x196D0), which has the
   // figures only for a town you have current information on.
   showDialog({
+    vignette: { id: overland ? 'shore-arrival' : 'harbour-arrival', flag: town.nation },
     kicker: townInfoStatus(town.flags) === 'current' ? `${town.nation} · ${prosperity(town.growth)}` : town.nation, title: town.name,
     body: `<p>You have arrived at ${town.name}. ${fortText}</p>${convoyArrivalLines(town)}${townInfoBody(town, { brief: true })}`,
     actions: [
@@ -1966,7 +1982,7 @@ function strikeReef(slot) {
     const drowned = before - state.player.crew;
     addLog(`The ${shipName(lost)} sank on a reef${drowned ? ` with ${drowned} men` : ''}.`);
     showDialog({
-      kicker: 'Shallows', title: `The ${shipName(lost)} is lost`,
+      vignette: 'shipwreck', kicker: 'Shallows', title: `The ${shipName(lost)} is lost`,
       body: `${REEF_TEXT}<p>Her share of the cargo goes down with her.${drowned ? ` ${drowned} men who cannot fit aboard the remaining ships are lost.` : ''}</p><p>Pinnaces and sloops cross shallows safely; bigger ships risk the reefs.</p>`,
       actions: [{ label: 'Continue', run: resumeSailing }],
     });
@@ -2238,7 +2254,7 @@ function governorMission(town, next) {
       town.mood -= 1;
       addLog('Governor displeased by failure.');
       showDialog({
-        kicker, title: 'A mission unfulfilled',
+        vignette: 'governor', kicker, title: 'A mission unfulfilled',
         body: '<p>“I am disappointed that you have failed to complete the mission I gave to you,” the governor says.</p>',
         actions: [{ label: 'Continue the audience', run: next }],
       });
@@ -2249,7 +2265,7 @@ function governorMission(town, next) {
     state.player.favour[mission.nation] += 1;
     town.mood -= mission.type;
     showDialog({
-      kicker, title: 'A mission fulfilled',
+      vignette: 'governor', kicker, title: 'A mission fulfilled',
       body: mission.type === MISSION.PIRATE
         ? `<p>“So you have brought me that despicable pirate, ${captainName(mission.captainId)},” the governor observes. “The king will be very pleased at this news.”</p>`
         : '<p>“I am greatly pleased that you have fulfilled the mission I gave you,” the governor says. “Your service will be remembered.”</p>',
@@ -2263,7 +2279,7 @@ function governorMission(town, next) {
   });
   if (!offer) { next(); return; }
   showDialog({
-    kicker, title: 'An urgent mission',
+    vignette: 'governor', kicker, title: 'An urgent mission',
     body: '<p>“I have an urgent mission for you,” the governor says.</p>',
     actions: [
       { label: 'Accept the mission', run: () => acceptMission(town, offer, next) },
@@ -2280,7 +2296,7 @@ function acceptMission(town, { type, target }, next) {
   const pirate = mission.captainId === undefined ? '' : captainName(mission.captainId);
   addLog(MISSION_ACCEPTED_LOGS[type](targetName, pirate));
   showDialog({
-    kicker: `${town.nation} governor`, title: 'Your orders',
+    vignette: 'governor', kicker: `${town.nation} governor`, title: 'Your orders',
     body: `<p>${MISSION_ORDERS[type](targetName, pirate)}</p>`,
     actions: [{ label: 'Continue the audience', run: next }],
   });
@@ -2367,7 +2383,7 @@ function showPlunderDivision() {
   actions.push({ label: 'Keep sailing together', secondary: true, run: showTownMenu });
 
   showDialog({
-    kicker: 'The counting house', title: 'Divide the plunder?',
+    vignette: 'divide-plunder', kicker: 'The counting house', title: 'Divide the plunder?',
     body: `<p>Ending this expedition will disperse the crew and divide every ship, cannon, and cargo except your flagship.</p>${poorHealth ? '<p>Your health is poor: once the crew is paid off, your career will end.</p>' : ''}<dl><dt>Each crew member receives</dt><dd>${division.crewShare.toLocaleString()} gold</dd><dt>Crew reaction</dt><dd>${satisfaction}</dd><dt>Your share (${division.officerShares} portions)</dt><dd>${division.captainTake.toLocaleString()} gold</dd><dt>Funds for the next voyage</dt><dd>${division.expeditionGold.toLocaleString()} gold</dd><dt>Flagship retained</dt><dd>${describeShip(flagship)}</dd></dl>`,
     actions,
   });
@@ -2468,7 +2484,7 @@ function deliverGovernorPirates(town) {
   const names = delivered.map(({ name, ship }) => name ?? `the captain of a ${ship}`).join(', ');
   addLog(`Turned over ${names} in ${town.name}; ${town.nation} favour rose by ${favourGain}.`);
   showDialog({
-    kicker: `${town.nation} governor`, title: delivered.length === 1 ? 'A pirate brought to justice' : `${delivered.length} pirates brought to justice`,
+    vignette: 'governor', kicker: `${town.nation} governor`, title: delivered.length === 1 ? 'A pirate brought to justice' : `${delivered.length} pirates brought to justice`,
     body: `<p>The governor takes ${names} into custody and promises that the Crown will remember your service.</p>`,
     actions: [{ label: 'Continue the audience', run: () => continueGovernorAudience(town) }],
   });
@@ -2490,7 +2506,7 @@ function continueGovernorAudience(town) {
   state.player.land += promotion.landUnits;
   addLog(`${town.nation} promoted you from ${RANK_NAMES[oldRank]} to ${RANK_NAMES[promotion.rank]}.`);
   showDialog({
-    kicker: `${town.nation} governor`, title: `Promotion to ${RANK_NAMES[promotion.rank]}`,
+    vignette: 'governor', kicker: `${town.nation} governor`, title: `Promotion to ${RANK_NAMES[promotion.rank]}`,
     body: `<p>The Crown recognizes your service to ${town.nation}.</p><dl><dt>New rank</dt><dd>${RANK_NAMES[promotion.rank]}</dd><dt>${town.nation} national favour</dt><dd>${promotion.favour}</dd>${promotion.landUnits > 0 ? `<dt>Land grant</dt><dd>${(promotion.landUnits * 50).toLocaleString()} acres</dd>` : ''}<dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
     actions: [{ label: 'Continue the audience', run: () => beginGovernorRansoms(town) }],
   });
@@ -2513,7 +2529,7 @@ function showGovernorRansom(town, offers, index) {
   }
   const description = `${captain.nation ?? 'foreign'} captain captured from a ${captain.ship}`;
   showDialog({
-    kicker: 'A ransom offer', title: `${gold.toLocaleString()} gold for the prisoner`,
+    vignette: 'governor', kicker: 'A ransom offer', title: `${gold.toLocaleString()} gold for the prisoner`,
     body: `<p>An agent asks you to release the ${description}.</p>`,
     actions: [
       { label: 'Take the gold', run: () => {
@@ -2535,7 +2551,7 @@ function finishGovernorAudience(town) {
   if (terms) {
     const isAmnesty = terms.kind === 'amnesty';
     showDialog({
-      kicker: `${town.nation} governor`, title: isAmnesty ? 'An offer of amnesty' : 'A letter of marque',
+      vignette: 'governor', kicker: `${town.nation} governor`, title: isAmnesty ? 'An offer of amnesty' : 'A letter of marque',
       body: `<p>${isAmnesty ? `The governor offers to pardon your offenses against ${town.nation}` : `The governor offers you a commission in the service of ${town.nation}`} for ${terms.price.toLocaleString()} gold.</p>${status}${briefing}`,
       actions: [
         { label: isAmnesty ? 'Accept amnesty' : 'Buy the commission', run: () => completeGovernorPurchase(town, terms) },
@@ -2546,7 +2562,7 @@ function finishGovernorAudience(town) {
   }
   if (favour <= -4) {
     showDialog({
-      kicker: `${town.nation} governor`, title: 'A cold audience',
+      vignette: 'governor', kicker: `${town.nation} governor`, title: 'A cold audience',
       body: `<p>The governor hears you but offers neither pardon nor commission.</p>${status}${briefing}`,
       actions: [{ label: 'Return to town', run: showTownMenu }],
     });
@@ -2554,7 +2570,7 @@ function finishGovernorAudience(town) {
   }
   const rank = RANK_NAMES[state.player.ranks[town.nation]];
   showDialog({
-    kicker: `${town.nation} governor`, title: `My dear ${rank} ${state.captain}`,
+    vignette: 'governor', kicker: `${town.nation} governor`, title: `My dear ${rank} ${state.captain}`,
     body: `<p>The governor welcomes a proven friend of ${town.nation}. Your letter of marque remains in good standing.</p>${status}${briefing}`,
     actions: [{ label: 'Return to town', run: showTownMenu }],
   });
@@ -2563,7 +2579,7 @@ function finishGovernorAudience(town) {
 function completeGovernorPurchase(town, terms) {
   if (state.player.partyGold < terms.price) {
     showDialog({
-      kicker: `${town.nation} governor`, title: 'Insufficient funds',
+      vignette: 'governor', kicker: `${town.nation} governor`, title: 'Insufficient funds',
       body: `<p>The governor requires ${terms.price.toLocaleString()} gold, but you have ${state.player.partyGold.toLocaleString()}.</p>`,
       actions: [{ label: 'Return to town', run: showTownMenu }],
     });
@@ -2578,7 +2594,7 @@ function completeGovernorPurchase(town, terms) {
     : `${town.nation} granted amnesty and now regards you as ${standing.toLowerCase()}.`;
   addLog(message);
   showDialog({
-    kicker: `${town.nation} governor`, title: terms.grantsCommission ? 'Commission granted' : 'Amnesty recorded',
+    vignette: 'governor', kicker: `${town.nation} governor`, title: terms.grantsCommission ? 'Commission granted' : 'Amnesty recorded',
     body: `<p>${message}</p><dl><dt>Gold paid</dt><dd>${terms.price.toLocaleString()}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>${town.nation} national favour</dt><dd>${terms.resultingFavour}</dd><dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
     actions: [{ label: 'Return to town', run: showTownMenu }],
   });
@@ -2617,7 +2633,7 @@ function showTavern() {
       : 'A traveller watches the room, waiting for someone willing to buy information.').join(' ')
     : 'No unusual visitors draw your attention tonight.';
   showDialog({
-    kicker: `The tavern · ${town.name}`,
+    vignette: 'tavern', kicker: `The tavern · ${town.name}`,
     title: 'Rumours, recruits, and strong drink',
     body: `<p>${visitor}</p><dl><dt>Sailors</dt><dd>${state.visit.recruited ? 'Already approached' : 'Available'}</dd><dt>Treasure map</dt><dd>${mapPieces}/4 pieces</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd></dl>`,
     actions,
@@ -2627,13 +2643,13 @@ function showTavern() {
 function showTavernRecruits() {
   const town = state.towns[state.visit.townIndex];
   if (state.visit.recruited) {
-    showDialog({ kicker: 'The tavern', title: 'No more volunteers', body: '<p>Every willing sailor in the room has already heard your offer.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    showDialog({ vignette: 'tavern', kicker: 'The tavern', title: 'No more volunteers', body: '<p>Every willing sailor in the room has already heard your offer.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
     return;
   }
   const recruits = tavernRecruits({ townPopulation: town.population, reputation: state.player.reputation, difficulty: state.difficulty, crew: state.player.crew, capacity: fleetCapacity(), rng });
   state.visit.recruited = true;
   showDialog({
-    kicker: 'The tavern', title: `${recruits} sailors volunteer`,
+    vignette: 'tavern', kicker: 'The tavern', title: `${recruits} sailors volunteer`,
     body: '<p>They will join for a share of future plunder.</p>',
     actions: [
       { label: 'Welcome them aboard', run: () => { state.player.crew += recruits; addLog(`${recruits} sailors joined the crew.`); showTavern(); } },
@@ -2724,7 +2740,7 @@ function openLogbookAtSea() {
 function showBartenderNews() {
   const items = state.worldNews.slice(0, 6);
   showDialog({
-    kicker: 'The bartender', title: 'News from across the Caribbean',
+    vignette: 'bartender', kicker: 'The bartender', title: 'News from across the Caribbean',
     body: newsBody(items, 'The bartender has heard nothing of consequence.'),
     actions: [{ label: 'Return to the tavern', run: showTavern }],
   });
@@ -2736,7 +2752,7 @@ function showBarmaid() {
   const isInformant = state.player.barmaidInformants.includes(key);
   if (isInformant) {
     showDialog({
-      kicker: `The barmaid · ${town.name}`, title: 'Your informant has been listening',
+      vignette: 'barmaid', kicker: `The barmaid · ${town.name}`, title: 'Your informant has been listening',
       // ASSUMED: the barmaid stands in for the original's informant at the
       // governor's house (CSTN 26), who reports the treasure fleet and then
       // the silver train (0x1292D-0x12A0D) with the news.
@@ -2747,7 +2763,7 @@ function showBarmaid() {
   }
   const rapport = state.player.barmaidRapport[key] ?? 0;
   showDialog({
-    kicker: `The barmaid · ${town.name}`, title: '“What would you be looking for, Captain?”',
+    vignette: 'barmaid', kicker: `The barmaid · ${town.name}`, title: '“What would you be looking for, Captain?”',
     body: `<p>Buy a drink, or spend the evening earning the trust of someone who hears every conversation in the room.</p><dl><dt>Trust</dt><dd>${rapport}/10</dd></dl>`,
     actions: [
       { label: `Buy a drink${state.player.partyGold ? ' · 1 gold' : ''}`, run: () => spendEveningWithBarmaid(Math.min(1, state.player.partyGold), 0) },
@@ -2759,7 +2775,7 @@ function showBarmaid() {
 
 function spendEveningWithBarmaid(cost, rapportGain) {
   if (state.player.partyGold < cost) {
-    showDialog({ kicker: 'An empty purse', title: 'No drinks on credit', body: '<p>The barmaid points you back toward your ship.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    showDialog({ vignette: 'barmaid', kicker: 'An empty purse', title: 'No drinks on credit', body: '<p>The barmaid points you back toward your ship.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
     return;
   }
   state.player.partyGold -= cost;
@@ -2773,7 +2789,7 @@ function spendEveningWithBarmaid(cost, rapportGain) {
     addLog(`Won the trust of an informant in ${state.towns[state.visit.townIndex].name}.`);
   }
   showDialog({
-    kicker: 'The barmaid', title,
+    vignette: 'barmaid', kicker: 'The barmaid', title,
     body: '<p>You share a pleasant conversation while sailors trade rumours around you.</p>',
     actions: [{ label: 'Return to the tavern', run: showTavern }],
   });
@@ -2786,7 +2802,7 @@ function showTavernSpecialEncounter(encounter) {
   }
   if (encounter.kind === 'traveller') {
     showDialog({
-      kicker: 'A far-travelled stranger', title: 'Information has its price',
+      vignette: 'traveller', kicker: 'A far-travelled stranger', title: 'Information has its price',
       body: `<p>The traveller offers reports gathered in distant ports for ${encounter.price} gold pieces.</p>`,
       actions: [
         { label: `Pay ${encounter.price} gold`, run: () => buyTravellerNews(encounter) },
@@ -2796,7 +2812,7 @@ function showTavernSpecialEncounter(encounter) {
     return;
   }
   showDialog({
-    kicker: 'A map seller', title: 'A scrap of an old treasure map',
+    vignette: 'map-seller', kicker: 'A map seller', title: 'A scrap of an old treasure map',
     body: `<p>The seller asks ${encounter.price} gold pieces for part of an old treasure map. Each piece shows more of the land around the cache.</p>`,
     actions: [
       { label: `Buy it · ${encounter.price} gold`, run: () => buyTreasureMapPiece(encounter) },
@@ -2812,7 +2828,7 @@ function declineTavernEncounter(encounter) {
 
 function buyTravellerNews(encounter) {
   if (state.player.partyGold < encounter.price) {
-    showDialog({ kicker: 'The traveller', title: 'Information is not free', body: '<p>Your purse cannot meet the traveller’s price.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    showDialog({ vignette: 'traveller', kicker: 'The traveller', title: 'Information is not free', body: '<p>Your purse cannot meet the traveller’s price.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
     return;
   }
   state.player.partyGold -= encounter.price;
@@ -2824,7 +2840,7 @@ function buyTravellerNews(encounter) {
   // implemented yet, so the traveller always reports on a town.
   reportedTown.flags = learnTownInfo(reportedTown.flags);
   showDialog({
-    kicker: 'The traveller’s report', title: `Intelligence from ${reportedTown.name}`,
+    vignette: 'traveller', kicker: 'The traveller’s report', title: `Intelligence from ${reportedTown.name}`,
     body: `${townInfoBody(reportedTown)}${newsBody(state.worldNews.slice(0, 3), 'No wider news reached the traveller.')}`,
     actions: [{ label: 'Return to the tavern', run: showTavern }],
   });
@@ -2832,7 +2848,7 @@ function buyTravellerNews(encounter) {
 
 function buyTreasureMapPiece(encounter) {
   if (state.player.partyGold < encounter.price) {
-    showDialog({ kicker: 'The map seller', title: 'No bargain', body: '<p>The seller snatches the parchment back when he sees your purse.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    showDialog({ vignette: 'map-seller', kicker: 'The map seller', title: 'No bargain', body: '<p>The seller snatches the parchment back when he sees your purse.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
     return;
   }
   state.player.partyGold -= encounter.price;
@@ -2953,7 +2969,7 @@ function showTreasureMaps(back, index = 0) {
 function showShipwright() {
   const town = state.towns[state.visit.townIndex];
   if (town.nation === 'Spain' && 25 * state.player.ranks.Spain + scenarios[state.era].merchantThreshold < town.growth) {
-    showDialog({ kicker: 'The shipwright', title: '“We do not trade with pirates!”', body: '<p>The shipwright dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: '“We do not trade with pirates!”', body: '<p>The shipwright dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
     return;
   }
   state.portTrade.shipwrightCash ??= shipwrightCash({
@@ -2963,7 +2979,7 @@ function showShipwright() {
   });
   const damaged = state.player.ships.filter((ship) => ship.damage > 0).length;
   showDialog({
-    kicker: `The shipwright · ${town.name}`, title: 'What business brings you to the yard?',
+    vignette: 'shipwright', kicker: `The shipwright · ${town.name}`, title: 'What business brings you to the yard?',
     body: `<dl><dt>Your fleet</dt><dd>${state.player.ships.length} ship${state.player.ships.length === 1 ? '' : 's'}</dd><dt>Damaged</dt><dd>${damaged}</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd><dt>Shipwright’s cash</dt><dd>${state.portTrade.shipwrightCash}</dd></dl>`,
     actions: [
       { label: 'Repair a ship', run: showRepairShips },
@@ -2979,11 +2995,11 @@ function showRepairShips() {
     .map((ship, index) => ({ ship, index }))
     .filter(({ ship }) => ship.damage > 0);
   if (!damaged.length) {
-    showDialog({ kicker: 'The shipwright', title: 'Nothing needs repair', body: '<p>The shipwright finds no damage worth his attention.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'Nothing needs repair', body: '<p>The shipwright finds no damage worth his attention.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   showDialog({
-    kicker: 'The shipwright', title: 'Choose a ship to repair',
+    vignette: 'shipwright', kicker: 'The shipwright', title: 'Choose a ship to repair',
     body: '<p>The quoted price clears all recorded damage from the selected ship.</p>',
     actions: [
       ...damaged.map(({ ship, index }) => {
@@ -2997,7 +3013,7 @@ function showRepairShips() {
 
 function repairShip(index, price) {
   if (state.player.partyGold <= price) {
-    showDialog({ kicker: 'The shipwright', title: 'You cannot afford the work', body: `<p>The repair costs ${price} gold, and the shipwright insists you keep something in your purse.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'You cannot afford the work', body: `<p>The repair costs ${price} gold, and the shipwright insists you keep something in your purse.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   const ship = state.player.ships[index];
@@ -3010,11 +3026,11 @@ function repairShip(index, price) {
 
 function showSellShips() {
   if (state.player.ships.length < 2) {
-    showDialog({ kicker: 'The shipwright', title: 'Your only ship', body: '<p>The shipwright will not leave you stranded ashore.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'Your only ship', body: '<p>The shipwright will not leave you stranded ashore.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   showDialog({
-    kicker: 'The shipwright', title: 'Choose a ship to sell',
+    vignette: 'shipwright', kicker: 'The shipwright', title: 'Choose a ship to sell',
     body: '<p>Crew, cannon, and cargo remain with your fleet. You cannot sell your last ship.</p>',
     actions: [
       ...state.player.ships.map((ship, index) => {
@@ -3032,7 +3048,7 @@ function sellShip(index, price) {
     return;
   }
   if (state.portTrade.shipwrightCash < price) {
-    showDialog({ kicker: 'The shipwright', title: 'The yard lacks the cash', body: `<p>The shipwright cannot cover the ${price}-gold price.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'The yard lacks the cash', body: `<p>The shipwright cannot cover the ${price}-gold price.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   const [ship] = state.player.ships.splice(index, 1);
@@ -3047,15 +3063,15 @@ function showSellCannon() {
   const available = Math.max(0, state.player.cannon - 1);
   const affordable = Math.min(available, Math.floor(state.portTrade.shipwrightCash / 50));
   if (available === 0) {
-    showDialog({ kicker: 'The shipwright', title: 'Your only cannon', body: '<p>The shipwright refuses to buy the last gun protecting your fleet.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'Your only cannon', body: '<p>The shipwright refuses to buy the last gun protecting your fleet.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   if (affordable === 0) {
-    showDialog({ kicker: 'The shipwright', title: 'The yard lacks the cash', body: '<p>The shipwright cannot afford another cannon.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
+    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'The yard lacks the cash', body: '<p>The shipwright cannot afford another cannon.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
     return;
   }
   showDialog({
-    kicker: 'The shipwright', title: 'Cannon fetch 50 gold apiece',
+    vignette: 'shipwright', kicker: 'The shipwright', title: 'Cannon fetch 50 gold apiece',
     body: `<p>The yard can buy up to ${affordable}. At least one cannon must remain with your fleet.</p>`,
     actions: [
       { label: 'Sell one cannon · 50 gold', run: () => sellCannon(1) },
@@ -3100,7 +3116,7 @@ function finishMerchantVisit() {
 function showMerchant(preferredTransfer = '', preferredKind = '') {
   const town = state.towns[state.visit.townIndex];
   if (town.nation === 'Spain' && 25 * state.player.ranks.Spain + scenarios[state.era].merchantThreshold < town.growth) {
-    showDialog({ kicker: 'The merchant', title: '“We do not trade with pirates!”', body: '<p>The merchant dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
+    showDialog({ vignette: 'merchant', kicker: 'The merchant', title: '“We do not trade with pirates!”', body: '<p>The merchant dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
     return;
   }
   if (!state.visit.merchant?.prices) {
@@ -3143,7 +3159,7 @@ function showMerchant(preferredTransfer = '', preferredKind = '') {
       <td><div class="plunder-cell plunder-source"><strong>${row.stock}</strong><button type="button" class="plunder-arrow" data-transfer="sell" data-kind="${row.kind}" aria-label="Sell one ${row.unit}" title="Sell one ${row.unit}"${row.sellMaximum === 0 ? ' disabled' : ''}>→</button><button type="button" class="plunder-take-all" data-transfer="buy-max" data-kind="${row.kind}"${row.buyMaximum === 0 ? ' disabled' : ''}>Buy max</button></div></td>
     </tr>`).join('');
   showDialog({
-    kicker: `The merchant · ${town.name}`, title: 'Buy or sell by the ton',
+    vignette: 'merchant', kicker: `The merchant · ${town.name}`, title: 'Buy or sell by the ton',
     body: `<p>Prices are per ton. Use the arrows to trade one ton at a time, and hold an arrow to keep trading.</p>
       <dl class="plunder-summary"><dt>Your gold</dt><dd>${state.player.partyGold}</dd><dt>Merchant cash</dt><dd>${market.cash}</dd><dt>Free hold</dt><dd>${room} tons</dd></dl>
       <table class="plunder-manifest merchant-manifest">
@@ -3247,9 +3263,12 @@ function showNotice(title, body) {
 // original's Y/N for "Disembark".
 let dialogShortcuts = new Map();
 
-function showDialog({ kicker, title, body, actions }) {
+// `vignette` names a scene picture (scene-vignettes.md), as an id or as
+// { id, ...options } for scenes that vary, such as by the enemy's flag.
+function showDialog({ kicker, title, body, actions, vignette }) {
   if (dialog.open) dialog.close();
   dialogShortcuts = new Map();
+  showVignette(vignette);
   dialogKicker.textContent = kicker;
   dialogTitle.textContent = title;
   dialogBody.innerHTML = body;
@@ -3267,6 +3286,21 @@ function showDialog({ kicker, title, body, actions }) {
   // Long dialogs (the ship's log, the gazetteer) open at the top.
   dialogActions.querySelector('button')?.focus({ preventScroll: true });
   dialog.scrollTop = 0;
+}
+
+// A landscape sits above the dialog text, a portrait beside it.
+function showVignette(vignette) {
+  dialogVignette.classList.toggle('hidden', !vignette);
+  const { id, ...options } = typeof vignette === 'string' ? { id: vignette } : vignette ?? {};
+  dialog.classList.toggle('has-portrait', Boolean(vignette) && vignetteShape(id) === 'portrait');
+  if (!vignette) return;
+  const size = vignetteSize(id);
+  dialogVignetteCanvas.width = size.width;
+  dialogVignetteCanvas.height = size.height;
+  dialogVignetteCanvas.style.setProperty('--art-width', size.width);
+  dialogVignetteCanvas.style.setProperty('--art-height', size.height);
+  drawVignette(dialogVignetteCanvas.getContext('2d'), id, options);
+  dialogVignetteCanvas.setAttribute('aria-label', vignetteDescription(id));
 }
 
 // Every return to the sailing map starts a new voyage, and each voyage begins
@@ -3426,42 +3460,25 @@ function render() {
   if (state.paused && state.mode === 'sailing' && !dialog.open) drawPaused(width, height, 'Voyage paused');
 }
 
+// Clouds keep one screen size at every zoom; their shadow falls 30 screen
+// pixels to the south-west, as before.
+const cloudSpriteCache = new Map();
+const CLOUD_SHADOW_OFFSET = { x: -30, y: 30 };
+
 function drawClouds(zoom, playerPose, clouds) {
+  const scale = CLOUD_ART_PIXEL * devicePixelScale();
   for (const cloud of clouds) {
     const opacity = cloudWrapOpacity(cloud, playerPose.x, playerPose.y);
     if (opacity <= 0) continue;
+    const shadow = cachedSprite(cloudSpriteCache, `${cloud.shape}|shadow`, () => paintCloudSprite(cloud.shape, { shadow: true }));
+    const body = cachedSprite(cloudSpriteCache, `${cloud.shape}`, () => paintCloudSprite(cloud.shape));
+    if (!shadow || !body) continue;
     ctx.save();
-    ctx.globalAlpha = opacity;
-    ctx.translate(cloud.x, cloud.y);
-    ctx.scale(1 / zoom, 1 / zoom);
-
-    ctx.fillStyle = 'rgba(2, 20, 27, .3)';
-    drawCloudShape(cloud.shape, -30, 30);
-    ctx.fill();
-
-    const cloudGradient = ctx.createLinearGradient(0, -18, 0, 18);
-    cloudGradient.addColorStop(0, 'rgba(255, 252, 229, .96)');
-    cloudGradient.addColorStop(1, 'rgba(190, 211, 204, .92)');
-    ctx.fillStyle = cloudGradient;
-    ctx.strokeStyle = 'rgba(72, 95, 96, .55)';
-    ctx.lineWidth = 1.2;
-    drawCloudShape(cloud.shape, 0, 0);
-    ctx.fill();
-    ctx.stroke();
+    ctx.globalAlpha = opacity * .3;
+    drawPixelSprite(ctx, shadow, cloud.x + CLOUD_SHADOW_OFFSET.x / zoom, cloud.y + CLOUD_SHADOW_OFFSET.y / zoom, scale);
+    ctx.globalAlpha = opacity * .95;
+    drawPixelSprite(ctx, body, cloud.x, cloud.y, scale);
     ctx.restore();
-  }
-}
-
-function drawCloudShape(shape, offsetX, offsetY) {
-  const forms = [
-    [[-24, 6, 14], [-8, -3, 18], [11, 0, 16], [25, 7, 11]],
-    [[-27, 7, 11], [-15, 0, 16], [1, -6, 20], [20, 2, 15], [30, 8, 9]],
-    [[-22, 8, 13], [-7, 1, 15], [5, -7, 18], [18, 2, 13], [28, 8, 8]],
-  ];
-  ctx.beginPath();
-  for (const [x, y, radius] of forms[shape] ?? forms[0]) {
-    ctx.moveTo(offsetX + x + radius, offsetY + y);
-    ctx.arc(offsetX + x, offsetY + y, radius, 0, Math.PI * 2);
   }
 }
 
@@ -3515,46 +3532,31 @@ function drawTowns(zoom) {
 
 function townSprite(town) {
   const prosperity = prosperityLevel(town.growth);
-  const key = `${town.nation}|${prosperity}|${Math.min(town.forts, 4)}`;
-  let sprite = townSpriteCache.get(key);
-  if (!sprite) {
-    sprite = document.createElement('canvas');
-    sprite.width = TOWN_SPRITE_WIDTH; sprite.height = TOWN_SPRITE_HEIGHT;
-    const pixels = paintTownSprite({ nation: { key: town.nation, ...NATIONS[town.nation] }, prosperity, forts: town.forts });
-    sprite.getContext('2d').putImageData(new ImageData(pixels, TOWN_SPRITE_WIDTH, TOWN_SPRITE_HEIGHT), 0, 0);
-    townSpriteCache.set(key, sprite);
-  }
-  return sprite;
+  const forts = Math.min(town.forts, 4);
+  return cachedSprite(townSpriteCache, `${town.nation}|${prosperity}|${forts}`, () => ({
+    pixels: paintTownSprite({ nation: { key: town.nation, ...NATIONS[town.nation] }, prosperity, forts }),
+    width: TOWN_SPRITE_WIDTH, height: TOWN_SPRITE_HEIGHT, anchor: TOWN_SPRITE_ANCHOR,
+  }));
 }
 
-// Drawn in device pixels on a whole-pixel grid, so every art pixel stays an
-// even square at any zoom.
 function drawTownSprite(town, x, y, spriteScale) {
-  const transform = ctx.getTransform();
-  const scale = spriteScale * Math.round(Math.min(devicePixelRatio || 1, 2));
-  const left = Math.round(transform.a * x + transform.e) - TOWN_SPRITE_ANCHOR.x * scale;
-  const top = Math.round(transform.d * y + transform.f) - TOWN_SPRITE_ANCHOR.y * scale;
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(townSprite(town), left, top, TOWN_SPRITE_WIDTH * scale, TOWN_SPRITE_HEIGHT * scale);
-  ctx.restore();
+  const sprite = townSprite(town);
+  if (sprite) drawPixelSprite(ctx, sprite, x, y, spriteScale * devicePixelScale());
 }
+
+// The flagship as a pixel-art sprite at the towns' scale, one per heading
+// sector, sail state and wind (for the flag).
+const shipSpriteCache = new Map();
 
 function drawShip(zoom, player) {
-  ctx.save();
-  ctx.translate(player.x, player.y);
-  ctx.rotate(player.heading / 256 * Math.PI * 2);
-  ctx.scale(2.3 / zoom, 2.3 / zoom);
-  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(1.5, 1.8, 3.7, 6, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#5c321b'; ctx.strokeStyle = '#29170e'; ctx.lineWidth = .8;
-  ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(3.1, 4.5); ctx.lineTo(0, 6); ctx.lineTo(-3.1, 4.5); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle = '#2b2116'; ctx.lineWidth = .7; ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 4); ctx.stroke();
-  drawShipSails(player.sails);
-  ctx.strokeStyle = '#2b2116'; ctx.lineWidth = .7; ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, -8); ctx.stroke();
-  ctx.fillStyle = NATIONS[state.nationality]?.color ?? NATIONS.pirate.color;
-  ctx.beginPath(); ctx.moveTo(.2, -8); ctx.lineTo(3.2, -6.8); ctx.lineTo(.2, -5.8); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.restore();
+  const type = statsFor(state.player.ships[0]).type;
+  const key = NATIONS[state.nationality] ? state.nationality : 'pirate';
+  const sector = headingSector(player.heading);
+  const windSector = headingSector(state.player.wind);
+  const sprite = cachedSprite(shipSpriteCache, `${type}|${sector}|${player.sails}|${key}|${windSector}`, () => paintShipSprite({
+    type, heading: sector * 16, sails: player.sails, nation: { key, ...NATIONS[key] }, wind: windSector * 16,
+  }));
+  if (sprite) drawPixelSprite(ctx, sprite, player.x, player.y, townSpriteScale(zoom) * devicePixelScale());
 }
 
 // The rowboat marks the landing spot: walking into the water within reach
@@ -3591,17 +3593,6 @@ function drawParty(zoom, pose) {
   ctx.fillStyle = NATIONS[state.nationality]?.color ?? NATIONS.pirate.color;
   ctx.beginPath(); ctx.moveTo(3.5, -6); ctx.lineTo(6.6, -5); ctx.lineTo(3.5, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.restore();
-}
-
-function drawShipSails(sailState) {
-  if (sailState === 'furled') {
-    ctx.strokeStyle = '#d5c18e'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(-2.6, -.8); ctx.lineTo(2.8, -.8); ctx.moveTo(-2.1, 2); ctx.lineTo(2.3, 2); ctx.stroke();
-    return;
-  }
-  const spread = sailState === 'full' ? 1 : .58;
-  ctx.fillStyle = '#eee0b8'; ctx.beginPath(); ctx.moveTo(.4, -3.5); ctx.lineTo(3.8 * spread, 1.2); ctx.lineTo(.4, 2.2); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#d5c18e'; ctx.beginPath(); ctx.moveTo(-.4, -2.7); ctx.lineTo(-3.3 * spread, 1.7); ctx.lineTo(-.4, 2.5); ctx.closePath(); ctx.fill();
 }
 
 function drawMinimap(width, height, camera, zoom, playerPose) {
@@ -3872,6 +3863,87 @@ loadScenarios().then(() => {
     });
     return;
   }
+  // The placeholder vignettes outside the governor and counting-house previews.
+  if (['prize', 'enemy-destroyed'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.paused = true;
+      const enemy = { ship: 'Merchantman', flag: 'Spain', guns: 18, damage: 0, kind: 'merchant' };
+      if (preview === 'prize') beginShipCapture(enemy);
+      else showEnemyDestroyed(enemy, resumeSailing);
+    });
+    return;
+  }
+  // The town approach, by sea or (`arrival-land`) overland.
+  if (['arrival', 'arrival-land'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      approachTown({ overland: preview === 'arrival-land' });
+    });
+    return;
+  }
+  if (preview === 'marooned' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.paused = true;
+      loseLastShip({ inTown: false, cause: REEF_TEXT, done: resumeSailing });
+    });
+    return;
+  }
+  if (preview === 'reef-loss' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    previewState.player.ships = [shipRecord('Sloop'), shipRecord('Frigate')];
+    startGame(previewState).then(() => strikeReef(1));
+    return;
+  }
+  if (preview === 'tavern' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showTavern();
+    });
+    return;
+  }
+  if (preview === 'barmaid' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showBarmaid();
+    });
+    return;
+  }
+  // A tavern stranger's offer: `traveller` or `map-seller`.
+  if (['traveller', 'map-seller'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      const encounter = { kind: preview, price: preview === 'traveller' ? 80 : 500, townIndex: 0, resolved: false };
+      state.visit.tavernEncounters = [encounter];
+      showTavernSpecialEncounter(encounter);
+    });
+    return;
+  }
+  if (preview === 'shipwright' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showShipwright();
+    });
+    return;
+  }
   if (preview === 'merchant' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     startGame(previewState).then(() => {
@@ -3952,7 +4024,7 @@ loadScenarios().then(() => {
       state.calendar = { day: 12, month: 9, year: 1680 };
       addWorldNews('A new gold mine has opened at Havana.');
       showDialog({
-        kicker: 'The bartender', title: 'News from across the Caribbean',
+        vignette: 'bartender', kicker: 'The bartender', title: 'News from across the Caribbean',
         body: newsBody(state.worldNews.slice(0, 6)),
         actions: [{ label: 'Return to the tavern', run: () => {} }],
       });
