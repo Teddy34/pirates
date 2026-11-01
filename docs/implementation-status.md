@@ -41,9 +41,21 @@ for future work.
   the sailed coastline.
 - Display pixel-art town sprites whose buildings show the town's prosperity
   (struggling, surviving, prospering, wealthy) and whose walls show its
-  forts. Only the flag shows who holds the town. Labels, the player ship and
-  a minimap are drawn too.
-- Zoom from 16× to 64× without scaling town labels or the ship. Town sprites
+  forts. Only the flag shows who holds the town. Labels and a minimap are
+  drawn too.
+- Draw the flagship, and both ships in a sea battle, as pixel-art sprites in
+  the towns' style (`src/ship-sprites.mjs`): an oblique view with the hull's
+  side, upright masts, sails lit from the north-west and the nation's flag
+  streaming downwind. The rig follows the ship type (gaff-rigged pinnace and
+  sloop, two to four square-rigged masts, stern castles, a gilded wale on
+  warships), each of the sixteen heading sectors is painted rather than
+  rotated, and the sails show furled, battle or full canvas. In battle one
+  art pixel is one battle pixel (the dashed hit box is larger), torn sails show damage level 1 and a
+  lost foremast level 2, and sails being raised or lowered are shaded.
+- Draw the seasonal clouds as pixel-art puffs lit from the north-west, with
+  a soft outline and a flat pixel shadow on the sea (`src/cloud-sprites.mjs`).
+  They keep one screen size at every zoom.
+- Zoom from 16× to 64× without scaling town labels. Town and ship sprites
   step from 2 to 3 to 4 screen pixels per art pixel as the map zooms in.
 - Show every decoded town for the selected era, including eastern Caribbean
   settlements.

@@ -46,6 +46,9 @@ import {
 } from './retirement.mjs';
 import { drawVignette, vignetteDescription, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
+import { headingSector, paintShipSprite } from './ship-sprites.mjs';
+import { CLOUD_ART_PIXEL, paintCloudSprite } from './cloud-sprites.mjs';
+import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
@@ -3457,42 +3460,25 @@ function render() {
   if (state.paused && state.mode === 'sailing' && !dialog.open) drawPaused(width, height, 'Voyage paused');
 }
 
+// Clouds keep one screen size at every zoom; their shadow falls 30 screen
+// pixels to the south-west, as before.
+const cloudSpriteCache = new Map();
+const CLOUD_SHADOW_OFFSET = { x: -30, y: 30 };
+
 function drawClouds(zoom, playerPose, clouds) {
+  const scale = CLOUD_ART_PIXEL * devicePixelScale();
   for (const cloud of clouds) {
     const opacity = cloudWrapOpacity(cloud, playerPose.x, playerPose.y);
     if (opacity <= 0) continue;
+    const shadow = cachedSprite(cloudSpriteCache, `${cloud.shape}|shadow`, () => paintCloudSprite(cloud.shape, { shadow: true }));
+    const body = cachedSprite(cloudSpriteCache, `${cloud.shape}`, () => paintCloudSprite(cloud.shape));
+    if (!shadow || !body) continue;
     ctx.save();
-    ctx.globalAlpha = opacity;
-    ctx.translate(cloud.x, cloud.y);
-    ctx.scale(1 / zoom, 1 / zoom);
-
-    ctx.fillStyle = 'rgba(2, 20, 27, .3)';
-    drawCloudShape(cloud.shape, -30, 30);
-    ctx.fill();
-
-    const cloudGradient = ctx.createLinearGradient(0, -18, 0, 18);
-    cloudGradient.addColorStop(0, 'rgba(255, 252, 229, .96)');
-    cloudGradient.addColorStop(1, 'rgba(190, 211, 204, .92)');
-    ctx.fillStyle = cloudGradient;
-    ctx.strokeStyle = 'rgba(72, 95, 96, .55)';
-    ctx.lineWidth = 1.2;
-    drawCloudShape(cloud.shape, 0, 0);
-    ctx.fill();
-    ctx.stroke();
+    ctx.globalAlpha = opacity * .3;
+    drawPixelSprite(ctx, shadow, cloud.x + CLOUD_SHADOW_OFFSET.x / zoom, cloud.y + CLOUD_SHADOW_OFFSET.y / zoom, scale);
+    ctx.globalAlpha = opacity * .95;
+    drawPixelSprite(ctx, body, cloud.x, cloud.y, scale);
     ctx.restore();
-  }
-}
-
-function drawCloudShape(shape, offsetX, offsetY) {
-  const forms = [
-    [[-24, 6, 14], [-8, -3, 18], [11, 0, 16], [25, 7, 11]],
-    [[-27, 7, 11], [-15, 0, 16], [1, -6, 20], [20, 2, 15], [30, 8, 9]],
-    [[-22, 8, 13], [-7, 1, 15], [5, -7, 18], [18, 2, 13], [28, 8, 8]],
-  ];
-  ctx.beginPath();
-  for (const [x, y, radius] of forms[shape] ?? forms[0]) {
-    ctx.moveTo(offsetX + x + radius, offsetY + y);
-    ctx.arc(offsetX + x, offsetY + y, radius, 0, Math.PI * 2);
   }
 }
 
@@ -3546,46 +3532,31 @@ function drawTowns(zoom) {
 
 function townSprite(town) {
   const prosperity = prosperityLevel(town.growth);
-  const key = `${town.nation}|${prosperity}|${Math.min(town.forts, 4)}`;
-  let sprite = townSpriteCache.get(key);
-  if (!sprite) {
-    sprite = document.createElement('canvas');
-    sprite.width = TOWN_SPRITE_WIDTH; sprite.height = TOWN_SPRITE_HEIGHT;
-    const pixels = paintTownSprite({ nation: { key: town.nation, ...NATIONS[town.nation] }, prosperity, forts: town.forts });
-    sprite.getContext('2d').putImageData(new ImageData(pixels, TOWN_SPRITE_WIDTH, TOWN_SPRITE_HEIGHT), 0, 0);
-    townSpriteCache.set(key, sprite);
-  }
-  return sprite;
+  const forts = Math.min(town.forts, 4);
+  return cachedSprite(townSpriteCache, `${town.nation}|${prosperity}|${forts}`, () => ({
+    pixels: paintTownSprite({ nation: { key: town.nation, ...NATIONS[town.nation] }, prosperity, forts }),
+    width: TOWN_SPRITE_WIDTH, height: TOWN_SPRITE_HEIGHT, anchor: TOWN_SPRITE_ANCHOR,
+  }));
 }
 
-// Drawn in device pixels on a whole-pixel grid, so every art pixel stays an
-// even square at any zoom.
 function drawTownSprite(town, x, y, spriteScale) {
-  const transform = ctx.getTransform();
-  const scale = spriteScale * Math.round(Math.min(devicePixelRatio || 1, 2));
-  const left = Math.round(transform.a * x + transform.e) - TOWN_SPRITE_ANCHOR.x * scale;
-  const top = Math.round(transform.d * y + transform.f) - TOWN_SPRITE_ANCHOR.y * scale;
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(townSprite(town), left, top, TOWN_SPRITE_WIDTH * scale, TOWN_SPRITE_HEIGHT * scale);
-  ctx.restore();
+  const sprite = townSprite(town);
+  if (sprite) drawPixelSprite(ctx, sprite, x, y, spriteScale * devicePixelScale());
 }
+
+// The flagship as a pixel-art sprite at the towns' scale, one per heading
+// sector, sail state and wind (for the flag).
+const shipSpriteCache = new Map();
 
 function drawShip(zoom, player) {
-  ctx.save();
-  ctx.translate(player.x, player.y);
-  ctx.rotate(player.heading / 256 * Math.PI * 2);
-  ctx.scale(2.3 / zoom, 2.3 / zoom);
-  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(1.5, 1.8, 3.7, 6, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#5c321b'; ctx.strokeStyle = '#29170e'; ctx.lineWidth = .8;
-  ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(3.1, 4.5); ctx.lineTo(0, 6); ctx.lineTo(-3.1, 4.5); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle = '#2b2116'; ctx.lineWidth = .7; ctx.beginPath(); ctx.moveTo(0, -4); ctx.lineTo(0, 4); ctx.stroke();
-  drawShipSails(player.sails);
-  ctx.strokeStyle = '#2b2116'; ctx.lineWidth = .7; ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, -8); ctx.stroke();
-  ctx.fillStyle = NATIONS[state.nationality]?.color ?? NATIONS.pirate.color;
-  ctx.beginPath(); ctx.moveTo(.2, -8); ctx.lineTo(3.2, -6.8); ctx.lineTo(.2, -5.8); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.restore();
+  const type = statsFor(state.player.ships[0]).type;
+  const key = NATIONS[state.nationality] ? state.nationality : 'pirate';
+  const sector = headingSector(player.heading);
+  const windSector = headingSector(state.player.wind);
+  const sprite = cachedSprite(shipSpriteCache, `${type}|${sector}|${player.sails}|${key}|${windSector}`, () => paintShipSprite({
+    type, heading: sector * 16, sails: player.sails, nation: { key, ...NATIONS[key] }, wind: windSector * 16,
+  }));
+  if (sprite) drawPixelSprite(ctx, sprite, player.x, player.y, townSpriteScale(zoom) * devicePixelScale());
 }
 
 // The rowboat marks the landing spot: walking into the water within reach
@@ -3622,17 +3593,6 @@ function drawParty(zoom, pose) {
   ctx.fillStyle = NATIONS[state.nationality]?.color ?? NATIONS.pirate.color;
   ctx.beginPath(); ctx.moveTo(3.5, -6); ctx.lineTo(6.6, -5); ctx.lineTo(3.5, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.restore();
-}
-
-function drawShipSails(sailState) {
-  if (sailState === 'furled') {
-    ctx.strokeStyle = '#d5c18e'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(-2.6, -.8); ctx.lineTo(2.8, -.8); ctx.moveTo(-2.1, 2); ctx.lineTo(2.3, 2); ctx.stroke();
-    return;
-  }
-  const spread = sailState === 'full' ? 1 : .58;
-  ctx.fillStyle = '#eee0b8'; ctx.beginPath(); ctx.moveTo(.4, -3.5); ctx.lineTo(3.8 * spread, 1.2); ctx.lineTo(.4, 2.2); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#d5c18e'; ctx.beginPath(); ctx.moveTo(-.4, -2.7); ctx.lineTo(-3.3 * spread, 1.7); ctx.lineTo(-.4, 2.5); ctx.closePath(); ctx.fill();
 }
 
 function drawMinimap(width, height, camera, zoom, playerPose) {
