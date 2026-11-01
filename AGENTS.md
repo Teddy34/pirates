@@ -67,6 +67,7 @@ The project has no build step or third-party dependency:
 - `assets/world-<era>.bin` contains gzip-compressed per-pixel navigation class masks (water, shallows, land) derived from `MAP1560.PCX`, its era deltas, `MAP.IMB` and the decoded `0x4113C` class table; rebuild them with `tools/build_world_map.py`. `src/world-map.mjs` decodes them.
 - `src/mechanics.mjs` contains deterministic, DOM-free game rules.
 - `src/overland.mjs` contains the DOM-free landing, walking, reef, treasure-map and dig rules; `src/treasure-sites.mjs` holds the 256 decoded dig sites.
+- `src/retirement.mjs` contains the DOM-free retirement score, career summary, post-career line and hall-of-fame rules.
 - `src/game.mjs` owns state, input, modes, canvas rendering, and browser saves.
 - `style.css` makes the canvas fill the viewport.
 - `server.js` serves the directory at `http://localhost:8000`.
@@ -90,8 +91,8 @@ make syntax
 ```
 
 Run `make test` for the deterministic mechanics suite and `make test-browser`
-for the browser interaction smoke tests (transfer windows, and landing,
-walking, digging and reefs through the local `?preview=` states). `make check` runs the complete
+for the browser interaction smoke tests (transfer windows; landing,
+walking, digging and reefs; and retirement, through the local `?preview=` states). `make check` runs the complete
 automated set. Use `make serve-test` for manual browser checks on isolated
 port 8011. Add rule tests with Node's built-in `node:test`; avoid adding a
 package manager or framework solely for basic tests. Verify visible or

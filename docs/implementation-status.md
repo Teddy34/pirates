@@ -67,14 +67,33 @@ for future work.
   uncharted island (`0x1F803`): 27-day steps while the step count is at most
   reputation/2 + 6, with the monthly world running; then the fresh fleet,
   freed pirate captives, a health-based message, and one difficulty level
-  lower. In poor health the retirement check that runs first offers a
-  provisional choice to retire or carry on.
+  lower. In poor health the retirement check that runs first (`0x1F1D7`)
+  retires the captain (CSTR 160); a prisoner in a town who still has some
+  health left may return to pirating and serve the captivity.
 - Apply the monthly land income and the decoded reputation decay
   (`rep -= rep >> 3`).
 - Pause, zoom, steer, and change sail from keyboard or touch controls.
 - Open the captain's logbook from the Log control (or `L`) at sea and from
   the town menu: the Ship's Log lists the world news with dates, and City
   information shows the known status of every town.
+
+### Retirement and the career ending
+
+- Retire from privateering when dividing the plunder (CSTR 157, confirmed
+  with "Are you sure you want to end the game?"). In poor health the
+  division retires the captain once the crew is paid (`0x1F1D7`, CSTR 160).
+- Run the retirement driver (`0x45D0`): the decoded score (`0x5039`), the
+  career summary pages (`0x4A1A`: ranks, wealth and land, reputation, age,
+  bride, relatives, wounds and mood), and the job and town the score buys
+  (`0x51C2`, CSTN 43–67) with the pirate points.
+- Offer the lure of the sea (CSTR 72) in a town below difficulty 4 while the
+  unclamped health figure is under 4; returning runs the division refit
+  (`0x1D899` → `0x184A8`).
+- Offer the hall of fame for 0 or more points (CSTR 73) when retiring in a
+  town (`0x47BA` skips it on the uncharted island), kept in this
+  browser as the ten best careers (ASSUMED: `0x529A`'s layout is not
+  decoded), then another game (CSTR 80). A finished career deletes its save.
+- Courtship is not playable, so the score and summary use married = 0.
 
 ### World simulation
 
@@ -228,7 +247,8 @@ The following systems have no complete playable implementation:
 - courtship, rival suitors, marriage, and family benefits;
 - aging and illness effects beyond the captivity message, ransom, and the
   retirement check at the start of captivity;
-- retirement, land grants, final score, and career ending;
+- the famous-expedition ending (CSTR 159; the port has no famous
+  expeditions) and the four retirement pictures;
 - music, sound effects, and a complete original art set.
 
 The tactical naval-combat implementation record and remaining fidelity work are in
