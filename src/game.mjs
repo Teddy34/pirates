@@ -2737,7 +2737,7 @@ function openLogbookAtSea() {
 function showBartenderNews() {
   const items = state.worldNews.slice(0, 6);
   showDialog({
-    kicker: 'The bartender', title: 'News from across the Caribbean',
+    vignette: 'bartender', kicker: 'The bartender', title: 'News from across the Caribbean',
     body: newsBody(items, 'The bartender has heard nothing of consequence.'),
     actions: [{ label: 'Return to the tavern', run: showTavern }],
   });
@@ -2749,7 +2749,7 @@ function showBarmaid() {
   const isInformant = state.player.barmaidInformants.includes(key);
   if (isInformant) {
     showDialog({
-      kicker: `The barmaid · ${town.name}`, title: 'Your informant has been listening',
+      vignette: 'barmaid', kicker: `The barmaid · ${town.name}`, title: 'Your informant has been listening',
       // ASSUMED: the barmaid stands in for the original's informant at the
       // governor's house (CSTN 26), who reports the treasure fleet and then
       // the silver train (0x1292D-0x12A0D) with the news.
@@ -2760,7 +2760,7 @@ function showBarmaid() {
   }
   const rapport = state.player.barmaidRapport[key] ?? 0;
   showDialog({
-    kicker: `The barmaid · ${town.name}`, title: '“What would you be looking for, Captain?”',
+    vignette: 'barmaid', kicker: `The barmaid · ${town.name}`, title: '“What would you be looking for, Captain?”',
     body: `<p>Buy a drink, or spend the evening earning the trust of someone who hears every conversation in the room.</p><dl><dt>Trust</dt><dd>${rapport}/10</dd></dl>`,
     actions: [
       { label: `Buy a drink${state.player.partyGold ? ' · 1 gold' : ''}`, run: () => spendEveningWithBarmaid(Math.min(1, state.player.partyGold), 0) },
@@ -2772,7 +2772,7 @@ function showBarmaid() {
 
 function spendEveningWithBarmaid(cost, rapportGain) {
   if (state.player.partyGold < cost) {
-    showDialog({ kicker: 'An empty purse', title: 'No drinks on credit', body: '<p>The barmaid points you back toward your ship.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    showDialog({ vignette: 'barmaid', kicker: 'An empty purse', title: 'No drinks on credit', body: '<p>The barmaid points you back toward your ship.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
     return;
   }
   state.player.partyGold -= cost;
@@ -2786,7 +2786,7 @@ function spendEveningWithBarmaid(cost, rapportGain) {
     addLog(`Won the trust of an informant in ${state.towns[state.visit.townIndex].name}.`);
   }
   showDialog({
-    kicker: 'The barmaid', title,
+    vignette: 'barmaid', kicker: 'The barmaid', title,
     body: '<p>You share a pleasant conversation while sailors trade rumours around you.</p>',
     actions: [{ label: 'Return to the tavern', run: showTavern }],
   });
@@ -2799,7 +2799,7 @@ function showTavernSpecialEncounter(encounter) {
   }
   if (encounter.kind === 'traveller') {
     showDialog({
-      kicker: 'A far-travelled stranger', title: 'Information has its price',
+      vignette: 'traveller', kicker: 'A far-travelled stranger', title: 'Information has its price',
       body: `<p>The traveller offers reports gathered in distant ports for ${encounter.price} gold pieces.</p>`,
       actions: [
         { label: `Pay ${encounter.price} gold`, run: () => buyTravellerNews(encounter) },
@@ -2809,7 +2809,7 @@ function showTavernSpecialEncounter(encounter) {
     return;
   }
   showDialog({
-    kicker: 'A map seller', title: 'A scrap of an old treasure map',
+    vignette: 'map-seller', kicker: 'A map seller', title: 'A scrap of an old treasure map',
     body: `<p>The seller asks ${encounter.price} gold pieces for part of an old treasure map. Each piece shows more of the land around the cache.</p>`,
     actions: [
       { label: `Buy it · ${encounter.price} gold`, run: () => buyTreasureMapPiece(encounter) },
@@ -2825,7 +2825,7 @@ function declineTavernEncounter(encounter) {
 
 function buyTravellerNews(encounter) {
   if (state.player.partyGold < encounter.price) {
-    showDialog({ kicker: 'The traveller', title: 'Information is not free', body: '<p>Your purse cannot meet the traveller’s price.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    showDialog({ vignette: 'traveller', kicker: 'The traveller', title: 'Information is not free', body: '<p>Your purse cannot meet the traveller’s price.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
     return;
   }
   state.player.partyGold -= encounter.price;
@@ -2837,7 +2837,7 @@ function buyTravellerNews(encounter) {
   // implemented yet, so the traveller always reports on a town.
   reportedTown.flags = learnTownInfo(reportedTown.flags);
   showDialog({
-    kicker: 'The traveller’s report', title: `Intelligence from ${reportedTown.name}`,
+    vignette: 'traveller', kicker: 'The traveller’s report', title: `Intelligence from ${reportedTown.name}`,
     body: `${townInfoBody(reportedTown)}${newsBody(state.worldNews.slice(0, 3), 'No wider news reached the traveller.')}`,
     actions: [{ label: 'Return to the tavern', run: showTavern }],
   });
@@ -2845,7 +2845,7 @@ function buyTravellerNews(encounter) {
 
 function buyTreasureMapPiece(encounter) {
   if (state.player.partyGold < encounter.price) {
-    showDialog({ kicker: 'The map seller', title: 'No bargain', body: '<p>The seller snatches the parchment back when he sees your purse.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
+    showDialog({ vignette: 'map-seller', kicker: 'The map seller', title: 'No bargain', body: '<p>The seller snatches the parchment back when he sees your purse.</p>', actions: [{ label: 'Return to the tavern', run: showTavern }] });
     return;
   }
   state.player.partyGold -= encounter.price;
@@ -3948,6 +3948,31 @@ loadScenarios().then(() => {
     });
     return;
   }
+  if (preview === 'barmaid' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showBarmaid();
+    });
+    return;
+  }
+  // A tavern stranger's offer: `traveller` or `map-seller`.
+  if (['traveller', 'map-seller'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      const encounter = { kind: preview, price: preview === 'traveller' ? 80 : 500, townIndex: 0, resolved: false };
+      state.visit.tavernEncounters = [encounter];
+      showTavernSpecialEncounter(encounter);
+    });
+    return;
+  }
   if (preview === 'shipwright' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     startGame(previewState).then(() => {
@@ -4039,7 +4064,7 @@ loadScenarios().then(() => {
       state.calendar = { day: 12, month: 9, year: 1680 };
       addWorldNews('A new gold mine has opened at Havana.');
       showDialog({
-        kicker: 'The bartender', title: 'News from across the Caribbean',
+        vignette: 'bartender', kicker: 'The bartender', title: 'News from across the Caribbean',
         body: newsBody(state.worldNews.slice(0, 6)),
         actions: [{ label: 'Return to the tavern', run: () => {} }],
       });

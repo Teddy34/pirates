@@ -41,6 +41,10 @@ const DESCRIPTIONS = {
   marooned: 'Washed ashore on an uncharted island',
   merchant: 'Portrait of the merchant',
   shipwright: 'Portrait of the shipwright',
+  barmaid: 'Portrait of the barmaid',
+  bartender: 'Portrait of the bartender',
+  traveller: 'Portrait of a traveller selling information',
+  'map-seller': 'Portrait of a pirate selling a scrap of treasure map',
 };
 
 export function vignetteDescription(id) {
@@ -609,6 +613,223 @@ function drawShipwright(picture) {
   p.rect(37, 49, 22, 1, '#4a3526');
 }
 
+// A cheerful, winking barmaid with loose curls and a ribbon, in a linen
+// blouse and laced bodice, raising a tankard, before a candlelit bar shelf.
+function drawBarmaid(picture) {
+  picture.rect(0, 0, 96, 128, '#4a3424');
+  picture.rect(0, 0, 96, 10, '#2c1e14');
+  picture.rect(0, 10, 96, 3, WOOD_DARK);
+  for (const x of [0, 66]) picture.rect(x, 13, 5, 115, '#2c1e14');
+  // A shelf of bottles, and a candle in a sconce with its glow.
+  picture.rect(6, 42, 34, 2, WOOD_LIGHT);
+  for (let x = 8; x < 38; x += 6) {
+    picture.rect(x, 32, 4, 10, OUTLINE);
+    picture.rect(x + 1, 33, 2, 9, ['#3f6a3a', '#7a3a2a', '#2f4f6a'][(x / 6) % 3 | 0]);
+  }
+  picture.disc(84, 26, 11, '#5a3f2a');
+  picture.disc(84, 26, 6, '#7a5634');
+  picture.rect(82, 26, 4, 9, PARCHMENT);
+  picture.rect(80, 35, 8, 2, BRASS);
+  picture.rect(83, 22, 2, 4, GOLD);
+  picture.rect(83, 24, 2, 1, '#fff2c0');
+  const p = zoomed(picture, 1.2, 48, 0);
+  // Curls falling behind the head onto the shoulders.
+  const hair = '#6a3a1e';
+  p.outlined([[24, 16, 48, 52, hair]]);
+  for (let y = 22; y < 68; y += 7) { p.rect(22, y, 3, 4, hair); p.rect(71, y + 3, 3, 4, hair); p.rect(26, y + 2, 4, 2, '#4a2814'); p.rect(66, y + 5, 4, 2, '#4a2814'); }
+  // Shoulders in a linen blouse, under a laced bodice.
+  for (let row = 0; row < 64; row += 1) {
+    const half = Math.min(42, 18 + row * 2);
+    p.rect(48 - half - 1, 64 + row, half * 2 + 2, 1, OUTLINE);
+    p.rect(48 - half, 64 + row, half * 2, 1, row < 1 ? OUTLINE : '#f4f0e4');
+  }
+  for (let x = 12; x < 84; x += 6) p.rect(x, 74, 2, 1, '#c9c3b4');
+  p.outlined([[30, 82, 36, 46, '#2f4a3a']]);
+  p.rect(30, 82, 36, 2, '#a8331f');
+  for (let y = 88; y < 128; y += 6) { p.rect(44, y, 8, 1, PARCHMENT); p.rect(47, y - 2, 2, 5, OUTLINE); }
+  // A sleeve rolled to the elbow on the left.
+  p.outlined([[8, 104, 16, 5, '#d8ccb0']]);
+  p.rect(10, 109, 12, 19, SKIN);
+  // Neck and a round, rosy face.
+  p.outlined([[42, 54, 12, 12, SKIN], [32, 22, 32, 36, SKIN]]);
+  p.rect(42, 62, 12, 2, '#c08a64');
+  p.rect(60, 26, 4, 30, '#c08a64');
+  p.rect(35, 43, 6, 4, '#e2928a'); p.rect(55, 43, 6, 4, '#e2928a');
+  // A fringe of curls and a red ribbon.
+  p.outlined([[30, 14, 36, 9, hair]]);
+  for (const x of [32, 40, 48, 56]) p.rect(x, 23, 5, 3, hair);
+  p.rect(34, 16, 10, 2, '#8a5230');
+  p.outlined([[58, 12, 9, 5, '#a8331f'], [64, 16, 3, 6, '#a8331f']]);
+  // One eye open under a raised brow, the other closed in a wink.
+  p.rect(37, 31, 8, 2, '#4a2814');
+  p.rect(51, 33, 8, 2, '#4a2814');
+  p.rect(38, 35, 6, 3, '#f4f0e4'); p.rect(40, 35, 3, 3, '#3a5a2a'); p.rect(41, 35, 1, 1, '#f4f0e4');
+  p.rect(37, 34, 8, 1, OUTLINE);
+  p.rect(52, 37, 6, 1, OUTLINE); p.rect(51, 36, 1, 1, OUTLINE); p.rect(58, 36, 1, 1, OUTLINE);
+  // A small nose and a broad smile.
+  p.rect(47, 38, 2, 6, '#c08a64');
+  p.rect(46, 43, 4, 1, '#a8714a');
+  p.rect(41, 48, 14, 3, '#a8331f');
+  p.rect(39, 46, 2, 2, '#a8331f'); p.rect(55, 46, 2, 2, '#a8331f');
+  p.rect(43, 48, 10, 1, '#f4f0e4');
+  // A foaming tankard raised in her right hand.
+  p.outlined([[72, 66, 10, 30, '#f4f0e4']]);
+  p.outlined([[70, 40, 14, 18, '#9a9a9a'], [69, 36, 16, 5, '#f4f0e4'], [84, 44, 3, 10, '#7a7a7a']]);
+  p.rect(70, 44, 14, 1, '#7a7a7a'); p.rect(70, 52, 14, 1, '#7a7a7a');
+  p.rect(72, 41, 2, 15, '#c9c9c9');
+  p.outlined([[71, 56, 12, 9, SKIN]]);
+}
+
+// A one-eyed bartender with a big moustache, drying a pewter mug, before
+// shelves of rum bottles, stacked casks and a slate with a chalked tally.
+function drawBartender(picture) {
+  picture.rect(0, 0, 96, 128, '#4a3424');
+  picture.rect(0, 0, 96, 8, '#2c1e14');
+  // Rum bottles on two shelves.
+  for (const y of [22, 46]) {
+    picture.rect(0, y, 96, 3, WOOD_LIGHT);
+    for (let x = 2; x < 96; x += 7) {
+      picture.rect(x, y - 11, 5, 11, OUTLINE);
+      picture.rect(x + 1, y - 10, 3, 10, ['#3f6a3a', '#7a3a2a', '#5a3a1a', '#2f4f6a'][(x / 7) % 4 | 0]);
+      picture.rect(x + 2, y - 13, 1, 3, OUTLINE);
+    }
+  }
+  // Casks stacked on the left, and the tally slate on the right.
+  for (const [cx, cy] of [[8, 64], [8, 84], [26, 74]]) {
+    picture.disc(cx, cy, 9, OUTLINE);
+    picture.disc(cx, cy, 8, '#6b4a2e');
+    picture.rect(cx - 8, cy - 4, 17, 1, OUTLINE); picture.rect(cx - 8, cy + 4, 17, 1, OUTLINE);
+  }
+  picture.rect(74, 54, 20, 18, OUTLINE);
+  picture.rect(75, 55, 18, 16, '#2a2a2a');
+  for (let x = 77; x < 90; x += 3) picture.rect(x, 58, 1, 5, PARCHMENT);
+  picture.rect(76, 60, 14, 1, PARCHMENT);
+  picture.rect(77, 66, 8, 1, PARCHMENT);
+  const p = zoomed(picture, 1.2, 48, 0);
+  // Broad shoulders in a linen shirt and a dark waistcoat.
+  for (let row = 0; row < 64; row += 1) {
+    const half = Math.min(44, 18 + row * 2.4);
+    p.rect(48 - half - 1, 64 + row, half * 2 + 2, 1, OUTLINE);
+    p.rect(48 - half, 64 + row, half * 2, 1, row < 1 ? OUTLINE : '#d8ccb0');
+  }
+  p.outlined([[18, 76, 18, 52, '#4a2e2a'], [60, 76, 18, 52, '#4a2e2a']]);
+  for (let y = 84; y < 128; y += 9) p.rect(56, y, 2, 2, BRASS);
+  // Thick neck and a broad, weathered face with a balding crown.
+  p.outlined([[40, 54, 16, 12, '#c08a64'], [30, 20, 36, 38, SKIN]]);
+  p.rect(60, 24, 6, 32, '#c08a64');
+  p.rect(29, 28, 4, 16, '#3a2a1e'); p.rect(63, 28, 4, 16, '#3a2a1e');
+  p.rect(36, 21, 14, 3, '#f0c8a0');
+  // Black eyepatch on a cord over one eye; the other eye narrowed.
+  p.rect(30, 27, 36, 1, OUTLINE);
+  p.outlined([[36, 31, 9, 8, '#1b1b1b']]);
+  p.rect(36, 29, 9, 2, '#3a2a1e');
+  p.rect(51, 31, 9, 3, '#3a2a1e');
+  p.rect(52, 35, 6, 2, '#f4f0e4'); p.rect(54, 35, 3, 2, '#2a1e14');
+  // A bulbous nose and a great drooping moustache.
+  p.outlined([[45, 37, 7, 9, '#c9876a']]);
+  p.outlined([[34, 47, 28, 5, '#3a2a1e'], [30, 50, 6, 7, '#3a2a1e'], [60, 50, 6, 7, '#3a2a1e']]);
+  p.rect(42, 53, 12, 1, '#8a3a2a');
+  // Drying a pewter mug with a cloth.
+  p.outlined([[8, 98, 20, 30, SKIN], [70, 96, 20, 32, SKIN]]);
+  p.outlined([[30, 92, 22, 26, '#9a9a9a'], [52, 98, 5, 14, '#7a7a7a']]);
+  p.rect(30, 98, 22, 1, '#7a7a7a'); p.rect(30, 110, 22, 1, '#7a7a7a');
+  p.rect(33, 93, 3, 24, '#c9c9c9');
+  p.outlined([[56, 100, 22, 14, '#f4f0e4']]);
+  p.rect(58, 104, 18, 1, '#c9c3b4'); p.rect(58, 109, 18, 1, '#c9c3b4');
+}
+
+// A dusty, well-dressed traveller in a wide hat and travelling cloak, a
+// satchel strap across his chest, holding up a sealed letter, in a quiet
+// corner of the tavern by a shuttered window.
+function drawTraveller(picture) {
+  picture.rect(0, 0, 96, 128, '#3e2c20');
+  for (let x = 0; x < 96; x += 16) picture.rect(x, 0, 1, 128, '#2c1e14');
+  // A window with half-open shutters on a grey evening.
+  picture.rect(56, 10, 34, 36, OUTLINE);
+  picture.rect(58, 12, 30, 32, '#6a7a86');
+  picture.rect(58, 34, 30, 10, '#4a5a66');
+  picture.rect(72, 12, 2, 32, OUTLINE);
+  picture.rect(50, 10, 6, 36, WOOD); picture.rect(90, 10, 6, 36, WOOD);
+  picture.rect(54, 46, 38, 3, WOOD_LIGHT);
+  const p = zoomed(picture, 1.2, 48, 0);
+  // Shoulders under a dusty travelling cloak, a satchel strap across them.
+  for (let row = 0; row < 64; row += 1) {
+    const half = Math.min(44, 18 + row * 2.2);
+    p.rect(48 - half - 1, 64 + row, half * 2 + 2, 1, OUTLINE);
+    p.rect(48 - half, 64 + row, half * 2, 1, row < 1 ? OUTLINE : '#7a6a52');
+  }
+  p.rect(38, 66, 20, 62, '#3a4a5a');
+  p.rect(42, 66, 12, 6, '#f4f0e4');
+  for (let y = 76; y < 128; y += 8) p.rect(47, y, 2, 2, BRASS);
+  for (let row = 0; row < 56; row += 1) p.rect(26 + row * 0.8, 70 + row, 5, 1, '#5a3b22');
+  for (let y = 80; y < 128; y += 12) p.rect(8, y, 14, 1, '#9a8a6e');
+  // A lean face, dusty and unshaven, with a thin moustache.
+  p.outlined([[42, 54, 12, 12, '#c08a64'], [33, 22, 30, 36, SKIN]]);
+  p.rect(58, 24, 5, 32, '#c08a64');
+  p.rect(36, 48, 24, 8, '#b88a6a');
+  p.rect(37, 34, 8, 2, '#3a2a1e'); p.rect(51, 34, 8, 2, '#3a2a1e');
+  for (const ex of [38, 52]) { p.rect(ex, 37, 6, 2, '#f4f0e4'); p.rect(ex + 3, 37, 2, 2, '#2a3a4a'); }
+  p.rect(47, 38, 3, 8, '#c08a64');
+  p.rect(46, 45, 5, 1, '#a8714a');
+  p.rect(40, 48, 16, 2, '#3a2a1e');
+  p.rect(43, 51, 10, 1, '#8a3a2a');
+  p.rect(30, 30, 4, 20, '#3a2a1e'); p.rect(62, 30, 4, 20, '#3a2a1e');
+  // A wide, dusty hat with a band, tipped low.
+  p.outlined([[14, 22, 68, 5, '#4a3e30'], [32, 8, 32, 15, '#4a3e30']]);
+  p.rect(32, 18, 32, 3, '#2a2018');
+  p.rect(34, 9, 20, 2, '#6a5a46');
+  p.rect(16, 23, 64, 1, '#6a5a46');
+  // A sealed letter held up in a gloved hand.
+  p.outlined([[66, 84, 22, 15, PARCHMENT], [70, 98, 14, 10, '#5a3b22']]);
+  p.rect(68, 88, 18, 1, '#b8a37a'); p.rect(68, 92, 14, 1, '#b8a37a');
+  p.outlined([[74, 93, 5, 4, '#a8331f']]);
+}
+
+// A toothless old pirate in a filthy head-scarf with a gold earring,
+// grinning over a torn scrap of treasure map, by a guttering candle.
+function drawMapSeller(picture) {
+  picture.rect(0, 0, 96, 128, '#22180f');
+  picture.disc(14, 84, 22, '#3a2818');
+  picture.disc(14, 84, 12, '#4e3620');
+  picture.rect(0, 0, 96, 6, OUTLINE);
+  for (let x = 30; x < 96; x += 22) picture.rect(x, 6, 2, 122, '#1a120a');
+  const p = zoomed(picture, 1.2, 48, 0);
+  // Hunched shoulders in a patched, threadbare coat.
+  for (let row = 0; row < 64; row += 1) {
+    const half = Math.min(44, 16 + row * 2.6);
+    p.rect(48 - half - 1, 62 + row, half * 2 + 2, 1, OUTLINE);
+    p.rect(48 - half, 62 + row, half * 2, 1, row < 1 ? OUTLINE : '#4a3e2a');
+  }
+  p.rect(38, 64, 20, 64, '#8a7a5a');
+  for (let y = 70; y < 128; y += 5) p.rect(40, y, 16, 1, '#6a5a40');
+  p.outlined([[12, 90, 10, 9, '#6a5a3a'], [72, 100, 11, 8, '#5a3a2a']]);
+  // A gaunt, stubbled face with a hooked nose and a gap-toothed grin.
+  p.outlined([[42, 52, 12, 12, '#b07a54'], [32, 20, 32, 36, '#c8946a']]);
+  p.rect(58, 22, 6, 32, '#a8714a');
+  p.rect(34, 44, 28, 12, '#9a7458');
+  p.rect(36, 32, 8, 2, '#8a8a7a'); p.rect(52, 31, 8, 3, '#8a8a7a');
+  p.rect(37, 35, 6, 3, '#e8dcc0'); p.rect(40, 35, 2, 3, '#2a1e14');
+  p.rect(53, 35, 6, 2, '#e8dcc0'); p.rect(54, 35, 2, 2, '#2a1e14');
+  p.rect(36, 39, 4, 1, '#8a5a3a'); p.rect(57, 39, 4, 1, '#8a5a3a');
+  p.outlined([[46, 36, 5, 9, '#b07a54']]);
+  p.rect(49, 44, 3, 2, '#9a6040');
+  p.rect(38, 47, 20, 5, '#3a1414');
+  p.rect(37, 46, 2, 2, '#3a1414'); p.rect(57, 46, 2, 2, '#3a1414');
+  p.rect(41, 47, 3, 2, '#e0d4a0'); p.rect(50, 47, 2, 3, '#e0d4a0');
+  // A filthy red head-scarf with knotted tails, and a gold earring.
+  p.outlined([[28, 12, 40, 12, '#8a2a20'], [66, 18, 8, 5, '#8a2a20'], [70, 22, 5, 12, '#8a2a20']]);
+  for (const x of [32, 42, 52, 60]) p.rect(x, 15, 3, 3, '#5a1a14');
+  p.rect(28, 22, 40, 2, '#5a1a14');
+  p.outlined([[29, 44, 3, 5, GOLD]]);
+  // The torn scrap of map, held up with a red X.
+  p.outlined([[52, 76, 34, 24, '#d8c08a']]);
+  for (const [x, y] of [[52, 76], [80, 76], [52, 96], [84, 92], [66, 98]]) p.rect(x, y, 2, 2, OUTLINE);
+  p.rect(56, 82, 14, 1, '#7a6a4a'); p.rect(60, 88, 18, 1, '#7a6a4a');
+  for (let i = 0; i < 6; i += 1) { p.rect(70 + i, 84 + i, 2, 1, '#a8331f'); p.rect(75 - i, 84 + i, 2, 1, '#a8331f'); }
+  p.rect(58, 92, 8, 4, '#6a8a5a');
+  p.outlined([[50, 98, 10, 8, '#b07a54'], [84, 96, 8, 10, '#b07a54']]);
+}
+
 function drawMissing(p) {
   p.rect(0, 0, 224, 128, '#3b2b1d');
 }
@@ -621,6 +842,10 @@ const SCENES = {
   tavern: { shape: 'landscape', draw: drawTavern },
   merchant: { shape: 'portrait', draw: drawMerchant },
   shipwright: { shape: 'portrait', draw: drawShipwright },
+  barmaid: { shape: 'portrait', draw: drawBarmaid },
+  bartender: { shape: 'portrait', draw: drawBartender },
+  traveller: { shape: 'portrait', draw: drawTraveller },
+  'map-seller': { shape: 'portrait', draw: drawMapSeller },
   'harbour-arrival': { shape: 'landscape', draw: drawHarbourArrival },
   'shore-arrival': { shape: 'landscape', draw: drawShoreArrival },
   shipwreck: { shape: 'landscape', draw: drawShipwreck },
