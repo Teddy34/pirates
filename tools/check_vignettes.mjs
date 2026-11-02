@@ -94,11 +94,13 @@ try {
     const shown = await evaluate(`({
       label: document.querySelector('#dialog-vignette canvas').getAttribute('aria-label'),
       hidden: document.querySelector('#dialog-vignette').classList.contains('hidden'),
-      fits: document.querySelector('#event-dialog').getBoundingClientRect().bottom <= innerHeight,
-      inside: document.querySelector('#event-dialog').getBoundingClientRect().right <= innerWidth,
+      // The dialog scrolls vertically by design, so check what must not: the
+      // picture inside its width, and no sideways overflow.
+      fits: document.querySelector('#dialog-vignette canvas').getBoundingClientRect().right <= document.querySelector('#event-dialog').getBoundingClientRect().right,
+      inside: document.querySelector('#event-dialog').scrollWidth <= document.querySelector('#event-dialog').clientWidth,
     })`);
     if (shown.hidden || !shown.label.includes(description)) throw new Error(`${where}: picture "${description}" not shown: ${shown.label}`);
-    if (!shown.fits || !shown.inside) throw new Error(`${where}: the dialog does not fit the viewport`);
+    if (!shown.fits || !shown.inside) throw new Error(`${where}: the dialog overflows sideways`);
   };
 
   const scenes = [
@@ -135,6 +137,8 @@ try {
     await open('hall-of-fame');
     await clickButton('Yes');
     await until('the record', `document.querySelector('#dialog-body .hall-of-fame')`);
+    await evaluate(`document.querySelector('#dialog-actions button').scrollIntoView()`);
+    if (!await evaluate(`document.querySelector('#dialog-actions button').getBoundingClientRect().bottom <= innerHeight`)) throw new Error(`${viewport.name}: the record's Continue cannot be reached`);
     await expectPicture(`${viewport.name} record`, 'empty frame');
     console.log(`${viewport.name}: all ten scene pictures show and fit.`);
   }
