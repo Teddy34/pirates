@@ -143,6 +143,8 @@ Do not rewrite working code merely to impose a preferred architecture. Preserve 
 
 A change is complete when the affected flow is playable, syntax checks and relevant tests pass, browser behavior has been checked when applicable, and the documentation reflects any new command or deliberate mechanics deviation.
 
+After finishing work, always align the plan with what was done: update `docs/non-battle-feature-plan.md` (or `docs/tactical-sea-combat-plan.md` for sea combat), including its known differences from the original.
+
 ## Reciprocal review
 
 Before handing off substantial implementation changes, ask the other coding agent for one independent, read-only review: Codex asks Claude Code, and Claude Code asks Codex. Verify each finding against the code before acting on it. One reciprocal pass is enough unless the resulting fixes materially change the implementation.
