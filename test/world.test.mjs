@@ -6,7 +6,7 @@ import {
   townInfoStatus, learnTownInfo, obsoleteTownInfo, newGameTowns, installNewGovernor,
   randomTownRange, rollRandomTownEvent, applyRandomTownEvent, rollAiConquest,
   rollDiplomacyChange, applyDiplomacyChange, monthlyWorldUpdate, initialWorldNews,
-  worldNewsMessage, createRng, nearestTriggerTown,
+  worldNewsMessage, createRng, nearestTriggerTown, isLandlocked,
 } from '../src/mechanics.mjs';
 
 // A scripted random source: each int(limit) call returns the next value.
@@ -202,4 +202,12 @@ test('every start point in every era names a town the ship can sail out of', () 
       }
     }
   }
+});
+
+test('landlocked towns are the ones with no departure cell, Panama included', () => {
+  const { eras } = JSON.parse(readFileSync(new URL('../assets/scenarios.json', import.meta.url)));
+  const landlocked = (era) => eras[era].towns.filter(isLandlocked).map(({ name }) => name);
+  assert.deepEqual(landlocked('1680'), ['Gran Granada', 'Jalapa', 'Panama', 'Puerto Principe', 'Villa Hermosa']);
+  assert.ok(landlocked('1600').includes('St. Thome'));
+  assert.equal(isLandlocked(eras['1680'].towns.find(({ name }) => name === 'Guadeloupe')), false);
 });

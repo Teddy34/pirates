@@ -23,7 +23,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, merchantStock, advanceDate,
   NATION_ORDER, monthlyWorldUpdate, initialWorldNews, randomTownRange, worldNewsMessage, newGameTowns,
   townInfoStatus, learnTownInfo, TOWN_INFO_CURRENT,
-  fleetIsUndermanned, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
+  fleetIsUndermanned, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS, isLandlocked,
   escapeCostsShip,
   monthEndCrewEvent, mutinyOutcome,
   CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
@@ -581,6 +581,10 @@ function nearestTownDistance() {
 
 function townDeparture(index) {
   return scenarios[state.era].towns[index].departure;
+}
+
+function townLandlocked(town) {
+  return isLandlocked(scenarios[state.era].towns[state.towns.indexOf(town)]);
 }
 
 // 0x19B9E: leaving by sea puts the ship on the town's departure cell with the
@@ -1841,8 +1845,10 @@ function approachTown({ overland = Boolean(state.player.onFoot) } = {}) {
   const fortText = town.forts === 0 ? 'No fort guards the harbor.' : `${town.forts === 1 ? 'One fort guards' : `${town.forts} forts guard`} the harbor.`;
   // 0x19C62 shows the town's information screen (0x196D0), which has the
   // figures only for a town you have current information on.
+  // Departure from the original, which also shows the land scene to a party
+  // reaching a coastal town on foot: here only landlocked towns get it.
   showDialog({
-    vignette: { id: overland ? 'shore-arrival' : 'harbour-arrival', flag: town.nation },
+    vignette: { id: townLandlocked(town) ? 'shore-arrival' : 'harbour-arrival', flag: town.nation },
     kicker: townInfoStatus(town.flags) === 'current' ? `${town.nation} · ${prosperity(town.growth)}` : town.nation, title: town.name,
     body: `<p>You have arrived at ${town.name}. ${fortText}</p>${convoyArrivalLines(town)}${townInfoBody(town, { brief: true })}`,
     actions: [
@@ -2357,9 +2363,12 @@ function showTownMenu() {
     { label: 'Save voyage', secondary: true, run: () => { saveGame(); showTownMenu(); } },
     { label: 'Put to sea', secondary: true, run: leaveTown },
   );
+  const landlocked = townLandlocked(town);
+  const welcome = state.visit.sneaking ? 'You move through the streets under a borrowed name.' : landlocked ? 'Your men take their ease in the town.' : 'Your ships lie safely at anchor.';
   showDialog({
-    kicker: `${town.nation} port`, title: town.name,
-    body: `<p>${state.visit.sneaking ? 'You move through the streets under a borrowed name.' : 'Your ships lie safely at anchor.'}</p><dl><dt>${town.nation} rank</dt><dd>${rank}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>Land</dt><dd>${(state.player.land * 50).toLocaleString()} acres</dd><dt>Governor</dt><dd>${governorState}</dd><dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
+    vignette: { id: landlocked ? 'town-square' : 'port-quay', flag: town.nation },
+    kicker: `${town.nation} ${landlocked ? 'town' : 'port'}`, title: town.name,
+    body: `<p>${welcome}</p><dl><dt>${town.nation} rank</dt><dd>${rank}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>Land</dt><dd>${(state.player.land * 50).toLocaleString()} acres</dd><dt>Governor</dt><dd>${governorState}</dd><dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
     actions,
   });
 }
@@ -3884,12 +3893,25 @@ loadScenarios().then(() => {
     });
     return;
   }
-  // The town approach, by sea or (`arrival-land`) overland.
+  // The town approach at a coastal town, or (`arrival-land`) a landlocked one.
   if (['arrival', 'arrival-land'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      approachTown({ overland: preview === 'arrival-land' });
+      const overland = preview === 'arrival-land';
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === (overland ? 'Panama' : 'Guadeloupe'));
+      approachTown({ overland });
+    });
+    return;
+  }
+  // The town menu at a coastal town, or (`in-town`) a landlocked one.
+  if (['in-port', 'in-town'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === (preview === 'in-town' ? 'Panama' : 'Guadeloupe'));
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showTownMenu();
     });
     return;
   }

@@ -37,6 +37,8 @@ const DESCRIPTIONS = {
   tavern: 'A smoky waterfront tavern',
   'harbour-arrival': 'Sailing into a colonial harbour town',
   'shore-arrival': 'A landing party comes out of the jungle above a town',
+  'port-quay': 'Ships at anchor beyond a busy quay',
+  'town-square': 'A colonial town square on market day',
   shipwreck: 'A ship breaking up on a reef',
   marooned: 'Washed ashore on an uncharted island',
   merchant: 'Portrait of the merchant',
@@ -514,6 +516,113 @@ function drawShoreArrival(p, { flag = 'Spain' } = {}) {
   p.outlined([[82, 94, 2, 8, SKIN]]);
 }
 
+// The town's waterfront from the quay: a warehouse and its hoist, stevedores
+// among the cargo, and the ships lying at anchor in the bay under the fort.
+function drawPortQuay(p, { flag = 'Spain' } = {}) {
+  sky(p, ['#8fc0d0', '#a4cdd6', '#bcd9d6', '#d4e4d0'], 50);
+  for (const [cx, cy, w] of [[92, 12, 34], [176, 20, 28]]) { p.rect(cx, cy, w, 4, '#eef3ee'); p.rect(cx + 5, cy - 3, w - 12, 3, '#eef3ee'); }
+  // The far headland and its fort across the bay.
+  for (let row = 0; row < 12; row += 1) p.rect(140 - row * 3, 38 + row, 90 + row * 3, 1, row % 5 === 0 ? '#4a8a4a' : '#5a9a4a');
+  p.outlined([[176, 30, 30, 10, '#b4a68a']]);
+  for (let x = 176; x < 206; x += 6) p.rect(x, 28, 3, 2, '#b4a68a');
+  flagpole(p, 190, 30, flag, 14);
+  sea(p, 50, '#3a8a8a', '#7ab8b0');
+  ship(p, 164, 80, { facing: -1, flag, scale: 0.8 });
+  ship(p, 122, 70, { facing: 1, flag, scale: 0.4 });
+  p.outlined([[120, 84, 12, 3, WOOD]]);
+  p.rect(123, 85, 3, 1, PARCHMENT);
+  // The warehouse on the left, with an arcade and a hoist over the quay.
+  p.outlined([[0, 26, 74, 66, '#e8e0cc']]);
+  for (let row = 0; row < 10; row += 1) p.rect(0, 16 + row, 74 + row - 9, 1, row % 3 === 2 ? '#8a3a22' : '#b8562e');
+  p.rect(0, 26, 76, 2, '#8a3a22');
+  for (const x of [8, 32, 56]) { p.rect(x, 34, 10, 12, WOOD_DARK); p.rect(x + 4, 34, 1, 12, OUTLINE); }
+  for (const x of [4, 28, 52]) { p.rect(x, 62, 18, 30, WOOD_DARK); p.rect(x + 2, 58, 14, 4, WOOD_DARK); }
+  p.rect(0, 48, 74, 2, '#c9bfa6');
+  p.outlined([[74, 40, 22, 3, WOOD]]);
+  p.rect(92, 43, 1, 19, OUTLINE);
+  p.outlined([[86, 62, 13, 9, '#c9b07a']]);
+  p.rect(86, 66, 13, 1, WOOD);
+  // The stone quay, in courses, with its mooring posts.
+  p.rect(0, 92, 224, 36, '#a8a08c');
+  p.rect(0, 92, 224, 2, '#c9c0a8');
+  for (let row = 98; row < 128; row += 6) {
+    p.rect(0, row, 224, 1, '#8a8270');
+    for (let x = (row % 12) * 2; x < 224; x += 16) p.rect(x, row, 1, 6, '#8a8270');
+  }
+  for (const x of [136, 206]) p.outlined([[x, 86, 5, 8, WOOD_DARK]]);
+  // Cargo waiting on the quay.
+  for (const x of [10, 22]) { p.outlined([[x, 96, 10, 14, '#6b4a2e']]); p.rect(x, 100, 10, 1, OUTLINE); p.rect(x, 106, 10, 1, OUTLINE); }
+  p.outlined([[16, 84, 10, 12, '#7a5a36']]);
+  p.rect(16, 89, 10, 1, OUTLINE);
+  p.outlined([[176, 102, 18, 10, '#c9b07a'], [180, 94, 12, 8, '#b8a37a']]);
+  p.rect(176, 106, 18, 1, WOOD);
+  // Stevedores at the hoist, and the captain looking over his ships.
+  figure(p, 84, 104, { coat: '#7a3a2a', legs: PARCHMENT, hair: WOOD_DARK });
+  figure(p, 102, 108, { coat: '#d8ccb0', legs: '#4a5a3a', skin: '#8a5a3a', hat: '#a8331f' });
+  captain(p, 150, 122);
+}
+
+// A landlocked town's plaza at noon: the church, the governor's arcaded
+// house under the town's flag, market stalls, a well, soldiers and an ox cart.
+function drawTownSquare(p, { flag = 'Spain' } = {}) {
+  sky(p, ['#8fc0d0', '#a4cdd6', '#bcd9d6'], 44);
+  // Green hills beyond the rooftops: no sea anywhere in this view.
+  for (let x = 0; x < 224; x += 2) p.rect(x, 26 + Math.round(Math.sin(x / 26) * 4), 2, 24, '#6a9a5a');
+  for (let x = 0; x < 224; x += 2) p.rect(x, 34 + Math.round(Math.sin(x / 15 + 1) * 3), 2, 16, '#5a8a4a');
+  p.rect(0, 62, 224, 66, '#d4bc8c');
+  for (const [x, y] of [[16, 96], [58, 118], [118, 120], [150, 84], [190, 112], [100, 92], [30, 74]]) p.rect(x, y, 7, 1, '#c0a678');
+  // The white church with its bell gable.
+  p.outlined([[12, 30, 64, 34, '#e8e0cc'], [32, 12, 24, 18, '#e8e0cc']]);
+  p.rect(36, 2, 16, 10, OUTLINE);
+  p.rect(37, 3, 14, 9, '#e8e0cc');
+  p.rect(41, 5, 6, 7, WOOD_DARK);
+  p.rect(43, 6, 2, 4, BRASS);
+  p.rect(43, 0, 2, 3, OUTLINE);
+  p.outlined([[36, 44, 16, 20, WOOD]]);
+  p.rect(43, 44, 2, 20, WOOD_DARK);
+  p.disc(44, 22, 3, WOOD_DARK);
+  for (const x of [20, 62]) p.rect(x, 40, 4, 10, WOOD_DARK);
+  // The governor's house: a roofed upper floor over an arcade.
+  p.outlined([[112, 28, 104, 36, '#d9c8a4']]);
+  for (let row = 0; row < 6; row += 1) p.rect(108 + row, 22 + row, 112 - 2 * row + 8, 1, row % 3 === 2 ? '#8a3a22' : '#b8562e');
+  for (let x = 118; x < 208; x += 16) { p.rect(x, 33, 7, 9, WOOD_DARK); p.rect(x - 1, 42, 9, 1, OUTLINE); }
+  for (let x = 116; x < 212; x += 16) { p.rect(x, 50, 11, 14, '#5a4630'); p.disc(x + 5, 50, 5, '#5a4630'); }
+  flagpole(p, 164, 22, flag, 16);
+  // Market stalls with striped awnings.
+  for (const [x, stripe] of [[86, '#a8331f'], [150, '#2f5a7a']]) {
+    for (let at = 0; at < 30; at += 1) p.rect(x + at, 70, 1, 6, Math.floor(at / 5) % 2 ? PARCHMENT : stripe);
+    p.rect(x, 69, 30, 1, OUTLINE);
+    p.rect(x + 1, 76, 1, 14, WOOD_DARK); p.rect(x + 28, 76, 1, 14, WOOD_DARK);
+    p.outlined([[x, 84, 30, 6, WOOD_LIGHT]]);
+    for (let at = 3; at < 27; at += 5) p.rect(x + at, 82, 3, 2, ['#e0b33a', '#a8331f', '#3f7a3a'][at % 3]);
+  }
+  // The well, with its windlass.
+  p.disc(60, 86, 8, OUTLINE);
+  p.disc(60, 86, 7, '#a8a08c');
+  p.disc(60, 86, 4, '#2a2a2a');
+  p.rect(52, 72, 2, 14, WOOD_DARK); p.rect(67, 72, 2, 14, WOOD_DARK); p.rect(52, 72, 17, 2, WOOD);
+  // Soldiers with halberds, and the captain crossing the square.
+  for (const x of [196, 212]) {
+    p.rect(x + 8, 74, 1, 30, WOOD_DARK);
+    p.outlined([[x + 6, 71, 5, 3, '#c9c9c9']]);
+    figure(p, x, 104, { coat: '#a8331f', legs: WOOD_DARK, hat: '#9a9a9a' });
+  }
+  captain(p, 112, 118);
+  // An ox cart and some chickens in the foreground.
+  p.outlined([[8, 104, 34, 10, WOOD_LIGHT], [42, 108, 12, 2, WOOD_DARK]]);
+  for (const x of [12, 22, 32]) p.rect(x, 104, 1, 10, WOOD_DARK);
+  p.disc(24, 118, 6, OUTLINE);
+  p.disc(24, 118, 5, WOOD);
+  p.disc(24, 118, 1, OUTLINE);
+  p.outlined([[54, 104, 20, 12, '#8a6a4a'], [74, 102, 8, 8, '#7a5a3a'], [56, 116, 3, 6, '#7a5a3a'], [69, 116, 3, 6, '#7a5a3a']]);
+  p.rect(78, 100, 1, 2, PARCHMENT); p.rect(75, 100, 1, 2, PARCHMENT);
+  for (const [x, y] of [[138, 112], [150, 118], [168, 108]]) {
+    p.outlined([[x, y, 5, 3, '#f4f0e4'], [x + 5, y - 2, 2, 2, '#f4f0e4']]);
+    p.rect(x + 7, y - 1, 1, 1, '#e07a2a');
+    p.rect(x + 5, y - 3, 2, 1, '#a8331f');
+  }
+}
+
 // A ship heeled over on a reef, masts gone by the board, the sea breaking
 // over her and her crew in the water and on a spar.
 function drawShipwreck(p) {
@@ -848,6 +957,8 @@ const SCENES = {
   'map-seller': { shape: 'portrait', draw: drawMapSeller },
   'harbour-arrival': { shape: 'landscape', draw: drawHarbourArrival },
   'shore-arrival': { shape: 'landscape', draw: drawShoreArrival },
+  'port-quay': { shape: 'landscape', draw: drawPortQuay },
+  'town-square': { shape: 'landscape', draw: drawTownSquare },
   shipwreck: { shape: 'landscape', draw: drawShipwreck },
   marooned: { shape: 'landscape', draw: drawMarooned },
 };

@@ -391,6 +391,12 @@ export function townDistanceCells(town, cellX, cellY) {
   return Math.max(1, Math.abs(town.x - cellX) + Math.abs(town.y - cellY));
 }
 
+// Landlocked towns are the ones with no departure cell: the 0x40 inland
+// villages plus Panama (entering_towns.md).
+export function isLandlocked(scenarioTown) {
+  return !scenarioTown.departure;
+}
+
 // The single alert counter belongs to the nearest town and is cleared when
 // the half-day nearest-town check picks a different town (0x23DE4–0x23DF7).
 export function alertAfterNearestTownCheck(alert, previousTownIndex, nearestTownIndex) {

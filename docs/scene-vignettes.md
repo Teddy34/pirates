@@ -94,15 +94,25 @@ Attack / Sneak in / Leave"* (CSTR 114–115)
 > turquoise water. The captain stands in the foreground at the rail, seen
 > from behind. *Variants: one per nation flag.*
 
-**shore-arrival** · orig. 0x17 `arr_land` · shown when you arrive on foot,
-and always for inland villages (`0x19C9B`) · same text as above
+**shore-arrival** · orig. 0x17 `arr_land` · the original shows it when you
+arrive on foot, and always for inland villages (`0x19C9B`). Here it is
+**only for landlocked towns**; a coastal town keeps its harbour picture even
+if you walk in (a deliberate departure) · same text as above
 > A landing party of a dozen armed buccaneers comes out of the jungle edge
 > onto a dirt road. Below them is a small colonial town with a palisade, a
 > church bell tower and a flag. The captain leads the party with his hand
 > raised to halt. Late morning, humid haze.
 
+**port-quay** · no original slot; an addition · the town menu of a coastal
+town, while you are in port · *"Your ships lie safely at anchor."*
+> Seen from a busy stone quay: a whitewashed warehouse with a hoist on the
+> left, stevedores among barrels and bales, the captain looking out over his
+> ships at anchor in a calm bay, and a small fort flying the national flag on
+> the far headland. Afternoon light.
+
 **town-square** · orig. 0x16 `town` · likely the town's backdrop near the
-tavern and barmaid code (`0x11606`); context unconfirmed
+tavern and barmaid code (`0x11606`); context unconfirmed. Used here for the
+town menu of a landlocked town
 > A busy colonial plaza: a church with a bell gable, the governor's
 > arcaded house, market stalls with fruit and cloth, soldiers in morions
 > leaning on halberds, an ox cart, chickens, a well, and sharp noon shadows.
