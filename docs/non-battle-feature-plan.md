@@ -24,7 +24,89 @@ as uncertain, and record any small playable assumption beside its code.
 | 7 | Treasure maps and digging | Partial (#30) | Done: three map records, the 256 decoded dig sites, tavern pieces and the dig's payout. Left: the relative branch of the dig waits for row 8's villains to hand out pieces. Maintain three four-piece maps, award random missing pieces, reveal a readable site, dig within the documented radius, consume three days on a failed dig, and resolve buried treasure and the lost city. | `treasure_fleet_silver_train.md` |
 | 8 | Lost relatives and roaming villains | Missing | Start quests from promotions, move villains monthly, offer traceable gossip, encounter villains in their town, grant map pieces through provisional duel outcomes, and rescue all four relatives by digging. | `lost_relatives.md`, `treasure_fleet_silver_train.md` |
 | 9 | Courtship, marriage, and informants | Missing | Model daughters and nieces, charm checks, rival suitors, proposals, merchant marriage, family discounts, and informant reports. Use provisional duel outcomes until sword combat exists. | `marriage.md`, `town_economy.md` |
-| 10 | Health, age, land, and retirement | Partial | Done: wounds, health with Medicine, land income, forced retirement at the division and in captivity, voluntary retirement, the decoded score, career summary, post-career job, lure of the sea, hall of fame and another game. Left: marriage's share of the score (row 9) and the four retirement pictures. | `health_age_land.md`, main report retirement sections |
+| 10 | Health, age, land, and retirement | Partial (#33) | Done: wounds, health with Medicine, land income, forced retirement at the division and in captivity, voluntary retirement, the decoded score, career summary, post-career job, lure of the sea, hall of fame and another game. Left: marriage's share of the score (row 9) and the four retirement pictures (row 12). | `health_age_land.md`, main report retirement sections |
+| 11 | Career opening | Done (#35) | Start every career in the town screen of the town nearest the start record's point (`52f5fd3`), play the story for its era and nation, then the sailing master's briefing naming the closest city of each other nation. | `src/opening.mjs`, `0x139E2`, `0x13E3F`, `0x1D858` |
+| 12 | Scene pictures | Partial (#34, #35) | Done: code-drawn placeholders in the dialogs for the governor, merchant, shipwright, tavern staff and visitors, the town approach and town menu, prizes, an exploding enemy, shipwreck, marooning, dividing the plunder, the career opening, and the dig's results: treasure found, nothing found, a relative's reunion and the four lost cities. Left: the catalogue's other scenes (among them mutiny, prison, boarding, the treasure fleet and silver train, weddings, the hall of fame and the four retirement pictures) and real art, which needs the user's rights confirmed first. | `scene-vignettes.md` |
+
+## Added since the last plan update
+
+The plan was last revised with #33. These changes followed it:
+
+- **Retirement (#33):** the retirement driver, score, career summary, job, lure
+  of the sea and hall of fame (row 10).
+- **Pixel art (#34):** ships in every heading and sail state on the map and in
+  battle, and clouds, all in the towns' style. The first scene pictures also
+  landed here (row 12), and an exploding enemy now gets a short dialog
+  (CSTR 168) so its picture has a place.
+- **Starting in port (`52f5fd3`):** a new career opens in the town screen, not
+  at sea (row 11).
+- **Town pictures (`686fb51`, `0bbe2a5`):** the town menu shows a quay or a town
+  square, landlocked towns drop the "port" wording, and the menu heading no
+  longer names the nation.
+- **Career opening (#35):** the story and the briefing (row 11). Esc no longer
+  closes a dialog, which had stranded the opening's action chain.
+
+## Known differences from the original
+
+`implementation-status.md` and `discrepancy-report-2026-10-30.md` hold the
+evidence for each item. This list collects them in one place.
+
+### Deliberate
+
+- The manual-based copy protection in the opening is left out, with its penalty
+  branch and the +16 favour with each nation it grants on a pass.
+- Every opening screen has a picture; the original shows none there.
+- Coastal towns use the harbour-arrival and port-quay pictures however you
+  arrive. Only landlocked towns use shore-arrival and town-square. The original
+  picks the arrival picture by how you came.
+- All art is original, and the pictures are placeholders. No original artwork is
+  used.
+- Your ship stops head to wind (porting-guide quirk 18 is not reproduced).
+- The browser also autosaves at sea and after battles, where the original saves
+  only in town (D37, allowed by the porting guide).
+- A dig that finds both treasure and a relative pays once, not twice.
+
+### Provisional until the real system exists
+
+- Sword fights are explicit choices: boarding, the mutiny leader duel, the guard
+  duel when sneaking, and the opening's duel. The opening's is a practice bout
+  in the original, so only the log differs.
+- Town assaults are a provisional outcome dialog. Its "Repelled" result gives
+  reputation −2 and alert +16, where the documented loss gives reputation −1 and
+  −1 favour (D26).
+- A barmaid informant stands in for the governor's-house informant until
+  marriage exists (K8).
+- Married is 0 in the retirement score and summary.
+
+### Not ported yet
+
+- The famous expeditions, which are the only starts that open at sea, and their
+  ending (CSTR 159).
+- Sword, fort and land combat (K3), and battle shallows, beaching and terrain
+  backdrops (K6).
+- Lost relatives and villains (K7), and courtship (K8).
+- Status screens and practice fencing from the Captain's Cabin (D32). The
+  logbook, city information and map views now cover part of that report item.
+- The captain id's battle and sword skill, and Party Status mood.
+
+### Assumptions to confirm
+
+- The three-state sail control; the code confirms only a probable half-speed
+  reduced-sail flag.
+- The hall of fame's layout: the port keeps the ten best careers in this browser
+  because `0x529A` is not decoded.
+- The fresh fleet takes at least 8 men, instead of the original's wrapped crew
+  or endless abandon loop.
+- Reports are logged with the original's unused "Treasure fleet in %s." line.
+
+### Open in the discrepancy report
+
+- D9: at the map edge the original turns the ship around.
+- D11: before 1660 a Frigate should show as a "Fast galleon". The name appears
+  nowhere in `src/`.
+- D31: the monthly favour clamp skips favour with pirates.
+- D38: `applyProvisionalBattleOutcome` is used only by tests, and its "sunk" and
+  "lost" rules don't match the docs.
 
 ## Delivery rules
 

@@ -8,7 +8,7 @@ import {
   DIR, MAP_KIND, COMPLETE_MAP, PARTY_CELLS_PER_TICK, REBOARD_REACH_CELLS,
   walkVectorForHeading, walkVectorForDirections, walkStep, boardingHeading, roundUpToHalfDay,
   stepOnFoot, fleetRow, reefVictim, crewAfterReef,
-  emptyMapRecords, mapPieceCount, giveMapPiece, digForTreasure,
+  emptyMapRecords, mapPieceCount, giveMapPiece, digForTreasure, digVignette,
 } from '../src/overland.mjs';
 import { TREASURE_SITES } from '../src/treasure-sites.mjs';
 import { PIXEL, decodeNavigationMap, pixelClassAt } from '../src/world-map.mjs';
@@ -170,4 +170,13 @@ test('the dig-site table holds 256 cells, nearly all on land on the 1560 map', a
   const triggers = scenarios['1560'].townTriggers;
   // The sites cluster in the west (Florida, Cuba, Yucatán, Central America).
   assert.ok(TREASURE_SITES.every(([x, y]) => nearestTriggerTown(triggers, x, y) >= 0));
+});
+
+test('a dig shows the picture of its greatest find', () => {
+  assert.deepEqual(digVignette([]), { id: 'dig-nothing' });
+  assert.deepEqual(digVignette([{ kind: MAP_KIND.BURIED }]), { id: 'dig-found' });
+  assert.deepEqual(digVignette([{ kind: MAP_KIND.RELATIVE, relative: 0 }]), { id: 'reunion', female: true });
+  assert.deepEqual(digVignette([{ kind: MAP_KIND.RELATIVE, relative: 3 }]), { id: 'reunion', female: false });
+  assert.deepEqual(digVignette([{ kind: MAP_KIND.LOST_CITY, city: 3 }]), { id: 'lost-city-maya' });
+  assert.deepEqual(digVignette([{ kind: MAP_KIND.BURIED }, { kind: MAP_KIND.LOST_CITY, city: 1 }]), { id: 'lost-city-aztec' });
 });

@@ -129,6 +129,18 @@ export const MAP_KIND = Object.freeze({ BURIED: 0, RELATIVE: 1, LOST_CITY: 2 });
 export const COMPLETE_MAP = 15;
 export const RELATIVE_NAMES = ['sister', 'father', 'niece', 'uncle'];
 export const LOST_CITY_NAMES = ['Incan', 'Aztec', 'Olmec', 'Mayan'];
+const LOST_CITY_VIGNETTES = ['lost-city-inca', 'lost-city-aztec', 'lost-city-olmec', 'lost-city-maya'];
+const FEMALE_RELATIVES = new Set(['sister', 'niece']);
+
+// The picture for a dig's finds. One dig can find several caches, and finds
+// run from the buried chest to the lost city, so the last is the greatest.
+export function digVignette(finds) {
+  const find = finds.at(-1);
+  if (!find) return { id: 'dig-nothing' };
+  if (find.kind === MAP_KIND.RELATIVE) return { id: 'reunion', female: FEMALE_RELATIVES.has(RELATIVE_NAMES[find.relative]) };
+  if (find.kind === MAP_KIND.LOST_CITY) return { id: LOST_CITY_VIGNETTES[find.city] ?? LOST_CITY_VIGNETTES[0] };
+  return { id: 'dig-found' };
+}
 
 export function emptyMapRecord() {
   return { pieces: 0, site: null, townIndex: null, city: 0 };

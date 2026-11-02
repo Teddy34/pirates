@@ -59,6 +59,13 @@ const DESCRIPTIONS = {
   'open-swords': 'Two swords cross on a ship’s deck',
   'open-chart': 'A sea chart with dividers and a compass rose',
   'sailing-master': 'Portrait of the sailing master',
+  'dig-found': 'Your crew opens an oak chest of gold in a fresh pit',
+  'dig-nothing': 'Tired sailors lean on their spades among empty holes',
+  reunion: 'A lost relative runs into the captain’s arms at a plantation gate',
+  'lost-city-inca': 'Lost Inca gold in a sea cave beside an old wreck',
+  'lost-city-aztec': 'Lost Aztec gold in a sea cave beside an old wreck',
+  'lost-city-olmec': 'Lost Olmec gold in a sea cave beside an old wreck',
+  'lost-city-maya': 'Lost Maya gold in a sea cave beside an old wreck',
 };
 
 export function vignetteDescription(id) {
@@ -1208,6 +1215,163 @@ function drawSailingMaster(picture) {
   p.rect(73, 40, 3, 4, '#c8c8c8'); p.rect(75, 34, 3, 4, '#d8d8d8');
 }
 
+const spade = (p, x, y) => {
+  p.rect(x, y, 2, 20, WOOD_LIGHT);
+  p.outlined([[x - 2, y + 20, 6, 6, '#9a9a9a']]);
+};
+
+// An open oak chest whose lid stands behind it, heaped with gold.
+function openChest(p, x, y) {
+  p.outlined([[x, y - 22, 28, 10, WOOD], [x, y - 12, 28, 12, WOOD_LIGHT]]);
+  p.rect(x, y - 8, 28, 2, BRASS);
+  p.rect(x + 12, y - 9, 4, 5, BRASS);
+  for (const [dx, width] of [[2, 24], [5, 18], [9, 10]]) p.rect(x + dx, y - 14 - (dx >> 1), width, 3, GOLD);
+  for (const dx of [6, 13, 20]) p.rect(x + dx, y - 15, 2, 1, '#fff0b0');
+}
+
+// A treasure map held out in front of a figure at (x, y).
+const heldMap = (p, x, y) => p.outlined([[x + 6, y - 20, 11, 8, PARCHMENT]]);
+
+// A jungle clearing by a strange rock: the crew around a prised-open chest.
+function drawDigFound(p) {
+  sky(p, ['#8fc8d0', '#b4dcc8'], 40);
+  for (let x = -8; x < 232; x += 18) p.disc(x, 38 + (x * 7) % 9, 15, x % 4 ? '#2f6a3a' : '#3f7a3a');
+  p.rect(0, 46, 224, 12, '#2f6a3a');
+  p.rect(0, 58, 224, 70, '#8a7a45');
+  for (let x = 3; x < 224; x += 11) p.rect(x, 62 + (x * 5) % 58, 5, 1, '#73683a');
+  palm(p, 22, 84, 52); palm(p, 204, 88, 56);
+  // The strange rock that marks the spot.
+  p.outlined([[150, 38, 26, 34, '#7c7a72'], [158, 28, 14, 12, '#8e8c84']]);
+  p.rect(154, 44, 5, 2, '#5e5c56'); p.rect(162, 56, 8, 2, '#5e5c56');
+  // The pit, its spoil heaped behind.
+  p.disc(60, 84, 9, '#6b5230'); p.disc(160, 84, 11, '#6b5230');
+  p.rect(66, 88, 92, 28, '#2f2416');
+  p.rect(70, 84, 84, 6, '#4a3a22');
+  openChest(p, 98, 112);
+  figure(p, 58, 118, { coat: '#d8ccb0', legs: '#7a3a2a' });
+  spade(p, 44, 92);
+  figure(p, 170, 118, { coat: '#b8a040', legs: '#2c3f63' });
+  spade(p, 180, 92);
+  captain(p, 112, 82);
+  heldMap(p, 112, 82);
+}
+
+// A beach scarred with empty holes at sunset.
+function drawDigNothing(p) {
+  sky(p, ['#5a4a7a', '#a8564a', '#e08a4a', '#f2c070'], 50);
+  p.disc(168, 48, 10, '#fff0b0');
+  sea(p, 50, '#7a4a5a', '#e0a060');
+  p.rect(0, 66, 224, 62, '#d0b47a');
+  for (let x = 2; x < 224; x += 13) p.rect(x, 70 + (x * 3) % 54, 6, 1, '#b89c64');
+  palm(p, 18, 78, 46);
+  for (const [x, y] of [[50, 80], [92, 76], [142, 82], [190, 78], [30, 106], [118, 112], [176, 110]]) {
+    p.rect(x - 11, y - 1, 26, 4, '#b89c64');
+    p.rect(x - 9, y, 22, 7, '#4a3a22');
+    p.rect(x - 7, y + 5, 18, 2, '#2f2416');
+  }
+  // Two spent sailors, a hat thrown down, the captain with his useless map.
+  figure(p, 62, 118, { coat: '#d8ccb0', legs: '#7a3a2a' });
+  spade(p, 72, 92);
+  figure(p, 196, 122, { coat: '#b8a040', legs: '#2c3f63' });
+  spade(p, 184, 96);
+  captain(p, 134, 104, { hatInHand: true });
+  heldMap(p, 134, 104);
+  p.outlined([[94, 118, 10, 2, '#1d1710'], [97, 115, 5, 3, '#1d1710']]);
+}
+
+// At a remote plantation's gate a thin, older relative runs to the captain.
+function drawReunion(p, { female = true } = {}) {
+  sky(p, ['#7aa0c0', '#c8a890', '#f0c88a'], 64);
+  for (let row = 0; row < 12; row += 1) p.rect(0, 52 + row, 224, 1, row < 6 ? '#3f7a3a' : '#4f8a3f');
+  p.rect(0, 64, 224, 64, '#a89058');
+  // The cane fields and the stockade with its gate standing open.
+  for (let x = 0; x < 62; x += 3) p.rect(x, 50 + (x % 7), 1, 18, '#6a9a3a');
+  for (let x = 66; x < 224; x += 7) if (x < 118 || x > 150) p.outlined([[x, 42 + (x % 3), 5, 34, WOOD_LIGHT]]);
+  p.outlined([[118, 28, 5, 48, WOOD], [150, 28, 5, 48, WOOD], [118, 28, 37, 5, WOOD]]);
+  // Broken chains on the ground.
+  for (let step = 0; step < 9; step += 1) p.rect(136 + step * 3, 118 + (step % 2), 2, 2, '#6a6a70');
+  p.outlined([[160, 116, 7, 5, '#6a6a70']]);
+  // The crew stands back.
+  for (const [x, coat] of [[28, '#d8ccb0'], [46, '#b8a040']]) figure(p, x, 112, { coat, legs: '#2c3f63', hat: '#6a4a2e' });
+  // The embrace: arms overlap across the two figures.
+  captain(p, 92, 116, { hatInHand: true });
+  if (female) {
+    figure(p, 106, 116, { coat: '#a89a84', legs: '#a89a84', hair: '#c8c4bc' });
+    p.outlined([[100, 102, 13, 14, '#a89a84']]);
+  } else {
+    figure(p, 106, 116, { coat: '#8a7a64', legs: '#5a4a3a', hair: '#c8c4bc' });
+    p.outlined([[103, 90, 6, 5, '#c8c4bc']]);
+  }
+  p.rect(97, 97, 8, 3, female ? '#a89a84' : '#8a7a64');
+}
+
+// One culture's marks on the cave wall behind the gold.
+const LOST_CITY_ART = {
+  inca(p) {
+    p.disc(56, 44, 15, GOLD); p.disc(56, 44, 10, BRASS); p.disc(56, 44, 5, GOLD);
+    for (const [dx, dy] of [[-20, 0], [20, 0], [0, -20], [0, 20], [-14, -14], [14, -14], [-14, 14], [14, 14]]) p.rect(55 + dx, 43 + dy, 3, 3, GOLD);
+    // A gold llama on the heap.
+    p.outlined([[170, 86, 14, 7, GOLD], [182, 76, 4, 12, GOLD], [172, 93, 2, 6, GOLD], [181, 93, 2, 6, GOLD]]);
+  },
+  aztec(p) {
+    p.disc(56, 44, 17, '#8a8a84'); p.disc(56, 44, 12, '#a8a8a0'); p.disc(56, 44, 5, '#6a6a64');
+    for (let angle = 0; angle < 16; angle += 1) p.rect(56 + Math.cos(angle * Math.PI / 8) * 15, 44 + Math.sin(angle * Math.PI / 8) * 15, 2, 2, '#5a5a54');
+    // A turquoise mask on the heap.
+    p.outlined([[170, 78, 16, 20, '#3aa8a0']]);
+    p.rect(173, 84, 3, 3, OUTLINE); p.rect(180, 84, 3, 3, OUTLINE); p.rect(175, 92, 6, 2, '#f4f0e4');
+  },
+  olmec(p) {
+    // A colossal basalt head half buried in the cave floor.
+    p.outlined([[34, 28, 46, 54, '#5a5e5a'], [30, 24, 54, 12, '#4a4e4a']]);
+    p.rect(42, 44, 10, 4, OUTLINE); p.rect(62, 44, 10, 4, OUTLINE);
+    p.rect(53, 50, 8, 12, '#4a4e4a'); p.rect(46, 66, 22, 5, '#3a3e3a');
+    p.outlined([[172, 82, 8, 14, '#5aa87a']]);
+    p.rect(174, 85, 4, 2, OUTLINE);
+  },
+  maya(p) {
+    // A carved stela of glyphs.
+    p.outlined([[42, 18, 30, 64, '#9a9484']]);
+    for (let row = 0; row < 5; row += 1) for (let col = 0; col < 2; col += 1) {
+      p.rect(46 + col * 12, 22 + row * 12, 10, 9, '#6a6454');
+      p.rect(48 + col * 12, 24 + row * 12, 4 + (row + col) % 3, 3, '#9a9484');
+    }
+    p.outlined([[170, 78, 16, 20, '#3a8a5a']]);
+    p.rect(173, 84, 3, 3, OUTLINE); p.rect(180, 84, 3, 3, OUTLINE); p.rect(174, 92, 8, 3, GOLD);
+  },
+};
+
+// A hidden sea cave: an old wreck's ribs, spilled gold, torchlit crew, and
+// the marks of the culture that lost it.
+function drawLostCity(p, { culture }) {
+  p.rect(0, 0, 224, 128, '#2f2a2a');
+  for (let y = 0; y < 90; y += 9) for (let x = (y % 18) * 2; x < 224; x += 37) p.rect(x, y, 16, 2, '#3f3838');
+  // The drowned mouth of the cave.
+  p.disc(190, 48, 26, '#6ab0c8');
+  p.rect(164, 54, 52, 22, '#2f7a8a');
+  p.rect(0, 74, 224, 8, '#2f7a8a');
+  for (let x = 4; x < 224; x += 15) p.rect(x, 76 + (x % 4), 7, 1, '#6ab0b0');
+  p.rect(0, 82, 224, 46, '#6a5a3e');
+  // The ribs of the foundered galleon.
+  for (let rib = 0; rib < 6; rib += 1) {
+    const x = 100 + rib * 11;
+    p.rect(x, 44 + rib * 3, 3, 40 - rib * 3, WOOD_DARK);
+    p.rect(x, 44 + rib * 3, 7, 3, WOOD_DARK);
+  }
+  p.rect(92, 80, 74, 4, WOOD_DARK);
+  LOST_CITY_ART[culture](p);
+  // The spilled hoard.
+  for (const [dx, y, width] of [[0, 112, 104], [10, 108, 84], [24, 104, 54]]) p.rect(84 + dx, y, width, 5, dx ? GOLD : BRASS);
+  for (let x = 90; x < 184; x += 9) p.rect(x, 106 + (x % 3) * 3, 2, 1, '#fff0b0');
+  openChest(p, 122, 110);
+  // Stunned crewmen with torches.
+  for (const [x, coat, side] of [[34, '#d8ccb0', 8], [208, '#b8a040', -9]]) {
+    figure(p, x, 122, { coat, legs: '#2c3f63' });
+    p.rect(x + side, 88, 2, 16, WOOD_LIGHT);
+    p.disc(x + side, 86, 3, '#e07a2a'); p.disc(x + side, 85, 1, GOLD);
+  }
+  captain(p, 74, 124);
+}
+
 const SCENES = {
   governor: { shape: 'portrait', draw: drawGovernor },
   'prize-plunder': { shape: 'landscape', draw: drawPrizePlunder },
@@ -1238,6 +1402,13 @@ const SCENES = {
   'open-swords': { shape: 'landscape', draw: drawSwords },
   'open-chart': { shape: 'landscape', draw: drawChart },
   'sailing-master': { shape: 'portrait', draw: drawSailingMaster },
+  'dig-found': { shape: 'landscape', draw: drawDigFound },
+  'dig-nothing': { shape: 'landscape', draw: drawDigNothing },
+  reunion: { shape: 'landscape', draw: drawReunion },
+  'lost-city-inca': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'inca' }) },
+  'lost-city-aztec': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'aztec' }) },
+  'lost-city-olmec': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'olmec' }) },
+  'lost-city-maya': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'maya' }) },
 };
 
 // The shared 8 px carved frame with a brass fillet and corner pieces

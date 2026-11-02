@@ -38,7 +38,7 @@ import { TERRAIN_CHUNK_CELLS, TERRAIN_PIXELS_PER_CELL } from './terrain.mjs';
 import {
   MAP_KIND, COMPLETE_MAP, RELATIVE_NAMES, LOST_CITY_NAMES, REEF_COOLDOWN_TICKS, REBOARD_REACH_CELLS,
   walkVectorForHeading, walkVectorForDirections, roundUpToHalfDay, stepOnFoot,
-  reefVictim, crewAfterReef, emptyMapRecords, mapPieceCount, giveMapPiece, digForTreasure,
+  reefVictim, crewAfterReef, emptyMapRecords, mapPieceCount, giveMapPiece, digForTreasure, digVignette,
 } from './overland.mjs';
 import { TREASURE_SITES } from './treasure-sites.mjs';
 import {
@@ -2098,6 +2098,7 @@ function resolveDig() {
   if (!paragraphs.length) addLog(`A search at cell ${cellX}, ${cellY} found nothing.`);
   state.paused = true;
   showDialog({
+    vignette: digVignette(result.finds),
     kicker: 'The search', title: paragraphs.length ? 'Treasure!' : 'Nothing here',
     body: paragraphs.length ? paragraphs.join('') : '<p>After three days of fruitless digging, the search is called off. There is no treasure here.</p>',
     actions: [{ label: 'Continue', run: resumeSailing }],
@@ -4155,9 +4156,13 @@ loadScenarios().then(() => {
     startGame(previewState);
     return;
   }
-  if (preview === 'dig' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+  // `dig` stands on a buried-treasure map's site; the other digs show one
+  // picture of the search: dig-found, dig-nothing, reunion-<relative> and
+  // lost-city-<culture>.
+  const digScene = /^(dig|dig-found|dig-nothing|reunion-(sister|father|niece|uncle)|lost-city-(incan|aztec|olmec|mayan))$/.exec(preview ?? '');
+  if (digScene && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     // A party ashore on the first dig site (259, 192 in Cuba) holding three
-    // pieces of its buried-treasure map; the ship waits at the nearest water.
+    // pieces of its map; the ship waits at the nearest water.
     const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     const [siteX, siteY] = TREASURE_SITES[0];
     Object.assign(previewState.player, { x: siteX + .5, y: siteY + .5 });
@@ -4165,9 +4170,18 @@ loadScenarios().then(() => {
       const player = state.player;
       const shore = { x: player.x, y: player.y };
       Object.assign(player, { ship: { ...shore, heading: player.heading }, landing: shore, onFoot: true, walk: null, x: siteX + .5, y: siteY + .5 });
-      state.treasureMaps[MAP_KIND.BURIED] = { pieces: 7, site: [siteX, siteY], townIndex: nearestTriggerTown(townTriggers(), siteX, siteY), city: 0 };
+      const record = { pieces: 7, site: [siteX, siteY], townIndex: nearestTriggerTown(townTriggers(), siteX, siteY), city: 0 };
+      if (digScene[2]) {
+        state.relativesRescued = RELATIVE_NAMES.indexOf(digScene[2]);
+        state.treasureMaps[MAP_KIND.RELATIVE] = record;
+      } else if (digScene[3]) {
+        state.treasureMaps[MAP_KIND.LOST_CITY] = { ...record, city: LOST_CITY_NAMES.indexOf(digScene[3][0].toUpperCase() + digScene[3].slice(1)) };
+      } else if (preview !== 'dig-nothing') {
+        state.treasureMaps[MAP_KIND.BURIED] = record;
+      }
       updateNearestTown();
       resetSailingInterpolation();
+      if (preview !== 'dig') resolveDig();
     });
     return;
   }
