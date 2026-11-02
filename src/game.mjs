@@ -43,7 +43,7 @@ import {
 import { TREASURE_SITES } from './treasure-sites.mjs';
 import {
   emptyVillains, createVillain, moveVillains, villainName, villainDescription, villainsKnownIn,
-  villainReport, villainInTown, villainFlees,
+  villainReport, villainHeardHere, villainInTown, villainFlees,
 } from './villains.mjs';
 import {
   ENDING_TIERS, RETIREMENT_JOBS, careerSummary, mayReturnToPirating, recordInHallOfFame, retirementHappiness, retirementLine, retirementScore,
@@ -648,8 +648,6 @@ function townLandlocked(town) {
 // landed; the arrival guard keeps it from re-entering at once. If the party
 // lost its ship meanwhile (0x33A50), it leaves by sea like everyone else.
 function placeForDeparture(townIndex, overland) {
-  // 0x2888A: the villains keep away from the last town you left alerted.
-  if (state.alert > 15) state.alertedTowns[state.towns[townIndex].nation] = townIndex;
   if (overland && state.player.onFoot) {
     const town = state.towns[townIndex];
     state.player.x = town.x + .5;
@@ -2147,22 +2145,19 @@ function attackTown(town) {
   });
 }
 
-// 0x22907: a villain staying in a captured town is confronted first.
 function captureTown(town) {
-  confrontVillainInTown(state.towns.indexOf(town), () => warnOfHiddenGold(town));
-}
-
-function warnOfHiddenGold(town) {
+  // 0x22907: after any warning, a villain staying here is confronted.
+  const confront = () => confrontVillainInTown(state.towns.indexOf(town), () => resolveTownCapture(town));
   if (state.alert >= 12) {
     const hidden = ['Some', 'Much', 'Most'][Math.min(2, Math.floor((state.alert - 12) / 15))];
     showDialog({
       kicker: 'The town was warned', title: `${hidden} of the gold is hidden`,
       body: '<p>The inhabitants had time to conceal part of the treasury before your force arrived.</p>',
-      actions: [{ label: 'Continue the capture', run: () => resolveTownCapture(town) }],
+      actions: [{ label: 'Continue the capture', run: confront }],
     });
     return;
   }
-  resolveTownCapture(town);
+  confront();
 }
 
 function resolveTownCapture(town) {
@@ -2662,6 +2657,7 @@ function offerVillainGossip(source, townIndex, next) {
     const villain = state.villains[slot];
     const report = villainReport(villain, townIndex);
     const where = state.towns[report.townIndex].name;
+    if (report.present) state.villains = villainHeardHere(state.villains, slot);
     recordRumour(villain, report.townIndex);
     const again = slots.length > 1;
     showDialog({
@@ -3527,6 +3523,9 @@ function resumeSailing() {
 }
 
 function startVoyage() {
+  // 0x2888A, on every return to the map, not only leaving a town: the villains
+  // keep away from the last town the voyage resumed beside with the alert up.
+  if (state.alert > 15) state.alertedTowns[nearestTown().nation] = state.nearestTownIndex;
   state.paused = false;
   state.approach = null;
   state.mode = 'sailing';

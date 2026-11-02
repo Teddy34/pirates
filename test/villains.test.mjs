@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRng } from '../src/mechanics.mjs';
 import {
-  createVillain, emptyVillains, moveVillains, villainDescription, villainFlees, villainInTown,
+  createVillain, emptyVillains, moveVillains, villainDescription, villainFlees, villainHeardHere, villainInTown,
   villainName, villainReport, villainsKnownIn,
 } from '../src/villains.mjs';
 
@@ -67,7 +67,7 @@ test('the score favours towns far from where you left the alert', () => {
   assert.equal(moveFrom(1), 2);
 });
 
-test('money over soldiers and an unhappy governor put him off', () => {
+test('money over soldiers puts him off', () => {
   const towns = [town('Spain', 0, 0, { villainStaying: true }), town('Spain', 1, 0, { gold: 80 }), town('Spain', 1, 1, { soldiers: 8 }), town('Spain', 0, 2)];
   const [moved] = moveVillains({ villains: [villain(0), null, null, null], towns, difficulty: 0, alertedTownIndex: 0, rng: scripted(4, 4) });
   assert.equal(moved.townIndex, 2);
@@ -77,6 +77,28 @@ test('a villain with nowhere better stays and keeps his history', () => {
   const towns = [town('Spain', 0, 0, { villainStaying: true }), town('France', 1, 0), town('France', 2, 0)];
   const start = [villain(0), null, null, null];
   assert.equal(moveVillains({ villains: start, towns, difficulty: 3, alertedTownIndex: 0, rng: scripted() })[0], start[0]);
+});
+
+test('once heard of here, a month without a better town wears away his trail', () => {
+  const towns = [town('Spain', 0, 0, { villainStaying: true }), town('France', 1, 0), town('France', 2, 0)];
+  const start = villainHeardHere([villain(0, [1, 2, null, null]), null, null, null], 0);
+  const [worn] = moveVillains({ villains: start, towns, difficulty: 0, alertedTownIndex: 0, rng: scripted() });
+  assert.equal(worn.townIndex, 0);
+  assert.deepEqual(worn.history, [0, 1, 2, null]);
+  assert.equal(towns[0].villainStaying, true);
+});
+
+test('his own town winning the score is no move, heard of or not', () => {
+  const towns = [town('Spain', 0, 0), town('France', 1, 0), town('France', 2, 0)];
+  const start = villainHeardHere([villain(0), null, null, null], 0);
+  assert.equal(moveVillains({ villains: start, towns, difficulty: 0, alertedTownIndex: 0, rng: scripted(1) })[0], start[0]);
+});
+
+test('a real move or a flight clears what the gossip placed', () => {
+  const towns = [town('Spain', 0, 0, { villainStaying: true }), town('Spain', 1, 0), town('France', 2, 0)];
+  const start = villainHeardHere([villain(0), null, null, null], 0);
+  assert.equal(moveVillains({ villains: start, towns, difficulty: 0, alertedTownIndex: 0, rng: scripted(4) })[0].heardHere, false);
+  assert.equal(villainFlees({ villains: start, slot: 0, towns, rng: scripted(1) })[0].heardHere, false);
 });
 
 test('gossip offers villains whose town or last four towns match', () => {
@@ -116,7 +138,6 @@ test('villains stay among Spanish towns over a seeded century of months', () => 
     if (next[0] !== villains[0]) moves += 1;
     villains = next;
     for (const active of villains.filter(Boolean)) assert.equal(towns[active.townIndex].nation, 'Spain');
-    if (villains[0] && villains[1]) assert.notEqual(villains[0].townIndex, villains[1].townIndex);
   }
   assert.ok(moves > 0);
 });

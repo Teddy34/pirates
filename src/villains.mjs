@@ -3,8 +3,9 @@
 // A free slot is null. Town values are indices into the voyage's towns.
 //
 // Record bytes the port drops: byte 0 (the nation he moves in, always Spain),
-// byte 1 (always 6, its use is untraced) and the "heard" bit 0x80 in the town
-// bytes, which the routines traced here only mask off.
+// byte 1 (always 6, its use is untraced) and the "heard" bit 0x80 on history
+// entries, which is only masked off. On his current town the bit matters, and
+// is kept as `heardHere` (see moveVillains).
 import { randomTownRange } from './mechanics.mjs';
 
 export const VILLAIN_SLOTS = 4;
@@ -68,6 +69,10 @@ const townDistance = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 // Staying flags are cleared only here, from the town he just left. A jump
 // from the duel (below) or a wipe leaves the old town flagged: a faithful
 // quirk that shuts villains out of that town for the rest of the game.
+// Quirk: gossip saying he is here sets bit 0x80 on the town byte (0x1EE7F), and
+// 0xCD5C compares it masked against the unmasked seed (0xCBDE). So while the
+// bit stands, a month in which no town scored shifts his own town into the
+// history and flags it, wearing away his trail until he really moves.
 export function moveVillains({ villains, towns, difficulty, alertedTownIndex, rng }) {
   const alerted = towns[alertedTownIndex] ?? towns[0];
   const range = randomTownRange(towns);
@@ -75,7 +80,7 @@ export function moveVillains({ villains, towns, difficulty, alertedTownIndex, rn
     if (!villain) return null;
     const here = towns[villain.townIndex];
     let bestScore = -999;
-    let bestIndex = villain.townIndex;
+    let bestIndex = null;
     towns.slice(0, range).forEach((town, index) => {
       if (town.nation !== VILLAIN_NATION || town.villainStaying) return;
       const radius = rng.int(difficulty + 5);
@@ -86,11 +91,15 @@ export function moveVillains({ villains, towns, difficulty, alertedTownIndex, rn
         bestIndex = index;
       }
     });
-    if (bestIndex === villain.townIndex) return villain;
     const history = [villain.townIndex, ...villain.history.slice(0, 3)];
+    if (bestIndex === null && villain.heardHere) {
+      here.villainStaying = true;
+      return { ...villain, history };
+    }
+    if (bestIndex === null || bestIndex === villain.townIndex) return villain;
     here.villainStaying = false;
     towns[bestIndex].villainStaying = true;
-    return { ...villain, townIndex: bestIndex, history };
+    return { ...villain, townIndex: bestIndex, history, heardHere: false };
   });
 }
 
@@ -109,6 +118,13 @@ export function villainReport(villain, townIndex) {
   return { present: false, townIndex: stay === 0 ? villain.townIndex : villain.history[stay - 1] };
 }
 
+// 0x1EE7F: the gossip has placed him in the town he is in now.
+export function villainHeardHere(villains, slot) {
+  const next = [...villains];
+  next[slot] = { ...villains[slot], heardHere: true };
+  return next;
+}
+
 // 0x18913: the first villain staying in this town, or -1.
 export function villainInTown(villains, townIndex) {
   return villains.findIndex((villain) => villain?.townIndex === townIndex);
@@ -119,6 +135,6 @@ export function villainInTown(villains, townIndex) {
 // "left for" chain from his last town points to where he fled.
 export function villainFlees({ villains, slot, towns, rng }) {
   const next = [...villains];
-  next[slot] = { ...villains[slot], townIndex: rng.int(randomTownRange(towns)) };
+  next[slot] = { ...villains[slot], townIndex: rng.int(randomTownRange(towns)), heardHere: false };
   return next;
 }

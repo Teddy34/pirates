@@ -71,8 +71,9 @@ evidence for each item. This list collects them in one place.
   only in town (D37, allowed by the porting guide).
 - A dig that finds both treasure and a relative pays once, not twice.
 - Rumours and villain news go to the Ship's Log as dated text, not the
-  original's event records; the port does not keep the "heard" bit on a
-  villain's towns, because no traced routine reads it.
+  original's event records. The "heard" bit is kept only on a villain's current
+  town, the one place a traced routine acts on it (`0xCD5C`, see
+  `src/villains.mjs`).
 - With no Spanish town left in the range, a promotion names no villain. The
   original would loop for ever.
 
@@ -114,7 +115,10 @@ evidence for each item. This list collects them in one place.
 
 - A new villain's history holds no town. `lost_relatives.md` §3 says your
   current town, but `0x12298` writes `0x4605A + 1`, the wipe's invalid town, so
-  no gossip names him until he moves. The archive document should be corrected.
+  only his current town offers gossip until he moves. The archive should be
+  corrected, along with `lost_relatives.md` §5's callers (`0x18F9C` and
+  `0xDE2B`) and the alerted town of §4, set on every return to the map
+  (`0x2888A`), not only on leaving a town.
 - The tavern confrontation ignores the gate `0x3312A`. Only `0x11038` is seen
   writing it, and only to clear it, which would end all tavern confrontations
   after the first villainless visit if nothing else reset it.
