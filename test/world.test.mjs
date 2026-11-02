@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   NATION_ORDER, WORLD_EVENT, TOWN_INFO_CURRENT, TOWN_INFO_OBSOLETE,
   townInfoStatus, learnTownInfo, obsoleteTownInfo, newGameTowns, installNewGovernor,
   randomTownRange, rollRandomTownEvent, applyRandomTownEvent, rollAiConquest,
   rollDiplomacyChange, applyDiplomacyChange, monthlyWorldUpdate, initialWorldNews,
-  worldNewsMessage, createRng,
+  worldNewsMessage, createRng, nearestTriggerTown,
 } from '../src/mechanics.mjs';
 
 // A scripted random source: each int(limit) call returns the next value.
@@ -189,4 +190,16 @@ test('the opening news reports wars and alliances, and a town event for each pai
   ]);
   assert.deepEqual(rng.calls, [5, 10, 5, 10, 5, 10, 5, 10]);
   assert.equal(towns[3].soldiers, 20, 'opening events are only reported');
+});
+
+test('every start point in every era names a town the ship can sail out of', () => {
+  const { eras } = JSON.parse(readFileSync(new URL('../assets/scenarios.json', import.meta.url)));
+  for (const [era, scenario] of Object.entries(eras)) {
+    for (const [nation, start] of Object.entries(scenario.starts)) {
+      for (const [x, y] of start.points) {
+        const town = scenario.towns[nearestTriggerTown(scenario.townTriggers, x, y)];
+        assert.ok(town?.departure, `${era} ${nation} (${x}, ${y})`);
+      }
+    }
+  }
 });

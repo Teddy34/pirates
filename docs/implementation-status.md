@@ -13,8 +13,10 @@ for future work.
 - Load era-specific towns, fleets, diplomacy, ship encounters, and sailing
   speed tables from generated scenario data.
 - Select a documented English, French, Dutch, or Spanish starting career and
-  carry its flag, fleet, resources, favour, diplomacy, and starting position
-  into the campaign.
+  carry its flag, fleet, resources, favour, diplomacy, and starting town
+  into the campaign. The career opens in the town screen of the town nearest
+  the start record's point (`0x1ADFC`, `0x1D858`), which can be a foreign town;
+  only the original's famous expeditions, not ported, open at sea.
 - Use a seeded random-number generator for repeatable rule calculations.
 
 ### Caribbean map

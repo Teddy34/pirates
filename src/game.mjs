@@ -204,7 +204,7 @@ function newState(options) {
   const worldNews = initialWorldNews({ diplomacy, townRange: randomTownRange(scenarioTowns), rng: startRng })
     .map((entry) => ({ message: worldNewsMessage(entry, scenarioTowns), month: calendar.month, year: calendar.year }));
   const towns = newGameTowns(scenarioTowns, difficulty, startRng);
-  const logs = ['A westward trade wind fills the sails.', `The ${start.name} expedition begins.`];
+  const logs = [`The ${start.name} expedition begins.`];
   if (favour[nationality] >= 2) logs.push(`Your ${nationality} letter of marque is in good standing.`);
   return {
     version: SAVE_VERSION,
@@ -231,7 +231,9 @@ function newState(options) {
       favour, ranks,
     },
     towns,
-    nearestTownIndex: 0,
+    // The start point names the current town (0x139A4 calls 0x1ADFC). It is
+    // not a sea position: the career opens in that town (see startGame).
+    nearestTownIndex: nearestTriggerTown(scenario.townTriggers, startX, startY),
     // One alert counter belongs to whichever town is nearest; it resets when
     // the nearest town changes (town_attack_and_plunder.md §1).
     alert: 0,
@@ -274,7 +276,10 @@ function initialDiplomacyNews(diplomacy, calendar) {
   return news;
 }
 
-async function startGame(nextState) {
+// A new career opens in the town screen, not at sea: 0x1D858 calls the town
+// loop with 1 for every start except a famous expedition, and 0x15B97 sets the
+// location byte to "in a town, arrived by sea". `startTownIndex` asks for that.
+async function startGame(nextState, { startTownIndex = null } = {}) {
   state = nextState;
   state.clouds ??= [];
   // State becomes visible to animation frames before the asynchronous map
@@ -333,7 +338,12 @@ async function startGame(nextState) {
   updateNearestTown();
   updateLog();
   updateInterface();
-  resumeSailing();
+  if (startTownIndex === null) {
+    resumeSailing();
+    return;
+  }
+  state.nearestTownIndex = startTownIndex;
+  enterTown(nearestTown(), false);
 }
 
 function saveGame(showMessage = true) {
@@ -3647,7 +3657,7 @@ form.addEventListener('submit', async (event) => {
   if (!scenarios) return;
   const next = newState({ era: document.querySelector('#era').value, captain: document.querySelector('#captain-name').value.trim(), nationality: document.querySelector('#nationality').value, difficulty: document.querySelector('#difficulty').value, ability: document.querySelector('#ability').value });
   next.rngState = next.seed;
-  await startGame(next);
+  await startGame(next, { startTownIndex: next.nearestTownIndex });
 });
 
 continueButton.addEventListener('click', async () => { const saved = loadGame(); if (saved && scenarios) await startGame(saved); });

@@ -103,6 +103,18 @@ try {
       width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.mobile,
     });
 
+    // A new career opens in the town screen, and putting to sea starts sailing.
+    await command('Page.navigate', { url: `${base}/` });
+    const dialogKicker = "document.querySelector('#event-dialog[open] #dialog-kicker')?.textContent";
+    // The form ignores a submit until the scenario data has loaded.
+    await until('the starting town', `${dialogKicker}?.endsWith(' port') || (document.querySelector('#new-game-form')?.requestSubmit(), false)`);
+    const startTown = await evaluate(dialogTitle);
+    await screenshot(`${viewport.name}-start-town`);
+    await clickButton('Put to sea');
+    await until('the ship at sea', `!document.querySelector('#event-dialog[open]') && !document.querySelector('#hud').classList.contains('hidden')`);
+    await evaluate(`localStorage.clear()`);
+    console.log(`${viewport.name}: the career opened in ${startTown} and put to sea.`);
+
     // Declining to disembark turns the ship round and puts it back aboard.
     await open('landing');
     await until('the disembark prompt', `${dialogTitle} === 'Disembark?'`);
