@@ -42,6 +42,10 @@ import {
 } from './overland.mjs';
 import { TREASURE_SITES } from './treasure-sites.mjs';
 import {
+  emptyVillains, createVillain, moveVillains, villainName, villainDescription, villainsKnownIn,
+  villainReport, villainInTown, villainFlees,
+} from './villains.mjs';
+import {
   ENDING_TIERS, RETIREMENT_JOBS, careerSummary, mayReturnToPirating, recordInHallOfFame, retirementHappiness, retirementLine, retirementScore,
 } from './retirement.mjs';
 import { openingSteps, sailingMasterBriefing } from './opening.mjs';
@@ -55,7 +59,7 @@ const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
 const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
 const HALL_OF_FAME_KEY = 'fortune-and-freedom-hall-of-fame';
-const SAVE_VERSION = 9;
+const SAVE_VERSION = 10;
 const TICK_SECONDS = 0.125;
 const ZOOM_STEP = 4;
 const MIN_ZOOM = 16;
@@ -245,6 +249,10 @@ function newState(options) {
     // Buried treasure, lost relative and lost city (0x47186).
     treasureMaps: emptyMapRecords(),
     relativesRescued: 0,
+    villains: emptyVillains(),
+    // 0x45EAE: per nation, the last of its towns you left with the alert
+    // above 15. A new game's bytes are taken to be 0 (town 0).
+    alertedTowns: {},
     portTrade: { townIndex: null, merchantCash: null, shipwrightCash: null },
     logs,
     visit: null,
@@ -297,6 +305,9 @@ async function startGame(nextState, { startTownIndex = null } = {}) {
   state.treasureMaps ??= migrateTreasureMap(state.treasureMap);
   delete state.treasureMap;
   state.relativesRescued ??= 0;
+  // Version 10 adds the family quest's villains.
+  state.villains ??= emptyVillains();
+  state.alertedTowns ??= {};
   state.player.onFoot ??= false;
   state.player.reefCooldown ??= 0;
   // Version 8 adds the treasure fleet and silver train. An older voyage
@@ -400,7 +411,7 @@ function saveGame(showMessage = true) {
 function loadGame() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(PREVIOUS_SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY));
-    if (![1, 2, 3, 4, 5, 6, 7, 8, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
+    if (![1, 2, 3, 4, 5, 6, 7, 8, 9, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
     // Version 7 adds the town-information bits (0x80 current, 0x20
     // obsolete) to each town's flags. Earlier versions showed every town's
     // figures, so an older voyage keeps current information on every town.
@@ -637,6 +648,8 @@ function townLandlocked(town) {
 // landed; the arrival guard keeps it from re-entering at once. If the party
 // lost its ship meanwhile (0x33A50), it leaves by sea like everyone else.
 function placeForDeparture(townIndex, overland) {
+  // 0x2888A: the villains keep away from the last town you left alerted.
+  if (state.alert > 15) state.alertedTowns[state.towns[townIndex].nation] = townIndex;
   if (overland && state.player.onFoot) {
     const town = state.towns[townIndex];
     state.player.x = town.x + .5;
@@ -1249,6 +1262,14 @@ function monthlyUpdate({ newsLog = true } = {}) {
   });
   const messages = news.map((entry) => worldNewsMessage(entry, state.towns));
   messages.forEach(addWorldNews);
+  // Step 5 of 0xCEB8: the family quest's villains (0xCBA7).
+  state.villains = moveVillains({
+    villains: state.villains,
+    towns: state.towns,
+    difficulty: state.difficulty,
+    alertedTownIndex: state.alertedTowns.Spain ?? 0,
+    rng,
+  });
   // Step 6 of 0xCEB8: the treasure fleet and silver train (0xCDE9). Their
   // movement is secret; nothing is logged.
   state.convoys = monthlyConvoyStep({
@@ -1617,8 +1638,14 @@ function finishPrizeDecision(enemy, keepShip) {
   if (SHIPS[enemy.ship].type + 5 > distance) {
     nearbyTown.growth = Math.max(0, nearbyTown.growth - 10);
     addWorldNews(`Shipping losses have hurt trade at ${nearbyTown.name}.`);
+    // 0xDE2B: close to town, the captured crewmen know its comings and goings.
+    offerVillainGossip('crewmen', state.nearestTownIndex, () => settlePrizeCaptain(enemy));
+    return;
   }
+  settlePrizeCaptain(enemy);
+}
 
+function settlePrizeCaptain(enemy) {
   if (isMissionPirateId(enemy.captainId ?? 0)) {
     completeMission(() => openShipPlunder(enemy));
     return;
@@ -2076,6 +2103,9 @@ function resolveDig() {
     giveLostCityPiece: (records, rescued) => giveTreasureMapPiece(records, MAP_KIND.LOST_CITY, state.nearestTownIndex, rescued),
   });
   state.treasureMaps = result.records;
+  // 0xAAE4: a rescue wipes every villain. Those not yet caught vanish with
+  // their pieces, and later promotions start a new map for the next relative.
+  if (result.relativesRescued > state.relativesRescued) state.villains = emptyVillains();
   state.relativesRescued = result.relativesRescued;
   state.player.partyGold += result.gold;
   const paragraphs = result.finds.map((find) => {
@@ -2085,12 +2115,10 @@ function resolveDig() {
       return `<p>Your digging uncovers a chest of solid oak! Opening the box, you find ${find.gold.toLocaleString()} gleaming pieces of gold and silver.</p>`;
     }
     if (find.kind === MAP_KIND.RELATIVE) {
-      // K7 hook: villains hand out the relative's map pieces and are wiped by
-      // this rescue (lost_relatives.md §7). Until the family quest exists no
-      // such map can be held, so this branch cannot run yet.
       const relative = RELATIVE_NAMES[find.relative] ?? 'relative';
       addLog(`Rescued my ${relative}.`);
-      return `<p>Your ${relative} is rescued! After years of searching, you are reunited at last. "I have a mysterious and exciting tale to tell," your ${relative} exclaims.</p>`;
+      // CSTR 184 and 188: the tale names the city of the lost-city piece.
+      return `<p>Your ${relative} is rescued! After years of searching, you are reunited at last. “I have a mysterious and exciting tale to tell,” your ${relative} exclaims.</p><p>“Many years ago, the Spanish plundered the ancient ${LOST_CITY_NAMES[find.relative] ?? ''} capital. While transporting the great riches to Spain, a treasure galleon foundered and sank. By luck and craft, I acquired part of a map to this incredible treasure.”</p>`;
     }
     addLog('Found great lost treasure!');
     return `<p>You have found the lost ${LOST_CITY_NAMES[find.city] ?? ''} treasure! Riches beyond your wildest dreams are laid before you! A hundred thousand gold pieces are collected and carried aboard your ship.</p>`;
@@ -2119,7 +2147,12 @@ function attackTown(town) {
   });
 }
 
+// 0x22907: a villain staying in a captured town is confronted first.
 function captureTown(town) {
+  confrontVillainInTown(state.towns.indexOf(town), () => warnOfHiddenGold(town));
+}
+
+function warnOfHiddenGold(town) {
   if (state.alert >= 12) {
     const hidden = ['Some', 'Much', 'Most'][Math.min(2, Math.floor((state.alert - 12) / 15))];
     showDialog({
@@ -2187,9 +2220,12 @@ function showConvoyCaptures(captured, next) {
 
 function settleCapturedTown(town, oldNation, loot, threshold) {
   const proceed = () => beginPlunderTransfer(`Plunder of ${town.name}`, loot, () => {
-    saveGame(false);
-    departFromApproach();
-    runFleetCheck({ inTown: true, done: startVoyage });
+    // 0x18F9C: the citizens' gossip ends a successful assault.
+    offerVillainGossip('citizens', state.towns.indexOf(town), () => {
+      saveGame(false);
+      departFromApproach();
+      runFleetCheck({ inTown: true, done: startVoyage });
+    });
   });
   if (state.player.crew < threshold) {
     proceed();
@@ -2525,9 +2561,10 @@ function governorBriefingBody(town) {
 function showGovernor() {
   const town = state.towns[state.visit.townIndex];
   state.visit.governorSeen = true;
-  // The governor driver settles or offers a mission (0x12E88) before the
-  // pirate delivery (0x12432) and the promotion (0x12549).
-  governorMission(town, () => deliverGovernorPirates(town));
+  // The governor driver confronts a villain in town (0x18913), then settles
+  // or offers a mission (0x12E88) before the pirate delivery (0x12432) and
+  // the promotion (0x12549).
+  confrontVillainInTown(state.visit.townIndex, () => governorMission(town, () => deliverGovernorPirates(town)));
 }
 
 // 0x12432 hands over, without asking, every prisoner that matches the
@@ -2572,10 +2609,121 @@ function continueGovernorAudience(town) {
   showDialog({
     vignette: 'governor', kicker: `${town.nation} governor`, title: `Promotion to ${RANK_NAMES[promotion.rank]}`,
     body: `<p>The Crown recognizes your service to ${town.nation}.</p><dl><dt>New rank</dt><dd>${RANK_NAMES[promotion.rank]}</dd><dt>${town.nation} national favour</dt><dd>${promotion.favour}</dd>${promotion.landUnits > 0 ? `<dt>Land grant</dt><dd>${(promotion.landUnits * 50).toLocaleString()} acres</dd>` : ''}<dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
-    actions: [{ label: 'Continue the audience', run: () => beginGovernorRansoms(town) }],
+    actions: [{ label: 'Continue the audience', run: () => announceVillain(town, () => beginGovernorRansoms(town)) }],
   });
 }
 
+// 0x127BC: every promotion can name a new villain, until all four relatives
+// are home. A famous expedition has no quest, but the port has none of those.
+function announceVillain(town, next) {
+  const relative = RELATIVE_NAMES[state.relativesRescued];
+  const { villains, slot } = relative ? createVillain({ villains: state.villains, towns: state.towns, rng }) : { slot: -1 };
+  if (slot < 0) {
+    next();
+    return;
+  }
+  state.villains = villains;
+  const villain = villains[slot];
+  const where = state.towns[villain.townIndex].name;
+  recordRumour(villain, villain.townIndex);
+  showDialog({
+    vignette: 'villain-news', kicker: `${town.nation} governor`, title: `News of your long-lost ${relative}`,
+    body: `<p>“I have recently had news of your long-lost ${relative},” the governor says. “The evil ${villainDescription(villain)} knows the whereabouts of your ${relative}!”</p><p>“He was last seen in the city of ${where},” the governor adds.</p>`,
+    actions: [{ label: 'Continue the audience', run: next }],
+  });
+}
+
+// Log event 9, which the original's Ship's Log lists.
+function recordRumour(villain, townIndex) {
+  const line = `${villainName(villain)} in ${state.towns[townIndex].name}.`;
+  addWorldNews(line);
+  addLog(`Heard of ${line}`);
+}
+
+// CSTN 16: who offers the gossip of 0x1EBA6.
+const VILLAIN_GOSSIP_SOURCES = {
+  citizens: { speaker: 'citizens are', kicker: 'The citizens' },
+  bartender: { speaker: 'bartender is', kicker: 'The bartender', vignette: 'bartender' },
+  traveller: { speaker: 'traveller is', kicker: 'The traveller', vignette: 'traveller' },
+  crewmen: { speaker: 'crewmen are', kicker: 'The captured crewmen' },
+};
+
+// CSTR 154: no villain known in this town means no question at all. With one
+// name the answer ends the talk; with several the question comes back.
+function offerVillainGossip(source, townIndex, next) {
+  const slots = villainsKnownIn(state.villains, townIndex);
+  if (!slots.length) {
+    next();
+    return;
+  }
+  const { speaker, kicker, vignette } = VILLAIN_GOSSIP_SOURCES[source];
+  const town = state.towns[townIndex];
+  const ask = (slot) => {
+    const villain = state.villains[slot];
+    const report = villainReport(villain, townIndex);
+    const where = state.towns[report.townIndex].name;
+    recordRumour(villain, report.townIndex);
+    const again = slots.length > 1;
+    showDialog({
+      vignette, kicker, title: villainName(villain),
+      body: `<p>${report.present ? `${villainName(villain)} is now in ${where}.` : `${villainName(villain)} left for ${where} a few months ago.`}</p>`,
+      actions: [{ label: again ? 'Ask about someone else' : 'Continue', run: again ? offer : next }],
+    });
+  };
+  const offer = () => showDialog({
+    vignette, kicker, title: 'Comings and goings',
+    body: `<p>The ${speaker} quite familiar with recent comings and goings of prominent persons of ${town.name}. Do you wish to inquire about...</p>`,
+    actions: [
+      ...slots.map((slot) => ({ label: `${villainName(state.villains[slot])}?`, run: () => ask(slot) })),
+      { label: 'No one', secondary: true, run: next },
+    ],
+  });
+  offer();
+}
+
+// 0x18913, from the tavern, the governor's and a captured town: the first
+// villain staying there flees to a random town and fights you on the way out.
+// ASSUMED: the duel is a provisional choice until sword fights exist.
+function confrontVillainInTown(townIndex, next) {
+  const slot = villainInTown(state.villains, townIndex);
+  if (slot < 0) {
+    next();
+    return;
+  }
+  const villain = state.villains[slot];
+  state.villains = villainFlees({ villains: state.villains, slot, towns: state.towns, rng });
+  const town = state.towns[townIndex];
+  const relative = RELATIVE_NAMES[state.relativesRescued];
+  showDialog({
+    vignette: 'villain-news', kicker: `The evil ${villainName(villain)}`, title: 'Sneaking out a back entrance',
+    body: `<p>You spot the evil ${villainDescription(villain)} sneaking out a back entrance. He draws his sword as you rush after him!</p><p>Sword fighting is not playable yet. Choose the provisional result of the duel.</p>`,
+    actions: [
+      { label: 'Win the duel', run: () => {
+        const villains = [...state.villains];
+        villains[slot] = null;
+        state.villains = villains;
+        state.treasureMaps = giveTreasureMapPiece(state.treasureMaps, MAP_KIND.RELATIVE, townIndex);
+        const map = state.treasureMaps[MAP_KIND.RELATIVE];
+        addLog(`Beat ${villainName(villain)} in ${town.name}: map piece ${mapPieceCount(map)}/4 to my ${relative}.`);
+        showDialog({
+          vignette: 'villain-news', kicker: villainName(villain), title: `Your ${relative} is held captive`,
+          body: `<p>“You are a skilled and able swordsman. I will tell you what I know. Your ${relative} is held captive on a remote plantation. This map may help you on your quest.”</p>${treasureMapBody(MAP_KIND.RELATIVE)}`,
+          actions: [{ label: 'Continue', run: next }],
+        });
+      } },
+      { label: 'Lose the duel', secondary: true, run: () => {
+        // Losing any duel sets reputation to -1 (0x165FE, sword_fights.md).
+        state.player.reputation = -1;
+        addLog(`${villainName(villain)} beat me in ${town.name} and escaped.`);
+        showDialog({
+          vignette: 'villain-news', kicker: villainName(villain), title: 'He escapes',
+          body: `<p>${villainName(villain)} disarms you and vanishes into the night.</p>`,
+          actions: [{ label: 'Continue', run: next }],
+        });
+      } },
+    ],
+  });
+}
 function beginGovernorRansoms(town) {
   const offers = captainRansomOffers({ captives: state.player.capturedCaptains, rng });
   showGovernorRansom(town, offers, 0);
@@ -2677,6 +2825,10 @@ function showTavern() {
   const encounters = state.visit.tavernEncounters.filter(({ resolved }) => !resolved);
   const mapPieces = mapPieceCount(state.treasureMaps[MAP_KIND.BURIED]);
   const actions = [];
+  // 0x10FFE / 0x110BD. The original's gate 0x3312A is left out: only this
+  // routine writes it, and only to clear it, so its meaning is unresolved.
+  const villainHere = villainInTown(state.villains, state.visit.townIndex) >= 0;
+  if (villainHere) actions.push({ label: 'Follow the man slipping toward the back', run: () => confrontVillainInTown(state.visit.townIndex, showTavern) });
   if (!state.visit.recruited) actions.push({ label: 'Speak with unemployed sailors', run: showTavernRecruits });
   actions.push(
     { label: 'Ask the bartender for news', run: showBartenderNews },
@@ -2691,11 +2843,12 @@ function showTavern() {
   if (state.treasureMaps.some(({ pieces }) => pieces)) actions.push({ label: 'Study the treasure maps', run: () => showTreasureMaps(showTavern) });
   actions.push({ label: 'Return to town', secondary: true, run: showTownMenu });
 
+  const stranger = villainHere ? 'A well-dressed man in the far corner keeps his hat low and one eye on the back door. ' : '';
   const visitor = encounters.length
-    ? encounters.map(({ kind }) => kind === 'map-seller'
+    ? stranger + encounters.map(({ kind }) => kind === 'map-seller'
       ? 'A weather-beaten pirate guards a scrap of parchment in a shadowed booth.'
       : 'A traveller watches the room, waiting for someone willing to buy information.').join(' ')
-    : 'No unusual visitors draw your attention tonight.';
+    : stranger || 'No unusual visitors draw your attention tonight.';
   showDialog({
     vignette: 'tavern', kicker: `The tavern · ${town.name}`,
     title: 'Rumours, recruits, and strong drink',
@@ -2806,7 +2959,8 @@ function showBartenderNews() {
   showDialog({
     vignette: 'bartender', kicker: 'The bartender', title: 'News from across the Caribbean',
     body: newsBody(items, 'The bartender has heard nothing of consequence.'),
-    actions: [{ label: 'Return to the tavern', run: showTavern }],
+    // 0x10E1D: the bartender's talk ends with the gossip of this town.
+    actions: [{ label: 'Return to the tavern', run: () => offerVillainGossip('bartender', state.visit.townIndex, showTavern) }],
   });
 }
 
@@ -2900,13 +3054,12 @@ function buyTravellerNews(encounter) {
   addLog(`Bought intelligence in ${state.towns[state.visit.townIndex].name} for ${encounter.price} gold.`);
   const reportedTown = state.towns[encounter.townIndex];
   // 0x115A0: the report sets the town's current-information bit and shows
-  // its status (0x196D0). ASSUMED: prominent-person quests are not
-  // implemented yet, so the traveller always reports on a town.
+  // its status (0x196D0). 0x1125D then offers the gossip of his town.
   reportedTown.flags = learnTownInfo(reportedTown.flags);
   showDialog({
     vignette: 'traveller', kicker: 'The traveller’s report', title: `Intelligence from ${reportedTown.name}`,
     body: `${townInfoBody(reportedTown)}${newsBody(state.worldNews.slice(0, 3), 'No wider news reached the traveller.')}`,
-    actions: [{ label: 'Return to the tavern', run: showTavern }],
+    actions: [{ label: 'Return to the tavern', run: () => offerVillainGossip('traveller', encounter.townIndex, showTavern) }],
   });
 }
 
@@ -4098,6 +4251,22 @@ loadScenarios().then(() => {
     });
     return;
   }
+  // In the tavern of the Spanish town a villain stays in; `villain-rumour`
+  // stands in the town he left, so the gossip says where he went.
+  if (['villain-tavern', 'villain-rumour'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      const [left, here] = state.towns.flatMap(({ nation }, index) => (nation === 'Spain' ? [index] : []));
+      state.villains[0] = { townIndex: here, history: [left, null, null, null], surname: 5, title: 2, nationality: 2 };
+      state.towns[here].villainStaying = true;
+      state.nearestTownIndex = preview === 'villain-tavern' ? here : left;
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showTavern();
+    });
+    return;
+  }
   if (preview === 'news' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     startGame(previewState).then(() => {
@@ -4173,6 +4342,7 @@ loadScenarios().then(() => {
       const record = { pieces: 7, site: [siteX, siteY], townIndex: nearestTriggerTown(townTriggers(), siteX, siteY), city: 0 };
       if (digScene[2]) {
         state.relativesRescued = RELATIVE_NAMES.indexOf(digScene[2]);
+        state.villains[0] = { townIndex: 0, history: [null, null, null, null], surname: 0, title: 0, nationality: 0 };
         state.treasureMaps[MAP_KIND.RELATIVE] = record;
       } else if (digScene[3]) {
         state.treasureMaps[MAP_KIND.LOST_CITY] = { ...record, city: LOST_CITY_NAMES.indexOf(digScene[3][0].toUpperCase() + digScene[3].slice(1)) };

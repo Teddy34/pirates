@@ -68,9 +68,10 @@ The project has no build step or third-party dependency:
 - `assets/world-<era>.bin` contains gzip-compressed per-pixel navigation class masks (water, shallows, land) derived from `MAP1560.PCX`, its era deltas, `MAP.IMB` and the decoded `0x4113C` class table; rebuild them with `tools/build_world_map.py`. `src/world-map.mjs` decodes them.
 - `src/mechanics.mjs` contains deterministic, DOM-free game rules.
 - `src/overland.mjs` contains the DOM-free landing, walking, reef, treasure-map and dig rules; `src/treasure-sites.mjs` holds the 256 decoded dig sites.
+- `src/villains.mjs` contains the DOM-free villain records of the family quest: creation, monthly moves, gossip answers and flight.
 - `src/retirement.mjs` contains the DOM-free retirement score, career summary, post-career line and hall-of-fame rules.
 - `src/opening.mjs` contains the DOM-free career opening: each era and nation's story, its picture per screen, and the sailing master's first briefing. Its `open-*` and `sailing-master` vignettes appear when starting a new career.
-- `src/vignettes.mjs` draws the framed scene pictures above dialog text (`docs/scene-vignettes.md`). Places and events are 224×128 landscapes above the text (coastal towns use the harbour-arrival and port-quay scenes whichever way you came; only landlocked towns use shore-arrival and town-square); people are 96×128 portraits beside it (stacked on narrow screens). The governor, merchant, shipwright, barmaid, bartender, traveller and map-seller portraits and the harbour-arrival, shore-arrival, port-quay, town-square, prize, enemy-destroyed, shipwreck, marooned, divide-plunder, tavern, dig-found, dig-nothing, reunion (female and male) and four lost-city landscapes are simple code-drawn placeholders until real art is approved; check them with `?preview=governor-promotion`, `merchant`, `shipwright`, `barmaid`, `news` (the bartender), `traveller`, `map-seller`, `tavern`, `arrival`, `arrival-land`, `in-port`, `in-town`, `prize`, `enemy-destroyed`, `reef-loss`, `marooned`, `retirement`, `dig-found`, `dig-nothing`, `reunion-<sister|father|niece|uncle>` and `lost-city-<incan|aztec|olmec|mayan>`.
+- `src/vignettes.mjs` draws the framed scene pictures above dialog text (`docs/scene-vignettes.md`). Places and events are 224×128 landscapes above the text (coastal towns use the harbour-arrival and port-quay scenes whichever way you came; only landlocked towns use shore-arrival and town-square); people are 96×128 portraits beside it (stacked on narrow screens). The governor, merchant, shipwright, barmaid, bartender, traveller and map-seller portraits and the harbour-arrival, shore-arrival, port-quay, town-square, prize, enemy-destroyed, shipwreck, marooned, divide-plunder, tavern, dig-found, dig-nothing, reunion (female and male), villain and four lost-city pictures are simple code-drawn placeholders until real art is approved; check them with `?preview=governor-promotion`, `merchant`, `shipwright`, `barmaid`, `news` (the bartender), `traveller`, `map-seller`, `tavern`, `arrival`, `arrival-land`, `in-port`, `in-town`, `prize`, `enemy-destroyed`, `reef-loss`, `marooned`, `retirement`, `dig-found`, `dig-nothing`, `reunion-<sister|father|niece|uncle>`, `villain-tavern`, `villain-rumour` and `lost-city-<incan|aztec|olmec|mayan>`.
 - `src/game.mjs` owns state, input, modes, canvas rendering, and browser saves.
 - `style.css` makes the canvas fill the viewport.
 - `server.js` serves the directory at `http://localhost:8000`.
@@ -95,7 +96,7 @@ make syntax
 
 Run `make test` for the deterministic mechanics suite and `make test-browser`
 for the browser interaction smoke tests (transfer windows; landing,
-walking, digging and reefs; and retirement, through the local `?preview=` states). `make check` runs the complete
+walking, digging and reefs; retirement; and the family quest, through the local `?preview=` states). `make check` runs the complete
 automated set. Use `make serve-test` for manual browser checks on isolated
 port 8011. Add rule tests with Node's built-in `node:test`; avoid adding a
 package manager or framework solely for basic tests. Verify visible or

@@ -59,6 +59,7 @@ const DESCRIPTIONS = {
   'open-swords': 'Two swords cross on a ship’s deck',
   'open-chart': 'A sea chart with dividers and a compass rose',
   'sailing-master': 'Portrait of the sailing master',
+  'villain-news': 'Portrait of a scarred nobleman with a cruel smile',
   'dig-found': 'Your crew opens an oak chest of gold in a fresh pit',
   'dig-nothing': 'Tired sailors lean on their spades among empty holes',
   reunion: 'A lost relative runs into the captain’s arms at a plantation gate',
@@ -1372,8 +1373,50 @@ function drawLostCity(p, { culture }) {
   captain(p, 74, 124);
 }
 
+// A menacing nobleman by a candle: thin moustache, cruel smile, a scar.
+function drawVillain(picture) {
+  picture.rect(0, 0, 96, 128, '#2a1a2e');
+  picture.rect(0, 0, 96, 6, '#160d18');
+  picture.rect(72, 58, 16, 3, WOOD_LIGHT);
+  picture.rect(78, 42, 4, 16, PARCHMENT);
+  picture.disc(80, 38, 3, '#e07a2a');
+  picture.disc(80, 37, 1, GOLD);
+  const p = zoomed(picture, 1.15, 40, 0);
+  // Black coat with a gold edge, and a white lace collar.
+  for (let row = 0; row < 62; row += 1) {
+    const half = Math.min(38, 14 + row * 2.2);
+    p.rect(40 - half - 1, 66 + row, half * 2 + 2, 1, OUTLINE);
+    p.rect(40 - half, 66 + row, half * 2, 1, '#201a2a');
+  }
+  p.rect(37, 72, 6, 56, GOLD);
+  p.rect(38, 72, 4, 56, '#6a1f2e');
+  p.rect(28, 62, 24, 8, OUTLINE);
+  p.rect(29, 63, 22, 6, PARCHMENT);
+  // A long pale face under a plumed black hat.
+  p.rect(26, 30, 28, 34, OUTLINE);
+  p.rect(27, 31, 26, 32, '#d0a888');
+  p.rect(20, 26, 40, 5, OUTLINE);
+  p.rect(26, 12, 28, 15, OUTLINE);
+  p.rect(27, 13, 26, 13, '#201a2a');
+  p.rect(27, 22, 26, 3, GOLD);
+  p.rect(50, 6, 4, 18, '#8a2a3a');
+  // Narrow eyes, a pointed brow, the scar, a thin moustache and a smirk.
+  p.rect(30, 40, 8, 2, OUTLINE);
+  p.rect(42, 38, 8, 2, OUTLINE);
+  p.rect(32, 43, 3, 2, OUTLINE);
+  p.rect(44, 43, 3, 2, OUTLINE);
+  for (let step = 0; step < 12; step += 1) p.rect(47 - step, 35 + step * 2, 1, 2, '#8a3a3a');
+  p.rect(30, 53, 20, 1, OUTLINE);
+  p.rect(28, 52, 3, 1, OUTLINE);
+  p.rect(49, 51, 3, 1, OUTLINE);
+  p.rect(34, 57, 12, 1, '#6a2a2a');
+  p.rect(46, 56, 2, 1, '#6a2a2a');
+  p.rect(38, 60, 4, 3, OUTLINE);
+}
+
 const SCENES = {
   governor: { shape: 'portrait', draw: drawGovernor },
+  'villain-news': { shape: 'portrait', draw: drawVillain },
   'prize-plunder': { shape: 'landscape', draw: drawPrizePlunder },
   'enemy-destroyed': { shape: 'landscape', draw: drawEnemyDestroyed },
   'divide-plunder': { shape: 'landscape', draw: drawDividePlunder },

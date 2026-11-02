@@ -1006,9 +1006,8 @@ export function installNewGovernor(town, rng) {
 // news (0x13679) all use this range, so that town never grows, falls to an
 // AI nation or gets an event. A faithful quirk, kept. The other readers of
 // 0x4605A: the governor's mission target (0x12FE4) and the tavern
-// traveller's town (0x110F9) use it here too; the villain records and their
-// moves and news (0xAAE4, 0xCBF7, 0x1224B, 0x18A02) wait for the lost
-// relatives (K7); the gazetteer loops (0xB97C, 0xBC82) run to the range
+// traveller's town (0x110F9) use it here too, as do the villains' moves,
+// news and flight (0xCBF7, 0x1224B, 0x18A02, src/villains.mjs); the gazetteer loops (0xB97C, 0xBC82) run to the range
 // inclusive, i.e. every real town, as City information does; the Ship's Log
 // (0x1E1DF) prints a town name only for indexes below it; the nearest-town
 // search 0x1ADFC takes it as an argument (0x13988, 0x1F0F5, 0x2884F) but

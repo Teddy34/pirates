@@ -100,6 +100,22 @@ for future work.
   the town menu: the Ship's Log lists the world news with dates, and City
   information shows the known status of every town.
 
+### Lost relatives and villains
+
+- A promotion names a villain who knows where your next relative is (`0x12178`,
+  CSTR 137–138), up to four at once and until all four relatives are home.
+- Villains hop between Spanish towns each month (`0xCBA7`), keeping away from
+  the last Spanish town you left alerted.
+- The bartender, a paid traveller, captured crewmen close to a town and the
+  citizens of a captured town tell you where a villain is or went (`0x1EBA6`,
+  CSTR 107, 108, 154). Answers go to the Ship's Log.
+- In his town a villain is met in the tavern, at the governor's or when you
+  take the town (`0x18913`). The duel is a provisional choice: a win gives a
+  piece of the relative's map, a loss sets reputation to −1 and he escapes.
+- Digging at the relative's site, with any number of pieces, rescues that
+  relative, wipes the villains and gives a lost-city piece with its tale
+  (CSTR 184, 188).
+
 ### Retirement and the career ending
 
 - Retire from privateering when dividing the plunder (CSTR 157, confirmed
@@ -265,8 +281,6 @@ The following systems have no complete playable implementation:
   purchase);
 - complete cannon management;
 - the named captains' battle and sword skill;
-- lost relatives, villains, rumors, and rescue quests (the dig already rescues
-  a relative and hands out lost-city pieces once a relative's map exists);
 - courtship, rival suitors, marriage, and family benefits;
 - aging and illness effects beyond the captivity message, ransom, and the
   retirement check at the start of captivity;

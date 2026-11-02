@@ -194,8 +194,8 @@ export function giveMapPiece({ records, kind, sites, nearestTown, currentTownInd
 // dig(cell) (0xA801): any piece is enough, within one cell of the site on
 // both axes. Each record found is cleared and reported; a relative's rescue
 // also hands out a lost-city piece (before relatives_rescued is raised).
-// Gold is party gold. The villain wipe that follows a rescue belongs to the
-// family quest (K7) and is left to the caller.
+// Gold is party gold. The villain wipe that follows a rescue is left to the
+// caller (src/villains.mjs holds the villains).
 // Not replicated: the original's gold amount [ebp-0x58] is not reset between
 // records, so one dig that finds buried treasure and a relative at once pays
 // the treasure twice (0xA80E, 0xABA0).
