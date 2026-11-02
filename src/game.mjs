@@ -2367,7 +2367,7 @@ function showTownMenu() {
   const welcome = state.visit.sneaking ? 'You move through the streets under a borrowed name.' : landlocked ? 'Your men take their ease in the town.' : 'Your ships lie safely at anchor.';
   showDialog({
     vignette: { id: landlocked ? 'town-square' : 'port-quay', flag: town.nation },
-    kicker: `${town.nation} ${landlocked ? 'town' : 'port'}`, title: town.name,
+    kicker: landlocked ? 'Inland town' : 'In port', title: town.name,
     body: `<p>${welcome}</p><dl><dt>${town.nation} rank</dt><dd>${rank}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>Land</dt><dd>${(state.player.land * 50).toLocaleString()} acres</dd><dt>Governor</dt><dd>${governorState}</dd><dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
     actions,
   });
