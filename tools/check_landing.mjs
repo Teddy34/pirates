@@ -107,7 +107,14 @@ try {
     await command('Page.navigate', { url: `${base}/` });
     const dialogKicker = "document.querySelector('#event-dialog[open] #dialog-kicker')?.textContent";
     // The form ignores a submit until the scenario data has loaded.
-    await until('the starting town', `${dialogKicker}?.endsWith(' port') || (document.querySelector('#new-game-form')?.requestSubmit(), false)`);
+    await until('the opening story', `${dialogKicker}?.endsWith('Your story') || (document.querySelector('#new-game-form')?.requestSubmit(), false)`);
+    await screenshot(`${viewport.name}-opening-story`);
+    // The first button is Continue, or winning the stubbed duel.
+    await until('the sword fight choice', `${dialogTitle} === 'Sword fight' || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
+    await screenshot(`${viewport.name}-opening-duel`);
+    await until('the briefing', `${dialogTitle} === 'The sailing master' || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
+    await screenshot(`${viewport.name}-briefing`);
+    await until('the starting town', `${dialogKicker}?.endsWith(' port') || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
     const startTown = await evaluate(dialogTitle);
     await screenshot(`${viewport.name}-start-town`);
     await clickButton('Put to sea');

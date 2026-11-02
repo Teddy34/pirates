@@ -50,7 +50,8 @@ The repository may contain original project assets, material the user supplies
 with suitable rights, and generated data that records mechanics, factual
 values, or measurements. The packed per-pixel navigation class masks are generated
 data, not copies of the original tiles or artwork. Document the provenance and
-generation command for any such derived data.
+generation command for any such derived data. Short in-game text quoted from
+the original's string tables (dialogue, story and message lines) is allowed.
 
 Before every commit or push, inspect all newly tracked binary, image, audio,
 font, archive, and data files. If a file's rights or provenance are uncertain,
@@ -68,6 +69,7 @@ The project has no build step or third-party dependency:
 - `src/mechanics.mjs` contains deterministic, DOM-free game rules.
 - `src/overland.mjs` contains the DOM-free landing, walking, reef, treasure-map and dig rules; `src/treasure-sites.mjs` holds the 256 decoded dig sites.
 - `src/retirement.mjs` contains the DOM-free retirement score, career summary, post-career line and hall-of-fame rules.
+- `src/opening.mjs` contains the DOM-free career opening: each era and nation's story, its picture per screen, and the sailing master's first briefing. Its `open-*` and `sailing-master` vignettes appear when starting a new career.
 - `src/vignettes.mjs` draws the framed scene pictures above dialog text (`docs/scene-vignettes.md`). Places and events are 224×128 landscapes above the text (coastal towns use the harbour-arrival and port-quay scenes whichever way you came; only landlocked towns use shore-arrival and town-square); people are 96×128 portraits beside it (stacked on narrow screens). The governor, merchant, shipwright, barmaid, bartender, traveller and map-seller portraits and the harbour-arrival, shore-arrival, port-quay, town-square, prize, enemy-destroyed, shipwreck, marooned, divide-plunder and tavern landscapes are simple code-drawn placeholders until real art is approved; check them with `?preview=governor-promotion`, `merchant`, `shipwright`, `barmaid`, `news` (the bartender), `traveller`, `map-seller`, `tavern`, `arrival`, `arrival-land`, `in-port`, `in-town`, `prize`, `enemy-destroyed`, `reef-loss`, `marooned` and `retirement`.
 - `src/game.mjs` owns state, input, modes, canvas rendering, and browser saves.
 - `style.css` makes the canvas fill the viewport.

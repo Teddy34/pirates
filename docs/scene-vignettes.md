@@ -533,17 +533,28 @@ the same pixel size and style so the opening matches the game.
 > under a huge full moon and scattered clouds. Epic, romantic, cover-art
 > composition with clear space at the top for the title.
 
-Picked with the nationality and era, and shown before play begins (CSTR
-1–44). These are text only in the archive, so these vignettes are
-additions. Suggested set:
+Picked by a script for each era and nationality, and shown before play
+begins (CSTR 1–44, `src/opening.mjs`). These strings have no pictures in the
+original, so these vignettes are additions. `STORY_VIGNETTES` gives each
+string one picture, reusing a scene where it fits (tavern, shipwreck,
+governor, merchant, bartender, port-quay, town-square, harbour-arrival), and a
+story never repeats a picture on consecutive screens. The placeholders in code:
 
 | id | text cue | prompt |
 |---|---|---|
-| open-court | an audience at court for royal approval (CSTR 1–2, 31) | A gilded throne room: a young captain kneels before a patron noble who holds a royal charter. |
-| open-plantation | indentured on a sugar plantation, meets smugglers (CSTR 13–16, 18) | Cane fields at dusk: a young labourer talks in secret with smugglers at the edge of the field, with a small ship at anchor beyond. |
-| open-quarterdeck | duel the evil captain for command (CSTR 12, 20, 43) | The crew looks on as the young hero faces a brutal captain on the quarterdeck. |
-| open-castoff | set adrift after a mutiny (CSTR 4–5) | A small leaky boat rows away from a jeering ship. |
-| open-boarded | hailed a Spanish ship and boarded (CSTR 35, 44) | A Spanish officer draws his sword on the hero's deck. |
+| open-court | an audience at court for royal approval (CSTR 2, 8) | A gilded throne room: a young captain kneels before a patron noble who holds a royal charter. |
+| open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Cane fields at dusk: a young labourer talks in secret with smugglers at the edge of the field, with a small ship at anchor beyond. |
+| open-quarterdeck | duel for command of the ship (CSTR 20, 43) | The crew looks on as the young hero faces a brutal captain on the quarterdeck. |
+| open-boarded | a Spanish ship boards you; taking an enemy ship (CSTR 26, 35, 44) | A Spanish officer draws his sword on the hero's deck. |
+| open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | A ship runs in on a green, palm-fringed West Indian island. |
+| open-prison | a foul prison (CSTR 22, 32) | A prisoner on straw in a stone cell, moonlight through a barred window. |
+| open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Smugglers row toward an anchored ship under the moon. |
+| open-buccaneers | living among the buccaneers (CSTR 38) | A beach camp: lean-to, smoking fire, a boat drawn up on the sand. |
+| open-colony | a poor colony, "Turn back" (CSTR 9) | Thatched huts inside a stockade, angry settlers facing their leader. |
+| open-swords | the story's sword fight | Two blades crossed close up on a ship's deck at dusk. |
+| open-chart | the sailing master's closest cities (CSTR 69) | A sea chart with dividers, a dotted course and a compass rose. |
+
+The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 
 ### 4.12 Optional: ship portraits
 
