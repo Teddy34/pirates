@@ -50,8 +50,8 @@ The repository may contain original project assets, material the user supplies
 with suitable rights, and generated data that records mechanics, factual
 values, or measurements. The packed per-pixel navigation class masks are generated
 data, not copies of the original tiles or artwork. Document the provenance and
-generation command for any such derived data. Short in-game text quoted from
-the original's string tables (dialogue, story and message lines) is allowed.
+generation command for any such derived data. In-game text quoted from the
+original's string tables (dialogue, story and message lines) is allowed.
 
 Before every commit or push, inspect all newly tracked binary, image, audio,
 font, archive, and data files. If a file's rights or provenance are uncertain,

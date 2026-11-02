@@ -86,7 +86,7 @@ const STORY_VIGNETTES = {
   1: 'port-quay', 2: 'open-court', 3: 'open-landfall', 7: 'tavern', 8: 'open-court',
   9: 'open-colony', 10: 'open-landfall', 13: 'shipwreck', 14: 'open-plantation', 15: 'open-night-raid',
   17: 'governor', 18: 'open-plantation', 19: 'tavern', 20: 'open-quarterdeck', 21: 'town-square',
-  22: 'open-prison', 23: 'tavern', 24: 'governor', 25: 'port-quay', 26: 'open-boarded',
+  22: 'open-prison', 23: 'tavern', 24: 'governor', 25: 'port-quay', 26: 'open-quarterdeck',
   27: 'port-quay', 31: 'port-quay', 32: 'open-prison', 33: 'tavern', 34: 'merchant',
   35: 'open-boarded', 36: 'harbour-arrival', 37: 'bartender', 38: 'open-buccaneers', 39: 'port-quay',
   43: 'open-quarterdeck', 44: 'open-boarded',

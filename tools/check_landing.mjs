@@ -109,6 +109,13 @@ try {
     // The form ignores a submit until the scenario data has loaded.
     await until('the opening story', `${dialogKicker}?.endsWith('Your story') || (document.querySelector('#new-game-form')?.requestSubmit(), false)`);
     await screenshot(`${viewport.name}-opening-story`);
+    // Esc must not dismiss a dialog and strand the opening.
+    for (let press = 0; press < 3; press += 1) {
+      await command('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+      await command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    }
+    await delay(200);
+    if (!await evaluate(`Boolean(document.querySelector('#event-dialog[open]'))`)) throw new Error('Esc dismissed the opening dialog');
     // The first button is Continue, or winning the stubbed duel.
     await until('the sword fight choice', `${dialogTitle} === 'Sword fight' || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
     await screenshot(`${viewport.name}-opening-duel`);

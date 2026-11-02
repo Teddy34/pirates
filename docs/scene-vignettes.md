@@ -544,8 +544,8 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 |---|---|---|
 | open-court | an audience at court for royal approval (CSTR 2, 8) | A gilded throne room: a young captain kneels before a patron noble who holds a royal charter. |
 | open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Cane fields at dusk: a young labourer talks in secret with smugglers at the edge of the field, with a small ship at anchor beyond. |
-| open-quarterdeck | duel for command of the ship (CSTR 20, 43) | The crew looks on as the young hero faces a brutal captain on the quarterdeck. |
-| open-boarded | a Spanish ship boards you; taking an enemy ship (CSTR 26, 35, 44) | A Spanish officer draws his sword on the hero's deck. |
+| open-quarterdeck | a fight on deck, or a duel for command (CSTR 20, 26, 43) | The crew looks on as the young hero faces a brutal captain on the quarterdeck. |
+| open-boarded | a Spanish ship boards you (CSTR 35, 44) | A Spanish officer draws his sword on the hero's deck. |
 | open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | A ship runs in on a green, palm-fringed West Indian island. |
 | open-prison | a foul prison (CSTR 22, 32) | A prisoner on straw in a stone cell, moonlight through a barred window. |
 | open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Smugglers row toward an anchored ship under the moon. |

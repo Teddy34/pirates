@@ -3726,6 +3726,9 @@ zoomInButton.addEventListener('click', () => changeZoom(ZOOM_STEP));
 lowerSailsButton.addEventListener('click', () => changeSails(-1));
 raiseSailsButton.addEventListener('click', () => changeSails(1));
 dialog.addEventListener('cancel', (event) => event.preventDefault());
+// Browsers ignore a cancelled `cancel` without recent user activation, so Esc
+// must be stopped earlier: a dialog closed this way strands its action chain.
+dialog.addEventListener('keydown', (event) => { if (event.key === 'Escape') event.preventDefault(); });
 dialog.addEventListener('keydown', (event) => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
   const button = dialogShortcuts.get(event.key.toLowerCase());
