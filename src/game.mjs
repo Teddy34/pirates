@@ -44,6 +44,7 @@ import { TREASURE_SITES } from './treasure-sites.mjs';
 import {
   ENDING_TIERS, RETIREMENT_JOBS, careerSummary, mayReturnToPirating, recordInHallOfFame, retirementHappiness, retirementLine, retirementScore,
 } from './retirement.mjs';
+import { openingSteps, sailingMasterBriefing } from './opening.mjs';
 import { drawVignette, vignetteDescription, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
@@ -343,7 +344,50 @@ async function startGame(nextState, { startTownIndex = null } = {}) {
     return;
   }
   state.nearestTownIndex = startTownIndex;
-  enterTown(nearestTown(), false);
+  // The sailing view must not run behind the opening's dialogs.
+  state.paused = true;
+  playOpening(() => playBriefing(() => enterTown(nearestTown(), false)));
+}
+
+// The story of this era and nation (0x139E2), one screen per string.
+function playOpening(done) {
+  const steps = openingSteps(eraIndexOf(state.era), state.nationality);
+  const title = scenarios[state.era].starts[state.nationality].name;
+  const kicker = `${state.era} · Your story`;
+  const show = (index) => {
+    if (index >= steps.length) { done(); return; }
+    const next = () => show(index + 1);
+    const step = steps[index];
+    const vignette = { id: step.vignette, flag: state.nationality };
+    if (!step.duel) {
+      showDialog({ vignette, kicker, title, body: `<p>${step.text}</p>`, actions: [{ label: 'Continue', run: next }] });
+      return;
+    }
+    // A practice bout in the original (mode -1): the story carries on whatever
+    // the result, so only the log differs.
+    const fought = (won) => { addLog(won ? 'Won your first duel.' : 'Lost your first duel.'); next(); };
+    showDialog({
+      vignette, kicker, title: 'Sword fight',
+      body: '<p>Sword fighting is not playable yet. Choose the provisional result of the duel. Either way your story carries on, as it does in the original.</p>',
+      actions: [
+        { label: 'Win the duel', run: () => fought(true) },
+        { label: 'Lose the duel', secondary: true, run: () => fought(false) },
+      ],
+    });
+  };
+  show(0);
+}
+
+// 0x13E3F: two screens before the first town menu.
+function playBriefing(done) {
+  const { greeting, cities } = sailingMasterBriefing({ towns: state.towns, townIndex: state.nearestTownIndex, townRange: randomTownRange(state.towns) });
+  const kicker = nearestTown().name;
+  const showCities = () => showDialog({
+    vignette: 'open-chart', kicker, title: 'The sailing master',
+    body: cities.map((line) => `<p>${line}</p>`).join(''),
+    actions: [{ label: 'Continue', run: done }],
+  });
+  showDialog({ vignette: 'sailing-master', kicker, title: 'The sailing master', body: `<p>${greeting}</p>`, actions: [{ label: 'Continue', run: cities.length ? showCities : done }] });
 }
 
 function saveGame(showMessage = true) {
@@ -3682,6 +3726,9 @@ zoomInButton.addEventListener('click', () => changeZoom(ZOOM_STEP));
 lowerSailsButton.addEventListener('click', () => changeSails(-1));
 raiseSailsButton.addEventListener('click', () => changeSails(1));
 dialog.addEventListener('cancel', (event) => event.preventDefault());
+// Browsers ignore a cancelled `cancel` without recent user activation, so Esc
+// must be stopped earlier: a dialog closed this way strands its action chain.
+dialog.addEventListener('keydown', (event) => { if (event.key === 'Escape') event.preventDefault(); });
 dialog.addEventListener('keydown', (event) => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
   const button = dialogShortcuts.get(event.key.toLowerCase());

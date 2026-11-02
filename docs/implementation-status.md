@@ -17,6 +17,15 @@ for future work.
   into the campaign. The career opens in the town screen of the town nearest
   the start record's point (`0x1ADFC`, `0x1D858`), which can be a foreign town;
   only the original's famous expeditions, not ported, open at sea.
+- Open each career with the story of its era and nation (the `0x35968` scripts
+  run by `0x139E2`, in `src/opening.mjs`), then the sailing master's briefing
+  (`0x13E3F`, CSTR 68-69) naming the closest city of each other nation. The
+  story's duel is a provisional choice; the original fights it as a practice
+  bout whose result changes nothing, so only the log differs. Deliberately left
+  out: the manual-based copy protection at script op 42 (`0x14630`), meaning
+  its penalty branch and the +16 favour with each nation it grants on a pass.
+  The original shows no pictures here; each screen's vignette is the port's
+  addition (`docs/scene-vignettes.md` §4.11).
 - Use a seeded random-number generator for repeatable rule calculations.
 
 ### Caribbean map
