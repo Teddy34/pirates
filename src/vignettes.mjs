@@ -67,6 +67,16 @@ const DESCRIPTIONS = {
   'lost-city-aztec': 'Lost Aztec gold in a sea cave beside an old wreck',
   'lost-city-olmec': 'Lost Olmec gold in a sea cave beside an old wreck',
   'lost-city-maya': 'Lost Maya gold in a sea cave beside an old wreck',
+  'sail-ho': 'The lookout points out a tiny sail on the horizon',
+  boarding: 'Two ships grind together as boarders swing across through the smoke',
+  'hostage-talks': 'A bound enemy captain offers a secret in the stern cabin',
+  'crew-recruits': 'Sailors crowd around as the captain writes their names in the articles',
+  'treasure-fleet': 'Gold passes from a beaten royal galleon to the captain’s ship',
+  'silver-train': 'Buccaneers lift silver bars from a broken mule train',
+  mutiny: 'An armed crew confronts the captain on the quarterdeck at dawn',
+  prison: 'The wounded captain sits in a stone cell with tally marks on the wall',
+  'hall-of-fame': 'A hall of captains’ portraits, with an open record and an empty frame',
+  'alley-duel': 'Two swordsmen square off in a moonlit alley',
 };
 
 export function vignetteDescription(id) {
@@ -1068,25 +1078,29 @@ function drawLandfall(p, { flag = 'pirate' } = {}) {
   ship(p, 146, 108, { flag, scale: 1.2, facing: -1 });
 }
 
-// A stone cell, moonlight through the bars, a prisoner on the straw.
-function drawPrison(p) {
+// Stone walls, floor and an iron-bound door, shared by both prison scenes.
+function stoneCell(p) {
   p.rect(0, 0, 224, 128, '#4a4a50');
   for (let y = 0; y < 104; y += 12) {
     p.rect(0, y, 224, 1, '#35353a');
     for (let x = (y % 24) * 2; x < 224; x += 34) p.rect(x, y, 1, 12, '#35353a');
   }
   p.rect(0, 104, 224, 24, '#3a3430');
+  p.outlined([[172, 40, 40, 64, WOOD_DARK]]);
+  for (const y of [50, 86]) p.rect(172, y, 40, 3, '#2a2a2a');
+  p.outlined([[186, 54, 12, 8, OUTLINE]]);
+  for (const x of [189, 193]) p.rect(x, 54, 1, 8, '#6a6a70');
+}
+
+// A stone cell, moonlight through the bars, a prisoner on the straw.
+function drawPrison(p) {
+  stoneCell(p);
   // Barred window and the shaft of light under it.
   p.rect(82, 14, 44, 30, OUTLINE);
   p.rect(84, 16, 40, 26, '#2a3a6a');
   p.disc(112, 26, 5, '#e8ecd8');
   for (let x = 90; x < 124; x += 8) p.rect(x, 16, 2, 26, OUTLINE);
   for (let row = 0; row < 62; row += 1) p.rect(84 - row / 3, 44 + row, 40 + row / 2, 1, row % 2 ? '#5a5a62' : '#55555e');
-  // Iron-bound door.
-  p.outlined([[172, 40, 40, 64, WOOD_DARK]]);
-  for (const y of [50, 86]) p.rect(172, y, 40, 3, '#2a2a2a');
-  p.outlined([[186, 54, 12, 8, OUTLINE]]);
-  for (const x of [189, 193]) p.rect(x, 54, 1, 8, '#6a6a70');
   // Straw, then the prisoner slumped against the wall, chained.
   for (let x = 20; x < 84; x += 3) p.rect(x, 110 + (x % 5), 7, 1, '#b8a060');
   figure(p, 56, 118, { coat: '#8a7a64', legs: '#5a4a3a', hair: '#3a2a1e' });
@@ -1414,6 +1428,268 @@ function drawVillain(picture) {
   p.rect(38, 60, 4, 3, OUTLINE);
 }
 
+// The scenes that close out the sea, capture, captivity and hall-of-fame
+// dialogs (scene-vignettes.md §4.4–§4.10).
+
+// The lookout points from the crow's nest; the captain raises his spyglass
+// toward a tiny sail on the horizon.
+function drawSailHo(p) {
+  sky(p, ['#4f9ac8', '#7ab8d8', '#a8d4e0', '#d4e8e0'], 66);
+  for (const [x, y, w] of [[92, 14, 46], [160, 28, 38]]) { p.rect(x, y, w, 4, '#f4f4ec'); p.rect(x + 8, y - 3, w - 18, 3, '#f4f4ec'); }
+  sea(p, 66, '#1f6a8a', '#6ab0c0');
+  p.rect(186, 52, 1, 12, OUTLINE);
+  p.rect(181, 54, 11, 7, '#f4f0e4');
+  p.rect(180, 64, 13, 2, WOOD_DARK);
+  p.rect(30, 0, 7, 128, WOOD);
+  p.rect(30, 0, 2, 128, WOOD_LIGHT);
+  for (let step = 0; step < 66; step += 1) { p.rect(37 + step * 0.9, 34 + step, 1, 1, WOOD_DARK); p.rect(37 + step * 0.5, 34 + step, 1, 1, WOOD_DARK); }
+  figure(p, 34, 44, { coat: '#7a3a2a', legs: PARCHMENT, hat: '#a8331f' });
+  p.outlined([[39, 23, 18, 2, '#7a3a2a'], [57, 23, 3, 2, SKIN], [14, 38, 40, 11, WOOD_LIGHT]]);
+  p.rect(14, 42, 40, 1, WOOD_DARK);
+  shipRail(p, 100);
+  shipDeck(p, 114);
+  captain(p, 130, 126);
+  p.outlined([[135, 101, 2, 8, '#2c3f63'], [133, 99, 18, 3, BRASS]]);
+}
+
+// Two hulls grind together in the smoke: grapnels taut, men swinging across,
+// and the enemy captain drawing on his own deck.
+function drawBoarding(p, { flag = 'Spain' } = {}) {
+  sky(p, ['#6a6470', '#8a7a78', '#b89a78', '#d8b880'], 76);
+  sea(p, 76, '#2a5a64', '#6a9a9a');
+  ship(p, 68, 112, { flag: 'pirate', scale: 1.4 });
+  ship(p, 156, 112, { facing: -1, flag, scale: 1.4, sails: '#d8cfb4' });
+  for (const [x, y, r] of [[112, 42, 16], [96, 56, 11], [132, 58, 13], [112, 70, 10]]) { p.disc(x, y, r, '#a8a096'); p.disc(x - 3, y - 2, r - 4, '#c4bcb0'); }
+  for (const [fromX, fromY] of [[86, 74], [96, 62]]) {
+    for (let step = 0; step < 42; step += 1) p.rect(fromX + step, fromY + step * 0.45, 1, 1, OUTLINE);
+  }
+  captain(p, 62, 98);
+  blade(p, 70, 84, 14, 1);
+  p.rect(116, 0, 1, 70, OUTLINE);
+  figure(p, 116, 84, { coat: '#7a3a2a', legs: PARCHMENT, hat: '#a8331f' });
+  blade(p, 123, 70, 10, 1);
+  figure(p, 160, 98, { coat: '#3a1f1f', legs: '#1d1710', hat: '#1d1710', sash: GOLD, collar: '#f4f0e4' });
+  blade(p, 152, 86, 15, -1);
+}
+
+// The stern cabin: a bound enemy captain leans over the table and offers a
+// secret under the lantern.
+function drawHostageTalks(picture) {
+  picture.rect(0, 0, 224, 128, '#3f2a1a');
+  for (let x = 12; x < 224; x += 26) picture.rect(x, 0, 1, 128, WOOD_DARK);
+  picture.rect(0, 0, 224, 8, WOOD_DARK);
+  for (const x of [56, 92, 128]) {
+    picture.rect(x - 1, 15, 38, 36, OUTLINE);
+    picture.rect(x, 16, 36, 22, '#c47a4a');
+    picture.rect(x, 38, 36, 12, '#2a4a5a');
+    picture.rect(x + 17, 16, 2, 34, WOOD);
+  }
+  picture.rect(111, 8, 1, 12, OUTLINE);
+  picture.outlined([[107, 20, 9, 11, GOLD]]);
+  picture.rect(109, 23, 5, 5, '#fff2c0');
+  const p = zoomed(picture, 1.5, 112, 128);
+  captain(p, 62, 128);
+  figure(p, 162, 128, { coat: '#7a2a2a', legs: '#4a3a2c', hair: '#3a2a1e', collar: '#f4f0e4' });
+  picture.outlined([[34, 104, 166, 5, WOOD_LIGHT], [46, 109, 5, 19, WOOD], [184, 109, 5, 19, WOOD]]);
+  picture.outlined([[76, 99, 34, 5, PARCHMENT], [116, 101, 12, 3, '#6a6a70'], [146, 99, 28, 4, '#7a2a2a'], [138, 97, 8, 7, SKIN]]);
+  picture.rect(90, 101, 8, 1, '#a8331f');
+  picture.rect(138, 100, 8, 2, '#c9b07a');
+}
+
+// Mixed sailors crowd a tavern table as the captain enters their names in
+// the articles, coins and the rum jug beside him.
+function drawCrewRecruits(picture) {
+  picture.rect(0, 0, 224, 128, '#6a4c30');
+  picture.rect(0, 0, 224, 12, '#2c1e14');
+  for (const x of [40, 118, 196]) picture.rect(x, 0, 6, 88, '#2c1e14');
+  picture.rect(0, 88, 224, 40, '#4a3220');
+  picture.rect(82, 12, 1, 8, OUTLINE);
+  picture.outlined([[78, 20, 9, 10, GOLD]]);
+  picture.rect(80, 23, 5, 4, '#fff2c0');
+  const p = zoomed(picture, 1.35, 112, 128);
+  // Tarred pigtail, a tall freedman with a boarding axe, a grizzled gunner
+  // and a boy with a knife.
+  figure(p, 100, 104, { coat: '#3a5a5a', legs: PARCHMENT, hair: '#1d1710' });
+  figure(p, 124, 100, { coat: '#d8ccb0', legs: '#7a3a2a', hair: '#1d1710', skin: '#6a4228' });
+  p.outlined([[134, 62, 2, 26, WOOD_LIGHT], [130, 60, 7, 6, '#9a9a9a']]);
+  figure(p, 148, 104, { coat: '#6a4a2a', legs: '#3a3a3a', hair: '#c8c4bc' });
+  figure(p, 170, 110, { coat: '#a8331f', legs: '#c9b07a', hat: '#d8ccb0' });
+  captain(p, 58, 128);
+  picture.outlined([[52, 98, 126, 6, WOOD_LIGHT], [62, 104, 6, 24, WOOD], [162, 104, 6, 24, WOOD]]);
+  picture.outlined([[82, 92, 34, 6, PARCHMENT], [146, 86, 10, 12, '#7a7a68']]);
+  for (const y of [94, 96]) picture.rect(86, y, 22, 1, '#7a6a50');
+  picture.rect(110, 88, 1, 6, '#f4f0e4');
+  for (const [x, y] of [[124, 94], [130, 96], [136, 94]]) picture.rect(x, y, 4, 2, GOLD);
+}
+
+// The beaten royal galleon alongside: gold goes hand to hand across a plank.
+function drawTreasureFleet(p) {
+  sky(p, ['#6ab0d8', '#8fc8e0', '#b8dce4', '#e0e8d4'], 66);
+  sea(p, 66, '#1f7a8a', '#7ac8c0');
+  ship(p, 158, 96, { facing: -1, flag: 'Spain', scale: 1.5, struck: true, sails: '#d8cfb4' });
+  ship(p, 44, 104, { flag: 'pirate', scale: 1.05 });
+  p.rect(64, 82, 62, 2, WOOD_LIGHT);
+  for (const x of [76, 96, 116]) {
+    figure(p, x, 82, { coat: x === 96 ? '#4a5a3a' : '#7a3a2a', legs: PARCHMENT });
+    p.outlined([[x + 4, 64, 8, 3, GOLD]]);
+  }
+  // The heap already aboard, on the near deck.
+  shipDeck(p, 108);
+  for (const [x, y, width] of [[60, 118, 104], [72, 113, 80], [88, 108, 48]]) p.rect(x, y, width, 5, x === 60 ? BRASS : GOLD);
+  for (let x = 64; x < 160; x += 9) p.rect(x, 110 + (x % 4) * 3, 2, 1, '#fff0b0');
+  openChest(p, 98, 118);
+  for (const [x, y] of [[160, 106], [170, 112], [180, 106]]) p.outlined([[x, y, 13, 4, GOLD]]);
+}
+
+function pannierMule(p, x, y) {
+  p.outlined([[x, y - 18, 28, 12, '#7a6a5a'], [x + 27, y - 25, 8, 9, '#7a6a5a'], [x + 3, y - 6, 3, 6, '#5a4a3e'], [x + 21, y - 6, 3, 6, '#5a4a3e']]);
+  p.rect(x + 29, y - 28, 2, 3, '#5a4a3e');
+  p.outlined([[x + 7, y - 21, 14, 11, '#8a6a42']]);
+  p.rect(x + 7, y - 14, 14, 1, WOOD_DARK);
+  p.outlined([[x + 8, y - 6, 11, 3, '#d4dce0']]);
+}
+
+// A broken mule train in a dusty street: spilled silver, cheering buccaneers,
+// the escort running past the church.
+function drawSilverTrain(p) {
+  sky(p, ['#8fc0d0', '#b4d4d0', '#dcdcc0'], 44);
+  p.rect(0, 44, 224, 84, '#d4bc8c');
+  for (const [x, y] of [[20, 70], [80, 118], [142, 84], [196, 108], [110, 74]]) p.rect(x, y, 8, 1, '#c0a678');
+  p.outlined([[150, 22, 66, 40, '#e8e0cc'], [172, 6, 22, 16, '#e8e0cc']]);
+  p.rect(182, 0, 2, 6, OUTLINE);
+  p.outlined([[176, 42, 14, 20, WOOD]]);
+  house(p, 4, 34, 54, 28);
+  house(p, 72, 38, 46, 24);
+  figure(p, 142, 80, { coat: '#a8331f', legs: WOOD_DARK, hat: '#9a9a9a' });
+  figure(p, 124, 76, { coat: '#a8331f', legs: WOOD_DARK, hat: '#9a9a9a' });
+  pannierMule(p, 28, 106);
+  pannierMule(p, 96, 112);
+  for (const [x, y] of [[66, 116], [80, 120], [140, 116], [150, 122], [70, 110]]) p.outlined([[x, y, 12, 4, '#d4dce0']]);
+  for (const [x, coat] of [[18, '#7a3a2a'], [174, '#4a5a3a'], [200, '#8a6a3a']]) {
+    figure(p, x, 122, { coat, legs: PARCHMENT, hat: x === 174 ? '#a8331f' : undefined });
+    p.outlined([[x - 8, 80, 16, 4, '#d4dce0']]);
+    p.rect(x - 7, 84, 2, 16, SKIN); p.rect(x + 5, 84, 2, 16, SKIN);
+  }
+  captain(p, 62, 126);
+  blade(p, 69, 112, 12, 1);
+}
+
+// Dawn on the quarterdeck: a huge bare-chested ringleader points his cutlass
+// at the captain, alone at the rail, with the crew armed behind him.
+function drawMutiny(picture) {
+  sky(picture, ['#4a4a70', '#a86a70', '#e8a070', '#f4d090'], 66);
+  picture.disc(36, 66, 8, '#fff0b0');
+  sea(picture, 66, '#4a5a70', '#c89878');
+  shipRail(picture, 70);
+  shipDeck(picture, 86);
+  picture.rect(202, 0, 7, 90, WOOD);
+  picture.rect(202, 0, 2, 90, WOOD_LIGHT);
+  const crew = [[104, '#6a4a2a'], [122, '#3a5a5a'], [160, '#8a7a4a'], [178, '#5a4a6a'], [196, '#7a4a3a']];
+  crew.forEach(([x, coat], index) => {
+    figure(picture, x, 98, { coat, legs: PARCHMENT, hat: index % 2 ? '#a8331f' : undefined, hair: '#2a1e14' });
+    picture.rect(x + 7, 76, 2, 10, index === 2 ? '#9a9a9a' : WOOD_DARK);
+  });
+  figure(picture, 138, 96, { coat: '#3a5a5a', legs: PARCHMENT, hair: '#2a1e14' });
+  picture.outlined([[144, 68, 2, 18, WOOD_LIGHT], [141, 66, 7, 6, '#9a9a9a']]);
+  captain(picture, 44, 124);
+  blade(picture, 52, 110, 14, 1);
+  const p = zoomed(picture, 1.5, 112, 128);
+  figure(p, 134, 128, { coat: SKIN, legs: '#4a3a2c', hair: '#1d1710', sash: '#a8331f' });
+  picture.outlined([[126, 106, 12, 3, SKIN]]);
+  blade(picture, 126, 106, 44, -1);
+}
+
+// A stone cell by day, the same room as the opening's night prison; the
+// captain, wounded, has been counting the months on the wall.
+function drawImprisoned(p) {
+  stoneCell(p);
+  p.rect(36, 12, 34, 26, OUTLINE);
+  p.rect(38, 14, 30, 22, '#d8e8e4');
+  for (const x of [44, 52, 60]) p.rect(x, 14, 2, 22, OUTLINE);
+  for (let row = 0; row < 16; row += 1) p.rect(82 + row * 2, 106 + row, 44, 1, row % 2 ? '#8a8270' : '#7a7464');
+  for (let group = 0; group < 3; group += 1) {
+    for (let mark = 0; mark < 4; mark += 1) p.rect(90 + group * 22 + mark * 3, 56, 1, 10, '#2a2a30');
+    for (let step = 0; step < 13; step += 1) p.rect(89 + group * 22 + step, 64 - step * 0.7, 1, 1, '#2a2a30');
+  }
+  for (let x = 20; x < 84; x += 3) p.rect(x, 112 + (x % 4), 7, 1, '#b8a060');
+  figure(p, 52, 118, { coat: '#2c3f63', legs: WOOD_DARK, hair: WOOD_DARK });
+  p.rect(38, 118, 30, 3, '#3a3430');
+  p.rect(45, 97, 2, 7, '#f4f0e4');
+  p.rect(49, 90, 6, 2, '#6a5a4a');
+  // A guard's shadow falls across the door.
+  p.rect(182, 76, 20, 26, '#2f2118');
+  p.disc(192, 70, 6, '#2f2118');
+}
+
+// A panelled hall of famous captains; the record lies open for a new name
+// beneath an empty frame.
+function drawHallOfFame(p) {
+  p.rect(0, 0, 224, 128, '#5a3b22');
+  p.rect(0, 0, 224, 6, '#2c1e14');
+  for (let x = 0; x < 224; x += 32) p.rect(x, 6, 1, 98, WOOD_DARK);
+  p.rect(0, 74, 224, 2, WOOD_LIGHT);
+  p.rect(0, 104, 224, 24, '#3b2b1d');
+  for (let x = 6; x < 224; x += 28) p.rect(x, 104, 1, 24, '#2c1e14');
+  for (const [x, coat, hat] of [[10, '#2c3f63', '#1d1710'], [46, '#7a2a2a', undefined], [152, '#3a5a3a', '#1d1710'], [188, '#4a3a6a', undefined]]) {
+    p.outlined([[x, 14, 26, 34, BRASS]]);
+    p.rect(x + 2, 16, 22, 30, '#3a3230');
+    p.rect(x + 5, 36, 16, 10, coat);
+    p.rect(x + 9, 24, 8, 12, SKIN);
+    p.rect(x + 8, 22, 10, 3, hat ?? '#6a5a4a');
+  }
+  p.outlined([[92, 12, 40, 44, BRASS]]);
+  p.rect(95, 15, 34, 38, '#4a3120');
+  p.rect(95, 15, 34, 2, '#2c1e14');
+  p.outlined([[100, 84, 24, 6, WOOD_LIGHT], [108, 90, 8, 30, WOOD], [98, 118, 28, 4, WOOD_DARK]]);
+  p.outlined([[86, 72, 25, 12, '#f4ecd4'], [112, 72, 25, 12, '#f4ecd4']]);
+  p.rect(111, 72, 1, 12, '#b8a888');
+  for (const y of [75, 78, 81]) { p.rect(89, y, 19, 1, '#8a7a5a'); if (y < 78) p.rect(115, y, 18, 1, '#8a7a5a'); }
+  for (let step = 0; step < 14; step += 1) p.rect(128 + step * 0.7, 76 - step, 2, 1, '#f4f0e4');
+  p.outlined([[148, 74, 8, 3, BRASS], [150, 62, 4, 12, PARCHMENT]]);
+  p.disc(152, 58, 2, '#e07a2a');
+  p.rect(152, 57, 1, 2, GOLD);
+}
+
+// A moonlit alley of whitewashed houses: two swordsmen square off, a shutter
+// opens above and a cat bolts.
+function drawAlleyDuel(p) {
+  sky(p, ['#0f1a3a', '#16244a', '#1f3058'], 44);
+  p.disc(112, 14, 7, '#e8ecd8');
+  for (const [x, y] of [[92, 8], [134, 22], [120, 34]]) p.rect(x, y, 1, 1, '#e8ecd8');
+  // The house closing the far end of the alley.
+  p.rect(84, 44, 56, 42, '#5a6078');
+  for (let row = 0; row < 8; row += 1) p.rect(82 + row, 44 - row, 60 - row * 2, 1, '#3a3f58');
+  p.rect(106, 58, 12, 26, '#2a2f44');
+  p.rect(0, 84, 224, 44, '#4a4a58');
+  for (let row = 88; row < 128; row += 7) for (let x = (row * 3) % 19; x < 224; x += 19) p.rect(x, row, 12, 1, '#3a3a48');
+  for (const [x, width, wall] of [[0, 84, '#8a92aa'], [140, 84, '#7a829a']]) {
+    p.rect(x, 0, width, 88, wall);
+    p.rect(x, 86, width, 2, '#4a5068');
+  }
+  // A long lit balcony on each side, with laundry on a line between them.
+  for (const x of [16, 158]) {
+    p.rect(x, 26, 16, 22, '#2a2f44');
+    p.rect(x + 18, 26, 14, 22, x === 16 ? '#2a2f44' : '#d8a050');
+    for (let bar = 0; bar < 36; bar += 4) p.rect(x - 2 + bar, 44, 1, 8, OUTLINE);
+    p.rect(x - 2, 44, 36, 1, OUTLINE);
+    p.rect(x - 2, 52, 36, 1, OUTLINE);
+  }
+  p.outlined([[186, 26, 4, 22, '#4a3a2c']]);
+  for (let x = 84; x < 140; x += 1) p.rect(x, 20 + Math.round((1 - ((x - 112) / 28) ** 2) * 3), 1, 1, OUTLINE);
+  p.outlined([[92, 22, 10, 13, '#c8d0d8'], [108, 21, 12, 10, '#a84a4a'], [124, 22, 8, 12, '#c8d0d8']]);
+  p.rect(28, 56, 16, 28, '#3a2a22');
+  p.rect(180, 56, 16, 28, '#3a2a22');
+  for (let row = 0; row < 8; row += 1) p.rect(70 + row * 11, 120 - row * 2, 16, 1, '#2a2a38');
+  captain(p, 84, 118);
+  blade(p, 92, 104, 18, 1);
+  figure(p, 140, 118, { coat: '#3a1f1f', legs: '#1d1710', hat: '#1d1710', sash: '#a8331f' });
+  blade(p, 132, 104, 18, -1);
+  p.rect(200, 118, 11, 4, '#1a1a22');
+  p.rect(209, 114, 4, 4, '#1a1a22');
+  p.rect(198, 112, 2, 7, '#1a1a22');
+  p.rect(210, 112, 1, 2, '#1a1a22');
+}
+
 const SCENES = {
   governor: { shape: 'portrait', draw: drawGovernor },
   'villain-news': { shape: 'portrait', draw: drawVillain },
@@ -1452,6 +1728,16 @@ const SCENES = {
   'lost-city-aztec': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'aztec' }) },
   'lost-city-olmec': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'olmec' }) },
   'lost-city-maya': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'maya' }) },
+  'sail-ho': { shape: 'landscape', draw: drawSailHo },
+  boarding: { shape: 'landscape', draw: drawBoarding },
+  'hostage-talks': { shape: 'landscape', draw: drawHostageTalks },
+  'crew-recruits': { shape: 'landscape', draw: drawCrewRecruits },
+  'treasure-fleet': { shape: 'landscape', draw: drawTreasureFleet },
+  'silver-train': { shape: 'landscape', draw: drawSilverTrain },
+  mutiny: { shape: 'landscape', draw: drawMutiny },
+  prison: { shape: 'landscape', draw: drawImprisoned },
+  'hall-of-fame': { shape: 'landscape', draw: drawHallOfFame },
+  'alley-duel': { shape: 'landscape', draw: drawAlleyDuel },
 };
 
 // The shared 8 px carved frame with a brass fillet and corner pieces

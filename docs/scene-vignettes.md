@@ -566,6 +566,23 @@ portrait of a 17th-century* `<type>` *under sail on a calm sea, full
 rigging detail, neutral sky."* Our ships are drawn procedurally
 (`ship-sprites.mjs`). If you add these, make them match the sprite colours.
 
+### 4.13 Where the placeholders appear
+
+`src/vignettes.mjs` draws a placeholder for these scenes from §4.4 to §4.10.
+A scene can serve more than one dialog:
+
+| id | dialogs |
+|---|---|
+| sail-ho | the first sighting only, not the closer looks that follow |
+| boarding | the provisional boarding choice, with the enemy's flag |
+| hostage-talks | the prisoner's offer and the report he gives |
+| crew-recruits | tavern volunteers and sailors from a captured ship |
+| treasure-fleet, silver-train | each capture's own dialog in a taken town |
+| mutiny | the quarterdeck confrontation |
+| prison | imprisonment and release; an island rescue uses marooned |
+| hall-of-fame | the offer and the list of entries |
+| alley-duel | the guard who recognises you and the villain's back entrance; the rival suitor waits for courtship |
+
 ## 5. Not vignettes
 
 These scene-table entries are interface, data or logos. They get no picture:

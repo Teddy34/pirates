@@ -26,7 +26,7 @@ as uncertain, and record any small playable assumption beside its code.
 | 9 | Courtship, marriage, and informants | Missing | Model daughters and nieces, charm checks, rival suitors, proposals, merchant marriage, family discounts, and informant reports. Use provisional duel outcomes until sword combat exists. | `marriage.md`, `town_economy.md` |
 | 10 | Health, age, land, and retirement | Partial (#33) | Done: wounds, health with Medicine, land income, forced retirement at the division and in captivity, voluntary retirement, the decoded score, career summary, post-career job, lure of the sea, hall of fame and another game. Left: marriage's share of the score (row 9) and the four retirement pictures (row 12). | `health_age_land.md`, main report retirement sections |
 | 11 | Career opening | Done (#35) | Start every career in the town screen of the town nearest the start record's point (`52f5fd3`), play the story for its era and nation, then the sailing master's briefing naming the closest city of each other nation. | `src/opening.mjs`, `0x139E2`, `0x13E3F`, `0x1D858` |
-| 12 | Scene pictures | Partial (#34, #35) | Done: code-drawn placeholders in the dialogs for the governor, merchant, shipwright, tavern staff and visitors, the town approach and town menu, prizes, an exploding enemy, shipwreck, marooning, dividing the plunder, the career opening, and the dig's results: treasure found, nothing found, a relative's reunion and the four lost cities. Left: the catalogue's other scenes (among them mutiny, prison, boarding, the treasure fleet and silver train, weddings, the hall of fame and the four retirement pictures) and real art, which needs the user's rights confirmed first. | `scene-vignettes.md` |
+| 12 | Scene pictures | Partial (#34, #35) | Done: code-drawn placeholders in the dialogs for the governor, merchant, shipwright, tavern staff and visitors, the town approach and town menu, prizes, an exploding enemy, shipwreck, marooning, dividing the plunder, the career opening, the dig's results (treasure found, nothing found, a relative's reunion and the four lost cities), a sail sighted, boarding, a prisoner's offer, new recruits, the treasure fleet and silver train captures, mutiny, prison, the sword-fight alley and the hall of fame. Left: the catalogue's other scenes (among them the four retirement pictures, the town assault, your own ship sinking, a chase's end and the courtship scenes, which wait for row 9) and real art, which needs the user's rights confirmed first. | `scene-vignettes.md` |
 
 ## Added since the last plan update
 
@@ -50,6 +50,12 @@ The plan was last revised with #33. These changes followed it:
   villain records and their rules; `?preview=villain-tavern` and
   `villain-rumour` show them, and `tools/check_villains.mjs` is their browser
   check. Saves move to version 10.
+- **Ten more scene pictures (row 12):** sail-ho, boarding, hostage-talks,
+  crew-recruits, treasure-fleet, silver-train, mutiny, prison, hall-of-fame and
+  alley-duel, each with a `?preview=` state; `tools/check_vignettes.mjs` is their
+  browser check. The treasure fleet and silver train previews are named
+  `treasure-fleet-capture` and `silver-train-capture`, because `treasure-fleet`
+  already opens the town approach.
 
 ## Known differences from the original
 
@@ -64,6 +70,8 @@ evidence for each item. This list collects them in one place.
 - Coastal towns use the harbour-arrival and port-quay pictures however you
   arrive. Only landlocked towns use shore-arrival and town-square. The original
   picks the arrival picture by how you came.
+- The prison picture also shows on the release dialog, and the marooned picture
+  on the rescue dialog, so both ends of a captivity share one scene.
 - All art is original, and the pictures are placeholders. No original artwork is
   used.
 - Your ship stops head to wind (porting-guide quirk 18 is not reproduced).
