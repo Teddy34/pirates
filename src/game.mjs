@@ -749,7 +749,7 @@ function loseLastShip({ inTown, done, cause = '' }) {
   // aboard at the release point.
   clearLandingParty();
   showDialog({
-    vignette: inTown ? undefined : 'marooned', kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
+    vignette: inTown ? 'prison' : 'marooned', kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
     body: inTown
       ? `${cause}<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${town.name}.</p>`
       : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p>`,
@@ -872,7 +872,7 @@ function loadHallOfFame() {
 function offerHallOfFame(score, town) {
   if (score.points < 0) { offerAnotherGame(); return; }
   showDialog({
-    kicker: 'Retirement', title: 'The Pirate Hall of Fame',
+    vignette: 'hall-of-fame', kicker: 'Retirement', title: 'The Pirate Hall of Fame',
     body: '<p>Do you wish to have your exploits recorded in the Pirate Hall of Fame?</p>',
     actions: [
       { label: 'Yes (Y)', key: 'y', run: () => {
@@ -883,7 +883,7 @@ function offerHallOfFame(score, town) {
         const entries = recordInHallOfFame(loadHallOfFame(), entry);
         localStorage.setItem(HALL_OF_FAME_KEY, JSON.stringify(entries));
         showDialog({
-          kicker: 'Retirement', title: 'The Pirate Hall of Fame',
+          vignette: 'hall-of-fame', kicker: 'Retirement', title: 'The Pirate Hall of Fame',
           body: `<ol class="hall-of-fame">${entries.map((item) => `<li${item === entry ? ' aria-current="true"' : ''}><strong>${escapeHtml(item.captain)}</strong>, ${item.job} in ${item.town} (${item.nationality}, ${item.era}–${item.year}): ${item.points} points</li>`).join('')}</ol>`,
           actions: [{ label: 'Continue', run: offerAnotherGame }],
         });
@@ -941,7 +941,7 @@ function endCaptivity({ inTown, town, lost, done, before }) {
     ? `Released from prison in ${town.name} after ${months} months; back at sea as ${captainKind} captain.`
     : `Rescued from an uncharted island after ${months} months; back at sea as ${captainKind} captain.`);
   showDialog({
-    kicker: inTown ? 'Released' : 'Rescued', title: `${months} months pass`,
+    vignette: inTown ? 'prison' : 'marooned', kicker: inTown ? 'Released' : 'Rescued', title: `${months} months pass`,
     body: `<p>${CAPTIVITY_TEXT[health]}</p><p>${inTown
       ? `Your former comrades take pity on you and trade a captured nobleman for your freedom. They agree to take you back as ${captainKind} captain.`
       : `One day a small ship puts in at the island to resupply, and you recognize some of your former crew. They agree to take you back as ${captainKind} captain.`}</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
@@ -1086,7 +1086,7 @@ function showMutiny(next) {
     next();
   };
   showDialog({
-    kicker: 'Mutiny', title: 'Your men confront you on the quarterdeck',
+    vignette: 'mutiny', kicker: 'Mutiny', title: 'Your men confront you on the quarterdeck',
     body: '<p>“Captain, you are a skulker and a coward. We are taking this ship to search for plunder!” A third of the crew deserts as you draw your sword and attack their leader.</p><p>Sword fighting is not playable yet. Choose the provisional result of the duel; either way the mutiny costs you reputation.</p>',
     actions: [
       { label: 'Defeat the ringleader', run: () => resolve(true) },
@@ -1312,7 +1312,7 @@ function openSighting(town, distance) {
 function showSighting(town, distance) {
   state.paused = true;
   showDialog({
-    kicker: 'Sail ho!', title: 'A sail on the horizon',
+    vignette: 'sail-ho', kicker: 'Sail ho!', title: 'A sail on the horizon',
     body: state.difficulty < 2
       ? `<p>The sailing master reports that these are ${distance > 12 ? 'unknown' : town.nation} waters.</p><p>Will you investigate?</p>`
       : '<p>A distant sail crosses the horizon. Will you investigate?</p>',
@@ -1561,7 +1561,7 @@ function showEnemyDestroyed(enemy, done) {
 
 function offerProvisionalBoarding(enemy) {
   showDialog({
-    kicker: 'Ships grappled', title: `Boarding the ${enemy.ship}`,
+    vignette: { id: 'boarding', flag: enemy.flag }, kicker: 'Ships grappled', title: `Boarding the ${enemy.ship}`,
     body: '<p>Interactive boarding and sword fighting are not playable yet. Choose the provisional outcome; it will update the voyage and captain’s log.</p>',
     actions: [
       { label: 'Win and capture the ship', run: () => resolveProvisionalBoarding(enemy, 'won') },
@@ -1680,7 +1680,7 @@ function resolveNamedCaptain(enemy, next) {
     return;
   }
   showDialog({
-    kicker: enemy.flag === 'pirate' ? 'A pirate prisoner' : 'A notable prisoner', title: `${who} yields`,
+    vignette: 'hostage-talks', kicker: enemy.flag === 'pirate' ? 'A pirate prisoner' : 'A notable prisoner', title: `${who} yields`,
     body: '<p>“Spare me, captain, and I will tell you what I know of the Spanish treasure.”</p>',
     actions: [
       { label: 'Ask about the treasure fleet', run: () => showConvoyReport('treasureFleet', next) },
@@ -1694,7 +1694,7 @@ function resolveNamedCaptain(enemy, next) {
 function showConvoyReport(kind, next) {
   const report = noteConvoyReport(kind);
   showDialog({
-    kicker: 'Intelligence from a prisoner', title: report.name,
+    vignette: 'hostage-talks', kicker: 'Intelligence from a prisoner', title: report.name,
     body: `<p>${report.message}</p>`,
     actions: [{ label: 'Continue to the captured ship', run: next }],
   });
@@ -1735,8 +1735,12 @@ function offerCapturedRecruits(enemy) {
     finishCaptureFlow();
     return;
   }
+  showRecruitOffer(recruits);
+}
+
+function showRecruitOffer(recruits) {
   showDialog({
-    kicker: 'Former enemies', title: `${recruits} sailors ask to join`,
+    vignette: 'crew-recruits', kicker: 'Former enemies', title: `${recruits} sailors ask to join`,
     body: '<p>They offer to sail under your flag for a share of future plunder.</p>',
     actions: [
       { label: 'Take them', run: () => { state.player.crew += recruits; addLog(`${recruits} captured sailors joined the crew.`); finishCaptureFlow(); } },
@@ -2191,11 +2195,13 @@ function resolveTownCapture(town) {
 // CSTR 186 / 187 and log events 24 / 25, the fleet first.
 const CONVOY_CAPTURE_TEXTS = {
   treasureFleet: {
+    vignette: 'treasure-fleet',
     title: 'The treasure fleet is yours!',
     body: 'You have captured the royal Spanish treasure fleet! A flood of gold and jewels pours into the hold of your ship.',
     log: 'Captured the treasure fleet!',
   },
   silverTrain: {
+    vignette: 'silver-train',
     title: 'The silver train is yours!',
     body: 'You have captured the silver train, bearing a fortune in silver from the mines of Peru! The crew sings lustily as they haul it aboard.',
     log: 'Captured the silver train!',
@@ -2207,7 +2213,7 @@ function showConvoyCaptures(captured, next) {
   const text = CONVOY_CAPTURE_TEXTS[captured[0]];
   addLog(text.log);
   showDialog({
-    kicker: 'Spanish treasure', title: text.title,
+    vignette: text.vignette, kicker: 'Spanish treasure', title: text.title,
     body: `<p>${text.body}</p>`,
     actions: [{ label: 'Continue', run: () => showConvoyCaptures(captured.slice(1), next) }],
   });
@@ -2273,10 +2279,14 @@ function tryHarbor(town) {
 // guard (0x161BA at 0x1968C); win or lose, he is back at the approach menu.
 function trySneak(town) {
   const unseen = sneakAttempt({ governorMood: town.mood, reputation: state.player.reputation, rng });
-  if (unseen) { enterTown(town, true); return; }
+  if (unseen) enterTown(town, true);
+  else showGuardDuel(town);
+}
+
+function showGuardDuel(town) {
   const overland = Boolean(state.approach?.overland);
   showDialog({
-    kicker: 'Recognized!', title: '“Halt, you cowardly pirate scum!”',
+    vignette: 'alley-duel', kicker: 'Recognized!', title: '“Halt, you cowardly pirate scum!”',
     body: '<p>As you sneak into town, one of the governor’s guards recognizes you and draws his sword.</p><p>Sword fighting is not playable yet. Choose the provisional result of the duel.</p>',
     actions: [
       { label: 'Defeat the guard', run: () => {
@@ -2691,7 +2701,7 @@ function confrontVillainInTown(townIndex, next) {
   const town = state.towns[townIndex];
   const relative = RELATIVE_NAMES[state.relativesRescued];
   showDialog({
-    vignette: 'villain-news', kicker: `The evil ${villainName(villain)}`, title: 'Sneaking out a back entrance',
+    vignette: 'alley-duel', kicker: `The evil ${villainName(villain)}`, title: 'Sneaking out a back entrance',
     body: `<p>You spot the evil ${villainDescription(villain)} sneaking out a back entrance. He draws his sword as you rush after him!</p><p>Sword fighting is not playable yet. Choose the provisional result of the duel.</p>`,
     actions: [
       { label: 'Win the duel', run: () => {
@@ -2862,7 +2872,7 @@ function showTavernRecruits() {
   const recruits = tavernRecruits({ townPopulation: town.population, reputation: state.player.reputation, difficulty: state.difficulty, crew: state.player.crew, capacity: fleetCapacity(), rng });
   state.visit.recruited = true;
   showDialog({
-    vignette: 'tavern', kicker: 'The tavern', title: `${recruits} sailors volunteer`,
+    vignette: 'crew-recruits', kicker: 'The tavern', title: `${recruits} sailors volunteer`,
     body: '<p>They will join for a share of future plunder.</p>',
     actions: [
       { label: 'Welcome them aboard', run: () => { state.player.crew += recruits; addLog(`${recruits} sailors joined the crew.`); showTavern(); } },
@@ -4127,6 +4137,26 @@ loadScenarios().then(() => {
     const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
     previewState.player.ships = [shipRecord('Sloop'), shipRecord('Frigate')];
     startGame(previewState).then(() => strikeReef(1));
+    return;
+  }
+  // One dialog of each moment that has its own scene picture, by scene id.
+  const scenePreviews = {
+    'sail-ho': () => showSighting(state.towns[0], 5),
+    boarding: () => offerProvisionalBoarding({ ship: 'Merchantman', flag: 'Spain' }),
+    'hostage-talks': () => resolveNamedCaptain({ ship: 'Galleon', flag: 'Spain', captainId: 3 }, resumeSailing),
+    'crew-recruits': () => showRecruitOffer(12),
+    'treasure-fleet-capture': () => showConvoyCaptures(['treasureFleet'], resumeSailing),
+    'silver-train-capture': () => showConvoyCaptures(['silverTrain'], resumeSailing),
+    mutiny: () => showMutiny(resumeSailing),
+    prison: () => loseLastShip({ inTown: true, done: resumeSailing }),
+    'hall-of-fame': () => offerHallOfFame({ points: 40, job: 0 }, state.towns[0]),
+    'alley-duel': () => showGuardDuel(state.towns[0]),
+  };
+  if (Object.hasOwn(scenePreviews, preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    startGame(newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' })).then(() => {
+      state.paused = true;
+      scenePreviews[preview]();
+    });
     return;
   }
   if (preview === 'tavern' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
