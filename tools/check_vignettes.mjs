@@ -1,5 +1,5 @@
-// Browser smoke check for the sea, capture, captivity and hall-of-fame scene
-// pictures: each dialog shows its picture and fits the viewport, at a desktop
+// Browser smoke check for the sea, capture, captivity, assault, battle-end,
+// retirement and hall-of-fame scene pictures: each dialog shows its picture and fits the viewport, at a desktop
 // and a narrow size (local ?preview= states).
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -73,6 +73,7 @@ try {
     }
     throw new Error(`Timed out waiting for ${description}`);
   };
+  const S = 'globalThis.piratesPreview?.state';
   const dialogTitle = "document.querySelector('#event-dialog[open] #dialog-title')?.textContent";
   const clickButton = (label) => evaluate(`(() => {
     const button = [...document.querySelectorAll('#dialog-actions button')].find((b) => b.textContent.startsWith(${JSON.stringify(label)}));
@@ -114,6 +115,15 @@ try {
     ['prison', 'stone cell'],
     ['hall-of-fame', 'empty frame'],
     ['alley-duel', 'moonlit alley'],
+    ['retire-1', 'seaside cottage'],
+    ['retire-2', 'plantation veranda'],
+    ['retire-3', 'former flagship'],
+    ['retire-4', 'beside the king'],
+    ['land-attack', 'palisade'],
+    ['fort-walls', 'ramparts'],
+    ['sinking', 'settles by the stern'],
+    ['outrun', 'last shot falls short'],
+    ['nightfall', 'night ends the chase'],
   ];
   for (const viewport of [{ name: 'desktop', width: 1280, height: 800, mobile: false }, { name: 'narrow', width: 390, height: 780, mobile: true }]) {
     await command('Emulation.setDeviceMetricsOverride', {
@@ -140,7 +150,16 @@ try {
     await evaluate(`document.querySelector('#dialog-actions button').scrollIntoView()`);
     if (!await evaluate(`document.querySelector('#dialog-actions button').getBoundingClientRect().bottom <= innerHeight`)) throw new Error(`${viewport.name}: the record's Continue cannot be reached`);
     await expectPicture(`${viewport.name} record`, 'empty frame');
-    console.log(`${viewport.name}: all ten scene pictures show and fit.`);
+    // Your last ship sinking goes on to the island, and an escape returns to
+    // the map.
+    await open('sinking');
+    await clickButton('Continue');
+    await until('the island', `${dialogTitle} === 'Washed ashore'`);
+    await open('outrun');
+    if (await evaluate(`${dialogTitle}`) !== 'The Merchantman escapes') throw new Error(`${viewport.name}: the fleeing enemy's escape has the wrong title`);
+    await clickButton('Continue');
+    await until('the map', `!document.querySelector('#event-dialog[open]') && ${S}.mode === 'sailing'`);
+    console.log(`${viewport.name}: all ${scenes.length} scene pictures show and fit.`);
   }
 } finally {
   socket?.close();

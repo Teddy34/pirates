@@ -849,11 +849,16 @@ function retire({ inTown, onReturn }) {
   showDialog({
     kicker: 'Retirement', title: `The Further Adventures of the Pirate ${state.captain}…`,
     body: summary.map((paragraph) => `<p>${paragraph}</p>`).join(''),
-    actions: [{ label: 'Continue', run: () => showDialog({
-      kicker: `${ENDING_TIERS[score.tier]} retirement`, title: 'Your pirating days are over',
-      body: `<p>${line}</p><dl><dt>Pirate points</dt><dd>${score.points}/100</dd></dl>`,
-      actions: [{ label: 'Continue', run: lureOfTheSea }],
-    }) }],
+    actions: [{ label: 'Continue', run: () => showRetirementEnding(score, line, lureOfTheSea) }],
+  });
+}
+
+function showRetirementEnding(score, line, next) {
+  showDialog({
+    // Tier 0 (illustrious) is the original's sunset4, tier 3 its sunset1.
+    vignette: `retire-${4 - score.tier}`, kicker: `${ENDING_TIERS[score.tier]} retirement`, title: 'Your pirating days are over',
+    body: `<p>${line}</p><dl><dt>Pirate points</dt><dd>${score.points}/100</dd></dl>`,
+    actions: [{ label: 'Continue', run: next }],
   });
 }
 
@@ -1521,9 +1526,15 @@ function finishTacticalBattle() {
   }
   if (battle.event === 'player-sunk') {
     state.player.wounds = (state.player.wounds ?? 0) + 1;
-    loseShip(0, { cause: '<p>Your ship is holed in a dozen places, and gradually sinks beneath the waves.</p>', done: (lost) => endBattleToSailing(lost
-      ? `Your ${shipName(lost)} was holed and sank, taking her share of the cargo.`
-      : 'Your last ship was holed and sank.') });
+    // ASSUMED: CSTR 167 gets its own dialog with the sinking picture; the
+    // last ship then goes on to the island or prison dialog as before.
+    showDialog({
+      vignette: 'sinking', kicker: 'Defeat at sea', title: 'Your ship goes down',
+      body: '<p>Your ship is holed in a dozen places, and gradually sinks beneath the waves.</p>',
+      actions: [{ label: 'Continue', run: () => loseShip(0, { done: (lost) => endBattleToSailing(lost
+        ? `Your ${shipName(lost)} was holed and sank, taking her share of the cargo.`
+        : 'Your last ship was holed and sank.') }) }],
+    });
     return;
   }
   if (battle.event === 'enemy-sunk') {
@@ -1547,7 +1558,23 @@ function finishTacticalBattle() {
     beached: 'The flagship touched land and withdrew from the engagement.',
   };
   if (battle.event === 'beached') state.player.reputation -= 1;
-  endBattleToSailing(messages[battle.event] ?? 'The battle ended.');
+  const ending = BATTLE_END_DIALOGS[battle.event];
+  if (!ending) { endBattleToSailing(messages[battle.event] ?? 'The battle ended.'); return; }
+  showBattleEnd(ending(enemy, battle.enemy.tactic), () => endBattleToSailing(messages[battle.event]));
+}
+
+// CSTR 197-198 (out of range) and 169 (sunset), each with its picture.
+// ASSUMED: the port gives these lines a dialog; the original's exact screen
+// for them is not traced.
+const BATTLE_END_DIALOGS = {
+  escaped: (enemy, tactic) => (tactic === 'flee'
+    ? { vignette: { id: 'outrun', escaper: enemy.flag, pursuer: 'pirate' }, title: `The ${enemy.ship} escapes`, text: 'Using full sails and skillful seamanship, the enemy vessel pulls out of range.' }
+    : { vignette: { id: 'outrun', escaper: 'pirate', pursuer: enemy.flag }, title: 'Out of range', text: 'Your ship sails out of range of the enemy; the battle is over.' }),
+  sunset: () => ({ vignette: 'nightfall', title: 'Night falls', text: 'After a long chase, the sun sets, ending the battle.' }),
+};
+
+function showBattleEnd({ vignette, title, text }, done) {
+  showDialog({ vignette, kicker: 'The battle ends', title, body: `<p>${text}</p>`, actions: [{ label: 'Continue', run: done }] });
 }
 
 // CSTR 168, shown with the sinking picture's explosion variant.
@@ -2139,7 +2166,7 @@ function attackTown(town) {
   // 0x18B9C: the convoys' guards join the garrison at every assault.
   town.soldiers = convoyGarrison(town.soldiers, convoysInTown(state.convoys, state.towns.indexOf(town)).length);
   showDialog({
-    kicker: 'Assault', title: `Attack ${town.name}`,
+    vignette: { id: state.approach?.overland ? 'land-attack' : 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
     body: `<p>Town and land combat are not playable yet. Choose the provisional result of the assault; capture now leads into the documented plunder sequence.</p>`,
     actions: [
       { label: 'Capture the town', run: () => captureTown(town) },
@@ -4151,6 +4178,19 @@ loadScenarios().then(() => {
     prison: () => loseLastShip({ inTown: true, done: resumeSailing }),
     'hall-of-fame': () => offerHallOfFame({ points: 40, job: 0 }, state.towns[0]),
     'alley-duel': () => showGuardDuel(state.towns[0]),
+    ...Object.fromEntries([0, 1, 2, 3].map((tier) => [`retire-${4 - tier}`, () => {
+      const job = tier * 4;
+      showRetirementEnding({ tier, job, points: 80 - tier * 20 }, retirementLine({ job, townName: state.towns[0].name, rng }), resumeSailing);
+    }])),
+    'land-attack': () => { state.approach = { overland: true }; attackTown(state.towns[0]); },
+    'fort-walls': () => { state.approach = { overland: false }; attackTown(state.towns[0]); },
+    // The battle ends on the next frame with the given event.
+    ...Object.fromEntries([['sinking', 'player-sunk'], ['outrun', 'escaped'], ['nightfall', 'sunset']].map(([id, event]) => [id, () => {
+      beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 20, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);
+      Object.assign(state.battle, { event });
+      if (id === 'outrun') state.battle.enemy.tactic = 'flee';
+      state.paused = false;
+    }])),
   };
   if (Object.hasOwn(scenePreviews, preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     startGame(newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' })).then(() => {
