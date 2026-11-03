@@ -5,6 +5,8 @@ import { drawVignette, vignetteDescription, vignetteShape, vignetteSize, VIGNETT
 const SCENES = [
   'sail-ho', 'boarding', 'hostage-talks', 'crew-recruits', 'treasure-fleet',
   'silver-train', 'mutiny', 'prison', 'hall-of-fame', 'alley-duel',
+  'retire-1', 'retire-2', 'retire-3', 'retire-4', 'land-attack', 'fort-walls',
+  'sinking', 'outrun', 'nightfall',
 ];
 
 // A context that records which art pixels were painted, after the clip the

@@ -77,6 +77,15 @@ const DESCRIPTIONS = {
   prison: 'The wounded captain sits in a stone cell with tally marks on the wall',
   'hall-of-fame': 'A hall of captains’ portraits, with an open record and an empty frame',
   'alley-duel': 'Two swordsmen square off in a moonlit alley',
+  'retire-1': 'The old captain mends a net outside his seaside cottage at sunset',
+  'retire-2': 'The old captain and his wife on a plantation veranda at sunset',
+  'retire-3': 'The old captain and his family on a balcony above his former flagship',
+  'retire-4': 'The old captain, now a nobleman, beside the king on a palace terrace',
+  'land-attack': 'Buccaneers march out of the jungle on a town’s palisade',
+  'fort-walls': 'The captain meets the fort’s commander on the ramparts',
+  sinking: 'Your ship settles by the stern as the crew takes to the water',
+  outrun: 'A fast ship pulls away while the pursuer’s last shot falls short',
+  nightfall: 'Two ships slip apart in the dark as night ends the chase',
 };
 
 export function vignetteDescription(id) {
@@ -1690,6 +1699,247 @@ function drawAlleyDuel(p) {
   p.rect(210, 112, 1, 2, '#1a1a22');
 }
 
+// The four retirement endings (scene-vignettes.md §4.10), the town assaults
+// (§4.8) and the ends of a sea battle (§4.6).
+
+const SUNSET = ['#3a3a6a', '#7a4a6a', '#c46a50', '#e8a060', '#f4cf80'];
+const OLD_HAIR = '#d0ccc4';
+
+// The retired captain, grey and bareheaded.
+function oldCaptain(p, x, y, options = {}) {
+  captain(p, x, y, { hat: undefined, hair: OLD_HAIR, ...options });
+}
+
+function sunsetSea(p, horizon) {
+  sky(p, SUNSET, horizon);
+  p.disc(170, horizon, 12, '#fff0b0');
+  sea(p, horizon, '#5a4a6a', '#e0a070');
+  for (let row = horizon + 2; row < horizon + 20; row += 3) p.rect(162, row, 16, 1, '#f4cf80');
+}
+
+// Humble: a bench outside a seaside cottage, a net to mend, a pipe, the dog
+// and a small boat drawn up on the shingle.
+function drawRetireHumble(p) {
+  sunsetSea(p, 60);
+  p.rect(0, 84, 224, 44, '#b89a6a');
+  for (let x = 4; x < 224; x += 9) p.rect(x, 90 + (x * 5) % 34, 4, 1, '#a08458');
+  p.outlined([[150, 76, 50, 8, WOOD]]);
+  p.rect(150, 76, 50, 2, WOOD_LIGHT);
+  p.rect(172, 50, 1, 26, WOOD_DARK);
+  // The cottage: rough walls, thatch, a door and a window.
+  p.outlined([[8, 52, 70, 44, '#d8ccb0']]);
+  for (let row = 0; row < 18; row += 1) p.rect(2 + row, 34 + row, 82 - row * 2, 1, row % 4 ? '#a08a54' : '#8a7444');
+  p.outlined([[50, 66, 14, 30, WOOD_DARK], [18, 64, 14, 12, '#e8b060']]);
+  p.rect(24, 64, 1, 12, WOOD_DARK);
+  p.outlined([[80, 102, 40, 4, WOOD_LIGHT], [84, 106, 3, 8, WOOD], [114, 106, 3, 8, WOOD]]);
+  oldCaptain(p, 98, 112, { coat: '#5a5a6a' });
+  for (let x = 84; x < 136; x += 3) for (let y = 110; y < 122; y += 3) p.rect(x, y, 1, 1, '#c8b890');
+  p.rect(104, 88, 8, 1, '#e8e0d0');
+  p.rect(111, 86, 2, 2, '#e8e0d0');
+  p.outlined([[136, 112, 14, 6, '#8a6a42'], [148, 106, 6, 6, '#8a6a42'], [137, 118, 2, 4, '#8a6a42'], [146, 118, 2, 4, '#8a6a42']]);
+}
+
+// Comfortable: the veranda of a plantation house, the captain and his wife
+// with a glass of rum above the cane, a sail on the evening sea.
+function drawRetireComfortable(p) {
+  sunsetSea(p, 52);
+  p.rect(0, 58, 224, 70, '#5a7a3a');
+  caneRows(p, 66, ['#7a9a44', '#6a8a3a', '#8aa84a']);
+  ship(p, 70, 56, { scale: 0.35 });
+  // Veranda floor, rail and columns under the roof.
+  p.rect(0, 0, 224, 10, '#8a3a22');
+  p.rect(0, 10, 224, 3, WOOD_DARK);
+  for (const x of [10, 112, 210]) p.outlined([[x, 13, 6, 92, '#e8e0cc']]);
+  p.rect(0, 104, 224, 24, '#a07a4a');
+  for (let x = 0; x < 224; x += 14) p.rect(x, 104, 1, 24, '#8a6a3e');
+  oldCaptain(p, 66, 120, { coat: '#e8e0cc', sash: undefined });
+  figure(p, 86, 120, { coat: '#6a4a7a', legs: '#6a4a7a', hair: '#9a9088' });
+  p.outlined([[84, 104, 14, 16, '#6a4a7a']]);
+  p.outlined([[72, 104, 3, 4, '#c87a3a']]);
+  p.rect(0, 96, 224, 2, WOOD);
+  for (let x = 4; x < 224; x += 8) if (x < 50 || x > 104) p.rect(x, 98, 2, 6, WOOD);
+  p.outlined([[140, 108, 30, 3, WOOD_LIGHT], [148, 111, 3, 9, WOOD], [160, 111, 3, 9, WOOD]]);
+  p.outlined([[150, 102, 4, 6, '#a85a2a']]);
+}
+
+// Respected: a mansion balcony over the harbour, the captain in a
+// councillor's coat and sash with his family, his old flagship below.
+function drawRetireRespected(p) {
+  sunsetSea(p, 48);
+  p.rect(0, 48, 60, 30, '#5a7a4a');
+  for (const [x, y, w] of [[4, 52, 12], [20, 56, 10], [36, 54, 12]]) house(p, x, y, w, 6);
+  ship(p, 120, 84, { flag: 'pirate', scale: 0.8 });
+  // The balcony: a stone balustrade, a pillar and a striped awning.
+  for (let x = 0; x < 224; x += 1) p.rect(x, 0, 1, 8, Math.floor(x / 8) % 2 ? '#e8e0cc' : '#a8331f');
+  p.rect(0, 8, 224, 2, OUTLINE);
+  p.outlined([[204, 10, 14, 118, '#d8ccb0']]);
+  p.rect(0, 92, 224, 4, '#d8ccb0');
+  for (let x = 4; x < 200; x += 10) p.outlined([[x, 96, 5, 18, '#c8bca0']]);
+  p.rect(0, 114, 224, 14, '#b8ac90');
+  oldCaptain(p, 100, 122, { coat: '#1f2f5a', sash: '#2f5aa0', collar: '#f4f0e4' });
+  p.rect(97, 104, 6, 2, GOLD);
+  figure(p, 120, 122, { coat: '#7a3a4a', legs: '#7a3a4a', hair: '#b8b0a8' });
+  p.outlined([[118, 106, 14, 16, '#7a3a4a']]);
+  figure(p, 140, 122, { coat: '#3a5a3a', legs: '#4a3a2c', hair: '#5a3b22' });
+  figure(p, 156, 122, { coat: '#d8a8a0', legs: '#d8a8a0', hair: '#7a5030' });
+  p.rect(150, 108, 12, 14, '#d8a8a0');
+}
+
+// Illustrious: a palace terrace at sunset, a titled captain in court dress
+// beside the king, formal gardens and a fountain below.
+function drawRetireIllustrious(p) {
+  sky(p, SUNSET, 56);
+  p.disc(40, 56, 10, '#fff0b0');
+  p.rect(0, 56, 224, 72, '#4a7a3a');
+  for (let row = 60; row < 92; row += 8) for (let x = (row % 16) * 2; x < 224; x += 32) p.rect(x, row, 18, 4, '#3a6a32');
+  p.disc(60, 76, 10, '#a8a090');
+  p.disc(60, 76, 8, '#6ab0c8');
+  p.rect(59, 62, 2, 14, '#c8ecf0');
+  p.rect(0, 92, 224, 36, '#c8bca0');
+  for (let x = 0; x < 224; x += 16) p.rect(x, 92, 1, 36, '#b0a488');
+  p.rect(0, 88, 224, 4, '#e0d4b4');
+  for (let x = 2; x < 224; x += 12) p.outlined([[x, 80, 4, 8, '#d8ccb0']]);
+  p.rect(0, 78, 224, 2, '#e0d4b4');
+  p.outlined([[176, 0, 30, 128, '#e8e0cc'], [172, 0, 38, 6, '#d8ccb0']]);
+  oldCaptain(p, 108, 122, { coat: '#4a2a5a', sash: '#2f5aa0', collar: '#f4f0e4' });
+  p.rect(105, 104, 5, 5, GOLD);
+  p.rect(106, 105, 3, 3, '#fff2c0');
+  figure(p, 136, 122, { coat: '#8a1f2a', legs: '#f4f0e4', hair: '#5a3b22', collar: '#f4f0e4', sash: GOLD });
+  p.outlined([[130, 89, 12, 3, GOLD], [131, 86, 2, 3, GOLD], [135, 85, 2, 4, GOLD], [139, 86, 2, 3, GOLD]]);
+  p.outlined([[116, 102, 12, 2, '#8a1f2a']]);
+  for (let row = 0; row < 26; row += 1) p.rect(140 - row * 0.2, 96 + row, 10 + row * 0.6, 1, '#6a1420');
+}
+
+// Smoke over a town's palisade as the buccaneers march out of the jungle,
+// the captain pointing his sword, the drummer beating.
+function drawLandAttack(p, { flag = 'Spain' } = {}) {
+  sky(p, ['#a8b8b8', '#c0c8b8', '#d4d0b0'], 44);
+  p.rect(0, 44, 224, 84, '#7a8a4a');
+  for (let x = 120; x < 224; x += 6) { p.rect(x, 34 + (x % 4), 5, 30, '#6b4a2e'); p.rect(x, 34 + (x % 4), 1, 30, '#8a6a42'); }
+  for (const x of [140, 168]) {
+    figure(p, x, 40, { coat: '#a8331f', legs: WOOD_DARK, hat: '#9a9a9a' });
+    p.rect(x - 8, 24, 10, 1, '#3a3a3a');
+  }
+  for (const [x, y, r] of [[176, 12, 8], [162, 4, 6], [150, 14, 5]]) p.disc(x, y, r, '#b8b0a0');
+  p.outlined([[194, 14, 28, 20, '#b4a68a']]);
+  for (let x = 194; x < 222; x += 6) p.rect(x, 12, 3, 2, '#b4a68a');
+  flagpole(p, 206, 12, flag, 11);
+  for (const [x, y] of [[132, 30], [160, 26]]) p.disc(x, y, 3, '#e8e4dc');
+  for (let x = -6; x < 70; x += 10) p.disc(x, 66 + (x % 3) * 3, 12, x % 20 ? '#2f6a32' : '#3f7a3a');
+  palm(p, 10, 96, 40); palm(p, 52, 90, 34);
+  const coats = ['#7a3a2a', '#4a5a3a', '#6a5a7a', '#8a6a3a', '#5a3a2a'];
+  coats.forEach((coat, index) => {
+    const x = 50 + index * 16;
+    const y = 100 + (index % 2) * 6;
+    figure(p, x, y, { coat, legs: PARCHMENT, hat: index % 2 ? '#a8331f' : undefined, skin: index === 3 ? '#8a5a3a' : SKIN });
+    p.rect(x + 6, y - 32, 1, 18, '#3a3a3a');
+  });
+  figure(p, 36, 120, { coat: '#2f4f6a', legs: PARCHMENT, hat: '#1d1710' });
+  p.outlined([[38, 104, 9, 7, '#a8331f']]);
+  p.rect(38, 106, 9, 1, PARCHMENT);
+  captain(p, 132, 124);
+  p.outlined([[138, 106, 6, 2, '#2c3f63']]);
+  blade(p, 144, 106, 20, 1);
+}
+
+// Over the parapet of a star fort: ladders, musket smoke, a toppled cannon,
+// and the commander charging the captain as the flag comes down.
+function drawFortWalls(p, { flag = 'Spain' } = {}) {
+  sky(p, ['#6a7a8a', '#8a98a0', '#b4b8a8'], 60);
+  sea(p, 60, '#3a5a6a', '#7a9aa0');
+  // The rampart walk, with the parapet and its embrasures.
+  p.rect(0, 70, 224, 58, '#b4a68a');
+  for (let row = 76; row < 128; row += 8) for (let x = (row % 16) * 2; x < 224; x += 22) p.rect(x, row, 1, 8, '#9a8c70');
+  p.rect(0, 68, 224, 2, '#8a7c62');
+  p.outlined([[0, 52, 224, 16, '#c4b698']]);
+  for (const x of [30, 100, 170]) p.rect(x, 52, 14, 10, '#6a7a8a');
+  for (const [x, w] of [[16, 10], [84, 12]]) {
+    p.rect(x, 40, 2, 30, WOOD_LIGHT); p.rect(x + w, 40, 2, 30, WOOD_LIGHT);
+    for (let y = 42; y < 70; y += 6) p.rect(x, y, w + 2, 1, WOOD_LIGHT);
+  }
+  figure(p, 22, 52, { coat: '#7a3a2a', legs: PARCHMENT, hat: '#a8331f' });
+  figure(p, 92, 50, { coat: '#4a5a3a', legs: PARCHMENT });
+  for (const [x, y, r] of [[60, 40, 12], [130, 34, 14], [190, 42, 10], [150, 54, 8]]) { p.disc(x, y, r, '#c8c0b4'); p.disc(x + 3, y - 2, r - 4, '#e0dad0'); }
+  // The flagpole leaning as it falls.
+  for (let step = 0; step < 40; step += 1) p.rect(200 - step * 0.5, 70 - step, 1, 1, OUTLINE);
+  const [field, mark] = FLAGS[flag] ?? FLAGS.pirate;
+  p.rect(181, 30, 10, 7, field);
+  p.rect(184, 31, 4, 5, mark);
+  // A toppled cannon on its side.
+  p.outlined([[40, 108, 28, 7, '#3a3a3a'], [62, 104, 9, 14, WOOD]]);
+  p.disc(66, 120, 4, WOOD_DARK);
+  captain(p, 96, 124);
+  blade(p, 104, 108, 18, 1);
+  figure(p, 146, 124, { coat: '#9aa0a8', legs: '#a8331f', hat: '#c8ccd0', collar: '#f4f0e4' });
+  p.outlined([[148, 88, 8, 6, '#a8331f'], [152, 84, 3, 4, '#f4f0e4']]);
+  blade(p, 138, 110, 20, -1);
+}
+
+// Your ship settles by the stern in a grey sea; men leap clear, cling to
+// spars, and a boat pulls away.
+function drawSinking(p) {
+  sky(p, ['#4a5460', '#5a6470', '#6a747c', '#7a8488'], 58);
+  for (const [x, y, w] of [[0, 14, 70], [90, 8, 80], [170, 22, 60]]) { p.rect(x, y, w, 6, '#3f4852'); p.rect(x + 8, y - 4, w - 18, 4, '#3f4852'); }
+  sea(p, 58, '#2a4a54', '#5a7a80');
+  // The hull, bow lifted, stern under.
+  for (let row = 0; row < 16; row += 1) {
+    const y = 96 - row;
+    p.rect(66 + row * 0.6 - 1, y - (row * 0.0), 90 - row * 1.2 + 2, 1, OUTLINE);
+  }
+  for (let step = 0; step < 90; step += 1) {
+    const x = 66 + step;
+    const top = 92 - step * 0.35;
+    p.rect(x, top, 1, 96 - top + 4, step % 22 === 0 ? WOOD_DARK : WOOD);
+    if (step % 3 === 0) p.rect(x, top + 3, 1, 1, BRASS);
+  }
+  p.rect(60, 92, 50, 10, '#2a4a54');
+  for (let x = 56; x < 116; x += 7) p.rect(x, 92 + (x % 3), 5, 1, '#c8dcd8');
+  // Masts leaning, sails torn.
+  for (let step = 0; step < 44; step += 1) p.rect(112 + step * 0.4, 72 - step, 2, 1, WOOD_DARK);
+  for (let step = 0; step < 32; step += 1) p.rect(136 + step * 0.5, 68 - step, 2, 1, WOOD_DARK);
+  p.outlined([[118, 40, 14, 12, '#b8ac90'], [142, 44, 10, 9, '#b8ac90']]);
+  p.rect(124, 46, 3, 5, '#2a4a54');
+  // Men in the water, a leaper, and the boat.
+  for (const [x, y] of [[40, 104], [58, 112], [176, 104]]) { p.outlined([[x, y, 5, 5, SKIN]]); p.rect(x - 4, y + 5, 13, 1, '#c8dcd8'); }
+  p.rect(30, 116, 34, 3, WOOD);
+  p.outlined([[150, 72, 4, 4, SKIN], [149, 76, 6, 6, '#7a3a2a']]);
+  p.outlined([[176, 120, 34, 6, WOOD_LIGHT]]);
+  for (const x of [182, 194, 204]) p.outlined([[x, 112, 5, 8, '#4a5a3a'], [x, 107, 5, 5, SKIN]]);
+}
+
+// A small ship under every sail leaves a heavy warship behind; its last shot
+// falls short. `escaper` is the flag of the ship getting away.
+function drawOutrun(p, { escaper = 'pirate', pursuer = 'Spain' } = {}) {
+  sky(p, ['#5aa0d0', '#7ab8dc', '#a8d0e0', '#d0e4e0'], 60);
+  for (const [x, y, w] of [[20, 16, 40], [110, 10, 54], [180, 26, 36]]) { p.rect(x, y, w, 4, '#f4f4ec'); p.rect(x + 6, y - 3, w - 14, 3, '#f4f4ec'); }
+  sea(p, 60, '#1f6a8a', '#6ab0c0');
+  ship(p, 40, 74, { flag: pursuer, scale: 0.55, facing: 1 });
+  p.disc(64, 62, 4, '#e8e4dc');
+  p.disc(68, 60, 3, '#f4f0e8');
+  // The splash well short of the escaping ship.
+  p.rect(104, 82, 2, 6, '#e8f0ee');
+  p.rect(100, 86, 10, 2, '#e8f0ee');
+  // The escaper heeling, with her wake.
+  for (let row = 0; row < 3; row += 1) p.rect(70 + row * 6, 116 + row * 2, 80 - row * 12, 1, '#e8f0ee');
+  ship(p, 168, 116, { flag: escaper, scale: 1.2, facing: 1 });
+  for (let x = 120; x < 220; x += 9) p.rect(x, 118, 5, 1, '#e8f0ee');
+}
+
+// Night falls on the chase: two distant stern lanterns slip apart under a
+// sliver of moon, the last red on the horizon.
+function drawNightfall(p) {
+  sky(p, ['#0c1430', '#121c3e', '#1a284c', '#3a2a48', '#8a3a3a'], 70);
+  for (const [x, y] of [[18, 10], [44, 30], [70, 8], [98, 22], [130, 12], [150, 34], [186, 18], [208, 40], [116, 44]]) p.rect(x, y, 1, 1, '#e8ecd8');
+  p.disc(180, 22, 7, '#e8ecd8');
+  p.disc(183, 20, 6, '#121c3e');
+  sea(p, 70, '#0c1630', '#2a3a5a');
+  p.rect(0, 70, 224, 1, '#c45a3a');
+  const shade = { rect: (x, y, w, h) => p.rect(x, y, w, h, '#060a18'), disc: p.disc, outlined: (parts) => parts.forEach(([x, y, w, h]) => p.rect(x, y, w, h, '#060a18')) };
+  ship(shade, 54, 92, { scale: 0.7, facing: -1 });
+  ship(shade, 168, 84, { scale: 0.5, facing: 1 });
+  for (const [x, y] of [[74, 84], [154, 78]]) { p.rect(x, y, 2, 2, GOLD); for (let row = y + 6; row < 120; row += 4) p.rect(x - 1, row, 4, 1, '#8a7a3a'); }
+}
+
 const SCENES = {
   governor: { shape: 'portrait', draw: drawGovernor },
   'villain-news': { shape: 'portrait', draw: drawVillain },
@@ -1738,6 +1988,15 @@ const SCENES = {
   prison: { shape: 'landscape', draw: drawImprisoned },
   'hall-of-fame': { shape: 'landscape', draw: drawHallOfFame },
   'alley-duel': { shape: 'landscape', draw: drawAlleyDuel },
+  'retire-1': { shape: 'landscape', draw: drawRetireHumble },
+  'retire-2': { shape: 'landscape', draw: drawRetireComfortable },
+  'retire-3': { shape: 'landscape', draw: drawRetireRespected },
+  'retire-4': { shape: 'landscape', draw: drawRetireIllustrious },
+  'land-attack': { shape: 'landscape', draw: drawLandAttack },
+  'fort-walls': { shape: 'landscape', draw: drawFortWalls },
+  sinking: { shape: 'landscape', draw: drawSinking },
+  outrun: { shape: 'landscape', draw: drawOutrun },
+  nightfall: { shape: 'landscape', draw: drawNightfall },
 };
 
 // The shared 8 px carved frame with a brass fillet and corner pieces

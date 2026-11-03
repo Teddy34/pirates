@@ -582,6 +582,11 @@ A scene can serve more than one dialog:
 | prison | imprisonment and release; an island rescue uses marooned |
 | hall-of-fame | the offer and the list of entries |
 | alley-duel | the guard who recognises you and the villain's back entrance; the rival suitor waits for courtship |
+| retire-1 to retire-4 | "Your pirating days are over", by the score's tier (illustrious is retire-4) |
+| land-attack, fort-walls | the assault choice, by land or from the sea |
+| sinking | your flagship sinks in battle (variant A); the enemy blowing up keeps enemy-destroyed |
+| outrun | a battle ends out of range, either ship escaping |
+| nightfall | sunset ends the battle |
 
 ## 5. Not vignettes
 
