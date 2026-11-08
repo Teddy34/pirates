@@ -365,3 +365,20 @@ export function boardingRecord({ yourMen, yourDamage = 0, theirMen, theirDamage 
     extraSkill, mode: FIGHT_MODE.battle, opponent: { title: 'Captain', nation, name },
   };
 }
+
+// 0x18EFD, storming the walls: your landed men against the garrison, ten
+// men a soldier. `roll` is rnd(3); `crewMorale` the stored crew morale
+// (0x45FAA). ASSUMED: quality is held at 1 or more, as for boarding; low
+// crew morale would otherwise make it 0 or less.
+export function assaultRecord({ yourMen, crewMorale = 0, roll, soldiers, forts, nation }) {
+  return {
+    yourMen: Math.max(1, yourMen), yourQuality: Math.max(1, roll + 3 + Math.trunc(crewMorale / 2)),
+    theirMen: soldiers * 10 + 5, theirQuality: forts + 5,
+    extraSkill: 0, mode: FIGHT_MODE.battle, opponent: { title: 'Captain', nation },
+  };
+}
+
+// The garrison after a won assault: (defenders left + 9) / 10 (0x18F69).
+export function garrisonAfterAssault(theirMen) {
+  return Math.trunc((theirMen + 9) / 10);
+}

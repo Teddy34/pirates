@@ -153,13 +153,25 @@ try {
       await screenshot(`${viewport.name}-${preview}`);
     }
 
+    // An assault, by sea and overland, ends in storming the walls: a battle
+    // with crews, then the capture or the failure.
+    for (const preview of ['fort-walls', 'land-attack']) {
+      await command('Page.navigate', { url: `${base}/?preview=${preview}` });
+      await until(`${preview} assault`, `${dialogTitle}?.startsWith('Attack ')`);
+      await clickButton('Storm the walls');
+      await until(`${preview} weapon choice`, `document.querySelector('#event-dialog[open] #dialog-actions')?.textContent.includes('Cutlass')`);
+      await clickButton('Cutlass');
+      await fightItOut(`${viewport.name}-${preview}`);
+      await until(`${preview} result`, `/Stormed the walls|Failed to capture/.test(document.querySelector('#log').textContent) && Boolean(${dialogTitle})`);
+    }
+
     // Practice raises the hit bonus by 5, won or lost.
     await command('Page.navigate', { url: `${base}/?preview=sword-practice` });
     await until('the practice offer', `${dialogTitle} === 'Fencing practice'`);
     await clickButton('Longsword');
     await fightItOut(`${viewport.name}-practice`);
     await until('the practice bonus', `${S}.player.fencingPractice === 5`);
-    console.log(`${viewport.name}: duel, pause, boarding, guard, mutiny and practice fights play through.`);
+    console.log(`${viewport.name}: duel, pause, boarding, guard, mutiny, assault and practice fights play through.`);
   }
 } finally {
   socket?.close();

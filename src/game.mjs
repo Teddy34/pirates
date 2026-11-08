@@ -16,7 +16,7 @@ import {
   harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, beginDivisionRefit, freshFleet,
   captiveWord, governorPirateHandover, prisonerEscape, portDesertion, governorPromotion, nationalStanding, governorAmnestyTerms,
   captainRansomOffers, monthlyLandIncome,
-  convoyRouteIndices, initialConvoys, monthlyConvoyStep, convoysInTown, meetsTreasureFleet, convoyGarrison,
+  convoyRouteIndices, initialConvoys, monthlyConvoyStep, convoysInTown, meetsTreasureFleet, convoyGarrison, assaultBeforeTheWalls,
   captureConvoys, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -30,12 +30,12 @@ import {
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
-  broadsideState, createBattle, damageLevel, shipName, shipRecord, stepBattle,
+  broadsideState, createBattle, damageLevel, embarkedForBattle, shipName, shipRecord, stepBattle,
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
 import {
   DEFAULT_WEAPON, FIGHT_MODE, FIGHT_RESULT, WEAPONS,
-  boardingRecord, createFight, duelRecord, fightOutcome, frameSeconds, practiceAfterBout, practiceRecord, stepFight,
+  assaultRecord, boardingRecord, createFight, duelRecord, fightOutcome, garrisonAfterAssault, frameSeconds, practiceAfterBout, practiceRecord, stepFight,
 } from './sword-mechanics.mjs';
 import { LOOKS, lookForOpponent } from './fencer-sprites.mjs';
 import { renderSwordFight } from './sword-renderer.mjs';
@@ -1637,7 +1637,7 @@ function beginSwordFight({ record, weapon = DEFAULT_WEAPON, scene = 'deck', onEn
   const crewColor = NATIONS[opponent.nation]?.color;
   swordView = {
     fight: createFight({ record, difficulty: state.difficulty, hasFencing: state.ability === 'fencing', practice: state.player.fencingPractice ?? 0, weapon, rng }),
-    scene, onEnd, returnMode: state.mode, returnPaused: state.paused, endPause: SWORD_END_PAUSE_SECONDS,
+    scene, flag: opponent.nation, onEnd, returnMode: state.mode, returnPaused: state.paused, endPause: SWORD_END_PAUSE_SECONDS,
     yourLook: LOOKS.player,
     foeLook: lookForOpponent(opponent.title, opponent.nation, NATIONS),
     foeCrewLook: scene === 'walls' ? lookForOpponent('Guard', opponent.nation, NATIONS) : { ...LOOKS.sailor, hatColor: crewColor ?? LOOKS.sailor.hatColor },
@@ -2292,17 +2292,81 @@ function resolveDig() {
   });
 }
 
+// 0x18B3F: an assault. The fort battle (by sea) or the land battle
+// (overland) that may come first is not playable yet and counts as won
+// (assaultBeforeTheWalls); every assault then ends in storming the walls,
+// a sword fight with crews against the garrison (0x18EFD).
 function attackTown(town) {
   // 0x18B9C: the convoys' guards join the garrison at every assault.
   town.soldiers = convoyGarrison(town.soldiers, convoysInTown(state.convoys, state.towns.indexOf(town)).length);
+  const overland = Boolean(state.approach?.overland);
+  const before = assaultBeforeTheWalls({ overland, soldiers: town.soldiers, forts: town.forts, crew: state.player.crew });
+  const approachText = {
+    fort: `<p>Your fleet runs in under the guns of the fort, and the flagship’s crew lands below its walls.</p><p><em>The battle against the fort is not playable yet; it counts as won.</em></p>`,
+    land: `<p>Your men march on ${town.name} and break through the defenders in the field.</p><p><em>The land battle is not playable yet; it counts as won.</em></p>`,
+  }[before.battle] ?? `<p>${town.forts ? 'The garrison is too weak to meet you in the field: your men march straight to the walls.' : `${town.name} has no fort. Your men march straight into the town.`}</p>`;
   showDialog({
-    vignette: { id: state.approach?.overland ? 'land-attack' : 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
-    body: `<p>Town and land combat are not playable yet. Choose the provisional result of the assault; capture now leads into the documented plunder sequence.</p>`,
+    vignette: { id: overland ? 'land-attack' : 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
+    body: approachText,
     actions: [
-      { label: 'Capture the town', run: () => captureTown(town) },
-      { label: 'Repelled with losses', run: () => { const lost = Math.min(state.player.crew - 1, Math.max(1, Math.floor(state.player.crew / 5))); state.player.crew -= lost; state.alert += 16; state.player.reputation -= 2; addLog(`Lost ${lost} crew attacking ${town.name}.`); departFromApproach(); runFleetCheck({ inTown: true, done: startVoyage }); } },
+      { label: 'Storm the walls', run: () => stormTheWalls(town, before) },
       { label: 'Withdraw from the assault', secondary: true, run: () => { state.alert += 16; addLog(`Withdrew from the assault on ${town.name}.`); departFromApproach(); resumeSailing(); } },
     ],
+  });
+}
+
+function stormTheWalls(town, before) {
+  let yourMen = state.player.crew;
+  if (before.battle === 'fort') {
+    // Getting through to the fort (event 5, 0xE775): alert +16 and
+    // reputation -2. Only the flagship's crew lands (sea_battles.md §8);
+    // ASSUMED: the first ship is the flagship.
+    state.alert += 16;
+    state.player.reputation -= 2;
+    yourMen = embarkedForBattle({ ...state.player, flagshipIndex: 0 }).men;
+  }
+  town.soldiers = before.soldiers;
+  const forts = town.forts > 0;
+  const record = assaultRecord({
+    yourMen, crewMorale: state.player.crewMorale ?? 0, roll: rng.int(3), soldiers: town.soldiers, forts: town.forts, nation: town.nation,
+  });
+  chooseWeapon({
+    vignette: { id: forts ? 'fort-walls' : 'land-attack', flag: town.nation }, kicker: 'Storming the walls',
+    title: forts ? 'The fort’s commander attacks' : 'An armed band of citizens',
+    // CSTR 192 / 211.
+    body: forts
+      ? '<p>Your men scale the walls of the fort. As the battle rages, the fort’s commander attacks you with his sword.</p>'
+      : '<p>As you and your men enter the town, you encounter an armed band of citizens. The leader steps forward, brandishing his sword.</p>',
+    fight: (weapon) => beginSwordFight({ record, weapon, scene: forts ? 'walls' : 'alley', onEnd: (outcome) => resolveAssault(town, outcome) }),
+  });
+}
+
+function resolveAssault(town, outcome) {
+  // A defeat goes to capture, which does not count the fallen (0x1660E).
+  if (outcome.result !== FIGHT_RESULT.defeated) state.player.crew = Math.max(1, state.player.crew - outcome.casualties);
+  const losses = outcome.casualties && outcome.result !== FIGHT_RESULT.defeated ? ` We lost ${outcome.casualties} men.` : '';
+  if (outcome.result === FIGHT_RESULT.won) {
+    town.soldiers = garrisonAfterAssault(outcome.theirMen);
+    addLog(`Stormed the walls of ${town.name}.${losses}`);
+    captureTown(town);
+    return;
+  }
+  // 0x18F57: reputation -1 and favour -1 with the town's nation.
+  state.player.reputation -= 1;
+  propagateFavour(town.nation, -1);
+  // ASSUMED: capture (0x16647) is not ported; as for a lost boarding, a
+  // defeat costs a tenth of the party's gold in ransom instead.
+  const ransom = outcome.result === FIGHT_RESULT.defeated ? Math.floor(state.player.partyGold / 10) : 0;
+  state.player.partyGold -= ransom;
+  const message = outcome.result === FIGHT_RESULT.defeated
+    ? `Failed to capture ${town.name}: our men threw down their arms, and we paid ${ransom} gold in ransom.`
+    : `Failed to capture ${town.name}: driven back from the walls.${losses}`;
+  addLog(message);
+  showDialog({
+    vignette: { id: town.forts ? 'fort-walls' : 'land-attack', flag: town.nation }, kicker: 'The assault fails',
+    title: outcome.result === FIGHT_RESULT.defeated ? 'Your men surrender' : 'Driven back',
+    body: `<p>${message}</p>`,
+    actions: [{ label: 'Continue', run: () => { departFromApproach(); runFleetCheck({ inTown: true, done: startVoyage }); } }],
   });
 }
 
@@ -4419,7 +4483,7 @@ loadScenarios().then(() => {
       showRetirementEnding({ tier, job, points: 80 - tier * 20 }, retirementLine({ job, townName: state.towns[0].name, rng }), resumeSailing);
     }])),
     'land-attack': () => { state.approach = { overland: true }; attackTown(state.towns[0]); },
-    'fort-walls': () => { state.approach = { overland: false }; attackTown(state.towns[0]); },
+    'fort-walls': () => { state.approach = { overland: false }; attackTown(state.towns.find((town) => town.forts > 0) ?? state.towns[0]); },
     // The battle ends on the next frame with the given event.
     ...Object.fromEntries([['sinking', 'player-sunk'], ['outrun', 'escaped'], ['nightfall', 'sunset']].map(([id, event]) => [id, () => {
       beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 20, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);

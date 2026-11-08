@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRng } from '../src/mechanics.mjs';
 import {
-  FIGHT_MODE, FIGHT_RESULT, MOVE, boardingRecord, createFight, duelRecord, fencingSkill, fightOutcome,
+  FIGHT_MODE, FIGHT_RESULT, MOVE, assaultRecord, boardingRecord, garrisonAfterAssault, createFight, duelRecord, fencingSkill, fightOutcome,
   frameSeconds, inputMove, practiceAfterBout, practiceRecord, startingMorale, stepFight,
 } from '../src/sword-mechanics.mjs';
 
@@ -145,4 +145,16 @@ test('an eighth morale gained (state 4) replaces a result set earlier in the fra
   assert.equal(next.result, null);
   const plain = stepFight({ ...structuredClone(fight), frame: 3 }, null, fixed(0));
   assert.equal(plain.result, FIGHT_RESULT.drivenBack);
+});
+
+test('storming the walls is a battle against ten men a soldier (0x18EFD)', () => {
+  const record = assaultRecord({ yourMen: 120, crewMorale: 5, roll: 2, soldiers: 30, forts: 2, nation: 'Spain' });
+  assert.deepEqual([record.yourMen, record.yourQuality, record.theirMen, record.theirQuality], [120, 7, 305, 7]);
+  assert.equal(record.mode, FIGHT_MODE.battle);
+  assert.equal(record.extraSkill, 0);
+  assert.equal(record.opponent.title, 'Captain');
+  assert.equal(assaultRecord({ yourMen: 50, crewMorale: -3, roll: 0, soldiers: 0, forts: 0 }).yourQuality, 2, 'morale/2 truncates towards zero');
+  assert.equal(assaultRecord({ yourMen: 50, crewMorale: -12, roll: 0, soldiers: 0, forts: 0 }).yourQuality, 1, 'quality is held at 1');
+  assert.equal(garrisonAfterAssault(305), 31);
+  assert.equal(garrisonAfterAssault(1), 1);
 });

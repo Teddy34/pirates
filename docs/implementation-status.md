@@ -223,8 +223,10 @@ for future work.
 - Buy food using seasonal prices, town production, stock, available gold, and
   cargo space.
 - Save the voyage in browser storage while in town.
-- Resolve a provisional town assault, including the decoded treasury and town
-  damage formulas, possible governor installation, and transferable plunder.
+- Attack a town and storm its walls in a sword fight with crews against ten
+  men a soldier; a win captures it with the decoded treasury and town damage
+  formulas, possible governor installation, and transferable plunder. The fort
+  or land battle before the walls counts as won for now.
 - See "The treasure fleet is in the harbor!" / "The silver train is in
   town!" on the approach (only the train's line when both are there, as the
   original overwrites one with the other at `0x19193`). An assault adds 10 soldiers per convoy in town
@@ -274,13 +276,12 @@ for future work.
 
 The following systems have no complete playable implementation:
 
-- fort bombardment and land battles (town assaults, capture and plunder are
-  resolved through a provisional outcome dialog);
+- fort bombardment and land battles (an assault counts them as won and goes
+  straight to storming the walls);
 - complete prize management and ship reordering (the original has no ship
   purchase);
 - complete cannon management;
 - the named captains' battle skill;
-- storming the walls, the sword fight after a fort or land battle;
 - courtship, rival suitors, marriage, and family benefits;
 - aging and illness effects beyond the captivity message, ransom, and the
   retirement check at the start of captivity;

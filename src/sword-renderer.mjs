@@ -50,7 +50,7 @@ export function swordLayout(width, height, centre = SCENE_UNITS / 2) {
   return { pixelScale, unit, left, ground, bottom, panelTop, compact };
 }
 
-// `view` is { fight, scene, yourLook, foeLook, yourName, foeName }.
+// `view` is { fight, scene, flag, yourLook, foeLook, yourName, foeName }.
 export function renderSwordFight(context, view, width, height) {
   const { fight } = view;
   const layout = swordLayout(width, height, (fight.you.x + fight.foe.x) / 2);
@@ -60,7 +60,7 @@ export function renderSwordFight(context, view, width, height) {
 
   context.fillStyle = view.scene === 'deck' ? '#a5d0de' : '#14203a';
   context.fillRect(0, 0, width, ground);
-  const backdrop = cachedSprite(spriteCache, `b|${view.scene}`, () => paintBackdrop(view.scene));
+  const backdrop = cachedSprite(spriteCache, `b|${view.scene}|${view.flag}`, () => paintBackdrop(view.scene, view.flag));
   context.fillStyle = view.scene === 'deck' ? '#86592f' : '#3a3633';
   context.fillRect(0, ground, width, height - ground);
   if (backdrop) drawPixelSprite(context, backdrop, left, ground, pixelScale);

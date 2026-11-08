@@ -6,6 +6,7 @@
 
 import { createArt, rasterize } from './pixel-art.mjs';
 import { MOVE, MOVE_FRAMES } from './sword-mechanics.mjs';
+import { FLAGS } from './vignettes.mjs';
 
 export const FENCER_ART = { width: 64, height: 52, anchorX: 26, groundY: 49 };
 // Fight x units per art pixel: a blade at full stretch reaches about one
@@ -247,7 +248,8 @@ export function paintSpark(kind = 'hit') {
 // bottom-aligned on the ground line.
 export const BACKDROP = { width: 260, height: 132, groundY: 112 };
 
-export function paintBackdrop(scene) {
+// `flag` is the nation whose flag flies over the walls.
+export function paintBackdrop(scene, flag = 'Spain') {
   const { width, height, groundY } = BACKDROP;
   const art = createArt(width, height);
   const bands = (colors, top, bottom) => {
@@ -285,7 +287,8 @@ export function paintBackdrop(scene) {
     for (let x = 0; x < width; x += 16) art.rect(x, 22, 9, 8, '#8b8577');
     for (let row = 34; row < groundY; row += 8) for (let col = (row % 16); col < width; col += 16) art.rect(col, row, 14, 1, '#6f6a5e');
     art.rect(120, 2, 2, 22, '#3a2a1a');
-    art.rect(122, 3, 14, 9, '#e3bd43'); art.rect(122, 6, 14, 3, '#a8331f');
+    const [field, mark] = FLAGS[flag] ?? FLAGS.pirate;
+    art.rect(122, 3, 14, 9, field); art.rect(122, 6, 14, 3, mark);
     art.rect(0, groundY, width, height - groundY, '#7a6648');
     for (let col = 0; col < width; col += 7) art.set(col, groundY + 3 + (col % 5), '#5e4e36');
   } else {

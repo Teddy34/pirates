@@ -15,6 +15,7 @@ import {
   applyBoardingOutcome,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
   triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
+  assaultBeforeTheWalls,
 } from '../src/mechanics.mjs';
 import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
 
@@ -623,4 +624,15 @@ test('the wanted pirate id carries bit 15 and a title-less low byte', () => {
   assert.equal(id & 7, 0);
   assert.equal(captainName(id), captainName(id & 0xff));
   assert.ok(!isMissionPirateId(0xff));
+});
+
+test('before the walls: a fort battle by sea, a land battle against a strong fortified garrison', () => {
+  // By sea, forts mean a fort battle; won, it leaves (s+1)/2 + fort men/10.
+  assert.deepEqual(assaultBeforeTheWalls({ overland: false, soldiers: 30, forts: 2, crew: 100 }), { battle: 'fort', soldiers: 21 });
+  assert.deepEqual(assaultBeforeTheWalls({ overland: false, soldiers: 30, forts: 0, crew: 100 }), { battle: null, soldiers: 30 });
+  // Overland, only s·15 >= crew with a fort and 10+ soldiers means a land battle.
+  assert.deepEqual(assaultBeforeTheWalls({ overland: true, soldiers: 10, forts: 1, crew: 150 }), { battle: 'land', soldiers: 10 });
+  assert.equal(assaultBeforeTheWalls({ overland: true, soldiers: 10, forts: 1, crew: 151 }).battle, null);
+  assert.equal(assaultBeforeTheWalls({ overland: true, soldiers: 9, forts: 1, crew: 10 }).battle, null);
+  assert.equal(assaultBeforeTheWalls({ overland: true, soldiers: 40, forts: 0, crew: 10 }).battle, null);
 });

@@ -863,6 +863,23 @@ export function convoyGarrison(soldiers, convoysPresent) {
   return Math.min(255, soldiers + 10 * convoysPresent);
 }
 
+// 0x18BE5-0x18E8B: what comes before the walls. By sea, a town with forts
+// is first a fort battle; overland, a garrison of 10 or more that is strong
+// enough (soldiers x 15 >= crew) behind a fort is first a land battle.
+// Neither battle is playable yet, so the port counts the one that applies
+// as won without losses (ASSUMED). A won fort battle leaves the garrison at
+// (s + 1)/2 plus a tenth of the fort's men, here all of them (4 x (s+1)/2);
+// a won land battle leaves (10s + 5)/10 = s.
+export function assaultBeforeTheWalls({ overland, soldiers, forts, crew }) {
+  if (!overland) {
+    if (forts <= 0) return { battle: null, soldiers };
+    const fortCrew = (soldiers + 1) >> 1;
+    return { battle: 'fort', soldiers: fortCrew + Math.trunc((4 * fortCrew) / 10) };
+  }
+  const landBattle = soldiers * 15 >= crew && forts > 0 && soldiers >= 10;
+  return { battle: landBattle ? 'land' : null, soldiers };
+}
+
 // 0x2297B-0x22A6F: each convoy in a captured town adds 20 x the fleet
 // template's byte 5 (0x47117, shared by both) to the base loot, before the
 // treasury loss and the x10 display factor, and is finished for the year.

@@ -24,7 +24,8 @@ const WOOD = '#5a3b22';
 const WOOD_DARK = '#3b2b1d';
 const WOOD_LIGHT = '#7a5a36';
 // Flag field and mark, matching the nation colours of the map flags.
-const FLAGS = {
+// Each flag's field and mark, shared with the sword-fight backdrops.
+export const FLAGS = {
   Spain: ['#e0b33a', '#a8331f'], England: ['#f4f0e4', '#b8322a'], France: ['#2f4f9a', '#f4f0e4'],
   Holland: ['#e07a2a', '#2f4f9a'], pirate: ['#1b1b1b', '#f4f0e4'],
 };
