@@ -54,6 +54,10 @@ for future work.
   (struggling, surviving, prospering, wealthy) and whose walls show its
   forts. Only the flag shows who holds the town. Labels and a minimap are
   drawn too.
+- Draw the landing party as a pixel-art sprite in the same style
+  (`src/party-sprites.mjs`): the captain with a drawn cutlass, a musketeer
+  and a sailor carrying your colours, facing the way they last walked east or
+  west, on the original's 4-frame walk cycle.
 - Draw the flagship, and both ships in a sea battle, as pixel-art sprites in
   the towns' style (`src/ship-sprites.mjs`): an oblique view with the hull's
   side, upright masts, sails lit from the north-west and the nation's flag

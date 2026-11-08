@@ -58,6 +58,7 @@ import { openingSteps, sailingMasterBriefing } from './opening.mjs';
 import { drawVignette, vignetteDescription, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
+import { paintPartySprite } from './party-sprites.mjs';
 import { CLOUD_ART_PIXEL, paintCloudSprite } from './cloud-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 
@@ -4062,24 +4063,19 @@ function drawLandingSpot(zoom, landing) {
   ctx.restore();
 }
 
-// Original placeholder for the landing party: two walkers and a pennant in
-// the captain's colours, bobbing with the walk cycle ((tick >> 2) & 3).
+// The landing party as a pixel-art sprite at the towns' scale: it faces the
+// way it last walked east or west, and steps on the original's walk cycle
+// ((tick >> 2) & 3).
+const partySpriteCache = new Map();
+let partyFacing = 1;
+
 function drawParty(zoom, pose) {
-  const step = (state.tick >> 2) & 3;
-  ctx.save();
-  ctx.translate(pose.x, pose.y);
-  ctx.scale(2.3 / zoom, 2.3 / zoom);
-  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(0, 3.6, 4.6, 1.6, 0, 0, Math.PI * 2); ctx.fill();
-  for (const [offsetX, phase] of [[-1.8, 0], [1.8, 2]]) {
-    const bob = ((step + phase) & 3) < 2 ? 0 : -.5;
-    ctx.fillStyle = '#5c321b'; ctx.fillRect(offsetX - 1, -1.5 + bob, 2, 3.6);
-    ctx.fillStyle = '#e2c49a'; ctx.beginPath(); ctx.arc(offsetX, -2.7 + bob, 1.1, 0, Math.PI * 2); ctx.fill();
-  }
-  ctx.strokeStyle = '#2b2116'; ctx.lineWidth = .6;
-  ctx.beginPath(); ctx.moveTo(3.4, 3); ctx.lineTo(3.4, -6); ctx.stroke();
-  ctx.fillStyle = NATIONS[state.nationality]?.color ?? NATIONS.pirate.color;
-  ctx.beginPath(); ctx.moveTo(3.5, -6); ctx.lineTo(6.6, -5); ctx.lineTo(3.5, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.restore();
+  const walkX = state.player.walk?.x ?? 0;
+  if (walkX) partyFacing = Math.sign(walkX);
+  const frame = (state.tick >> 2) & 3;
+  const nation = NATIONS[state.nationality] ? state.nationality : 'pirate';
+  const sprite = cachedSprite(partySpriteCache, `${frame}|${partyFacing}|${nation}`, () => paintPartySprite({ frame, facing: partyFacing, nation }));
+  if (sprite) drawPixelSprite(ctx, sprite, pose.x, pose.y, townSpriteScale(zoom) * devicePixelScale());
 }
 
 function drawMinimap(width, height, camera, zoom, playerPose) {
