@@ -185,7 +185,7 @@ const describeShip = (ship) => {
 };
 
 function newState(options) {
-  const era = String(options.era || 1680);
+  const era = String(options.era || 1660);
   const scenario = scenarios[era];
   const difficulty = Number(options.difficulty ?? 1);
   const requestedNationality = options.nationality || 'France';
