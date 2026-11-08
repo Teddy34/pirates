@@ -9,9 +9,12 @@ import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas
 const SCENE_UNITS = BACKDROP.width * FIGHT_UNITS_PER_ART_PIXEL; // 520 fight x units
 // Narrow screens show at least this much of the fight around the fencers.
 const MIN_VISIBLE_UNITS = 300;
-// Each fencer stands a little behind his fight x, so that blades cross at
-// about the weapons' reach.
-const BODY_OFFSET = 12;
+// Each fencer stands this far behind his fight x. Forward steps stop 10
+// apart, and at that range the guarding blades cross while a strike just
+// reaches the other fencer's body.
+const BODY_OFFSET = 30;
+// The crews keep to the deck: they line up from closer to the fight x.
+const CREW_OFFSET = 12;
 const MAX_MORALE = 47;
 const spriteCache = new Map();
 
@@ -64,8 +67,8 @@ export function renderSwordFight(context, view, width, height) {
 
   // The crews of a battle stand behind their leaders, further back.
   if (fight.mode === FIGHT_MODE.battle) {
-    drawCrew(context, fight, fight.you.men, 1, toX(fight.you.x + BODY_OFFSET), ground - 5 * art, pixelScale, art);
-    drawCrew(context, fight, fight.foe.men, -1, toX(fight.foe.x - BODY_OFFSET), ground - 5 * art, pixelScale, art, view.foeCrewLook);
+    drawCrew(context, fight, fight.you.men, 1, toX(fight.you.x + CREW_OFFSET), ground - 5 * art, pixelScale, art);
+    drawCrew(context, fight, fight.foe.men, -1, toX(fight.foe.x - CREW_OFFSET), ground - 5 * art, pixelScale, art, view.foeCrewLook);
   }
 
   const foeSprite = fencerSprite({ move: fight.foe.move, frame: fight.foe.frame, look: view.foeLook, weapon: fight.opponentWeapon, mirror: false });

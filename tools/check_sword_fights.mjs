@@ -113,6 +113,7 @@ try {
       if (line) await holdKey(line, true);
       await delay(150);
       if (line) await holdKey(line, false);
+      if (round === 5) await screenshot(`${where}-close`);
     }
     await holdKey('ArrowLeft', false);
     if (await evaluate(inFight)) throw new Error(`${where}: the fight never ended`);

@@ -102,9 +102,10 @@ const MAX_MEN = 9999;
 export const PRACTICE_STEP = 5;
 export const PRACTICE_MAX = 30;
 
-// ASSUMED: the fight timer's rate is untraced (porting_guide.md §5); 120
-// ticks per second gives 10 animation frames a second at skill 0.
-export const FENCING_TICK_SECONDS = 1 / 120;
+// ASSUMED: the fight timer's rate is untraced (porting_guide.md §5). 200
+// ticks a second gives about 17 animation frames a second at skill 0, so a
+// slash takes 0.36 s; 120 ticks a second played too slowly.
+export const FENCING_TICK_SECONDS = 1 / 200;
 
 // 0x1B087 with ability 1.
 export function fencingSkill(difficulty, hasFencing, extra = 0) {

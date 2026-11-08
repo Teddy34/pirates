@@ -103,8 +103,9 @@ evidence for each item. This list collects them in one place.
 
 ### Sword fights (row 13)
 
-- The fight timer's rate is untraced, so a tick is assumed to be 1/120 s
-  (`FENCING_TICK_SECONDS`): 9-12 ticks a frame give 10-13 frames a second.
+- The fight timer's rate is untraced, so a tick is assumed to be 1/200 s
+  (`FENCING_TICK_SECONDS`): 9-12 ticks a frame give 17-22 frames a second.
+  1/120 s made the gaps between attacks feel too long in play.
 - Keys: the original latches a key press until a move that consumes it starts
   (`0x38A0A`), so one tap of "away" keeps you backing off. The port reads held
   keys plus one latched tap per move. Shift is the quick thrust; the
