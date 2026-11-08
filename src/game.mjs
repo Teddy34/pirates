@@ -6,7 +6,7 @@ import {
   clamp, createRng, startFromRecord, targetSailingSpeed, stepSailingSpeed,
   shiftWind, cloudCountForMonth, navigationSkill, turnHeadingDownwind,
   createVoyageClouds, driftClouds, nearestCloudDistancePixels, cloudWrapOpacity,
-  applyProvisionalBoardingOutcome,
+  applyBoardingOutcome,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
   acceptsRudderInput,
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
@@ -16,7 +16,7 @@ import {
   harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, beginDivisionRefit, freshFleet,
   captiveWord, governorPirateHandover, prisonerEscape, portDesertion, governorPromotion, nationalStanding, governorAmnestyTerms,
   captainRansomOffers, monthlyLandIncome,
-  convoyRouteIndices, initialConvoys, monthlyConvoyStep, convoysInTown, meetsTreasureFleet, convoyGarrison,
+  convoyRouteIndices, initialConvoys, monthlyConvoyStep, convoysInTown, meetsTreasureFleet, convoyGarrison, assaultBeforeTheWalls,
   captureConvoys, convoyReport,
   diplomaticBriefing, tavernSpecialEncounters,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
@@ -30,9 +30,15 @@ import {
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
-  broadsideState, createBattle, damageLevel, shipName, shipRecord, stepBattle,
+  broadsideState, createBattle, damageLevel, embarkedForBattle, shipName, shipRecord, stepBattle,
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
+import {
+  DEFAULT_WEAPON, FIGHT_MODE, FIGHT_RESULT, WEAPONS,
+  assaultRecord, boardingRecord, createFight, duelRecord, fightOutcome, garrisonAfterAssault, frameSeconds, practiceAfterBout, practiceRecord, stepFight,
+} from './sword-mechanics.mjs';
+import { LOOKS, lookForOpponent } from './fencer-sprites.mjs';
+import { renderSwordFight } from './sword-renderer.mjs';
 import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
 import { TERRAIN_CHUNK_CELLS, TERRAIN_PIXELS_PER_CELL } from './terrain.mjs';
 import {
@@ -320,6 +326,8 @@ async function startGame(nextState, { startTownIndex = null } = {}) {
   state.player.capturedCaptains ??= [];
   state.player.land ??= 0;
   state.player.specialGoods ??= 0;
+  // 0x45E90: the practice bonus added to your sword hit rolls (0-30).
+  state.player.fencingPractice ??= 0;
   state.portTrade ??= { townIndex: null, merchantCash: null, shipwrightCash: null };
   await loadWorldMap(state.era);
   // Loading recomputes morale (0x1D9A2). ASSUMED: a new game does the same;
@@ -379,11 +387,11 @@ function playOpening(done) {
     const fought = (won) => { addLog(won ? 'Won your first duel.' : 'Lost your first duel.'); next(); };
     showDialog({
       vignette, kicker, title: 'Sword fight',
-      body: '<p>Sword fighting is not playable yet. Choose the provisional result of the duel. Either way your story carries on, as it does in the original.</p>',
-      actions: [
-        { label: 'Win the duel', run: () => fought(true) },
-        { label: 'Lose the duel', secondary: true, run: () => fought(false) },
-      ],
+      body: `<p>Steel rings on steel. Win or lose, your story carries on.</p>${SWORD_CONTROLS}`,
+      actions: [{ label: 'Draw your sword', run: () => beginSwordFight({
+        record: { ...practiceRecord(), opponent: { title: 'Captain' } }, weapon: 0, scene: 'deck',
+        onEnd: ({ result }) => fought(result === FIGHT_RESULT.won),
+      }) }],
     });
   };
   show(0);
@@ -402,7 +410,7 @@ function playBriefing(done) {
 }
 
 function saveGame(showMessage = true) {
-  if (!state || state.mode === 'battle') return;
+  if (!state || state.mode === 'battle' || state.mode === 'sword') return;
   state.rngState = rng.state;
   localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   if (showMessage) addLog('Voyage saved in this browser.');
@@ -1090,13 +1098,14 @@ function showMutiny(next) {
     addLog(`Mutiny! ${result.deserters} men deserted with ${result.goldLost} gold; you ${duelWon ? 'cut down' : 'were beaten by'} their leader.`);
     next();
   };
-  showDialog({
+  // 0x1DE7A: a duel with the ringleader, one step harder.
+  chooseWeapon({
     vignette: 'mutiny', kicker: 'Mutiny', title: 'Your men confront you on the quarterdeck',
-    body: '<p>“Captain, you are a skulker and a coward. We are taking this ship to search for plunder!” A third of the crew deserts as you draw your sword and attack their leader.</p><p>Sword fighting is not playable yet. Choose the provisional result of the duel; either way the mutiny costs you reputation.</p>',
-    actions: [
-      { label: 'Defeat the ringleader', run: () => resolve(true) },
-      { label: 'Lose the duel', secondary: true, run: () => resolve(false) },
-    ],
+    body: '<p>“Captain, you are a skulker and a coward. We are taking this ship to search for plunder!” A third of the crew deserts as you draw your sword and attack their leader.</p>',
+    fight: (weapon) => beginSwordFight({
+      record: duelRecord({ title: 'Mutineer', extraSkill: 1 }), weapon, scene: 'deck',
+      onEnd: ({ result }) => resolve(result === FIGHT_RESULT.won),
+    }),
   });
 }
 
@@ -1521,7 +1530,7 @@ function finishTacticalBattle() {
     return;
   }
   if (battle.event === 'boarding') {
-    offerProvisionalBoarding(enemy);
+    offerBoarding(enemy);
     return;
   }
   if (battle.event === 'player-sunk') {
@@ -1586,34 +1595,155 @@ function showEnemyDestroyed(enemy, done) {
   });
 }
 
-function offerProvisionalBoarding(enemy) {
+// Sword fights (sword_fights.md): every caller builds a fight record, the
+// fight runs in the 'sword' mode, and `onEnd` gets fightOutcome's result.
+let swordView = null;
+let swordAccumulator = 0;
+let swordLatched = null;
+const swordKeys = { toward: false, away: false, high: false, low: false, quick: false };
+// The last frame (a yield, a fencer at the edge) stays up briefly.
+const SWORD_END_PAUSE_SECONDS = .8;
+const NATION_ADJECTIVES = { Spain: 'Spanish', England: 'English', France: 'French', Holland: 'Dutch', pirate: 'pirate' };
+const WEAPON_NOTES = ['long reach, light blows', 'middle reach and weight', 'short reach, heavy blows'];
+const SWORD_CONTROLS = '<p>Attack with ← or A and back off with → or D. Hold ↑/W or ↓/S to fight on the high or low line; hold Shift for a quick thrust. Parry by guarding the line he attacks.</p>';
+
+function heldSwordInput() {
+  const x = Number(swordKeys.away) - Number(swordKeys.toward);
+  const y = Number(swordKeys.low) - Number(swordKeys.high);
+  return x || y ? { x, y, quick: swordKeys.quick } : null;
+}
+
+function opponentName({ title, nation, name }) {
+  if (name) return name;
+  const adjective = NATION_ADJECTIVES[nation];
+  return adjective ? `${adjective[0].toUpperCase()}${adjective.slice(1)} ${title.toLowerCase()}` : title;
+}
+
+// 0x16E56: the weapon choice before a duel or a battle with crews, with the
+// cutlass preselected.
+function chooseWeapon({ vignette, kicker, title, body, fight }) {
   showDialog({
-    vignette: { id: 'boarding', flag: enemy.flag }, kicker: 'Ships grappled', title: `Boarding the ${enemy.ship}`,
-    body: '<p>Interactive boarding and sword fighting are not playable yet. Choose the provisional outcome; it will update the voyage and captain’s log.</p>',
-    actions: [
-      { label: 'Win and capture the ship', run: () => resolveProvisionalBoarding(enemy, 'won') },
-      { label: 'Be driven back', secondary: true, run: () => resolveProvisionalBoarding(enemy, 'driven-back') },
-      { label: 'Lose and pay ransom', run: () => resolveProvisionalBoarding(enemy, 'defeated') },
-    ],
+    vignette, kicker, title,
+    body: `${body}${SWORD_CONTROLS}<p>Choose your weapon.</p>`,
+    actions: [DEFAULT_WEAPON, 1, 0].map((weapon) => ({
+      label: `${WEAPONS[weapon]} · ${WEAPON_NOTES[weapon]}`, key: WEAPONS[weapon][0].toLowerCase(), secondary: weapon !== DEFAULT_WEAPON,
+      run: () => fight(weapon),
+    })),
   });
 }
 
-function resolveProvisionalBoarding(enemy, outcome) {
-  if (outcome === 'won') {
+function beginSwordFight({ record, weapon = DEFAULT_WEAPON, scene = 'deck', onEnd }) {
+  const { opponent } = record;
+  const crewColor = NATIONS[opponent.nation]?.color;
+  swordView = {
+    fight: createFight({ record, difficulty: state.difficulty, hasFencing: state.ability === 'fencing', practice: state.player.fencingPractice ?? 0, weapon, rng }),
+    scene, flag: opponent.nation, onEnd, returnMode: state.mode, returnPaused: state.paused, endPause: SWORD_END_PAUSE_SECONDS,
+    yourLook: LOOKS.player,
+    foeLook: lookForOpponent(opponent.title, opponent.nation, NATIONS),
+    foeCrewLook: scene === 'walls' ? lookForOpponent('Guard', opponent.nation, NATIONS) : { ...LOOKS.sailor, hatColor: crewColor ?? LOOKS.sailor.hatColor },
+    yourName: `Captain ${state.captain}`,
+    foeName: opponentName(opponent),
+  };
+  state.mode = 'sword';
+  state.paused = false;
+  swordAccumulator = 0;
+  swordLatched = null;
+  Object.keys(swordKeys).forEach((key) => { swordKeys[key] = false; });
+  canvas.setAttribute('aria-label', `Sword fight with the ${swordView.foeName}`);
+  updateInterface();
+}
+
+function stepSwordSimulation() {
+  const view = swordView;
+  if (!view || state.paused || state.mode !== 'sword' || view.fight.result) return;
+  view.fight = stepFight(view.fight, swordLatched ?? heldSwordInput(), rng);
+  if (view.fight.startedMove) swordLatched = null;
+}
+
+function advanceSwordFight(elapsed) {
+  const view = swordView;
+  if (!view || state.paused) return;
+  if (view.fight.result) {
+    view.endPause -= elapsed;
+    if (view.endPause <= 0) finishSwordFight();
+    return;
+  }
+  swordAccumulator += elapsed;
+  const step = frameSeconds(view.fight.skill);
+  let catchup = 0;
+  while (swordAccumulator >= step && catchup < 4 && !view.fight.result) {
+    stepSwordSimulation();
+    swordAccumulator -= step;
+    catchup += 1;
+  }
+  if (catchup === 4) swordAccumulator = 0;
+}
+
+function finishSwordFight() {
+  const view = swordView;
+  swordView = null;
+  state.mode = view.returnMode;
+  state.paused = view.returnPaused;
+  canvas.setAttribute('aria-label', view.returnMode === 'battle' ? 'Tactical sea battle' : 'Caribbean sailing map');
+  updateInterface();
+  view.onEnd(fightOutcome(view.fight));
+}
+
+// 0xBDAE: a bout with no consequences that sharpens your hit rolls. It
+// costs no time, as in the original (porting_guide.md §13 item 11).
+function practiceFencing(done) {
+  chooseWeapon({
+    kicker: 'Practice', title: 'Fencing practice',
+    body: `<p>One of your officers offers to cross swords with you. Practice adds to every blow you strike in earnest, up to six bouts.</p><dl><dt>Practice so far</dt><dd>${(state.player.fencingPractice ?? 0) / 5} of 6 bouts</dd></dl>`,
+    fight: (weapon) => beginSwordFight({ record: practiceRecord(), weapon, scene: 'deck', onEnd: ({ result }) => {
+      state.player.fencingPractice = practiceAfterBout(state.player.fencingPractice);
+      addLog(`${result === FIGHT_RESULT.won ? 'Won' : 'Lost'} a practice bout; practice ${state.player.fencingPractice / 5} of 6.`);
+      done();
+    } }),
+  });
+}
+
+// 0xF10A: boarding is a sword fight with crews (sea_battles.md §7).
+function offerBoarding(enemy) {
+  const battle = state.battle;
+  const id = enemy.captainId ?? 0;
+  const record = boardingRecord({
+    yourMen: battle.player.men, yourDamage: battle.player.damage,
+    theirMen: battle.enemy.men, theirDamage: battle.enemy.damage, kind: battle.enemy.kind,
+    nation: enemy.flag, name: enemy.captainName,
+    // 0xF207: a named captain fights one or two steps harder.
+    extraSkill: id & 0x80 ? 1 : Math.trunc((id & 7) / 3),
+  });
+  chooseWeapon({
+    vignette: { id: 'boarding', flag: enemy.flag }, kicker: 'Ships grappled', title: `Boarding the ${enemy.ship}`,
+    body: `<p>The two ships crash together. Your ${record.yourMen} men swarm over the rail to meet her ${record.theirMen} defenders.</p>`,
+    fight: (weapon) => beginSwordFight({ record, weapon, scene: 'deck', onEnd: (outcome) => resolveBoarding(enemy, outcome) }),
+  });
+}
+
+function resolveBoarding(enemy, outcome) {
+  const { player, ransom } = applyBoardingOutcome(state.player, outcome);
+  state.player = player;
+  // A defeat goes to capture, which does not count the fallen (0x1660E).
+  const losses = outcome.casualties && outcome.result !== FIGHT_RESULT.defeated ? ` We lost ${outcome.casualties} men.` : '';
+  if (outcome.result === FIGHT_RESULT.won) {
     state.battle = null;
     state.mode = 'sailing';
-    addLog(`Provisional boarding victory: captured the ${enemy.ship}.`);
-    beginShipCapture(enemy);
+    addLog(`Boarded and captured the ${enemy.ship}.${losses}`);
+    // The defenders' survivors are the prize's crew (battle men are 4 per man).
+    beginShipCapture({ ...enemy, crew: Math.max(1, Math.ceil(outcome.theirMen / 4)) });
     return;
   }
-  const result = applyProvisionalBoardingOutcome(state.player, state.battle.player.men, outcome);
-  state.player = result.player;
   state.alert += 16;
-  if (outcome === 'defeated') {
-    endBattleToSailing(`Provisional boarding defeat: lost ${result.casualties} crew and paid ${result.ransom} gold in ransom.`);
-    return;
-  }
-  endBattleToSailing('Provisional boarding result: the boarding party was driven back and broke away.');
+  const message = outcome.result === FIGHT_RESULT.defeated
+    ? `Beaten in the boarding fight: our men threw down their arms, and we paid ${ransom} gold in ransom.${losses}`
+    : `The boarding party was driven back and broke away.${losses}`;
+  showDialog({
+    vignette: { id: 'boarding', flag: enemy.flag }, kicker: 'The boarding fails',
+    title: outcome.result === FIGHT_RESULT.defeated ? 'Your men surrender' : 'Driven back',
+    body: `<p>${message}</p>`,
+    actions: [{ label: 'Continue', run: () => endBattleToSailing(message) }],
+  });
 }
 
 function beginShipCapture(enemy) {
@@ -2162,17 +2292,81 @@ function resolveDig() {
   });
 }
 
+// 0x18B3F: an assault. The fort battle (by sea) or the land battle
+// (overland) that may come first is not playable yet and counts as won
+// (assaultBeforeTheWalls); every assault then ends in storming the walls,
+// a sword fight with crews against the garrison (0x18EFD).
 function attackTown(town) {
   // 0x18B9C: the convoys' guards join the garrison at every assault.
   town.soldiers = convoyGarrison(town.soldiers, convoysInTown(state.convoys, state.towns.indexOf(town)).length);
+  const overland = Boolean(state.approach?.overland);
+  const before = assaultBeforeTheWalls({ overland, soldiers: town.soldiers, forts: town.forts, crew: state.player.crew });
+  const approachText = {
+    fort: `<p>Your fleet runs in under the guns of the fort, and the flagship’s crew lands below its walls.</p><p><em>The battle against the fort is not playable yet; it counts as won.</em></p>`,
+    land: `<p>Your men march on ${town.name} and break through the defenders in the field.</p><p><em>The land battle is not playable yet; it counts as won.</em></p>`,
+  }[before.battle] ?? `<p>${town.forts ? 'The garrison is too weak to meet you in the field: your men march straight to the walls.' : `${town.name} has no fort. Your men march straight into the town.`}</p>`;
   showDialog({
-    vignette: { id: state.approach?.overland ? 'land-attack' : 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
-    body: `<p>Town and land combat are not playable yet. Choose the provisional result of the assault; capture now leads into the documented plunder sequence.</p>`,
+    vignette: { id: overland ? 'land-attack' : 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
+    body: approachText,
     actions: [
-      { label: 'Capture the town', run: () => captureTown(town) },
-      { label: 'Repelled with losses', run: () => { const lost = Math.min(state.player.crew - 1, Math.max(1, Math.floor(state.player.crew / 5))); state.player.crew -= lost; state.alert += 16; state.player.reputation -= 2; addLog(`Lost ${lost} crew attacking ${town.name}.`); departFromApproach(); runFleetCheck({ inTown: true, done: startVoyage }); } },
+      { label: 'Storm the walls', run: () => stormTheWalls(town, before) },
       { label: 'Withdraw from the assault', secondary: true, run: () => { state.alert += 16; addLog(`Withdrew from the assault on ${town.name}.`); departFromApproach(); resumeSailing(); } },
     ],
+  });
+}
+
+function stormTheWalls(town, before) {
+  let yourMen = state.player.crew;
+  if (before.battle === 'fort') {
+    // Getting through to the fort (event 5, 0xE775): alert +16 and
+    // reputation -2. Only the flagship's crew lands (sea_battles.md §8);
+    // ASSUMED: the first ship is the flagship.
+    state.alert += 16;
+    state.player.reputation -= 2;
+    yourMen = embarkedForBattle({ ...state.player, flagshipIndex: 0 }).men;
+  }
+  town.soldiers = before.soldiers;
+  const forts = town.forts > 0;
+  const record = assaultRecord({
+    yourMen, crewMorale: state.player.crewMorale ?? 0, roll: rng.int(3), soldiers: town.soldiers, forts: town.forts, nation: town.nation,
+  });
+  chooseWeapon({
+    vignette: { id: forts ? 'fort-walls' : 'land-attack', flag: town.nation }, kicker: 'Storming the walls',
+    title: forts ? 'The fort’s commander attacks' : 'An armed band of citizens',
+    // CSTR 192 / 211.
+    body: forts
+      ? '<p>Your men scale the walls of the fort. As the battle rages, the fort’s commander attacks you with his sword.</p>'
+      : '<p>As you and your men enter the town, you encounter an armed band of citizens. The leader steps forward, brandishing his sword.</p>',
+    fight: (weapon) => beginSwordFight({ record, weapon, scene: forts ? 'walls' : 'alley', onEnd: (outcome) => resolveAssault(town, outcome) }),
+  });
+}
+
+function resolveAssault(town, outcome) {
+  // A defeat goes to capture, which does not count the fallen (0x1660E).
+  if (outcome.result !== FIGHT_RESULT.defeated) state.player.crew = Math.max(1, state.player.crew - outcome.casualties);
+  const losses = outcome.casualties && outcome.result !== FIGHT_RESULT.defeated ? ` We lost ${outcome.casualties} men.` : '';
+  if (outcome.result === FIGHT_RESULT.won) {
+    town.soldiers = garrisonAfterAssault(outcome.theirMen);
+    addLog(`Stormed the walls of ${town.name}.${losses}`);
+    captureTown(town);
+    return;
+  }
+  // 0x18F57: reputation -1 and favour -1 with the town's nation.
+  state.player.reputation -= 1;
+  propagateFavour(town.nation, -1);
+  // ASSUMED: capture (0x16647) is not ported; as for a lost boarding, a
+  // defeat costs a tenth of the party's gold in ransom instead.
+  const ransom = outcome.result === FIGHT_RESULT.defeated ? Math.floor(state.player.partyGold / 10) : 0;
+  state.player.partyGold -= ransom;
+  const message = outcome.result === FIGHT_RESULT.defeated
+    ? `Failed to capture ${town.name}: our men threw down their arms, and we paid ${ransom} gold in ransom.`
+    : `Failed to capture ${town.name}: driven back from the walls.${losses}`;
+  addLog(message);
+  showDialog({
+    vignette: { id: town.forts ? 'fort-walls' : 'land-attack', flag: town.nation }, kicker: 'The assault fails',
+    title: outcome.result === FIGHT_RESULT.defeated ? 'Your men surrender' : 'Driven back',
+    body: `<p>${message}</p>`,
+    actions: [{ label: 'Continue', run: () => { departFromApproach(); runFleetCheck({ inTown: true, done: startVoyage }); } }],
   });
 }
 
@@ -2312,21 +2506,21 @@ function trySneak(town) {
 
 function showGuardDuel(town) {
   const overland = Boolean(state.approach?.overland);
-  showDialog({
+  chooseWeapon({
     vignette: 'alley-duel', kicker: 'Recognized!', title: '“Halt, you cowardly pirate scum!”',
-    body: '<p>As you sneak into town, one of the governor’s guards recognizes you and draws his sword.</p><p>Sword fighting is not playable yet. Choose the provisional result of the duel.</p>',
-    actions: [
-      { label: 'Defeat the guard', run: () => {
-        addLog(`Fought off a guard while sneaking into ${town.name}.`);
+    body: '<p>As you sneak into town, one of the governor’s guards recognizes you and draws his sword.</p>',
+    fight: (weapon) => beginSwordFight({
+      record: duelRecord({ title: 'Guard', nation: town.nation, extraSkill: 1 }), weapon, scene: 'alley',
+      onEnd: ({ result }) => {
+        if (result === FIGHT_RESULT.won) addLog(`Fought off a guard while sneaking into ${town.name}.`);
+        else {
+          // Losing any duel sets reputation to -1 (0x165FE, sword_fights.md).
+          state.player.reputation = -1;
+          addLog(`Beaten by a guard while sneaking into ${town.name}.`);
+        }
         approachTown({ overland });
-      } },
-      { label: 'Lose the duel', secondary: true, run: () => {
-        // Losing any duel sets reputation to -1 (0x165FE, sword_fights.md).
-        state.player.reputation = -1;
-        addLog(`Beaten by a guard while sneaking into ${town.name}.`);
-        approachTown({ overland });
-      } },
-    ],
+      },
+    }),
   });
 }
 
@@ -2472,6 +2666,7 @@ function showTownMenu() {
     ...(!state.visit.sneaking ? [{ label: 'Merchant', run: openMerchant }] : []),
     { label: 'Shipwright', run: showShipwright },
     { label: 'Divide the plunder', run: showPlunderDivision },
+    { label: 'Practice fencing', secondary: true, run: () => practiceFencing(showTownMenu) },
     { label: 'Logbook', secondary: true, run: () => showLogbook(showTownMenu) },
     { label: 'Save voyage', secondary: true, run: () => { saveGame(); showTownMenu(); } },
     { label: 'Put to sea', secondary: true, run: leaveTown },
@@ -2716,7 +2911,6 @@ function offerVillainGossip(source, townIndex, next) {
 
 // 0x18913, from the tavern, the governor's and a captured town: the first
 // villain staying there flees to a random town and fights you on the way out.
-// ASSUMED: the duel is a provisional choice until sword fights exist.
 function confrontVillainInTown(townIndex, next) {
   const slot = villainInTown(state.villains, townIndex);
   if (slot < 0) {
@@ -2727,36 +2921,39 @@ function confrontVillainInTown(townIndex, next) {
   state.villains = villainFlees({ villains: state.villains, slot, towns: state.towns, rng });
   const town = state.towns[townIndex];
   const relative = RELATIVE_NAMES[state.relativesRescued];
-  showDialog({
+  const won = () => {
+    const villains = [...state.villains];
+    villains[slot] = null;
+    state.villains = villains;
+    state.treasureMaps = giveTreasureMapPiece(state.treasureMaps, MAP_KIND.RELATIVE, townIndex);
+    const map = state.treasureMaps[MAP_KIND.RELATIVE];
+    addLog(`Beat ${villainName(villain)} in ${town.name}: map piece ${mapPieceCount(map)}/4 to my ${relative}.`);
+    showDialog({
+      vignette: 'villain-news', kicker: villainName(villain), title: `Your ${relative} is held captive`,
+      body: `<p>“You are a skilled and able swordsman. I will tell you what I know. Your ${relative} is held captive on a remote plantation. This map may help you on your quest.”</p>${treasureMapBody(MAP_KIND.RELATIVE)}`,
+      actions: [{ label: 'Continue', run: next }],
+    });
+  };
+  const lost = () => {
+    // Losing any duel sets reputation to -1 (0x165FE, sword_fights.md).
+    state.player.reputation = -1;
+    addLog(`${villainName(villain)} beat me in ${town.name} and escaped.`);
+    showDialog({
+      vignette: 'villain-news', kicker: villainName(villain), title: 'He escapes',
+      body: `<p>${villainName(villain)} disarms you and vanishes into the night.</p>`,
+      actions: [{ label: 'Continue', run: next }],
+    });
+  };
+  chooseWeapon({
     vignette: 'alley-duel', kicker: `The evil ${villainName(villain)}`, title: 'Sneaking out a back entrance',
-    body: `<p>You spot the evil ${villainDescription(villain)} sneaking out a back entrance. He draws his sword as you rush after him!</p><p>Sword fighting is not playable yet. Choose the provisional result of the duel.</p>`,
-    actions: [
-      { label: 'Win the duel', run: () => {
-        const villains = [...state.villains];
-        villains[slot] = null;
-        state.villains = villains;
-        state.treasureMaps = giveTreasureMapPiece(state.treasureMaps, MAP_KIND.RELATIVE, townIndex);
-        const map = state.treasureMaps[MAP_KIND.RELATIVE];
-        addLog(`Beat ${villainName(villain)} in ${town.name}: map piece ${mapPieceCount(map)}/4 to my ${relative}.`);
-        showDialog({
-          vignette: 'villain-news', kicker: villainName(villain), title: `Your ${relative} is held captive`,
-          body: `<p>“You are a skilled and able swordsman. I will tell you what I know. Your ${relative} is held captive on a remote plantation. This map may help you on your quest.”</p>${treasureMapBody(MAP_KIND.RELATIVE)}`,
-          actions: [{ label: 'Continue', run: next }],
-        });
-      } },
-      { label: 'Lose the duel', secondary: true, run: () => {
-        // Losing any duel sets reputation to -1 (0x165FE, sword_fights.md).
-        state.player.reputation = -1;
-        addLog(`${villainName(villain)} beat me in ${town.name} and escaped.`);
-        showDialog({
-          vignette: 'villain-news', kicker: villainName(villain), title: 'He escapes',
-          body: `<p>${villainName(villain)} disarms you and vanishes into the night.</p>`,
-          actions: [{ label: 'Continue', run: next }],
-        });
-      } },
-    ],
+    body: `<p>You spot the evil ${villainDescription(villain)} sneaking out a back entrance. He draws his sword as you rush after him!</p>`,
+    fight: (weapon) => beginSwordFight({
+      record: duelRecord({ title: 'Villain', name: villainName(villain) }), weapon, scene: 'alley',
+      onEnd: ({ result }) => (result === FIGHT_RESULT.won ? won() : lost()),
+    }),
   });
 }
+
 function beginGovernorRansoms(town) {
   const offers = captainRansomOffers({ captives: state.player.capturedCaptains, rng });
   showGovernorRansom(town, offers, 0);
@@ -3573,7 +3770,7 @@ function startVoyage() {
 }
 
 function togglePause() {
-  if (!state || !['sailing', 'battle'].includes(state.mode) || dialog.open) return;
+  if (!state || !['sailing', 'battle', 'sword'].includes(state.mode) || dialog.open) return;
   state.paused = !state.paused;
   if (state.paused) {
     input.firePressed = false;
@@ -3582,7 +3779,8 @@ function togglePause() {
   }
   if (!state.paused && state.mode === 'sailing') resetSailingInterpolation();
   pauseButton.firstChild.textContent = state.paused ? '▶ ' : 'Ⅱ ';
-  addLog(state.paused ? `${state.mode === 'battle' ? 'Battle' : 'Voyage'} paused.` : `${state.mode === 'battle' ? 'Battle' : 'Voyage'} resumed.`);
+  const activity = { battle: 'Battle', sword: 'Fight' }[state.mode] ?? 'Voyage';
+  addLog(state.paused ? `${activity} paused.` : `${activity} resumed.`);
 }
 
 function addLog(message) {
@@ -3614,6 +3812,11 @@ function setControl(button, icon, label, ariaLabel) {
 function updateInterface() {
   if (!state) return;
   const player = state.player;
+  document.body.classList.toggle('sword-fight', state.mode === 'sword');
+  if (state.mode === 'sword' && swordView) {
+    updateSwordInterface(swordView);
+    return;
+  }
   const inBattle = state.mode === 'battle' && state.battle;
   const onFoot = !inBattle && player.onFoot;
   if (inBattle) setControl(dockButton, '● ', 'Fire', 'Fire loaded broadside');
@@ -3663,6 +3866,32 @@ function updateInterface() {
   logbookButton.disabled = state.mode !== 'sailing';
 }
 
+// The sailing buttons become the fight's controls: the steering pair attack
+// and back off, the sail pair pick the high and low lines, and the dock
+// button holds the quick thrust.
+function updateSwordInterface({ fight, foeName }) {
+  setControl(turnLeftButton, '← ', 'Attack', 'Attack (hold)');
+  setControl(turnRightButton, '→ ', 'Back off', 'Back off (hold)');
+  setControl(raiseSailsButton, '↑ ', 'High', 'Fight on the high line (hold)');
+  setControl(lowerSailsButton, '↓ ', 'Low', 'Fight on the low line (hold)');
+  setControl(dockButton, '⚡ ', 'Quick', 'Quick thrust (hold with Attack)');
+  controls.setAttribute('aria-label', 'Sword fight controls');
+  dockButton.disabled = state.paused;
+  zoomOutButton.disabled = true;
+  zoomInButton.disabled = true;
+  logbookButton.disabled = true;
+  const battle = fight.mode === FIGHT_MODE.battle;
+  labels.captain.textContent = `Captain ${state.captain} · Fight`;
+  labels.date.textContent = `Against the ${foeName}`;
+  labels.speed.textContent = WEAPONS[fight.weapon];
+  labels.wind.textContent = `↔ ${fight.you.x - fight.foe.x}`;
+  labels.sails.textContent = ['Mid', 'Low', 'High'][fight.you.move >= 0 && fight.you.move < 12 ? fight.you.move % 3 : 0];
+  labels.food.textContent = 'Clock stopped';
+  labels.crew.textContent = battle ? String(fight.you.men) : 'Alone';
+  labels.gold.textContent = `Morale ${fight.you.morale}`;
+  labels.nearest.textContent = battle ? `${fight.foe.men} foes` : `Foe ${fight.foe.morale}`;
+}
+
 function render() {
   const width = viewWidth;
   const height = viewHeight;
@@ -3671,6 +3900,11 @@ function render() {
   sea.addColorStop(0, '#1a5969'); sea.addColorStop(1, '#0d3c4b');
   ctx.fillStyle = sea; ctx.fillRect(0, 0, width, height);
   if (!state) return;
+  if (state.mode === 'sword' && swordView) {
+    renderSwordFight(ctx, swordView, width, height);
+    if (state.paused && !dialog.open) drawPaused(width, height, 'Fight paused');
+    return;
+  }
   if (state.mode === 'battle' && state.battle) {
     renderBattle(ctx, state.battle, width, height);
     if (state.paused && !dialog.open) drawPaused(width, height, 'Battle paused');
@@ -3907,6 +4141,7 @@ continueButton.addEventListener('click', async () => { const saved = loadGame();
 pauseButton.addEventListener('click', togglePause);
 logbookButton.addEventListener('click', openLogbookAtSea);
 dockButton.addEventListener('click', () => {
+  if (state?.mode === 'sword') return;
   if (state?.mode === 'battle') input.firePressed = true;
   else if (state?.player.onFoot) showDigPrompt();
   else openTreasureMapsAtSea();
@@ -3983,13 +4218,15 @@ for (const button of document.querySelectorAll('[data-hold]')) {
   const walkDirection = direction === 'left' ? 'west' : 'east';
   const press = (event) => {
     event.preventDefault();
-    if (state?.player.onFoot) {
+    if (state?.mode === 'sword') { if (!state.paused) pressSwordKey(direction === 'left' ? 'toward' : 'away'); }
+    else if (state?.player.onFoot) {
       walkKeys[walkDirection] = true;
       setWalk(walkKeys);
     } else input[direction] = true;
   };
   const release = (event) => {
     event.preventDefault();
+    swordKeys[direction === 'left' ? 'toward' : 'away'] = false;
     walkKeys[walkDirection] = false;
     input[direction] = false;
   };
@@ -3999,9 +4236,40 @@ for (const button of document.querySelectorAll('[data-hold]')) {
   button.addEventListener('pointerleave', release);
 }
 
+// Sword-fight keys (see sword-mechanics.mjs inputMove). Each press is also
+// latched until the next move starts, so a quick tap is never lost.
+const SWORD_KEYS = {
+  arrowleft: 'toward', a: 'toward', arrowright: 'away', d: 'away',
+  arrowup: 'high', w: 'high', arrowdown: 'low', s: 'low', shift: 'quick',
+};
+
+function pressSwordKey(name) {
+  swordKeys[name] = true;
+  if (name !== 'quick') swordLatched = heldSwordInput();
+}
+
+// In a sword fight the sail and dock buttons are held like keys.
+for (const [button, name] of [[raiseSailsButton, 'high'], [lowerSailsButton, 'low'], [dockButton, 'quick']]) {
+  button.addEventListener('pointerdown', (event) => {
+    if (state?.mode !== 'sword' || state.paused) return;
+    event.preventDefault();
+    pressSwordKey(name);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) button.addEventListener(type, () => { swordKeys[name] = false; });
+}
+
 addEventListener('keydown', (event) => {
   if (dialog.open) return;
   const key = event.key.toLowerCase();
+  if (state?.mode === 'sword') {
+    const name = SWORD_KEYS[key];
+    if (name) {
+      event.preventDefault();
+      if (!event.repeat && !state.paused) pressSwordKey(name);
+    }
+    if ((key === 'escape' || key === 'p' || key === ' ') && !event.repeat) { event.preventDefault(); togglePause(); }
+    return;
+  }
   if (state?.player.onFoot && state.mode === 'sailing') {
     const directions = walkKeyDirections(event);
     if (directions) {
@@ -4032,11 +4300,14 @@ addEventListener('keydown', (event) => {
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'].includes(event.key)) event.preventDefault();
 });
 addEventListener('keyup', (event) => {
+  const swordKey = SWORD_KEYS[event.key.toLowerCase()];
+  if (swordKey) swordKeys[swordKey] = false;
   if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') input.left = false;
   if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') input.right = false;
   for (const direction of walkKeyDirections(event) ?? []) walkKeys[direction] = false;
 });
 addEventListener('blur', () => {
+  Object.keys(swordKeys).forEach((name) => { swordKeys[name] = false; });
   input.left = false;
   input.right = false;
   Object.keys(walkKeys).forEach((direction) => { walkKeys[direction] = false; });
@@ -4089,6 +4360,8 @@ function frame(now) {
       catchup += 1;
     }
     if (catchup === 8) battleAccumulator = 0;
+  } else if (state?.mode === 'sword') {
+    advanceSwordFight(elapsed);
   } else {
     accumulator += elapsed;
     while (accumulator >= tickSeconds()) { stepSimulation(); accumulator -= tickSeconds(); }
@@ -4107,7 +4380,16 @@ loadScenarios().then(() => {
   const preview = new URLSearchParams(location.search).get('preview');
   // Local previews expose the live state to the browser smoke checks.
   if (preview && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    globalThis.piratesPreview = { get state() { return state; } };
+    globalThis.piratesPreview = {
+      get state() { return state; },
+      // Ends the current sword fight with `result`, for checks of its callers.
+      settleFight(result) {
+        if (!swordView) return false;
+        swordView.fight = { ...swordView.fight, result };
+        swordView.endPause = 0;
+        return true;
+      },
+    };
   }
   if (preview === 'plunder' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
     const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
@@ -4169,7 +4451,25 @@ loadScenarios().then(() => {
   // One dialog of each moment that has its own scene picture, by scene id.
   const scenePreviews = {
     'sail-ho': () => showSighting(state.towns[0], 5),
-    boarding: () => offerProvisionalBoarding({ ship: 'Merchantman', flag: 'Spain' }),
+    boarding: () => {
+      beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 12, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);
+      state.paused = true;
+      offerBoarding(state.battle.encounter);
+    },
+    // Sword fights straight away, for the browser checks.
+    'sword-duel': () => beginSwordFight({
+      record: duelRecord({ title: 'Guard', nation: 'Spain', extraSkill: 1 }), scene: 'alley',
+      onEnd: ({ result }) => { addLog(`Preview duel: ${result}.`); resumeSailing(); },
+    }),
+    'sword-boarding': () => {
+      beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 12, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);
+      const enemy = state.battle.encounter;
+      beginSwordFight({
+        record: boardingRecord({ yourMen: state.battle.player.men, theirMen: state.battle.enemy.men, kind: state.battle.enemy.kind, nation: enemy.flag }),
+        scene: 'deck', onEnd: (outcome) => resolveBoarding(enemy, outcome),
+      });
+    },
+    'sword-practice': () => practiceFencing(resumeSailing),
     'hostage-talks': () => resolveNamedCaptain({ ship: 'Galleon', flag: 'Spain', captainId: 3 }, resumeSailing),
     'crew-recruits': () => showRecruitOffer(12),
     'treasure-fleet-capture': () => showConvoyCaptures(['treasureFleet'], resumeSailing),
@@ -4183,7 +4483,7 @@ loadScenarios().then(() => {
       showRetirementEnding({ tier, job, points: 80 - tier * 20 }, retirementLine({ job, townName: state.towns[0].name, rng }), resumeSailing);
     }])),
     'land-attack': () => { state.approach = { overland: true }; attackTown(state.towns[0]); },
-    'fort-walls': () => { state.approach = { overland: false }; attackTown(state.towns[0]); },
+    'fort-walls': () => { state.approach = { overland: false }; attackTown(state.towns.find((town) => town.forts > 0) ?? state.towns[0]); },
     // The battle ends on the next frame with the given event.
     ...Object.fromEntries([['sinking', 'player-sunk'], ['outrun', 'escaped'], ['nightfall', 'sunset']].map(([id, event]) => [id, () => {
       beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 20, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);

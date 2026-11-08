@@ -164,22 +164,19 @@ export function applyProvisionalBattleOutcome(player, enemy, outcome, shipStats)
   return { player: next, message };
 }
 
-export function applyProvisionalBoardingOutcome(player, embarkedMen, outcome) {
-  const next = { ...player };
-  if (outcome === 'won') {
-    return { player: next, casualties: 0, ransom: 0 };
-  }
+// After the boarding fight (0xF10A, sea_battles.md §7): a loss or being
+// driven back costs 2 reputation (the caller adds alert +16). Your crew's
+// losses are deducted on a win or when driven back; a defeat calls capture
+// (0x16647) and skips the deduction (0x1660E). ASSUMED: capture is not
+// ported, so a defeat costs a tenth of the party's gold in ransom instead.
+export function applyBoardingOutcome(player, { result, casualties }) {
+  const lost = result === 'defeated' ? 0 : casualties;
+  const next = { ...player, crew: Math.max(1, player.crew - lost) };
+  if (result === 'won') return { player: next, ransom: 0 };
   next.reputation -= 2;
-  if (outcome === 'driven-back') {
-    return { player: next, casualties: 0, ransom: 0 };
-  }
-  // ASSUMED interim defeat: prison and ransom are not playable yet, so defeat
-  // costs one quarter of the embarked crew and ten percent of party gold.
-  const casualties = Math.min(next.crew - 1, Math.max(1, Math.floor(embarkedMen / 4)));
-  const ransom = Math.floor(next.partyGold / 10);
-  next.crew -= casualties;
+  const ransom = result === 'defeated' ? Math.floor(next.partyGold / 10) : 0;
   next.partyGold -= ransom;
-  return { player: next, casualties, ransom };
+  return { player: next, ransom };
 }
 
 function triangularCargoRoll(limit, rng) {
@@ -864,6 +861,23 @@ export function meetsTreasureFleet({ convoys, nearestTownIndex, alert, rng }) {
 // attack, capped at 255.
 export function convoyGarrison(soldiers, convoysPresent) {
   return Math.min(255, soldiers + 10 * convoysPresent);
+}
+
+// 0x18BE5-0x18E8B: what comes before the walls. By sea, a town with forts
+// is first a fort battle; overland, a garrison of 10 or more that is strong
+// enough (soldiers x 15 >= crew) behind a fort is first a land battle.
+// Neither battle is playable yet, so the port counts the one that applies
+// as won without losses (ASSUMED). A won fort battle leaves the garrison at
+// (s + 1)/2 plus a tenth of the fort's men, here all of them (4 x (s+1)/2);
+// a won land battle leaves (10s + 5)/10 = s.
+export function assaultBeforeTheWalls({ overland, soldiers, forts, crew }) {
+  if (!overland) {
+    if (forts <= 0) return { battle: null, soldiers };
+    const fortCrew = (soldiers + 1) >> 1;
+    return { battle: 'fort', soldiers: fortCrew + Math.trunc((4 * fortCrew) / 10) };
+  }
+  const landBattle = soldiers * 15 >= crew && forts > 0 && soldiers >= 10;
+  return { battle: landBattle ? 'land' : null, soldiers };
 }
 
 // 0x2297B-0x22A6F: each convoy in a captured town adds 20 x the fleet

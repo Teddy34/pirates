@@ -139,7 +139,8 @@ try {
     await open('villain-tavern');
     await clickButton('Follow the man');
     await until('the confrontation', `${dialogTitle} === 'Sneaking out a back entrance'`);
-    await clickButton('Lose the duel');
+    await clickButton('Cutlass');
+    await until('the duel', `${S}.mode === 'sword' && globalThis.piratesPreview.settleFight('defeated')`);
     await until('the escape', `${dialogTitle} === 'He escapes'`);
     if (await evaluate(`${S}.player.reputation`) !== -1) throw new Error(`${viewport.name}: a lost duel did not set reputation to -1`);
     if (await evaluate(`${S}.villains[0] === null`)) throw new Error(`${viewport.name}: the villain did not survive winning`);
@@ -148,7 +149,8 @@ try {
     await open('villain-tavern');
     await clickButton('Follow the man');
     await until('the confrontation', `${dialogTitle} === 'Sneaking out a back entrance'`);
-    await clickButton('Win the duel');
+    await clickButton('Cutlass');
+    await until('the duel', `${S}.mode === 'sword' && globalThis.piratesPreview.settleFight('won')`);
     await until('the confession', `${dialogTitle} === 'Your sister is held captive'`);
     await screenshot(`${viewport.name}-map`);
     if (!await evaluate(`${S}.villains[0] === null && ${S}.treasureMaps[1].pieces !== 0`)) throw new Error(`${viewport.name}: the win did not give the map piece`);

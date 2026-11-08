@@ -31,9 +31,10 @@ The first complete release should let the player:
 5. carry surviving crew, cannon, ship damage, captured ships, reputation, and
    nearby-town alert back into the campaign.
 
-Boarding currently opens an explicit provisional outcome menu. The interactive
-sword-fight system remains a separate vertical slice because it has its own
-controls, animation timing, morale model, and test surface. Fort battles should
+Boarding is now an interactive sword fight with crews (`src/sword-mechanics.mjs`,
+`sea_battles.md` §7, `sword_fights.md`): your men aboard against his battle men,
+quality `7 − damage/16` against `kind − damage/16`, and +1 or +2 skill for a
+named captain (`0xF207`). Fort battles should
 reuse the finished naval engine in a later milestone.
 
 ## Evidence boundary
@@ -328,18 +329,15 @@ Implement capture atomically: calculate capacity, transfer the prize, crew,
 cannon, gold, and any known cargo, then show one summary before returning to
 sailing. Never partially mutate campaign state while a result dialog is open.
 
-### 6. Boarding fallback
+### 6. Boarding
 
-Until interactive sword fighting exists, boarding opens a provisional outcome
-menu. The player chooses victory and capture, a driven-back withdrawal, or
-defeat and ransom. Each choice updates campaign state and the captain's log,
-then returns to a valid mode.
-
-The driven-back and defeated choices apply the documented `+16` nearby alert
-and `-2` reputation consequences. Defeat also removes one quarter of the
-embarked crew and ten percent of party gold as an explicit interim assumption.
-Replace this menu when the sword-fight slice can model morale, casualties,
-yielding, prison, and ransom.
+Boarding runs the sword fight (`offerBoarding` in `src/game.mjs`). Your crew's
+losses in the fight are deducted on a win or when driven back; a defeat goes
+to capture, which skips the deduction (`0x1660E`). A win takes the prize
+with the defenders' survivors as her crew. Being driven back or defeated applies
+the documented `+16` alert and `-2` reputation. Capture after a defeat
+(`0x16647`) is not ported, so a defeat also costs ten percent of party gold as
+an explicit interim ransom.
 
 ### 7. Fort reuse
 
@@ -417,13 +415,13 @@ Each milestone ends in a runnable build:
    aftermath paths, and provisional boarding outcomes.
 5. **Polish and verification** — touch controls, accessibility, effects,
    balance observation, and comparison against the installed binary.
-6. **Follow-ons** — interactive sword fighting, then fort attack and land
-   assault.
+6. **Follow-ons** — interactive sword fighting (done), then fort attack and
+   land assault.
 
 ## Definition of done for the first release
 
 - Every ordinary ship encounter can enter and finish tactical combat without a
-  dead end. Unfinished boarding presents explicit provisional outcomes.
+  dead end. Boarding is fought as a sword fight.
 - The documented ship setup, movement, gunnery, AI, and outcome rules above are
   covered by deterministic tests.
 - Campaign resources and fleet damage remain consistent after every result.
