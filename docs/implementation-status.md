@@ -65,8 +65,11 @@ for future work.
   sloop, two to four square-rigged masts, stern castles, a gilded wale on
   warships), each of the sixteen heading sectors is painted rather than
   rotated, and the sails show furled, battle or full canvas. In battle one
-  art pixel is one battle pixel (the dashed hit box is larger), torn sails show damage level 1 and a
+  art pixel is one battle pixel, torn sails show damage level 1 and a
   lost foremast level 2, and sails being raised or lowered are shaded.
+  Cannonballs are pixel-art sprites with a faint wake (`src/shot-sprites.mjs`)
+  that step with the shooter's guns: one ball up to 8 guns, a pair up to 20,
+  a cluster of three above. The hit boxes are no longer outlined.
 - Draw the seasonal clouds as pixel-art puffs lit from the north-west, with
   a soft outline and a flat pixel shadow on the sea (`src/cloud-sprites.mjs`).
   They keep one screen size at every zoom.

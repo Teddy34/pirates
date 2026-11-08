@@ -133,7 +133,10 @@ reuse the finished naval engine in a later milestone.
   and mark the wall-clock conversion `ASSUMED` so it can be tuned later.
 - The arena size and camera scale, the placement's centre, and sprite
   dimensions are presentation-compatible approximations until verified. Ship silhouettes are
-  drawn at about their hit box's size, with the box outlined faintly.
+  drawn at about their hit box's size; the box is not drawn. The cannonball
+  sprite shows one, two or three balls by the shooter's gun count (≤8, ≤20,
+  more), a presentation-only hint: the original fires one ball per broadside
+  and hits on its single point.
 - Enemy-ship prize cargo and the full captured-ship aftermath are incompletely
   decoded. The first slice may award the ship and template gold while leaving
   unknown cargo at zero.

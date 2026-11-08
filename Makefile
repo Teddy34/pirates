@@ -24,6 +24,7 @@ syntax:
 	node --check src/pixel-art.mjs
 	node --check src/ship-sprites.mjs
 	node --check src/party-sprites.mjs
+	node --check src/shot-sprites.mjs
 	node --check src/sprite-canvas.mjs
 	node --check src/cloud-sprites.mjs
 	node --check src/overland.mjs

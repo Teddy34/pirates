@@ -1,19 +1,8 @@
 import { NATIONS } from './data.mjs';
-import { BATTLE_SAIL_TRANSITION_FRAMES, broadsideState, damageLevel, hitBox } from './battle-mechanics.mjs';
+import { BATTLE_SAIL_TRANSITION_FRAMES, broadsideState, damageLevel } from './battle-mechanics.mjs';
 import { headingSector, paintShipSprite, shipArtLength } from './ship-sprites.mjs';
+import { paintShotSprite, volleyTier } from './shot-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
-
-// The hit box is fixed and axis-aligned (sea_battles.md §3), so it is drawn
-// unrotated as a faint outline around the smaller sprite.
-function drawHitBox(context, ship, scale) {
-  const { halfWidth, halfHeight } = hitBox(ship);
-  context.save();
-  context.strokeStyle = 'rgba(235,245,240,.16)';
-  context.lineWidth = 1 / scale;
-  context.setLineDash([3 / scale, 3 / scale]);
-  context.strokeRect(ship.x - halfWidth, ship.y - halfHeight, 2 * halfWidth, 2 * halfHeight);
-  context.restore();
-}
 
 const shipSpriteCache = new Map();
 
@@ -39,6 +28,30 @@ function drawShip(context, ship, wind, scale) {
   if (!sprite) return;
   const pixelScale = Math.max(1, Math.round(devicePixels / detail));
   drawPixelSprite(context, sprite, ship.x, ship.y, pixelScale);
+}
+
+const shotSpriteCache = new Map();
+
+// A cannonball sprite sized by the shooter's current guns (shot-sprites.mjs),
+// with a faint streak trailing back along its flight.
+function drawShot(context, shot, guns, scale) {
+  const devicePixels = scale * devicePixelScale();
+  const detail = Math.max(1, Math.ceil(devicePixels / MAX_ART_PIXEL));
+  const tier = volleyTier(guns);
+  const angle = shot.direction / 256 * Math.PI * 2;
+  const trail = 8 + 3 * tier;
+  context.save();
+  context.strokeStyle = 'rgba(232,236,226,.4)';
+  context.lineWidth = (1.2 + tier * .8);
+  context.lineCap = 'round';
+  context.beginPath();
+  context.moveTo(shot.x, shot.y);
+  context.lineTo(shot.x - Math.sin(angle) * trail, shot.y + Math.cos(angle) * trail);
+  context.stroke();
+  context.restore();
+  const sprite = cachedSprite(shotSpriteCache, `${tier}|${detail}`, () => paintShotSprite({ tier, detail }));
+  if (!sprite) return;
+  drawPixelSprite(context, sprite, shot.x, shot.y, Math.max(1, Math.round(devicePixels / detail)));
 }
 
 function shipStatus(ship, compact = false) {
@@ -90,18 +103,14 @@ export function renderBattle(context, battle, width, height) {
     }
     context.stroke();
   }
-  for (const shot of battle.projectiles) {
-    context.fillStyle = '#19130f'; context.beginPath(); context.arc(shot.x, shot.y, 1.8, 0, Math.PI * 2); context.fill();
-  }
   for (const effect of battle.effects) {
     const radius = Math.max(2, (24 - effect.life) / 2);
     context.strokeStyle = effect.kind === 'hit' ? '#f2ad4e' : effect.kind === 'smoke' ? 'rgba(230,225,205,.45)' : '#d5edf0';
     context.beginPath(); context.arc(effect.x, effect.y, radius, 0, Math.PI * 2); context.stroke();
   }
-  drawHitBox(context, battle.player, scale);
-  drawHitBox(context, battle.enemy, scale);
-  // The nearer ship (lower on screen) is drawn last.
+  // The nearer ship (lower on screen) is drawn last; balls fly above both.
   for (const ship of [battle.player, battle.enemy].sort((a, b) => a.y - b.y)) drawShip(context, ship, battle.wind.direction, scale);
+  for (const shot of battle.projectiles) drawShot(context, shot, battle[shot.owner].guns, scale);
   const windAngle = battle.wind.direction / 256 * Math.PI * 2;
   context.strokeStyle = '#f3e5c5'; context.fillStyle = '#f3e5c5'; context.lineWidth = 2 / scale;
   context.beginPath(); context.moveTo(30, 35); context.lineTo(30 + Math.sin(windAngle) * 24, 35 - Math.cos(windAngle) * 24); context.stroke();
