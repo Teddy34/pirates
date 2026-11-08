@@ -1,7 +1,7 @@
 # Non-battle feature plan
 
-This plan tracks the missing campaign systems outside tactical sea, sword,
-land, and fort combat. The reverse-engineering documents and cited disassembly
+This plan tracks the missing campaign systems outside tactical sea, land and
+fort combat, and records the sword-fight slice (row 13). The reverse-engineering documents and cited disassembly
 under `../../piratesgold` define the mechanics. Keep uncertain findings marked
 as uncertain, and record any small playable assumption beside its code.
 
@@ -16,16 +16,17 @@ as uncertain, and record any small playable assumption beside its code.
 | Order | Feature | Status | Complete slice | Primary sources |
 | --- | --- | --- | --- | --- |
 | 1 | Full trading and shipwright | Partial | Done: three-good trading with the transfer arrows (#24); repairs, ship sales and cannon sales at the shipwright; damage and fleet state saved. Left: reordering ships and a complete prize management view. The original has no ship purchase (porting guide, shipwright), so none is planned. | `town_economy.md`, `save_format.md` |
-| 2 | Morale and mutiny | Partial | Done: month-end warnings, port desertion, and mutiny resolved through an explicit provisional duel that updates crew, gold, and reputation. Stored crew morale (D22, #17) and the traced month-end mutiny check (K2, #14). Left: the Party Status mood display and replacing the provisional duel with sword combat. | main report sections 4.4–4.5, `sword_fights.md` |
+| 2 | Morale and mutiny | Partial | Done: month-end warnings, port desertion, and mutiny resolved by a sword fight with the ringleader (row 13) that updates crew, gold, and reputation. Stored crew morale (D22, #17) and the traced month-end mutiny check (K2, #14). Left: the Party Status mood display. | main report sections 4.4–4.5, `sword_fights.md` |
 | 3 | Governors and career progression | Partial | Done: missions (#22); the audience order, pirate delivery, ransoms, amnesty and commissions (#23). Left: titles and national rewards. Promotions now name the family quest's villains (row 8). Pirate hand-over traced in #28 (D23): no stored prisoner ever matches, so governors never take a captured pirate, and ransom offers include pirates. Open questions from the #23 review: (a) answered in #28, except that the ransom offer text (CSTR 136) names the captain, which our dialog doesn't; (b) a captain who sneaked in can now see the governor, but the original's sneak check inside the governor visit (`0x13269`) is untraced (`entering_towns.md`, open questions). | main report sections 4.2–4.3, `diplomacy_and_world.md`, `lost_relatives.md` |
 | 4 | Treasure fleet and silver train | Done (#29) | Initialize both routes, move them monthly, skip non-Spanish stops, publish reliable news, override eligible encounters, display their presence in port, award capture bonuses, and end that year's route when captured. | `treasure_fleet_silver_train.md`, `encounters.md` |
-| 5 | Named pirates and pirate-hunters | Partial | Done: hunters overtake and can't simply be escaped (#3), hunter names from the captain id (#19), the wanted pirate of a governor mission (#22), and named captives held as the original's prisoner words, with the traced hand-over rule (#28). Left: the captain id's battle and sword skill, and allocating identities without repetition. | `encounters.md`, cited encounter and capture disassembly |
+| 5 | Named pirates and pirate-hunters | Partial | Done: hunters overtake and can't simply be escaped (#3), hunter names from the captain id (#19), the wanted pirate of a governor mission (#22), and named captives held as the original's prisoner words, with the traced hand-over rule (#28). The captain id's sword skill is in (row 13: +1 or +2 for named captains when boarding, `0xF207`). Left: the captain id's battle skill, and allocating identities without repetition. | `encounters.md`, cited encounter and capture disassembly |
 | 6 | Landing and overland travel | Done (#30) | Land on valid coast pixels, walk at the documented rate, reboard at the landing point, apply reefs, advance campaign events on foot, and expose a Dig action. | `landing_and_overland.md`, `sailing.md` |
 | 7 | Treasure maps and digging | Done (#30, row 8) | Maintain three four-piece maps, award random missing pieces, reveal a readable site, dig within the documented radius, consume three days on a failed dig, and resolve buried treasure and the lost city. | `treasure_fleet_silver_train.md` |
-| 8 | Lost relatives and roaming villains | Done | Promotions name villains, villains move monthly, citizens, bartender, traveller and crewmen offer traceable gossip, villains are met in the tavern, at the governor's and in a captured town, provisional duels grant the relative's map pieces, and digging rescues all four relatives, wiping the villains and handing out lost-city pieces. | `lost_relatives.md`, `treasure_fleet_silver_train.md` |
-| 9 | Courtship, marriage, and informants | Missing | Model daughters and nieces, charm checks, rival suitors, proposals, merchant marriage, family discounts, and informant reports. Use provisional duel outcomes until sword combat exists. | `marriage.md`, `town_economy.md` |
+| 8 | Lost relatives and roaming villains | Done | Promotions name villains, villains move monthly, citizens, bartender, traveller and crewmen offer traceable gossip, villains are met in the tavern, at the governor's and in a captured town, sword fights with them grant the relative's map pieces, and digging rescues all four relatives, wiping the villains and handing out lost-city pieces. | `lost_relatives.md`, `treasure_fleet_silver_train.md` |
+| 9 | Courtship, marriage, and informants | Missing | Model daughters and nieces, charm checks, rival suitors, proposals, merchant marriage, family discounts, and informant reports. The rival suitor's duel can use the sword fight (row 13). | `marriage.md`, `town_economy.md` |
 | 10 | Health, age, land, and retirement | Partial (#33) | Done: wounds, health with Medicine, land income, forced retirement at the division and in captivity, voluntary retirement, the decoded score, career summary, post-career job, lure of the sea, hall of fame and another game. Left: marriage's share of the score (row 9). | `health_age_land.md`, main report retirement sections |
 | 11 | Career opening | Done (#35) | Start every career in the town screen of the town nearest the start record's point (`52f5fd3`), play the story for its era and nation, then the sailing master's briefing naming the closest city of each other nation. | `src/opening.mjs`, `0x139E2`, `0x13E3F`, `0x1D858` |
+| 13 | Sword fights | Partial (this change) | Done: the one fight engine of `sword_fights.md` (`src/sword-mechanics.mjs`), with the frame tables read from the executable: weapon choice, skill, reach, parries, hit rolls, morale transfer, yielding, the crews' clash, the edges, and the opponent's pattern AI with its counter-moves. Pixel-art fencers, crews and backdrops (`src/fencer-sprites.mjs`, `src/sword-renderer.mjs`). Boarding, the mutiny ringleader, the guard when sneaking, the villain and the opening's practice bout are real fights, and the town menu offers practice fencing (+5 hit bonus per bout, up to 30). Left: storming the walls (waits for fort and land battles), the duel-defeat scene's text (`0x159DF`), capture after a lost boarding (`0x16647`), sound, and art the user approves. | `sword_fights.md`, `sea_battles.md` §7, `fencing_*.asm` |
 | 12 | Scene pictures | Partial (#34, #35) | Done: code-drawn placeholders in the dialogs for the governor, merchant, shipwright, tavern staff and visitors, the town approach and town menu, prizes, an exploding enemy, shipwreck, marooning, dividing the plunder, the career opening, the dig's results (treasure found, nothing found, a relative's reunion and the four lost cities), a sail sighted, boarding, a prisoner's offer, new recruits, the treasure fleet and silver train captures, mutiny, prison, the sword-fight alley, the hall of fame, the four retirement endings, the land and fort assaults, your own ship sinking, and a battle ended by outrunning or nightfall. Left: the courtship scenes (governor-daughter, governor-niece, wedding, merchant-daughter), which wait for row 9; happy-crew, pirate-delivered, ships-news, shipdeck-duel, treasure-trove and title, plus the optional ship portraits; and real art, which needs the user's rights confirmed first. | `scene-vignettes.md` |
 
 ## Added since the last plan update
@@ -62,6 +63,12 @@ The plan was last revised with #33. These changes followed it:
   end the battle with a short dialog (CSTR 167, 197–198, 169) instead of only a
   log line.
 
+- **Sword fights (row 13):** `src/sword-mechanics.mjs` (rules),
+  `src/fencer-sprites.mjs` and `src/sword-renderer.mjs` (sprites and scene).
+  Previews `sword-duel`, `sword-boarding` and `sword-practice`;
+  `tools/check_sword_fights.mjs` is their browser check. The player's
+  `fencingPractice` (`0x45E90`) is a new save field, defaulted to 0 on load.
+
 ## Known differences from the original
 
 `implementation-status.md` and `discrepancy-report-2026-10-30.md` hold the
@@ -94,11 +101,33 @@ evidence for each item. This list collects them in one place.
 - With no Spanish town left in the range, a promotion names no villain. The
   original would loop for ever.
 
+### Sword fights (row 13)
+
+- The fight timer's rate is untraced, so a tick is assumed to be 1/120 s
+  (`FENCING_TICK_SECONDS`): 9-12 ticks a frame give 10-13 frames a second.
+- Keys: the original latches a key press until a move that consumes it starts
+  (`0x38A0A`), so one tap of "away" keeps you backing off. The port reads held
+  keys plus one latched tap per move. Shift is the quick thrust; the
+  original's keyboard thrusts by default and slashes with Shift.
+- `sword_fights.md` §4 names moves 3-5 and 6-8 "high, middle, low". The
+  guard and attack bits show the order is middle, low, high (centre, down, up
+  on the joystick); the port follows the bits. The archive should be
+  corrected.
+- Read as coded, the opponent picks from his attack patterns only when
+  closer than 20 px (`0x2811C`); farther out he advances, stands or retreats.
+  A simulation shows a captain who keeps attacking on varied lines wins nearly
+  every duel and boarding at every difficulty, while one who stands still loses.
+  Unverified against the running game.
+- Practice uses the cutlass; the original passes an unset weapon index.
+- A lost boarding fight costs a tenth of the party's gold as ransom, because
+  capture (`0x16647`) is not ported. Losses in the fight are the real ones.
+- Quality is held at 1 or more when hull damage would make it zero or less
+  (the original would divide by zero when both are zero).
+- The duel-defeat scene (`0x159DF`) has no text yet; each caller's dialog
+  reports the loss.
+
 ### Provisional until the real system exists
 
-- Sword fights are explicit choices: boarding, the mutiny leader duel, the guard
-  duel when sneaking, and the opening's duel. The opening's is a practice bout
-  in the original, so only the log differs.
 - Town assaults are a provisional outcome dialog. Its "Repelled" result gives
   reputation −2 and alert +16, where the documented loss gives reputation −1 and
   −1 favour (D26).
@@ -113,12 +142,13 @@ evidence for each item. This list collects them in one place.
 
 - The famous expeditions, which are the only starts that open at sea, and their
   ending (CSTR 159).
-- Sword, fort and land combat (K3), and battle shallows, beaching and terrain
+- Fort and land combat (K3), and so storming the walls, and battle shallows, beaching and terrain
   backdrops (K6).
 - Courtship (K8).
-- Status screens and practice fencing from the Captain's Cabin (D32). The
+- Status screens from the Captain's Cabin (D32); practice fencing is in the
+  town menu. The
   logbook, city information and map views now cover part of that report item.
-- The captain id's battle and sword skill, and Party Status mood.
+- The captain id's battle skill, and Party Status mood.
 
 ### Assumptions to confirm
 

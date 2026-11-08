@@ -20,8 +20,8 @@ for future work.
 - Open each career with the story of its era and nation (the `0x35968` scripts
   run by `0x139E2`, in `src/opening.mjs`), then the sailing master's briefing
   (`0x13E3F`, CSTR 68-69) naming the closest city of each other nation. The
-  story's duel is a provisional choice; the original fights it as a practice
-  bout whose result changes nothing, so only the log differs. Deliberately left
+  story's duel is a practice sword fight, as in the original, whose result
+  changes nothing, so only the log differs. Deliberately left
   out: the manual-based copy protection at script op 42 (`0x14630`), meaning
   its penalty branch and the +16 favour with each nation it grants on a pass.
   The original shows no pictures here; each screen's vignette is the port's
@@ -110,7 +110,7 @@ for future work.
   citizens of a captured town tell you where a villain is or went (`0x1EBA6`,
   CSTR 107, 108, 154). Answers go to the Ship's Log.
 - In his town a villain is met in the tavern, at the governor's or when you
-  take the town (`0x18913`). The duel is a provisional choice: a win gives a
+  take the town (`0x18913`). He is fought with the sword: a win gives a
   piece of the relative's map, a loss sets reputation to −1 and he escapes.
 - Digging at the relative's site, with any number of pieces, rescues that
   relative, wipes the villains and gives a lost-city piece with its tale
@@ -178,7 +178,7 @@ for future work.
 - Sail away and apply the decoded town-alert consequence.
 - Fight tactical battles on a fixed-step clock with flagship choice, steering,
   sail changes, broadsides, damage, enemy tactics, surrender, sinking, escape,
-  and explicit provisional boarding outcomes. Movement, hit boxes, boarding
+  and boarding, fought as a sword fight with crews. Movement, hit boxes, boarding
   contact and enemy fire follow the traced engine; the one deliberate
   deviation is that your ship stops head to wind (porting-guide quirk 18 is
   not reproduced).
@@ -206,7 +206,7 @@ for future work.
   its share of the cargo, or the last ship and send you to prison. A refused
   entry returns to the approach menu for another try.
 - Sneak into hostile towns and resolve the recognition check. A recognised
-  captain fights a guard through a provisional duel dialog; either result
+  captain fights a guard in a sword fight; either result
   returns to the approach menu, and losing sets reputation to −1.
 - Apply port desertion from low morale as you leave a town (`0x17EFB`):
   the deserters take their share of the party gold, and the fleet check
@@ -262,11 +262,11 @@ for future work.
 | System | Present | Still needed |
 | --- | --- | --- |
 | Sailing | Heading, wind, fleet speed, sails, collision, calendar, food, and seasonal clouds | Storms, exact reduced-sail behavior, and more faithful movement feedback |
-| Encounters | Sighting stages, identification, named hunter captains (title, surname and renown from the original's captain id), the pirate-mission override and the wanted pirate's id, news, escape, tactical combat, provisional boarding outcomes, capture aftermath, and the treasure fleet | The captain id's battle and sword skill, coastal battle terrain, and interactive sword fights |
+| Encounters | Sighting stages, identification, named hunter captains (title, surname and renown from the original's captain id), the pirate-mission override and the wanted pirate's id, news, escape, tactical combat, boarding sword fights (with the named captains' sword skill), capture aftermath, and the treasure fleet | The captain id's battle skill and coastal battle terrain |
 | Diplomacy | Initial relations, monthly changes, favour, news, and governor briefings | Full privateering consequences, titles, and nation-specific rewards (promotions, land grants, amnesty and commissions are in the governor audience) |
 | Towns | Entry, sneaking, governor briefings, tavern staff and visitors, recruitment, three-good trading, ship repairs, ship sales, cannon sales, and departure from the decoded departure cell and heading, and governor missions (letter, papers, pirate hunt, rescue: offer, delivery, completion, failure and reward) | Richer governor actions |
 | Economy | Food, goods, and era-specific commodity trade; town growth, treasury, population, soldiers, random town events, AI conquest, the treasure fleet and silver train, and per-unit captured cargo transfer | Fleet upkeep, complete production rules, and the villains' monthly moves |
-| Morale | Stored crew morale (recomputed each month and on load, +1 or +2 per captured prize; used for port desertion, battle reload and the month-end check), desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a provisional leader duel, and plunder division with crew satisfaction | A Party Status mood display (which recomputes morale in the original) and interactive mutiny combat |
+| Morale | Stored crew morale (recomputed each month and on load, +1 or +2 per captured prize; used for port desertion, battle reload and the month-end check), desertion, the month-end restless and divide-the-plunder warnings, mutiny (crew/3 desert with their gold, reputation −4) with a sword fight against the ringleader, and plunder division with crew satisfaction | A Party Status mood display (which recomputes morale in the original) |
 | Persistence | One versioned browser save slot and v1-v8 save migration (v7 adds the town-information bits, and older voyages keep current information on every town, and releases unnamed pirates held for delivery; v8 adds the treasure fleet and silver train, placed for an older voyage as a new game would on its current day; v9 adds the landing party and three treasure-map records) | Multiple slots, battle-state persistence, and import/export |
 | Accessibility | Keyboard and touch controls, visible labels, focus styles, and text HUD | Complete keyboard dialog navigation testing, screen-reader alternatives for the canvas, and configurable controls |
 
@@ -274,13 +274,13 @@ for future work.
 
 The following systems have no complete playable implementation:
 
-- interactive boarding and sword fighting;
 - fort bombardment and land battles (town assaults, capture and plunder are
   resolved through a provisional outcome dialog);
 - complete prize management and ship reordering (the original has no ship
   purchase);
 - complete cannon management;
-- the named captains' battle and sword skill;
+- the named captains' battle skill;
+- storming the walls, the sword fight after a fort or land battle;
 - courtship, rival suitors, marriage, and family benefits;
 - aging and illness effects beyond the captivity message, ransom, and the
   retirement check at the start of captivity;
@@ -314,7 +314,7 @@ fallback dialog when the real system becomes playable.
 ## Suggested implementation order
 
 1. Build the tactical naval-combat slice in the existing combat plan.
-2. Replace provisional boarding outcomes with interactive sword fighting.
+2. ~~Replace provisional boarding outcomes with interactive sword fighting.~~ Done.
 3. Complete the merchant and shipwright loops.
 4. Add sword fighting, fort battles, land battles, and town capture.
 5. Add treasure systems, relatives, romance, aging, and retirement

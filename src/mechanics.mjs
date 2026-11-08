@@ -164,22 +164,18 @@ export function applyProvisionalBattleOutcome(player, enemy, outcome, shipStats)
   return { player: next, message };
 }
 
-export function applyProvisionalBoardingOutcome(player, embarkedMen, outcome) {
-  const next = { ...player };
-  if (outcome === 'won') {
-    return { player: next, casualties: 0, ransom: 0 };
-  }
+// After the boarding fight (0xF10A, sea_battles.md §7): your crew's losses
+// in the fight are deducted whatever the result; a loss or being driven back
+// costs 2 reputation (the caller adds alert +16). ASSUMED: capture after a
+// defeat (0x16647) is not ported, so a defeat also costs a tenth of the
+// party's gold in ransom.
+export function applyBoardingOutcome(player, { result, casualties }) {
+  const next = { ...player, crew: Math.max(1, player.crew - casualties) };
+  if (result === 'won') return { player: next, ransom: 0 };
   next.reputation -= 2;
-  if (outcome === 'driven-back') {
-    return { player: next, casualties: 0, ransom: 0 };
-  }
-  // ASSUMED interim defeat: prison and ransom are not playable yet, so defeat
-  // costs one quarter of the embarked crew and ten percent of party gold.
-  const casualties = Math.min(next.crew - 1, Math.max(1, Math.floor(embarkedMen / 4)));
-  const ransom = Math.floor(next.partyGold / 10);
-  next.crew -= casualties;
+  const ransom = result === 'defeated' ? Math.floor(next.partyGold / 10) : 0;
   next.partyGold -= ransom;
-  return { player: next, casualties, ransom };
+  return { player: next, ransom };
 }
 
 function triangularCargoRoll(limit, rng) {

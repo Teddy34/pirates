@@ -116,9 +116,14 @@ try {
     }
     await delay(200);
     if (!await evaluate(`Boolean(document.querySelector('#event-dialog[open]'))`)) throw new Error('Esc dismissed the opening dialog');
-    // The first button is Continue, or winning the stubbed duel.
-    await until('the sword fight choice', `${dialogTitle} === 'Sword fight' || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
+    // The first button is Continue, then the practice bout is fought by
+    // attacking until it ends.
+    await until('the sword fight', `${dialogTitle} === 'Sword fight' || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
     await screenshot(`${viewport.name}-opening-duel`);
+    await clickButton('Draw your sword');
+    await evaluate(`dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })), true`);
+    await until('the end of the bout', `Boolean(document.querySelector('#event-dialog[open]'))`, 90000);
+    await evaluate(`dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowLeft' })), true`);
     await until('the briefing', `${dialogTitle} === 'The sailing master' || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
     await screenshot(`${viewport.name}-briefing`);
     await until('the starting town', `${dialogKicker}?.endsWith(' port') || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
