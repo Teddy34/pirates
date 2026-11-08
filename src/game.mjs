@@ -389,7 +389,7 @@ function playOpening(done) {
       vignette, kicker, title: 'Sword fight',
       body: `<p>Steel rings on steel. Win or lose, your story carries on.</p>${SWORD_CONTROLS}`,
       actions: [{ label: 'Draw your sword', run: () => beginSwordFight({
-        record: { ...practiceRecord(), opponent: { title: 'Captain' } }, scene: 'deck',
+        record: { ...practiceRecord(), opponent: { title: 'Captain' } }, weapon: 0, scene: 'deck',
         onEnd: ({ result }) => fought(result === FIGHT_RESULT.won),
       }) }],
     });
@@ -1692,17 +1692,14 @@ function finishSwordFight() {
 // 0xBDAE: a bout with no consequences that sharpens your hit rolls. It
 // costs no time, as in the original (porting_guide.md §13 item 11).
 function practiceFencing(done) {
-  showDialog({
+  chooseWeapon({
     kicker: 'Practice', title: 'Fencing practice',
-    body: `<p>One of your officers offers to cross swords with you. Practice adds to every blow you strike in earnest, up to six bouts.</p><dl><dt>Practice so far</dt><dd>${(state.player.fencingPractice ?? 0) / 5} of 6 bouts</dd></dl>${SWORD_CONTROLS}`,
-    actions: [
-      { label: 'Draw your sword', run: () => beginSwordFight({ record: practiceRecord(), scene: 'deck', onEnd: ({ result }) => {
-        state.player.fencingPractice = practiceAfterBout(state.player.fencingPractice);
-        addLog(`${result === FIGHT_RESULT.won ? 'Won' : 'Lost'} a practice bout; practice ${state.player.fencingPractice / 5} of 6.`);
-        done();
-      } }) },
-      { label: 'Not now', secondary: true, run: done },
-    ],
+    body: `<p>One of your officers offers to cross swords with you. Practice adds to every blow you strike in earnest, up to six bouts.</p><dl><dt>Practice so far</dt><dd>${(state.player.fencingPractice ?? 0) / 5} of 6 bouts</dd></dl>`,
+    fight: (weapon) => beginSwordFight({ record: practiceRecord(), weapon, scene: 'deck', onEnd: ({ result }) => {
+      state.player.fencingPractice = practiceAfterBout(state.player.fencingPractice);
+      addLog(`${result === FIGHT_RESULT.won ? 'Won' : 'Lost'} a practice bout; practice ${state.player.fencingPractice / 5} of 6.`);
+      done();
+    } }),
   });
 }
 
@@ -1727,7 +1724,8 @@ function offerBoarding(enemy) {
 function resolveBoarding(enemy, outcome) {
   const { player, ransom } = applyBoardingOutcome(state.player, outcome);
   state.player = player;
-  const losses = outcome.casualties ? ` We lost ${outcome.casualties} men.` : '';
+  // A defeat goes to capture, which does not count the fallen (0x1660E).
+  const losses = outcome.casualties && outcome.result !== FIGHT_RESULT.defeated ? ` We lost ${outcome.casualties} men.` : '';
   if (outcome.result === FIGHT_RESULT.won) {
     state.battle = null;
     state.mode = 'sailing';
@@ -4156,7 +4154,7 @@ for (const button of document.querySelectorAll('[data-hold]')) {
   const walkDirection = direction === 'left' ? 'west' : 'east';
   const press = (event) => {
     event.preventDefault();
-    if (state?.mode === 'sword') pressSwordKey(direction === 'left' ? 'toward' : 'away');
+    if (state?.mode === 'sword') { if (!state.paused) pressSwordKey(direction === 'left' ? 'toward' : 'away'); }
     else if (state?.player.onFoot) {
       walkKeys[walkDirection] = true;
       setWalk(walkKeys);

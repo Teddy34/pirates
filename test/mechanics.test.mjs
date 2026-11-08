@@ -148,14 +148,14 @@ test('provisional capture, defeat, escape, and enemy sinking have distinct outco
   assert.equal(applyProvisionalBattleOutcome(player, enemy, 'enemy-sunk', SHIPS).player.reputation, 1);
 });
 
-test('boarding fight results deduct the fight losses and cost reputation unless won', () => {
+test('boarding fight results deduct the fight losses (not on capture) and cost reputation unless won', () => {
   const player = { crew: 40, partyGold: 1000, reputation: 3 };
   assert.deepEqual(applyBoardingOutcome(player, { result: 'won', casualties: 6 }).player, { ...player, crew: 34 });
   assert.deepEqual(applyBoardingOutcome(player, { result: 'driven-back', casualties: 5 }).player, { ...player, crew: 35, reputation: 1 });
   assert.deepEqual(applyBoardingOutcome(player, { result: 'defeated', casualties: 8 }), {
-    player: { crew: 32, partyGold: 900, reputation: 1 }, ransom: 100,
+    player: { crew: 40, partyGold: 900, reputation: 1 }, ransom: 100,
   });
-  assert.equal(applyBoardingOutcome({ ...player, crew: 3 }, { result: 'defeated', casualties: 9 }).player.crew, 1);
+  assert.equal(applyBoardingOutcome({ ...player, crew: 3 }, { result: 'driven-back', casualties: 9 }).player.crew, 1);
 });
 
 test('captured ship plunder follows the decoded gold and cargo bounds', () => {

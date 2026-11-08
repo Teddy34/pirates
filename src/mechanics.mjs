@@ -164,13 +164,14 @@ export function applyProvisionalBattleOutcome(player, enemy, outcome, shipStats)
   return { player: next, message };
 }
 
-// After the boarding fight (0xF10A, sea_battles.md §7): your crew's losses
-// in the fight are deducted whatever the result; a loss or being driven back
-// costs 2 reputation (the caller adds alert +16). ASSUMED: capture after a
-// defeat (0x16647) is not ported, so a defeat also costs a tenth of the
-// party's gold in ransom.
+// After the boarding fight (0xF10A, sea_battles.md §7): a loss or being
+// driven back costs 2 reputation (the caller adds alert +16). Your crew's
+// losses are deducted on a win or when driven back; a defeat calls capture
+// (0x16647) and skips the deduction (0x1660E). ASSUMED: capture is not
+// ported, so a defeat costs a tenth of the party's gold in ransom instead.
 export function applyBoardingOutcome(player, { result, casualties }) {
-  const next = { ...player, crew: Math.max(1, player.crew - casualties) };
+  const lost = result === 'defeated' ? 0 : casualties;
+  const next = { ...player, crew: Math.max(1, player.crew - lost) };
   if (result === 'won') return { player: next, ransom: 0 };
   next.reputation -= 2;
   const ransom = result === 'defeated' ? Math.floor(next.partyGold / 10) : 0;

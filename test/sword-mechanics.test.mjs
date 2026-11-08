@@ -126,3 +126,23 @@ test('boarding quality falls 1 per 16 points of hull damage', () => {
   assert.equal(record.theirQuality, 5);
   assert.equal(record.mode, FIGHT_MODE.battle);
 });
+
+test('crossed fencers count as far apart: attacks become advances (unsigned distance)', () => {
+  const fight = createFight({ record: duelRecord({ title: 'Guard' }), rng: fixed(0) });
+  fight.you.x = 250; fight.foe.x = 254;
+  const next = stepFight(fight, { x: -1, y: 0 }, fixed(0));
+  assert.equal(next.you.move, MOVE.advance);
+});
+
+test('an eighth morale gained (state 4) replaces a result set earlier in the frame', () => {
+  const fight = createFight({ record: boardingRecord({ yourMen: 50, theirMen: 50, kind: 7, nation: 'Spain' }), rng: fixed(0) });
+  fight.frame = 15;
+  fight.you.x = 442; // at the right edge: driven back...
+  fight.foe.morale = 23; fight.you.morale = 24;
+  // ...but the clash (both rolls 0, a tie against you) lifts his morale to 24.
+  const next = stepFight(fight, null, fixed(0));
+  assert.equal(next.foe.morale, 24);
+  assert.equal(next.result, null);
+  const plain = stepFight({ ...structuredClone(fight), frame: 3 }, null, fixed(0));
+  assert.equal(plain.result, FIGHT_RESULT.drivenBack);
+});

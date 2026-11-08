@@ -155,7 +155,7 @@ try {
     // Practice raises the hit bonus by 5, won or lost.
     await command('Page.navigate', { url: `${base}/?preview=sword-practice` });
     await until('the practice offer', `${dialogTitle} === 'Fencing practice'`);
-    await clickButton('Draw your sword');
+    await clickButton('Longsword');
     await fightItOut(`${viewport.name}-practice`);
     await until('the practice bonus', `${S}.player.fencingPractice === 5`);
     console.log(`${viewport.name}: duel, pause, boarding, guard, mutiny and practice fights play through.`);

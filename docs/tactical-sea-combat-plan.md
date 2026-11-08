@@ -332,7 +332,8 @@ sailing. Never partially mutate campaign state while a result dialog is open.
 ### 6. Boarding
 
 Boarding runs the sword fight (`offerBoarding` in `src/game.mjs`). Your crew's
-losses in the fight are deducted whatever the result. A win takes the prize
+losses in the fight are deducted on a win or when driven back; a defeat goes
+to capture, which skips the deduction (`0x1660E`). A win takes the prize
 with the defenders' survivors as her crew. Being driven back or defeated applies
 the documented `+16` alert and `-2` reputation. Capture after a defeat
 (`0x16647`) is not ported, so a defeat also costs ten percent of party gold as

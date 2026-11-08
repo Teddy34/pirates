@@ -118,9 +118,13 @@ evidence for each item. This list collects them in one place.
   A simulation shows a captain who keeps attacking on varied lines wins nearly
   every duel and boarding at every difficulty, while one who stands still loses.
   Unverified against the running game.
-- Practice uses the cutlass; the original passes an unset weapon index.
+- `sword_fights.md` §2 says only modes ≥ 0 choose a weapon. The code skips
+  the menu only for mode 0xFF (`0x1622F`), which then fights with the rapier
+  (`0x16563`): town practice (0xFE) chooses, and the opening's bout (0xFF)
+  uses the rapier. The port follows the code; the archive should be corrected.
 - A lost boarding fight costs a tenth of the party's gold as ransom, because
-  capture (`0x16647`) is not ported. Losses in the fight are the real ones.
+  capture (`0x16647`) is not ported. As in the original, its crew losses are
+  not deducted (`0x1660E` skips the deduction).
 - Quality is held at 1 or more when hull damage would make it zero or less
   (the original would divide by zero when both are zero).
 - The duel-defeat scene (`0x159DF`) has no text yet; each caller's dialog

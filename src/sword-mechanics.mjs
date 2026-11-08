@@ -156,7 +156,7 @@ export function createFight({ record, difficulty = 1, hasFencing = false, practi
   const patternSet = skill < 1 ? 0 : skill === 1 ? 1 : 2;
   const patternRow = rng.int(8);
   return {
-    mode, skill, weapon: mode === FIGHT_MODE.practice ? DEFAULT_WEAPON : weapon, opponentWeapon,
+    mode, skill, weapon, opponentWeapon,
     practice: clamp(practice, 0, PRACTICE_MAX),
     opponent: record.opponent ?? {},
     menBefore: record.yourMen,
@@ -175,21 +175,26 @@ export function createFight({ record, difficulty = 1, hasFencing = false, practi
 const index = (fencer) => fencer.move * 6 + fencer.frame;
 
 // Each point moves one morale from loser to winner (0x27F4F / 0x27F9C).
-function transferMorale(fight, winner) {
+// Every eighth morale gained returns REDRAW (state 4): the caller redraws
+// and carries on, and that 4 replaces any result set earlier in the frame.
+const REDRAW = 4;
+function transferMorale(fight, winner, state) {
   const gain = winner === 'you' ? fight.you : fight.foe;
   const lose = winner === 'you' ? fight.foe : fight.you;
-  if (lose.morale <= 0) return;
+  if (lose.morale <= 0) return state;
   gain.morale += 1;
   lose.morale -= 1;
   if (lose.morale < 1) fight.yielding = winner === 'you' ? 'foe' : 'you';
+  return (gain.morale & 7) === 0 ? REDRAW : state;
 }
 
-function scorePoints(fight, winner, weapon, thrust, slashIterations) {
+function scorePoints(fight, winner, thrust, slashIterations, state) {
+  let next = state;
   for (let iteration = 0; iteration < slashIterations; iteration += 1) {
-    transferMorale(fight, winner);
-    if (!thrust) transferMorale(fight, winner);
+    next = transferMorale(fight, winner, next);
+    if (!thrust) next = transferMorale(fight, winner, next);
   }
-  return thrust ? slashIterations : 2 * slashIterations;
+  return { points: thrust ? slashIterations : 2 * slashIterations, state: next };
 }
 
 // 0x28426: his counter-move reads your current line.
@@ -209,7 +214,7 @@ function chooseOpponentMove(fight, rng) {
   fight.thrust.foe = false;
   const distance = you.x - foe.x;
   let move;
-  if (distance >= OPPONENT_CLOSE) move = OPPONENT_FAR[rng.int(8)];
+  if (distance < 0 || distance >= OPPONENT_CLOSE) move = OPPONENT_FAR[rng.int(8)]; // unsigned, as above
   else if (rng.int(16) <= CLOSE_GUARD_CHANCE[skill]) move = MOVE.guardLow;
   else {
     pattern.index = (pattern.index + 1) & 7;
@@ -247,7 +252,8 @@ export function stepFight(previous, input, rng) {
   if (you.move === MOVE.yield && you.frame >= 9) return finish(fight, 3);
 
   if (you.move < 0 || ++you.frame >= MOVE_FRAMES[you.move]) {
-    let move = distance >= FAR_APART ? FAR_MOVE[requested] : requested;
+    // Unsigned in the original (`jb`): crossed fencers count as far apart.
+    let move = distance < 0 || distance >= FAR_APART ? FAR_MOVE[requested] : requested;
     if (foe.move === MOVE.yield) move = MOVE.guardLow;
     you.move = move;
     you.frame = 0;
@@ -263,7 +269,8 @@ export function stepFight(previous, input, rng) {
     else if (rng.int(256) + fight.practice >= HIT_ROLL[fight.skill]) {
       you.guard = 7;
       foe.x -= HIT_PUSH;
-      const points = scorePoints(fight, 'you', fight.weapon, fight.thrust.you, 2 * fight.weapon + 1);
+      let points;
+      ({ points, state } = scorePoints(fight, 'you', fight.thrust.you, 2 * fight.weapon + 1, state));
       fight.hits.you += 1;
       fight.events.push({ type: 'hit', by: 'you', points });
       if (fight.yielding === 'foe' && foe.move !== MOVE.yield) { foe.move = MOVE.yield; foe.frame = 0; }
@@ -284,7 +291,8 @@ export function stepFight(previous, input, rng) {
     else if (rng.int(256) >= HIT_ROLL[fight.skill]) {
       foe.guard = 7;
       you.x += HIT_PUSH;
-      const points = scorePoints(fight, 'foe', fight.opponentWeapon, fight.thrust.foe, fight.opponentWeapon + 1);
+      let points;
+      ({ points, state } = scorePoints(fight, 'foe', fight.thrust.foe, fight.opponentWeapon + 1, state));
       fight.hits.foe += 1;
       fight.events.push({ type: 'hit', by: 'foe', points });
       if (fight.yielding === 'you') { you.move = MOVE.yield; you.frame = 0; }
@@ -303,13 +311,13 @@ export function stepFight(previous, input, rng) {
     loser.men = clamp(loser.men - losses, 1, MAX_MEN);
     const winner = loser === foe ? 'you' : 'foe';
     if (loser.men === 1) fight.yielding = winner === 'you' ? 'foe' : 'you';
-    transferMorale(fight, winner);
+    state = transferMorale(fight, winner, state);
     fight.events.push({ type: 'clash', winner });
   }
 
   if (you.move === MOVE.yield && you.frame >= 9) state = 3;
   if (foe.move === MOVE.yield && foe.frame >= 9) state = 1;
-  return state ? finish(fight, state) : fight;
+  return state && state !== REDRAW ? finish(fight, state) : fight;
 }
 
 function finish(fight, state) {
@@ -338,12 +346,17 @@ export function duelRecord({ title, nation, name, extraSkill = 0 }) {
   return { yourMen: 1, yourQuality: 9, theirMen: 1, theirQuality: 9, extraSkill, mode: FIGHT_MODE.duel, opponent: { title, nation, name } };
 }
 
+// Town practice is mode 0xFE (0xBDAE) and gets the weapon choice. The
+// opening's bout is mode 0xFF, which skips the menu and fights with the
+// rapier (0x1622F, 0x16563); pass weapon 0 for it.
 export function practiceRecord() {
   return { yourMen: 200, yourQuality: 32, theirMen: 200, theirQuality: 32, extraSkill: 0, mode: FIGHT_MODE.practice, opponent: { title: 'Sparring partner' } };
 }
 
 // 0xF235: `damage` values are the battle's hull damage (16 per level); `kind`
 // is the enemy template's kind byte (3 traders ... 9 warships).
+// ASSUMED: men and quality are held at 1 or more; the original (0xF1B3,
+// 0xF1D9) does not clamp, so heavy damage gives a quality of 0 or less.
 export function boardingRecord({ yourMen, yourDamage = 0, theirMen, theirDamage = 0, kind, nation, name, extraSkill = 0 }) {
   return {
     yourMen: Math.max(1, yourMen), yourQuality: Math.max(1, 7 - (yourDamage >> 4)),
