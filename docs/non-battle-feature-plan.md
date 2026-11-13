@@ -103,9 +103,15 @@ evidence for each item. This list collects them in one place.
 
 ### Sword fights (row 13)
 
-- The fight timer's rate is untraced, so a tick is assumed to be 1/200 s
-  (`FENCING_TICK_SECONDS`): 9-12 ticks a frame give 17-22 frames a second.
-  1/120 s made the gaps between attacks feel too long in play.
+- The fight timer's rate is untraced, so a tick is assumed to be 1/140 s
+  (`FENCING_TICK_SECONDS`): 9-12 ticks a frame give 12-16 frames a second.
+  1/200 s played too fast; 1/120 s made the gaps between attacks feel too
+  long in play.
+- The original starts a fencer's next move as soon as an animation ends
+  (`0x276F8`, `0x27A71`), and the opponent's patterns are nearly all attacks,
+  so strokes came back to back. The port holds each fencer's follow-through
+  pose for `RECOVERY_FRAMES` (3) frames after an attack, unguarded and
+  standing still, before the next move; your keys wait until it ends.
 - Keys: the original latches a key press until a move that consumes it starts
   (`0x38A0A`), so one tap of "away" keeps you backing off. The port reads held
   keys plus one latched tap per move. Shift is the quick thrust; the

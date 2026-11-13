@@ -102,10 +102,17 @@ const MAX_MEN = 9999;
 export const PRACTICE_STEP = 5;
 export const PRACTICE_MAX = 30;
 
-// ASSUMED: the fight timer's rate is untraced (porting_guide.md §5). 200
-// ticks a second gives about 17 animation frames a second at skill 0, so a
-// slash takes 0.36 s; 120 ticks a second played too slowly.
-export const FENCING_TICK_SECONDS = 1 / 200;
+// ASSUMED: the fight timer's rate is untraced (porting_guide.md §5). 140
+// ticks a second gives about 12 animation frames a second at skill 0, so a
+// slash takes about 0.51 s; 200 ticks a second played too fast.
+export const FENCING_TICK_SECONDS = 1 / 140;
+
+// ASSUMED, a departure from 0x276F8 / 0x27A71: the original starts a
+// fencer's next move the moment an animation ends, and his patterns are
+// almost all attacks, so strokes come back to back (two thrusts strike 4
+// frames apart). The port holds each fencer's follow-through pose this many
+// frames after an attack, unguarded and standing still, before the next move.
+export const RECOVERY_FRAMES = 3;
 
 // 0x1B087 with ability 1.
 export function fencingSkill(difficulty, hasFencing, extra = 0) {
@@ -139,7 +146,7 @@ export function inputMove(input) {
   return line;
 }
 
-const fighter = (x, men, morale) => ({ x, move: 0, frame: 0, guard: 0, attack: 0, men, morale });
+const fighter = (x, men, morale) => ({ x, move: 0, frame: 0, recovery: 0, guard: 0, attack: 0, men, morale });
 
 // `record` is the 12-byte fight record of sword_fights.md §1:
 // { yourMen, yourQuality, theirMen, theirQuality, extraSkill, mode,
@@ -235,6 +242,20 @@ function chooseOpponentMove(fight, rng) {
 
 const isAttack = (move) => move >= MOVE.slashMid && move <= MOVE.thrustHigh;
 
+// A fencer's animation advance (0x276F8 you, 0x27A71 him), plus the
+// recovery hold above: 'play' carries on the move, 'hold' keeps the
+// follow-through pose, 'next' starts a new move.
+function advanceFrame(fencer) {
+  if (fencer.recovery > 0) return --fencer.recovery > 0 ? 'hold' : 'next';
+  if (++fencer.frame < MOVE_FRAMES[fencer.move & 15]) return 'play';
+  if (isAttack(fencer.move) && RECOVERY_FRAMES > 0) {
+    fencer.frame -= 1;
+    fencer.recovery = RECOVERY_FRAMES;
+    return 'hold';
+  }
+  return 'next';
+}
+
 // One animation frame. `input` is { x, y, quick } or null (see inputMove).
 // Returns the new fight; `result` is set once it is over, and `events`
 // lists this frame's strokes for the presentation.
@@ -252,7 +273,9 @@ export function stepFight(previous, input, rng) {
   // 0x276F8: your yield has played out.
   if (you.move === MOVE.yield && you.frame >= 9) return finish(fight, 3);
 
-  if (you.move < 0 || ++you.frame >= MOVE_FRAMES[you.move]) {
+  const yourAdvance = you.move < 0 ? 'next' : advanceFrame(you);
+  const youRecovering = yourAdvance === 'hold';
+  if (yourAdvance === 'next') {
     // Unsigned in the original (`jb`): crossed fencers count as far apart.
     let move = distance < 0 || distance >= FAR_APART ? FAR_MOVE[requested] : requested;
     if (foe.move === MOVE.yield) move = MOVE.guardLow;
@@ -261,8 +284,8 @@ export function stepFight(previous, input, rng) {
     fight.thrust.you = move >= MOVE.thrustMid && move <= MOVE.thrustHigh;
     fight.startedMove = true;
   }
-  you.guard = GUARD[index(you)];
-  you.attack = ATTACK[index(you)];
+  you.guard = youRecovering ? 0 : GUARD[index(you)];
+  you.attack = youRecovering ? 0 : ATTACK[index(you)];
   if (you.attack) {
     you.guard = 0;
     if (foe.guard & you.attack) fight.events.push({ type: 'parry', by: 'you', close: distance <= 35 });
@@ -274,17 +297,21 @@ export function stepFight(previous, input, rng) {
       ({ points, state } = scorePoints(fight, 'you', fight.thrust.you, 2 * fight.weapon + 1, state));
       fight.hits.you += 1;
       fight.events.push({ type: 'hit', by: 'you', points });
-      if (fight.yielding === 'foe' && foe.move !== MOVE.yield) { foe.move = MOVE.yield; foe.frame = 0; }
+      if (fight.yielding === 'foe' && foe.move !== MOVE.yield) { foe.move = MOVE.yield; foe.frame = 0; foe.recovery = 0; }
     } else fight.events.push({ type: 'miss', by: 'you' });
   }
-  if (distance >= STEP_MIN_DISTANCE) you.x -= STEP_FORWARD[index(you)];
-  you.x += STEP_BACK[index(you)];
+  if (!youRecovering) {
+    if (distance >= STEP_MIN_DISTANCE) you.x -= STEP_FORWARD[index(you)];
+    you.x += STEP_BACK[index(you)];
+  }
   if (you.x >= RIGHT_EDGE) state = 2;
   distance = you.x - foe.x;
 
-  if (++foe.frame >= MOVE_FRAMES[foe.move & 15]) chooseOpponentMove(fight, rng);
-  foe.guard = GUARD[index(foe)];
-  foe.attack = ATTACK[index(foe)];
+  const foeAdvance = advanceFrame(foe);
+  if (foeAdvance === 'next') chooseOpponentMove(fight, rng);
+  const recovering = foeAdvance === 'hold';
+  foe.guard = recovering ? 0 : GUARD[index(foe)];
+  foe.attack = recovering ? 0 : ATTACK[index(foe)];
   if (foe.attack) {
     foe.guard = 0;
     if (you.guard & foe.attack) fight.events.push({ type: 'parry', by: 'foe', close: distance < 35 });
@@ -296,11 +323,13 @@ export function stepFight(previous, input, rng) {
       ({ points, state } = scorePoints(fight, 'foe', fight.thrust.foe, fight.opponentWeapon + 1, state));
       fight.hits.foe += 1;
       fight.events.push({ type: 'hit', by: 'foe', points });
-      if (fight.yielding === 'you') { you.move = MOVE.yield; you.frame = 0; }
+      if (fight.yielding === 'you') { you.move = MOVE.yield; you.frame = 0; you.recovery = 0; }
     } else fight.events.push({ type: 'miss', by: 'foe' });
   }
-  if (distance >= STEP_MIN_DISTANCE) foe.x += STEP_FORWARD[index(foe)];
-  foe.x -= STEP_BACK[index(foe)];
+  if (!recovering) {
+    if (distance >= STEP_MIN_DISTANCE) foe.x += STEP_FORWARD[index(foe)];
+    foe.x -= STEP_BACK[index(foe)];
+  }
   if (foe.x <= LEFT_EDGE) state = 1;
 
   // 0x27CFF: the crews clash every 16 frames in a battle.
