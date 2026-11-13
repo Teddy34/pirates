@@ -15,7 +15,7 @@ as uncertain, and record any small playable assumption beside its code.
 
 | Order | Feature | Status | Complete slice | Primary sources |
 | --- | --- | --- | --- | --- |
-| 1 | Full trading and shipwright | Partial | Done: three-good trading with the transfer arrows (#24); repairs, ship sales and cannon sales at the shipwright; damage and fleet state saved. Left: reordering ships and a complete prize management view. The original has no ship purchase (porting guide, shipwright), so none is planned. | `town_economy.md`, `save_format.md` |
+| 1 | Full trading and shipwright | Partial | Done: three-good trading with the transfer arrows (#24); repairs, ship sales and cannon sales on one shipwright screen that lists each ship's hold and guns (#74); damage and fleet state saved. Left: reordering ships and a complete prize management view. The original has no ship purchase (porting guide, shipwright), so none is planned. | `town_economy.md`, `save_format.md` |
 | 2 | Morale and mutiny | Partial | Done: month-end warnings, port desertion, and mutiny resolved by a sword fight with the ringleader (row 13) that updates crew, gold, and reputation. Stored crew morale (D22, #17) and the traced month-end mutiny check (K2, #14). Left: the Party Status mood display. | main report sections 4.4–4.5, `sword_fights.md` |
 | 3 | Governors and career progression | Partial | Done: missions (#22); the audience order, pirate delivery, ransoms, amnesty and commissions (#23). Left: titles and national rewards. Promotions now name the family quest's villains (row 8). Pirate hand-over traced in #28 (D23): no stored prisoner ever matches, so governors never take a captured pirate, and ransom offers include pirates. Open questions from the #23 review: (a) answered in #28, except that the ransom offer text (CSTR 136) names the captain, which our dialog doesn't; (b) a captain who sneaked in can now see the governor, but the original's sneak check inside the governor visit (`0x13269`) is untraced (`entering_towns.md`, open questions). | main report sections 4.2–4.3, `diplomacy_and_world.md`, `lost_relatives.md` |
 | 4 | Treasure fleet and silver train | Done (#29) | Initialize both routes, move them monthly, skip non-Spanish stops, publish reliable news, override eligible encounters, display their presence in port, award capture bonuses, and end that year's route when captured. | `treasure_fleet_silver_train.md`, `encounters.md` |
@@ -102,6 +102,13 @@ evidence for each item. This list collects them in one place.
 - The manual-based copy protection in the opening is left out, with its penalty
   branch and the +16 favour with each nation it grants on a pass.
 - Every opening screen has a picture; the original shows none there.
+- The shipwright's four-item menu is one screen: every ship with its hold, its
+  guns, and Repair and Sell buttons, plus the cannon, traded in place. Ships
+  are repaired one at a time or all at once and sold one at a time, rather
+  than picked from a list; the prices and cash rules are the original's. The
+  fleet's single cannon count is shown spread over the ships in fleet order,
+  which the original does not display. Cannon sold during a visit are logged
+  once, on leaving the yard.
 - Coastal towns use the harbour-arrival and port-quay pictures however you
   arrive. Only landlocked towns use shore-arrival and town-square. The original
   picks the arrival picture by how you came.

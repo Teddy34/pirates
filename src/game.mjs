@@ -3023,7 +3023,7 @@ function showTownMenu() {
     { label: 'Tavern', run: showTavern },
     // 0x186D9: sneaking in (flag 0x08) disables the merchant until you leave.
     ...(!state.visit.sneaking ? [{ label: 'Merchant', run: openMerchant }] : []),
-    { label: 'Shipwright', run: showShipwright },
+    { label: 'Shipwright', run: openShipwright },
     { label: 'Divide the plunder', run: showPlunderDivision },
     { label: 'Practice fencing', secondary: true, run: () => practiceFencing(showTownMenu) },
     { label: 'Logbook', secondary: true, run: () => showLogbook(showTownMenu) },
@@ -3975,7 +3975,34 @@ function showTreasureMaps(back, index = 0) {
   showDialog({ kicker: 'Treasure maps', title: treasureMapTitle(kind), body: treasureMapBody(kind), actions });
 }
 
-function showShipwright() {
+const CANNON_PRICE = 50;
+// The last action at the yard, shown above the fleet (empty on arrival).
+let shipwrightNote = '';
+
+function openShipwright() {
+  shipwrightNote = '';
+  showShipwright();
+}
+
+// Cannon are one count for the whole fleet, as in the original. The yard
+// shows them spread over the ships in fleet order, each filled to its gun
+// ports (any excess on the last ship); that split is for display only.
+function gunsByShip() {
+  let left = state.player.cannon;
+  return state.player.ships.map((ship, index, ships) => {
+    const guns = index === ships.length - 1 ? left : Math.min(left, statsFor(ship).guns);
+    left -= guns;
+    return guns;
+  });
+}
+
+const repairPriceOf = (ship) => shipRepairPrice({ type: statsFor(ship).type, damage: shipRecord(ship).damage });
+const salePriceOf = (ship) => shipSalePrice({ type: statsFor(ship).type, damage: shipRecord(ship).damage });
+
+// One screen for the whole yard (0x218C2's four-item menu, flattened): every
+// ship with its hold, guns, repair and sale price, and the cannon, all traded
+// in place.
+function showShipwright(preferredTransfer = '', preferredKind = '') {
   const town = state.towns[state.visit.townIndex];
   if (town.nation === 'Spain' && 25 * state.player.ranks.Spain + scenarios[state.era].merchantThreshold < town.growth) {
     showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: '“We do not trade with pirates!”', body: '<p>The shipwright dismisses you and calls for his guards.</p>', actions: [{ label: 'Return to town', run: showTownMenu }] });
@@ -3986,136 +4013,142 @@ function showShipwright() {
     population: town.population,
     growth: town.growth,
   });
-  const damaged = state.player.ships.filter((ship) => ship.damage > 0).length;
+  const cash = state.portTrade.shipwrightCash;
+  const gold = state.player.partyGold;
+  const { ships, cannon } = state.player;
+  const guns = gunsByShip();
+  const damaged = ships.map((ship, index) => index).filter((index) => repairPriceOf(ships[index]) > 0);
+  const repairAll = damaged.reduce((sum, index) => sum + repairPriceOf(ships[index]), 0);
+  // The shipwright insists you keep something in your purse: the price must
+  // be less than your gold (0x218C2).
+  const affordable = (price) => price < gold;
+  const cannonForSale = Math.min(Math.max(0, cannon - 1), Math.floor(cash / CANNON_PRICE));
+  const button = (transfer, kind, label, disabled, hint = '') => `<button type="button" class="plunder-take-all" data-transfer="${transfer}" data-kind="${kind}"${hint ? ` title="${hint}"` : ''}${disabled ? ' disabled' : ''}>${label}</button>`;
+  const shipRows = ships.map((ship, index) => {
+    const stats = statsFor(ship);
+    const repair = repairPriceOf(ship);
+    const sale = salePriceOf(ship);
+    let saleHint = '';
+    if (ships.length < 2) saleHint = 'The shipwright will not take your only ship';
+    else if (cash < sale) saleHint = 'The yard lacks the cash';
+    const repairControl = repair > 0
+      ? button('repair', index, `Repair · ${repair}`, !affordable(repair), affordable(repair) ? '' : 'You cannot afford the work')
+      : '<span class="shipwright-sound">Sound</span>';
+    return `<tr>
+      <th scope="row">${describeShip(ship)}</th>
+      <td>${stats.cargo} t</td>
+      <td>${guns[index]} / ${stats.guns}</td>
+      <td><div class="shipwright-actions">${repairControl}${button('sell-ship', index, `Sell · ${sale}`, Boolean(saleHint), saleHint)}</div></td>
+    </tr>`;
+  }).join('');
+  let cannonHint = 'Hold to keep selling';
+  if (cannon < 2) cannonHint = 'The shipwright will not buy your only cannon';
+  else if (cannonForSale === 0) cannonHint = 'The yard lacks the cash';
+  const cannonRow = `<tr class="shipwright-cannon">
+      <th scope="row">Cannon</th>
+      <td>${Math.floor(cannon / 2)} t</td>
+      <td>${cannon} / ${ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0)}</td>
+      <td><div class="shipwright-actions">${button('sell-cannon', '', `Sell 1 · ${CANNON_PRICE}`, cannonForSale === 0, cannonHint)}${cannonForSale > 1 ? button('sell-cannon-all', '', `Sell ${cannonForSale} · ${cannonForSale * CANNON_PRICE}`, false) : ''}</div></td>
+    </tr>`;
+  const repairAllControl = damaged.length > 1
+    ? `<p>${button('repair-all', '', `Repair all ${damaged.length} · ${repairAll}`, !affordable(repairAll), affordable(repairAll) ? '' : 'You cannot afford the work')}</p>`
+    : '';
   showDialog({
     vignette: 'shipwright', kicker: `The shipwright · ${town.name}`, title: 'What business brings you to the yard?',
-    body: `<dl><dt>Your fleet</dt><dd>${state.player.ships.length} ship${state.player.ships.length === 1 ? '' : 's'}</dd><dt>Damaged</dt><dd>${damaged}</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd><dt>Shipwright’s cash</dt><dd>${state.portTrade.shipwrightCash}</dd></dl>`,
-    actions: [
-      { label: 'Repair a ship', run: showRepairShips },
-      { label: 'Sell a ship', run: showSellShips },
-      { label: 'Sell cannon', run: showSellCannon },
-      { label: 'Part company', secondary: true, run: showTownMenu },
-    ],
+    body: `${shipwrightNote ? `<p class="shipwright-note" role="status">${shipwrightNote}</p>` : ''}
+      <dl class="plunder-summary"><dt>Your gold</dt><dd>${gold}</dd><dt>Shipwright’s cash</dt><dd>${cash}</dd><dt>Hold</dt><dd>${cargoUsed()} / ${cargoCapacity()} tons</dd></dl>
+      <table class="plunder-manifest shipwright-manifest">
+        <thead><tr><th>Ship</th><th>Hold</th><th>Guns</th><th>Yard</th></tr></thead>
+        <tbody>${shipRows}${cannonRow}</tbody>
+      </table>
+      ${repairAllControl}
+      <p class="shipwright-help">The fleet shares its guns; each ship is shown filled in turn. Cannon fetch ${CANNON_PRICE} gold apiece and take a ton of hold for every two, and one must stay aboard. A sold ship’s crew, cannon and cargo stay with the fleet.</p>`,
+    actions: [{ label: 'Part company', secondary: true, run: finishShipwrightVisit }],
   });
+  const apply = (transfer, kind) => {
+    const index = Number(kind);
+    if (transfer === 'repair') return repairShips([index]);
+    if (transfer === 'repair-all') return repairShips(damaged);
+    if (transfer === 'sell-ship') return confirmShipSale(index);
+    if (transfer === 'sell-cannon') return sellCannon(1);
+    if (transfer === 'sell-cannon-all') return sellCannon(cannonForSale);
+    return 0;
+  };
+  bindTransferButtons(apply, { repeatable: ['sell-cannon'], preferredTransfer, preferredKind, defaultTransfer: 'repair' });
 }
 
-function showRepairShips() {
-  const damaged = state.player.ships
-    .map((ship, index) => ({ ship, index }))
-    .filter(({ ship }) => ship.damage > 0);
-  if (!damaged.length) {
-    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'Nothing needs repair', body: '<p>The shipwright finds no damage worth his attention.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
-    return;
-  }
-  showDialog({
-    vignette: 'shipwright', kicker: 'The shipwright', title: 'Choose a ship to repair',
-    body: '<p>The quoted price clears all recorded damage from the selected ship.</p>',
-    actions: [
-      ...damaged.map(({ ship, index }) => {
-        const price = shipRepairPrice({ type: statsFor(ship).type, damage: ship.damage });
-        return { label: `${ship.type} · ${damageLevel(ship.damage)} · ${price} gold`, run: () => repairShip(index, price) };
-      }),
-      { label: 'None, thanks', secondary: true, run: showShipwright },
-    ],
-  });
+// Cannon sold one at a time are logged once, as the captain leaves the yard.
+function finishShipwrightVisit() {
+  const sold = state.visit.cannonSold ?? 0;
+  if (sold > 0) addLog(`Sold ${sold} cannon at ${state.towns[state.visit.townIndex].name} for ${sold * CANNON_PRICE} gold.`);
+  state.visit.cannonSold = 0;
+  showTownMenu();
 }
 
-function repairShip(index, price) {
-  if (state.player.partyGold <= price) {
-    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'You cannot afford the work', body: `<p>The repair costs ${price} gold, and the shipwright insists you keep something in your purse.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
-    return;
-  }
-  const ship = state.player.ships[index];
+// Returns 1 when the work was paid for and done, 0 otherwise.
+function repairShips(indexes) {
+  const ships = state.player.ships;
+  const price = indexes.reduce((sum, index) => sum + repairPriceOf(ships[index]), 0);
+  if (price <= 0 || state.player.partyGold <= price) return 0;
   state.player.partyGold -= price;
   state.portTrade.shipwrightCash += price;
-  state.player.ships[index] = { ...ship, damage: 0 };
-  addLog(`Repaired the ${ship.type} at ${state.towns[state.visit.townIndex].name} for ${price} gold.`);
-  showShipwright();
-}
-
-function showSellShips() {
-  if (state.player.ships.length < 2) {
-    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'Your only ship', body: '<p>The shipwright will not leave you stranded ashore.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
-    return;
-  }
-  showDialog({
-    vignette: 'shipwright', kicker: 'The shipwright', title: 'Choose a ship to sell',
-    body: '<p>Crew, cannon, and cargo remain with your fleet. You cannot sell your last ship.</p>',
-    actions: [
-      ...state.player.ships.map((ship, index) => {
-        const price = shipSalePrice({ type: statsFor(ship).type, damage: ship.damage });
-        return { label: `${describeShip(ship)} · ${price} gold`, run: () => confirmShipSale(index, price) };
-      }),
-      { label: 'None, thanks', secondary: true, run: showShipwright },
-    ],
-  });
+  for (const index of indexes) ships[index] = { ...shipRecord(ships[index]), damage: 0 };
+  const what = indexes.length === 1 ? `the ${shipRecord(ships[indexes[0]]).type}` : `${indexes.length} ships`;
+  addLog(`Repaired ${what} at ${state.towns[state.visit.townIndex].name} for ${price} gold.`);
+  shipwrightNote = `Repaired ${what} for ${price} gold.`;
+  showShipwright('repair');
+  return 1;
 }
 
 // Warn before a sale that leaves more cargo than the remaining hold carries;
 // the overfull-hold screen then makes you throw the excess overboard.
-function confirmShipSale(index, price) {
+function confirmShipSale(index) {
   const ship = state.player.ships[index];
   const capacityAfter = cargoCapacity() - statsFor(ship).cargo;
   const excess = cargoUsed() - capacityAfter;
-  if (state.player.ships.length < 2 || excess <= 0) {
-    sellShip(index, price);
-    return;
-  }
+  if (state.player.ships.length < 2 || excess <= 0) return sellShip(index);
   showDialog({
     vignette: 'shipwright', kicker: 'The shipwright', title: 'Not enough hold',
     body: `<p>Without the ${describeShip(ship)}, your fleet holds ${capacityAfter} tons but carries ${cargoUsed()} tons of food, goods and cannon. You would have to throw ${excess} tons overboard.</p>`,
     actions: [
-      { label: `Sell her and lose ${excess} tons`, run: () => sellShip(index, price) },
-      { label: 'Keep her', secondary: true, run: showSellShips },
+      { label: `Sell her and lose ${excess} tons`, run: () => sellShip(index) },
+      { label: 'Keep her', secondary: true, run: () => showShipwright('sell-ship', String(index)) },
     ],
   });
+  return 1;
 }
 
-function sellShip(index, price) {
-  if (state.player.ships.length < 2) {
+// Returns 1 when the ship was sold, 0 otherwise.
+function sellShip(index) {
+  const ship = state.player.ships[index];
+  const price = salePriceOf(ship);
+  if (state.player.ships.length < 2 || state.portTrade.shipwrightCash < price) {
     showShipwright();
-    return;
+    return 0;
   }
-  if (state.portTrade.shipwrightCash < price) {
-    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'The yard lacks the cash', body: `<p>The shipwright cannot cover the ${price}-gold price.</p>`, actions: [{ label: 'Return to the yard', run: showShipwright }] });
-    return;
-  }
-  const [ship] = state.player.ships.splice(index, 1);
+  state.player.ships.splice(index, 1);
   state.player.partyGold += price;
   state.portTrade.shipwrightCash -= price;
-  addLog(`Sold the ${ship.type} at ${state.towns[state.visit.townIndex].name} for ${price} gold.`);
+  const { type } = shipRecord(ship);
+  addLog(`Sold the ${type} at ${state.towns[state.visit.townIndex].name} for ${price} gold.`);
+  shipwrightNote = `Sold the ${type} for ${price} gold.`;
   if (cargoUsed() > cargoCapacity()) showOverfullHold(showShipwright);
-  else showShipwright();
+  else showShipwright('sell-ship');
+  return 1;
 }
 
-function showSellCannon() {
-  const available = Math.max(0, state.player.cannon - 1);
-  const affordable = Math.min(available, Math.floor(state.portTrade.shipwrightCash / 50));
-  if (available === 0) {
-    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'Your only cannon', body: '<p>The shipwright refuses to buy the last gun protecting your fleet.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
-    return;
-  }
-  if (affordable === 0) {
-    showDialog({ vignette: 'shipwright', kicker: 'The shipwright', title: 'The yard lacks the cash', body: '<p>The shipwright cannot afford another cannon.</p>', actions: [{ label: 'Return to the yard', run: showShipwright }] });
-    return;
-  }
-  showDialog({
-    vignette: 'shipwright', kicker: 'The shipwright', title: 'Cannon fetch 50 gold apiece',
-    body: `<p>The yard can buy up to ${affordable}. At least one cannon must remain with your fleet.</p>`,
-    actions: [
-      { label: 'Sell one cannon · 50 gold', run: () => sellCannon(1) },
-      ...(affordable > 1 ? [{ label: `Sell ${affordable} cannon · ${affordable * 50} gold`, run: () => sellCannon(affordable) }] : []),
-      { label: 'Keep them', secondary: true, run: showShipwright },
-    ],
-  });
-}
-
-function sellCannon(amount) {
+// Returns how many cannon were sold: at least one stays with the fleet, and
+// the yard pays only while it has the cash.
+function sellCannon(requested) {
+  const amount = Math.min(requested, state.player.cannon - 1, Math.floor(state.portTrade.shipwrightCash / CANNON_PRICE));
+  if (amount <= 0) return 0;
   state.player.cannon -= amount;
-  state.player.partyGold += amount * 50;
-  state.portTrade.shipwrightCash -= amount * 50;
-  addLog(`Sold ${amount} cannon for ${amount * 50} gold.`);
-  showShipwright();
+  state.player.partyGold += amount * CANNON_PRICE;
+  state.portTrade.shipwrightCash -= amount * CANNON_PRICE;
+  state.visit.cannonSold = (state.visit.cannonSold ?? 0) + amount;
+  shipwrightNote = `Sold ${state.visit.cannonSold} cannon for ${state.visit.cannonSold * CANNON_PRICE} gold.`;
+  showShipwright('sell-cannon');
+  return amount;
 }
 
 function openMerchant() {
@@ -5377,9 +5410,9 @@ const PREVIEWS = {
   barmaid: townPreview(showBarmaid),
   traveller: strangerPreview('traveller'),
   'map-seller': strangerPreview('map-seller'),
-  shipwright: townPreview(showShipwright),
+  shipwright: townPreview(openShipwright),
   // A second, damaged ship whose hold the cargo needs: selling her warns.
-  'sell-ship': townPreview(showSellShips, {
+  'sell-ship': townPreview(openShipwright, {
     prepare: () => {
       state.player.ships = [state.player.ships[0], { type: 'Merchantman', damage: 32 }];
       state.player.goods = cargoCapacity() - cargoUsed() - 10;
