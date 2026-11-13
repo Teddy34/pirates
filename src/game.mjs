@@ -3255,7 +3255,7 @@ function showSeaChart(close) {
 }
 
 function openSeaChartAtSea() {
-  if (!state || state.mode !== 'sailing' || dialog.open || chartView.isOpen()) return;
+  if (!state || state.mode !== 'sailing' || dialog.open || chartView.isOpen()) return false;
   const wasPaused = state.paused;
   state.paused = true;
   updateInterface();
@@ -3264,10 +3264,11 @@ function openSeaChartAtSea() {
     if (!wasPaused) resetSailingInterpolation();
     updateInterface();
   });
+  return true;
 }
 
 function openLogbookAtSea() {
-  if (!state || state.mode !== 'sailing' || dialog.open || chartView.isOpen()) return;
+  if (!state || state.mode !== 'sailing' || dialog.open || chartView.isOpen()) return false;
   const wasPaused = state.paused;
   state.paused = true;
   showLogbook(() => {
@@ -3275,6 +3276,7 @@ function openLogbookAtSea() {
     if (!wasPaused) resetSailingInterpolation();
     updateInterface();
   });
+  return true;
 }
 
 function showBartenderNews() {
@@ -4387,7 +4389,8 @@ for (const [button, name] of [[raiseSailsButton, 'high'], [lowerSailsButton, 'lo
 }
 
 addEventListener('keydown', (event) => {
-  if (dialog.open) return;
+  // Typing in a field (the captain's name) is never a game command.
+  if (dialog.open || event.target.closest?.('input, select, textarea')) return;
   const key = event.key.toLowerCase();
   if (state?.mode === 'sword') {
     const name = SWORD_KEYS[key];
@@ -4423,8 +4426,8 @@ addEventListener('keydown', (event) => {
     addLog(fastTravel ? 'Fast travel: time runs five times faster.' : 'Fast travel off.');
   }
   // Kept from typing into the field the logbook or chart focuses.
-  if (key === 'l' && !event.repeat) { event.preventDefault(); openLogbookAtSea(); }
-  if (key === 'c' && !event.repeat) { event.preventDefault(); openSeaChartAtSea(); }
+  if (key === 'l' && !event.repeat && openLogbookAtSea()) event.preventDefault();
+  if (key === 'c' && !event.repeat && openSeaChartAtSea()) event.preventDefault();
   if (event.key === '+' || event.key === '=') changeZoom(ZOOM_STEP);
   if (event.key === '-' || event.key === '_') changeZoom(-ZOOM_STEP);
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'].includes(event.key)) event.preventDefault();
@@ -4522,7 +4525,8 @@ function frame(now) {
   }
   updateInterface();
   syncPressedControls(now);
-  render();
+  // The chart covers the whole screen; nothing under it needs drawing.
+  if (!chartView.isOpen()) render();
   requestAnimationFrame(frame);
 }
 

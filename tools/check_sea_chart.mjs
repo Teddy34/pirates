@@ -9,7 +9,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const gamePort = Number(process.env.PLUNDER_TEST_PORT ?? 8011);
-const debugPort = Number(process.env.PLUNDER_CDP_PORT ?? 9223) + 6;
+// +7, not +6: 9229 is Node's inspector port.
+const debugPort = Number(process.env.PLUNDER_CDP_PORT ?? 9223) + 7;
 const screenshotDirectory = process.env.CHART_SCREENSHOTS ?? '';
 const base = `http://127.0.0.1:${gamePort}`;
 const debugUrl = `http://127.0.0.1:${debugPort}`;
@@ -180,6 +181,14 @@ try {
     await until('the chart from the logbook', chartOpen);
     await evaluate(`document.querySelector('#chart-close').click(), true`);
     await until('back to the logbook', `${dialogTitle} === 'The captain’s logbook'`);
+    // C and L still type into the start screen's captain name.
+    await command('Page.navigate', { url: `${base}/` });
+    // The begin button enables once the game script and its data are loaded.
+    await until('the start screen', `document.querySelector('#new-game-form button[type="submit"]')?.disabled === false`);
+    await evaluate(`(() => { const input = document.querySelector('#captain-name'); input.value = ''; input.focus(); return true; })()`);
+    for (const key of 'calico jack') await press(key);
+    const typed = await evaluate(`document.querySelector('#captain-name').value`);
+    if (typed !== 'calico jack') fail(where, `the captain's name reads "${typed}"`);
     console.log(`${where}: the chart opens full screen, finds, filters and picks towns, and closes back to the voyage and the logbook.`);
   }
 } finally {

@@ -346,6 +346,7 @@ export function createChartView(root) {
   }
 
   canvas.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     canvas.setPointerCapture(event.pointerId);
     pointers.set(event.pointerId, devicePoint(event));
     if (pointers.size === 1) {
@@ -504,6 +505,8 @@ export function createChartView(root) {
     for (const element of underneath()) element.inert = false;
     // The enlarged copy can be large on a big high-density screen.
     base?.enlarged.clear();
+    canvas.width = 0;
+    canvas.height = 0;
     if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
     onClose?.();
   }

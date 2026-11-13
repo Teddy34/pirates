@@ -133,7 +133,7 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 .chart-zoom { position:absolute; right:14px; bottom:max(14px,env(safe-area-inset-bottom)); display:grid; gap:6px; }
 .chart-zoom button { width:44px; height:44px; border:2px solid #3d2a18; border-radius:0; background:#ead8ad; color:#3d2a18; font-size:22px; font-weight:700; line-height:1; cursor:pointer; box-shadow:3px 3px 0 rgba(20,12,6,.45); }
 .chart-zoom button:active { transform:translate(1px,1px); box-shadow:2px 2px 0 rgba(20,12,6,.45); }
-.chart-panel { display:flex; flex-direction:column; min-height:0; border-left:3px solid #3d2a18; background:var(--paper); }
+.chart-panel { display:flex; flex-direction:column; min-height:0; overflow:auto; border-left:3px solid #3d2a18; background:var(--paper); }
 .chart-panel-head { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid rgba(114,95,67,.4); }
 .chart-hint { flex:1; margin:0; color:#725f43; font-size:12px; line-height:1.4; }
 .chart-hint kbd { padding:0 4px; border:1px solid #8f713e; border-radius:2px; font-size:11px; }
@@ -158,7 +158,7 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 .chart-nations button { display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:4px 10px; border:1px solid #8f713e; border-radius:2px; background:transparent; color:var(--paper-ink); font-size:13px; cursor:pointer; }
 .chart-nations button[aria-pressed="true"] { background:#3d2a18; color:#f3e5c5; }
 .chart-flag { display:inline-block; flex:none; width:14px; height:10px; border:1px solid #21180f; background:linear-gradient(90deg,var(--flag) 60%,var(--flag-dark) 60%); }
-#chart-towns { flex:1; min-height:0; margin:0; padding:0 0 12px; overflow:auto; list-style:none; border-top:1px solid rgba(114,95,67,.4); }
+#chart-towns { flex:1 0 auto; min-height:120px; margin:0; padding:0 0 12px; overflow:auto; list-style:none; border-top:1px solid rgba(114,95,67,.4); }
 #chart-towns button { display:grid; grid-template-columns:auto 1fr; column-gap:10px; align-items:center; width:100%; padding:8px 14px; border:0; border-bottom:1px solid rgba(114,95,67,.25); background:transparent; color:var(--paper-ink); text-align:left; cursor:pointer; }
 #chart-towns button:hover,#chart-towns button[aria-pressed="true"] { background:#f0e2bd; }
 #chart-towns button .chart-flag { grid-row:1/3; }
