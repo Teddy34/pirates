@@ -65,9 +65,15 @@ const LUNGE = { front: 10, back: -8, crouch: 3, lean: 2 };
 // sword-mechanics.mjs): slashes on 3 (high slash on 4), thrusts on 2.
 const strikeFrame = (move) => (move === MOVE.slashHigh ? 4 : move >= MOVE.thrustMid ? 2 : 3);
 
-// The pose of a fencer for one animation frame of one move.
-export function fencerPose(move, frame) {
+// The pose of a fencer for one animation frame of one move. `recovering`
+// is the hold after an attack (RECOVERY_FRAMES): he stays overextended, arm
+// out and in the lunge, so it reads as open rather than as a guard.
+export function fencerPose(move, frame, recovering = false) {
   const line = move >= 0 && move < 12 ? move % 3 : 0;
+  if (recovering && move >= MOVE.slashMid && move <= MOVE.thrustHigh) {
+    const reach = move >= MOVE.thrustMid ? THRUST_POSE : STRIKE_POSE;
+    return { arm: blend(reach[line], GUARD_POSE[line], .25), legs: LUNGE };
+  }
   if (move === MOVE.yield) {
     const t = Math.min(1, frame / 4);
     return { kind: 'yield', kneel: frame >= 4, arm: blend(GUARD_POSE[1], { hand: [4, -10], angle: -70 }, t), legs: frame >= 4 ? { front: 6, back: -5, crouch: 7, lean: 1 } : STANCE };
@@ -144,10 +150,10 @@ function drawBlade(art, hand, angleDegrees, length, weapon) {
 
 // Paints a fencer facing right (towards +x); `mirror` turns him to face left.
 // `weapon` is the weapon index; `shade` darkens a figure in the crowd.
-export function paintFencer({ move = 0, frame = 0, look = LOOKS.player, weapon = 2, mirror = false, shade = 0 }) {
+export function paintFencer({ move = 0, frame = 0, recovering = false, look = LOOKS.player, weapon = 2, mirror = false, shade = 0 }) {
   const { width, height, anchorX, groundY } = FENCER_ART;
   const art = createArt(width, height);
-  const pose = fencerPose(move, frame);
+  const pose = fencerPose(move, frame, recovering);
   const { legs, arm } = pose;
   const x0 = anchorX + legs.lean;
   const hipY = groundY - 17 + legs.crouch;
