@@ -38,14 +38,15 @@ const roughness = (x, y, salt) => {
 export function paintSmokeSprite({ stage = 0, variant = 0, detail = 1 } = {}) {
   const s = Math.max(0, Math.min(SMOKE_STAGES - 1, stage));
   const age = s / (SMOKE_STAGES - 1);
-  const spread = 1 + age * 1.1;
-  const swell = 1 + age * .9;
+  // FORMS are drawn 1.7× so a broadside's smoke is about a hull's length.
+  const spread = 1.7 * (1 + age * 1.1);
+  const swell = 1.7 * (1 + age * .9);
   const blobs = (FORMS[variant % FORMS.length]).map(([x, y, r]) => [x * spread * detail, y * spread * detail, r * swell * detail]);
   const reach = Math.ceil(Math.max(...blobs.map(([x, y, r]) => Math.max(Math.abs(x), Math.abs(y)) + r))) + 1;
   const size = 2 * reach + 1;
   // How much of the puff is still there: thinner with age, and thinnest at
   // the ragged edge.
-  const density = 1 - age * .78;
+  const density = 1 - age * .7;
   const art = createArt(size, size);
   for (let row = 0; row < size; row += 1) {
     for (let col = 0; col < size; col += 1) {
