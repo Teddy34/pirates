@@ -1,6 +1,7 @@
 import { NATIONS } from './data.mjs';
 import { BATTLE_SAIL_TRANSITION_FRAMES, broadsideState, damageLevel } from './battle-mechanics.mjs';
 import { headingSector, paintShipSprite, shipArtLength } from './ship-sprites.mjs';
+import { SEA_FRAMES, WIND_DIAL_SIZE, paintSea, paintWindDial } from './sea-sprites.mjs';
 import { paintShotSprite, volleyTier } from './shot-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 
@@ -32,24 +33,25 @@ function drawShip(context, ship, wind, scale) {
 
 const shotSpriteCache = new Map();
 
-// A cannonball sprite sized by the shooter's current guns (shot-sprites.mjs),
-// with a faint streak trailing back along its flight.
+// A volley sprite sized by the shooter's current guns and turned to its
+// flight (shot-sprites.mjs), with a faint streak trailing back.
 function drawShot(context, shot, guns, scale) {
   const devicePixels = scale * devicePixelScale();
   const detail = Math.max(1, Math.ceil(devicePixels / MAX_ART_PIXEL));
   const tier = volleyTier(guns);
+  const sector = Math.round(shot.direction / 16) & 15;
   const angle = shot.direction / 256 * Math.PI * 2;
-  const trail = 8 + 3 * tier;
+  const trail = 6 + 2 * tier;
   context.save();
-  context.strokeStyle = 'rgba(232,236,226,.4)';
-  context.lineWidth = (1.2 + tier * .8);
+  context.strokeStyle = 'rgba(232,236,226,.25)';
+  context.lineWidth = 1;
   context.lineCap = 'round';
   context.beginPath();
   context.moveTo(shot.x, shot.y);
   context.lineTo(shot.x - Math.sin(angle) * trail, shot.y + Math.cos(angle) * trail);
   context.stroke();
   context.restore();
-  const sprite = cachedSprite(shotSpriteCache, `${tier}|${detail}`, () => paintShotSprite({ tier, detail }));
+  const sprite = cachedSprite(shotSpriteCache, `${tier}|${sector}|${detail}`, () => paintShotSprite({ tier, detail, direction: sector * 16 }));
   if (!sprite) return;
   drawPixelSprite(context, sprite, shot.x, shot.y, Math.max(1, Math.round(devicePixels / detail)));
 }
@@ -84,6 +86,41 @@ function drawStatus(context, battle, width, top) {
   context.restore();
 }
 
+const seaCache = new Map();
+
+// The pixel-art sea (sea-sprites.mjs), one art pixel per battle pixel,
+// cycling through its swell frames about twice a second.
+function drawSea(context, battle) {
+  const { width, height } = battle.arena;
+  const frame = Math.floor(battle.frame / 16) % SEA_FRAMES;
+  const sea = cachedSprite(seaCache, `${width}|${height}|${frame}`, () => paintSea({ width, height, frame }));
+  if (!sea) return;
+  context.save();
+  context.imageSmoothingEnabled = false;
+  context.drawImage(sea.image, 0, 0, width, height);
+  context.restore();
+}
+
+const windDialCache = new Map();
+const WIND_DIAL_PIXEL = 2; // CSS pixels per art pixel
+
+// The wind dial in the arena's top-left corner, kept one size on screen.
+function drawWindDial(context, battle, left, top) {
+  const sector = Math.round(battle.wind.direction / 16) & 15;
+  const strength = battle.wind.strength;
+  const dial = cachedSprite(windDialCache, `${sector}|${strength}`, () => paintWindDial({ direction: sector * 16, strength }));
+  const pixel = WIND_DIAL_PIXEL * devicePixelScale();
+  const x = left + 10;
+  const y = top + 10;
+  context.save();
+  if (dial) drawPixelSprite(context, dial, x, y, pixel);
+  context.font = '11px system-ui, sans-serif';
+  context.textBaseline = 'top';
+  context.fillStyle = '#f3e5c5';
+  context.fillText(`Wind ${['light', 'medium', 'strong'][strength]}`, x, y + WIND_DIAL_SIZE * WIND_DIAL_PIXEL + 4);
+  context.restore();
+}
+
 export function renderBattle(context, battle, width, height) {
   const statusTop = width <= 760 ? 140 : 82;
   const playTop = statusTop + 86;
@@ -96,15 +133,7 @@ export function renderBattle(context, battle, width, height) {
   context.translate(offsetX, offsetY);
   context.scale(scale, scale);
   context.fillStyle = '#165566'; context.fillRect(0, 0, battle.arena.width, battle.arena.height);
-  context.strokeStyle = 'rgba(210,238,225,.13)'; context.lineWidth = 1 / scale;
-  for (let y = 8; y < battle.arena.height; y += 16) {
-    context.beginPath();
-    for (let x = 0; x <= battle.arena.width; x += 16) {
-      const wave = y + Math.sin((x + battle.frame) / 18) * 2;
-      if (x === 0) context.moveTo(x, wave); else context.lineTo(x, wave);
-    }
-    context.stroke();
-  }
+  drawSea(context, battle);
   for (const effect of battle.effects) {
     const radius = Math.max(2, (24 - effect.life) / 2);
     context.strokeStyle = effect.kind === 'hit' ? '#f2ad4e' : effect.kind === 'smoke' ? 'rgba(230,225,205,.45)' : '#d5edf0';
@@ -113,15 +142,7 @@ export function renderBattle(context, battle, width, height) {
   // The nearer ship (lower on screen) is drawn last; balls fly above both.
   for (const ship of [battle.player, battle.enemy].sort((a, b) => a.y - b.y)) drawShip(context, ship, battle.wind.direction, scale);
   for (const shot of battle.projectiles) drawShot(context, shot, battle[shot.owner].guns, scale);
-  const windAngle = battle.wind.direction / 256 * Math.PI * 2;
-  context.strokeStyle = '#f3e5c5'; context.fillStyle = '#f3e5c5'; context.lineWidth = 2 / scale;
-  // A streamer through the dial, its head pointing where the wind blows.
-  const [dx, dy] = [Math.sin(windAngle), -Math.cos(windAngle)];
-  const head = [30 + dx * 14, 35 + dy * 14];
-  context.beginPath(); context.moveTo(30 - dx * 14, 35 - dy * 14); context.lineTo(...head); context.stroke();
-  context.beginPath(); context.moveTo(head[0] + dx * 5, head[1] + dy * 5);
-  context.lineTo(head[0] - dy * 5, head[1] + dx * 5); context.lineTo(head[0] + dy * 5, head[1] - dx * 5); context.closePath(); context.fill();
-  context.font = `${11 / scale}px system-ui, sans-serif`; context.fillText(`Wind ${['light', 'medium', 'strong'][battle.wind.strength]}`, 8, 58);
   context.restore();
+  drawWindDial(context, battle, offsetX, offsetY);
   drawStatus(context, battle, width, statusTop);
 }
