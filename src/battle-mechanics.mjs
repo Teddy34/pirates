@@ -123,6 +123,13 @@ export function signedAngleDifference(target, current) {
   return ((target - current + 128) & 0xff) - 128;
 }
 
+// True when his bow points within a quarter turn of you: he is closing.
+export function enemyHeadingTowardPlayer(battle) {
+  const { player, enemy } = battle;
+  const bearing = bearingByte(player.x - enemy.x, player.y - enemy.y);
+  return Math.abs(signedAngleDifference(bearing, enemy.heading)) < 64;
+}
+
 export function beamDifference(shooter, target) {
   const bearing = bearingByte(target.x - shooter.x, target.y - shooter.y);
   const port = Math.abs(signedAngleDifference(bearing, (shooter.heading - 64) & 0xff));

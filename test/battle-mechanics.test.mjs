@@ -463,3 +463,12 @@ test('ships start mirrored about the centre, you pointing at him (0x9A79)', () =
   assert.equal(other.enemy.x, 272);
   assert.equal(other.enemy.heading, (0x60 - 16 - 0x60) & 0xff);
 });
+
+test('the enemy is closing when his bow points within a quarter turn of you', async () => {
+  const { enemyHeadingTowardPlayer } = await import('../src/battle-mechanics.mjs');
+  const at = (heading) => enemyHeadingTowardPlayer({ player: { x: 100, y: 0 }, enemy: { x: 0, y: 0, heading } });
+  assert.equal(at(64), true, 'pointing straight at you (east)');
+  assert.equal(at(32), true);
+  assert.equal(at(192), false, 'sailing straight away');
+  assert.equal(at(0), false, 'a quarter turn off is not closing');
+});
