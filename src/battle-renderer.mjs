@@ -92,8 +92,9 @@ const seaCache = new Map();
 // cycling through its swell frames about twice a second.
 function drawSea(context, battle) {
   const { width, height } = battle.arena;
-  const frame = Math.floor(battle.frame / 16) % SEA_FRAMES;
-  const sea = cachedSprite(seaCache, `${width}|${height}|${frame}`, () => paintSea({ width, height, frame }));
+  // Paint the whole swell cycle on first use, so it never hitches mid-battle.
+  const frames = Array.from({ length: SEA_FRAMES }, (_, frame) => cachedSprite(seaCache, `${width}|${height}|${frame}`, () => paintSea({ width, height, frame })));
+  const sea = frames[Math.floor(battle.frame / 16) % SEA_FRAMES];
   if (!sea) return;
   context.save();
   context.imageSmoothingEnabled = false;
@@ -102,14 +103,17 @@ function drawSea(context, battle) {
 }
 
 const windDialCache = new Map();
-const WIND_DIAL_PIXEL = 2; // CSS pixels per art pixel
-
-// The wind dial in the arena's top-left corner, kept one size on screen.
-function drawWindDial(context, battle, left, top) {
+// The wind dial in the arena's top-left corner: 2 CSS pixels per art pixel,
+// 1 on a small arena (phones) so it hides less of the sea. The sprite is
+// drawn in whole device pixels, so the label is placed from the size it
+// actually drew at (the context's own device-pixel ratio may be fractional).
+function drawWindDial(context, battle, left, top, scale) {
   const sector = Math.round(battle.wind.direction / 16) & 15;
   const strength = battle.wind.strength;
   const dial = cachedSprite(windDialCache, `${sector}|${strength}`, () => paintWindDial({ direction: sector * 16, strength }));
-  const pixel = WIND_DIAL_PIXEL * devicePixelScale();
+  const cssPixel = scale < 1 ? 1 : 2;
+  const deviceRatio = context.getTransform?.()?.a || 1;
+  const pixel = Math.max(1, Math.round(cssPixel * deviceRatio));
   const x = left + 10;
   const y = top + 10;
   context.save();
@@ -117,7 +121,7 @@ function drawWindDial(context, battle, left, top) {
   context.font = '11px system-ui, sans-serif';
   context.textBaseline = 'top';
   context.fillStyle = '#f3e5c5';
-  context.fillText(`Wind ${['light', 'medium', 'strong'][strength]}`, x, y + WIND_DIAL_SIZE * WIND_DIAL_PIXEL + 4);
+  context.fillText(`Wind ${['light', 'medium', 'strong'][strength]}`, x, y + (WIND_DIAL_SIZE * pixel) / deviceRatio + 4);
   context.restore();
 }
 
@@ -132,7 +136,7 @@ export function renderBattle(context, battle, width, height) {
   context.save();
   context.translate(offsetX, offsetY);
   context.scale(scale, scale);
-  context.fillStyle = '#165566'; context.fillRect(0, 0, battle.arena.width, battle.arena.height);
+  context.fillStyle = '#165566'; context.fillRect(0, 0, battle.arena.width, battle.arena.height); // until the sea is painted, and in Node
   drawSea(context, battle);
   for (const effect of battle.effects) {
     const radius = Math.max(2, (24 - effect.life) / 2);
@@ -143,6 +147,6 @@ export function renderBattle(context, battle, width, height) {
   for (const ship of [battle.player, battle.enemy].sort((a, b) => a.y - b.y)) drawShip(context, ship, battle.wind.direction, scale);
   for (const shot of battle.projectiles) drawShot(context, shot, battle[shot.owner].guns, scale);
   context.restore();
-  drawWindDial(context, battle, offsetX, offsetY);
+  drawWindDial(context, battle, offsetX, offsetY, scale);
   drawStatus(context, battle, width, statusTop);
 }
