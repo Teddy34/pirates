@@ -65,15 +65,13 @@ const LUNGE = { front: 10, back: -8, crouch: 3, lean: 2 };
 // sword-mechanics.mjs): slashes on 3 (high slash on 4), thrusts on 2.
 const strikeFrame = (move) => (move === MOVE.slashHigh ? 4 : move >= MOVE.thrustMid ? 2 : 3);
 
-// The pose of a fencer for one animation frame of one move. `recovering`
-// is the hold after an attack (RECOVERY_FRAMES): he stays overextended, arm
-// out and in the lunge, so it reads as open rather than as a guard.
-export function fencerPose(move, frame, recovering = false) {
+// The pose of a fencer for one animation frame of one move. After the blow
+// an attack stays overextended, arm out and in the lunge: its last frame is
+// also the pose held for RECOVERY_FRAMES, when the fencer is open, so it
+// must not read as a guard.
+const OVEREXTENDED = .25;
+export function fencerPose(move, frame) {
   const line = move >= 0 && move < 12 ? move % 3 : 0;
-  if (recovering && move >= MOVE.slashMid && move <= MOVE.thrustHigh) {
-    const reach = move >= MOVE.thrustMid ? THRUST_POSE : STRIKE_POSE;
-    return { arm: blend(reach[line], GUARD_POSE[line], .25), legs: LUNGE };
-  }
   if (move === MOVE.yield) {
     const t = Math.min(1, frame / 4);
     return { kind: 'yield', kneel: frame >= 4, arm: blend(GUARD_POSE[1], { hand: [4, -10], angle: -70 }, t), legs: frame >= 4 ? { front: 6, back: -5, crouch: 7, lean: 1 } : STANCE };
@@ -83,13 +81,13 @@ export function fencerPose(move, frame, recovering = false) {
     if (frame < hit - 1) return { arm: blend(GUARD_POSE[line], WINDUP_POSE[line], (frame + 1) / (hit - 1)), legs: STANCE };
     if (frame === hit - 1) return { arm: blend(WINDUP_POSE[line], STRIKE_POSE[line], .5), legs: STANCE };
     if (frame === hit) return { arm: STRIKE_POSE[line], legs: LUNGE, strike: true };
-    return { arm: blend(STRIKE_POSE[line], GUARD_POSE[line], (frame - hit) / (MOVE_FRAMES[move] - hit)), legs: frame === hit + 1 ? LUNGE : STANCE };
+    return { arm: blend(STRIKE_POSE[line], GUARD_POSE[line], (OVEREXTENDED * (frame - hit)) / (MOVE_FRAMES[move] - 1 - hit)), legs: LUNGE };
   }
   if (move >= MOVE.thrustMid && move <= MOVE.thrustHigh) {
     if (frame === 0) return { arm: DRAW_POSE[line], legs: STANCE };
     if (frame === 1) return { arm: blend(DRAW_POSE[line], THRUST_POSE[line], .5), legs: LUNGE };
     if (frame === 2) return { arm: THRUST_POSE[line], legs: LUNGE, strike: true };
-    return { arm: blend(THRUST_POSE[line], GUARD_POSE[line], .5), legs: STANCE };
+    return { arm: blend(THRUST_POSE[line], GUARD_POSE[line], OVEREXTENDED), legs: LUNGE };
   }
   if (move === MOVE.advance || move === MOVE.retreat) {
     const phase = (frame / 6) * Math.PI * 2 * (move === MOVE.retreat ? -1 : 1);
@@ -150,10 +148,10 @@ function drawBlade(art, hand, angleDegrees, length, weapon) {
 
 // Paints a fencer facing right (towards +x); `mirror` turns him to face left.
 // `weapon` is the weapon index; `shade` darkens a figure in the crowd.
-export function paintFencer({ move = 0, frame = 0, recovering = false, look = LOOKS.player, weapon = 2, mirror = false, shade = 0 }) {
+export function paintFencer({ move = 0, frame = 0, look = LOOKS.player, weapon = 2, mirror = false, shade = 0 }) {
   const { width, height, anchorX, groundY } = FENCER_ART;
   const art = createArt(width, height);
-  const pose = fencerPose(move, frame, recovering);
+  const pose = fencerPose(move, frame);
   const { legs, arm } = pose;
   const x0 = anchorX + legs.lean;
   const hipY = groundY - 17 + legs.crouch;

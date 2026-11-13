@@ -20,9 +20,9 @@ const spriteCache = new Map();
 
 const lookKey = (look) => Object.values(look).join(',');
 
-function fencerSprite({ move, frame, recovering = false, look, weapon, mirror, shade = 0 }) {
+function fencerSprite({ move, frame, look, weapon, mirror, shade = 0 }) {
   const safeMove = move < 0 ? 0 : move;
-  return cachedSprite(spriteCache, `f|${safeMove}|${frame}|${recovering}|${lookKey(look)}|${weapon}|${mirror}|${shade}`, () => paintFencer({ move: safeMove, frame, recovering, look, weapon, mirror, shade }));
+  return cachedSprite(spriteCache, `f|${safeMove}|${frame}|${lookKey(look)}|${weapon}|${mirror}|${shade}`, () => paintFencer({ move: safeMove, frame, look, weapon, mirror, shade }));
 }
 
 // Height of a blow above the ground, in art pixels, by line (middle, low, high).
@@ -71,8 +71,8 @@ export function renderSwordFight(context, view, width, height) {
     drawCrew(context, fight, fight.foe.men, -1, toX(fight.foe.x - CREW_OFFSET), ground - 5 * art, pixelScale, art, view.foeCrewLook);
   }
 
-  const foeSprite = fencerSprite({ move: fight.foe.move, frame: fight.foe.frame, recovering: fight.foe.recovery > 0, look: view.foeLook, weapon: fight.opponentWeapon, mirror: false });
-  const youSprite = fencerSprite({ move: fight.you.move, frame: fight.you.frame, recovering: fight.you.recovery > 0, look: view.yourLook, weapon: fight.weapon, mirror: true });
+  const foeSprite = fencerSprite({ move: fight.foe.move, frame: fight.foe.frame, look: view.foeLook, weapon: fight.opponentWeapon, mirror: false });
+  const youSprite = fencerSprite({ move: fight.you.move, frame: fight.you.frame, look: view.yourLook, weapon: fight.weapon, mirror: true });
   if (foeSprite) drawPixelSprite(context, foeSprite, toX(fight.foe.x - BODY_OFFSET), ground, pixelScale);
   if (youSprite) drawPixelSprite(context, youSprite, toX(fight.you.x + BODY_OFFSET), ground, pixelScale);
 
