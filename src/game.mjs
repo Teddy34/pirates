@@ -3217,10 +3217,10 @@ function showBarmaid() {
   const rapport = state.player.barmaidRapport[key] ?? 0;
   showDialog({
     vignette: 'barmaid', kicker: `The barmaid · ${town.name}`, title: '“What would you be looking for, Captain?”',
-    body: `<p>Buy a drink, or spend the evening earning the trust of someone who hears every conversation in the room.</p><dl><dt>Trust</dt><dd>${rapport}/10</dd></dl>`,
+    body: `<p>A drink alone earns no trust. Spending the evening with her earns one point of trust; at 10 she becomes your informant and passes on what she hears of the treasure fleet and the silver train.</p><dl><dt>Trust</dt><dd>${rapport}/10</dd></dl>`,
     actions: [
       { label: `Buy a drink${state.player.partyGold ? ' · 1 gold' : ''}`, run: () => spendEveningWithBarmaid(Math.min(1, state.player.partyGold), 0) },
-      { label: 'A drink and company · 5 gold', run: () => spendEveningWithBarmaid(5, 1) },
+      { label: 'Spend the evening · 5 gold · +1 trust', run: () => spendEveningWithBarmaid(5, 1) },
       { label: 'Nothing, thanks', secondary: true, run: showTavern },
     ],
   });
@@ -3235,16 +3235,23 @@ function spendEveningWithBarmaid(cost, rapportGain) {
   const key = String(state.visit.townIndex);
   const rapport = Math.min(10, (state.player.barmaidRapport[key] ?? 0) + rapportGain);
   state.player.barmaidRapport[key] = rapport;
-  let title = 'A useful conversation';
+  let title = rapportGain ? 'A useful conversation' : 'Just a drink';
+  let text = rapportGain
+    ? 'You share a pleasant evening while sailors trade rumours around you. She seems to trust you a little more.'
+    : 'She pours your drink and moves on to the next customer. A drink alone earns no trust.';
   if (rapport >= 10 && !state.player.barmaidInformants.includes(key)) {
     state.player.barmaidInformants.push(key);
     title = 'A trusted informant';
+    text = 'She leans in close: from now on she will tell you what she hears of the treasure fleet and the silver train.';
     addLog(`Won the trust of an informant in ${state.towns[state.visit.townIndex].name}.`);
   }
   showDialog({
     vignette: 'barmaid', kicker: 'The barmaid', title,
-    body: '<p>You share a pleasant conversation while sailors trade rumours around you.</p>',
-    actions: [{ label: 'Return to the tavern', run: showTavern }],
+    body: `<p>${text}</p><dl><dt>Trust</dt><dd>${rapport}/10</dd></dl>`,
+    actions: [
+      ...(rapport < 10 ? [{ label: 'Back to the barmaid', run: showBarmaid }] : []),
+      { label: 'Return to the tavern', secondary: rapport < 10, run: showTavern },
+    ],
   });
 }
 
