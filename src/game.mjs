@@ -27,6 +27,7 @@ import {
   escapeCostsShip,
   monthEndCrewEvent, mutinyOutcome,
   CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
+  crewMood,
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
@@ -111,6 +112,7 @@ const labels = {
   speed: document.querySelector('#speed-label'), wind: document.querySelector('#wind-label'),
   sails: document.querySelector('#sails-label'),
   food: document.querySelector('#food-label'), crew: document.querySelector('#crew-label'),
+  mood: document.querySelector('#mood-label'),
   gold: document.querySelector('#gold-label'), nearest: document.querySelector('#nearest-label'),
 };
 
@@ -1311,6 +1313,16 @@ function monthlyUpdate({ newsLog = true } = {}) {
 // formula at each month end, on loading a game and when the Party Status
 // mood is shown; in between, prizes raise it (0xDB7B), and port desertion,
 // battle reload and the month-end crew check read the stored value.
+// The HUD mood reads the stored morale. DELIBERATE DEVIATION: the original
+// shows it only on the Party Status page, which first recomputes the morale
+// (0x1DB2C calls 0x1DA9B) and so drops any prize bonus since the month end.
+// Recomputing on every HUD redraw would do that constantly, so the HUD
+// shows the stored value: the one desertion and mutiny will actually read.
+function crewMoodLabel() {
+  const mood = crewMood(state.player.crewMorale ?? 0);
+  return mood[0].toUpperCase() + mood.slice(1);
+}
+
 function refreshCrewMorale() {
   state.player.crewMorale = morale({ ...state.player, difficulty: state.difficulty });
 }
@@ -3909,6 +3921,7 @@ function updateInterface() {
       : battle.player.sails === 'full' ? 'Full' : 'Battle';
     labels.food.textContent = 'Clock stopped';
     labels.crew.textContent = `${battle.player.men} aboard`;
+    labels.mood.textContent = crewMoodLabel();
     const guns = broadsideState(battle.player);
     labels.gold.textContent = guns.label;
     labels.nearest.textContent = `${battle.enemy.men} crew · ${battle.enemy.guns} guns`;
@@ -3926,6 +3939,7 @@ function updateInterface() {
   labels.sails.textContent = onFoot ? boatBearing() : { furled: 'Closed', battle: 'Low', full: 'High' }[player.sails];
   labels.food.textContent = `${foodDays(player.foodFixed, player.crew)} days`;
   labels.crew.textContent = player.crew.toLocaleString();
+  labels.mood.textContent = crewMoodLabel();
   labels.gold.textContent = player.partyGold.toLocaleString();
   labels.nearest.textContent = `${town.name} · ${distance}`;
   dockButton.disabled = state.paused || state.mode !== 'sailing' || (!onFoot && !state.treasureMaps.some(({ pieces }) => pieces));
@@ -3956,6 +3970,7 @@ function updateSwordInterface({ fight, foeName }) {
   labels.sails.textContent = ['Mid', 'Low', 'High'][fight.you.move >= 0 && fight.you.move < 12 ? fight.you.move % 3 : 0];
   labels.food.textContent = 'Clock stopped';
   labels.crew.textContent = battle ? String(fight.you.men) : 'Alone';
+  labels.mood.textContent = crewMoodLabel();
   labels.gold.textContent = `Morale ${fight.you.morale}`;
   labels.nearest.textContent = battle ? `${fight.foe.men} foes` : `Foe ${fight.foe.morale}`;
 }
@@ -4184,7 +4199,7 @@ function drawBlockedWarning(width) {
   ctx.textAlign = 'center';
   const boxWidth = Math.min(width - 24, Math.max(...lines.map((line) => ctx.measureText(line).width)) + 32);
   const lineHeight = compact ? 19 : 23;
-  const top = compact ? 150 : 92;
+  const top = compact ? 196 : 92; // below the three-row phone HUD
   ctx.fillStyle = 'rgba(58,16,10,.88)'; ctx.fillRect((width - boxWidth) / 2, top, boxWidth, lineHeight * 2 + 16);
   ctx.strokeStyle = '#f0c36a'; ctx.lineWidth = 2; ctx.strokeRect((width - boxWidth) / 2, top, boxWidth, lineHeight * 2 + 16);
   ctx.fillStyle = '#fbe9c6';

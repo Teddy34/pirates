@@ -663,3 +663,9 @@ test('a won sea fight hurts nearby trade, except that beating a pirate near a to
   assert.deepEqual(effect('pirate', 'sunk', 7), { effect: 'none', growth: 150, mood: 0 });
   assert.deepEqual(effect('pirate', 'captured', 40), { effect: 'none', growth: 150, mood: 0 });
 });
+
+test('the crew mood follows 0x1DB2C: morale / 4 truncated, + 1, clamped', async () => {
+  const { crewMood } = await import('../src/mechanics.mjs');
+  assert.deepEqual([-8, -4, -3, -1, 0, 3, 4, 7, 8, 30].map(crewMood),
+    ['angry', 'angry', 'unhappy', 'unhappy', 'unhappy', 'unhappy', 'pleased', 'pleased', 'happy', 'happy']);
+});

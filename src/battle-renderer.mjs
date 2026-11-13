@@ -126,7 +126,9 @@ function drawWindDial(context, battle, left, top, scale) {
 }
 
 export function renderBattle(context, battle, width, height) {
-  const statusTop = width <= 760 ? 140 : 82;
+  // On phones the HUD wraps onto three rows (style.css), so the status box
+  // starts lower.
+  const statusTop = width <= 760 ? 186 : 82;
   const playTop = statusTop + 86;
   const playBottom = height - (width <= 1100 ? 130 : 80);
   const availableHeight = Math.max(120, playBottom - playTop);
