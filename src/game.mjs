@@ -3935,7 +3935,6 @@ function render() {
     drawSeaTexture(camera, visibleWidth, visibleHeight);
     drawLand();
   }
-  drawClouds(zoom, playerPose, clouds);
   drawTowns(zoom);
   if (state.player.onFoot && state.player.ship) {
     drawShip(zoom, { ...state.player.ship, sails: 'furled' });
@@ -3944,6 +3943,10 @@ function render() {
   } else {
     drawShip(zoom, playerPose);
   }
+  // Clouds float above everything: their shadows fall on the land, towns
+  // and ships alike, and the clouds themselves are drawn last.
+  drawClouds(zoom, playerPose, clouds, 'shadow');
+  drawClouds(zoom, playerPose, clouds, 'body');
   ctx.restore();
   drawMinimap(width, height, camera, zoom, playerPose);
   if (state.player.onFoot && state.player.blockedByWater && !state.paused) drawBlockedWarning(width);
@@ -3955,19 +3958,22 @@ function render() {
 const cloudSpriteCache = new Map();
 const CLOUD_SHADOW_OFFSET = { x: -30, y: 30 };
 
-function drawClouds(zoom, playerPose, clouds) {
+// `layer` is 'shadow' or 'body'; all shadows are drawn before any cloud so a
+// shadow never darkens a neighbouring cloud.
+function drawClouds(zoom, playerPose, clouds, layer) {
   const scale = CLOUD_ART_PIXEL * devicePixelScale();
+  const shadow = layer === 'shadow';
   for (const cloud of clouds) {
     const opacity = cloudWrapOpacity(cloud, playerPose.x, playerPose.y);
     if (opacity <= 0) continue;
-    const shadow = cachedSprite(cloudSpriteCache, `${cloud.shape}|shadow`, () => paintCloudSprite(cloud.shape, { shadow: true }));
-    const body = cachedSprite(cloudSpriteCache, `${cloud.shape}`, () => paintCloudSprite(cloud.shape));
-    if (!shadow || !body) continue;
+    const sprite = shadow
+      ? cachedSprite(cloudSpriteCache, `${cloud.shape}|shadow`, () => paintCloudSprite(cloud.shape, { shadow: true }))
+      : cachedSprite(cloudSpriteCache, `${cloud.shape}`, () => paintCloudSprite(cloud.shape));
+    if (!sprite) continue;
     ctx.save();
-    ctx.globalAlpha = opacity * .3;
-    drawPixelSprite(ctx, shadow, cloud.x + CLOUD_SHADOW_OFFSET.x / zoom, cloud.y + CLOUD_SHADOW_OFFSET.y / zoom, scale);
-    ctx.globalAlpha = opacity * .95;
-    drawPixelSprite(ctx, body, cloud.x, cloud.y, scale);
+    ctx.globalAlpha = opacity * (shadow ? .3 : .95);
+    if (shadow) drawPixelSprite(ctx, sprite, cloud.x + CLOUD_SHADOW_OFFSET.x / zoom, cloud.y + CLOUD_SHADOW_OFFSET.y / zoom, scale);
+    else drawPixelSprite(ctx, sprite, cloud.x, cloud.y, scale);
     ctx.restore();
   }
 }
