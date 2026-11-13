@@ -34,6 +34,7 @@
       <button id="zoom-out-button" aria-label="Zoom map out">− <span>Zoom</span></button>
       <button id="pause-button" aria-label="Pause voyage">Ⅱ <span>Pause</span></button>
       <button id="logbook-button" aria-label="Open the captain's logbook">☰ <span>Log</span></button>
+      <button id="chart-button" aria-label="Open the sea chart (C)">◈ <span>Chart</span></button>
       <button id="dock-button" aria-label="Land a party to march inland" disabled>⚓ <span>Land</span></button>
       <button id="zoom-in-button" aria-label="Zoom map in">+ <span>Zoom</span></button>
     </nav>
@@ -52,6 +53,32 @@
         <button id="continue-button" class="secondary hidden" type="button">Continue saved voyage</button>
       </form>
       <p class="fine-print">Original code and artwork. Mechanics reconstructed from the 1993 game.</p>
+    </section>
+    <section id="sea-chart" class="hidden" role="dialog" aria-modal="true" aria-labelledby="chart-title">
+      <div class="chart-stage">
+        <canvas id="chart-canvas" role="img" aria-label="Chart of the Caribbean with every town marked; use the town list to select one"></canvas>
+        <header class="chart-cartouche"><p id="chart-era" class="eyebrow"></p><h2 id="chart-title">A Chart of the West Indies</h2></header>
+        <div class="chart-zoom" role="group" aria-label="Chart zoom">
+          <button type="button" data-zoom="in" aria-label="Zoom in">+</button>
+          <button type="button" data-zoom="out" aria-label="Zoom out">−</button>
+          <button type="button" data-zoom="fit" aria-label="Show the whole chart">▢</button>
+        </div>
+      </div>
+      <aside class="chart-panel" aria-label="Gazetteer">
+        <div class="chart-panel-head">
+          <p class="chart-hint">Drag to pan · wheel, pinch or <kbd>+</kbd> <kbd>−</kbd> to zoom · <kbd>Esc</kbd> closes</p>
+          <button id="chart-close" type="button" class="secondary">Close chart</button>
+        </div>
+        <article id="chart-detail" class="hidden" aria-live="polite"></article>
+        <div id="chart-gazetteer">
+          <div class="chart-search-row">
+            <label>Find a town<input id="chart-search" type="search" autocomplete="off" spellcheck="false" placeholder="Name of a town"></label>
+            <button id="chart-sort" type="button" class="secondary">A to Z</button>
+          </div>
+          <div id="chart-nations" class="chart-nations" role="group" aria-label="Show only one flag"></div>
+          <ul id="chart-towns"></ul>
+        </div>
+      </aside>
     </section>
     <dialog id="event-dialog">
       <figure id="dialog-vignette" class="vignette hidden"><canvas width="240" height="144" role="img" style="--art-width:240;--art-height:144"></canvas></figure>
