@@ -4602,7 +4602,7 @@ function handleCommandKey(event, key) {
   if (key === 'm') openTreasureMapsAtSea();
   if (key === 't' && state?.mode === 'sailing') {
     fastTravel = !fastTravel;
-    addLog(fastTravel ? `Fast travel: time runs ${FAST_TRAVEL_FACTOR} times faster. Press T again to return to normal speed.` : 'Fast travel off: time runs at normal speed.');
+    addLog(fastTravel ? 'Fast travel: time runs twice as fast. Press T again for normal speed.' : 'Fast travel off: time runs at normal speed.');
   }
   // Kept from typing into the field the logbook or chart focuses.
   if (key === 'l' && openLogbookAtSea()) event.preventDefault();
