@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRng } from '../src/mechanics.mjs';
 import {
-  FIGHT_MODE, FIGHT_RESULT, MOVE, assaultRecord, boardingRecord, garrisonAfterAssault, createFight, duelRecord, fencingSkill, fightOutcome,
+  FIGHT_MODE, FIGHT_RESULT, MOVE, RECOVERY_FRAMES, assaultRecord, boardingRecord, garrisonAfterAssault, createFight, duelRecord, fencingSkill, fightOutcome,
   frameSeconds, inputMove, practiceAfterBout, practiceRecord, startingMorale, stepFight,
 } from '../src/sword-mechanics.mjs';
 
@@ -157,4 +157,42 @@ test('storming the walls is a battle against ten men a soldier (0x18EFD)', () =>
   assert.equal(assaultRecord({ yourMen: 50, crewMorale: -12, roll: 0, soldiers: 0, forts: 0 }).yourQuality, 1, 'quality is held at 1');
   assert.equal(garrisonAfterAssault(305), 31);
   assert.equal(garrisonAfterAssault(1), 1);
+});
+
+test('after an attack he holds his follow-through, open and still, before his next move', () => {
+  let fight = createFight({ record: duelRecord({ title: 'Guard' }), difficulty: 1, rng: fixed(15) });
+  fight = { ...fight, you: { ...fight.you, x: 200, move: MOVE.guardMid, frame: 0 }, foe: { ...fight.foe, x: 185, move: MOVE.thrustMid, frame: 0 } };
+  const thrustFrames = 4;
+  for (let step = 1; step < thrustFrames; step += 1) fight = stepFight(fight, null, fixed(15));
+  assert.equal(fight.foe.move, MOVE.thrustMid);
+  const x = fight.foe.x;
+  for (let step = 0; step < RECOVERY_FRAMES; step += 1) {
+    fight = stepFight(fight, null, fixed(15));
+    assert.equal(fight.foe.move, MOVE.thrustMid, 'still recovering');
+    assert.equal(fight.foe.frame, thrustFrames - 1, 'holds the last frame');
+    assert.equal(fight.foe.guard, 0, 'unguarded while recovering');
+    assert.equal(fight.foe.x, x, 'no step while recovering');
+  }
+  fight = stepFight(fight, null, fixed(15));
+  assert.equal(fight.foe.recovery, 0);
+  assert.equal(fight.foe.frame, 0, 'then his next move starts');
+});
+
+test('your attacks hold the follow-through too, ignoring the keys until it ends', () => {
+  let fight = createFight({ record: duelRecord({ title: 'Guard' }), difficulty: 1, rng: fixed(15) });
+  fight = { ...fight, you: { ...fight.you, x: 300, move: MOVE.slashMid, frame: 0 }, foe: { ...fight.foe, x: 200 } };
+  const slashFrames = 6;
+  const attack = { x: -1, y: 0 };
+  for (let step = 1; step < slashFrames; step += 1) fight = stepFight(fight, attack, fixed(15));
+  const x = fight.you.x;
+  for (let step = 0; step < RECOVERY_FRAMES; step += 1) {
+    fight = stepFight(fight, attack, fixed(15));
+    assert.equal(fight.you.move, MOVE.slashMid, 'still recovering');
+    assert.equal(fight.you.frame, slashFrames - 1, 'holds the last frame');
+    assert.equal(fight.you.guard, 0, 'unguarded while recovering');
+    assert.equal(fight.startedMove, false, 'a latched key waits');
+    assert.equal(fight.you.x, x, 'no step while recovering');
+  }
+  fight = stepFight(fight, attack, fixed(15));
+  assert.equal(fight.startedMove, true, 'then your next move starts');
 });
