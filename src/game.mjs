@@ -1760,7 +1760,7 @@ function beginShipCapture(enemy) {
   const stats = SHIPS[enemy.ship];
   const freeHold = cargoRoom();
   showDialog({
-    vignette: { id: 'prize-plunder', flag: enemy.flag }, kicker: 'Prize taken', title: `The ${enemy.ship} has struck`,
+    vignette: { id: 'prize-plunder', flag: enemy.flag }, kicker: 'Prize taken', title: `The ${enemy.ship} has struck her colors`,
     body: `<p>She is a ${stats.cargo}-ton ${enemy.ship} carrying ${enemy.guns} guns${damageLevel(enemy.damage ?? 0) ? ` (${damageLevel(enemy.damage).toLowerCase()})` : ''}. Your fleet has ${freeHold} tons of empty hold space.</p><p>Will you keep her or strip and sink her?</p>`,
     actions: [
       { label: 'Send a prize crew', run: () => keepPrizeShip(enemy) },
