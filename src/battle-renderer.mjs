@@ -63,8 +63,10 @@ function shipStatus(ship, compact = false) {
     : ship.sails === 'full' ? 'Full sails' : 'Battle sails';
   const reload = broadsideState(ship).label;
   const condition = damageLevel(ship.damage) || 'Sound';
-  if (compact) return `${ship.men} crew · ${ship.guns} guns · ${sails}`;
-  return `${ship.men} crew · ${ship.guns} guns · ${reload} · ${condition} · ${sails}`;
+  // The original's HUD shows each ship's battle speed / 4 (0xF602, 0xF65C).
+  const speed = `speed ${Math.floor((ship.speed ?? 0) / 4)}`;
+  if (compact) return `${ship.men} crew · ${ship.guns} guns · ${sails} · ${speed}`;
+  return `${ship.men} crew · ${ship.guns} guns · ${reload} · ${condition} · ${sails} · ${speed}`;
 }
 
 function drawStatus(context, battle, width, top) {
