@@ -196,3 +196,18 @@ test('your attacks hold the follow-through too, ignoring the keys until it ends'
   fight = stepFight(fight, attack, fixed(15));
   assert.equal(fight.startedMove, true, 'then your next move starts');
 });
+
+test('a hit that makes him yield during his recovery ends the hold and starts the yield', () => {
+  let fight = createFight({ record: duelRecord({ title: 'Guard' }), difficulty: 0, weapon: 2, rng: fixed(255) });
+  fight = {
+    ...fight,
+    you: { ...fight.you, x: 210, move: MOVE.slashMid, frame: 2, morale: 46 },
+    foe: { ...fight.foe, x: 200, move: MOVE.thrustMid, frame: 3, recovery: 2, morale: 1 },
+  };
+  fight = stepFight(fight, null, fixed(255));
+  assert.equal(fight.yielding, 'foe');
+  assert.equal(fight.foe.move, MOVE.yield);
+  assert.equal(fight.foe.recovery, 0, 'the hold is dropped');
+  const over = fightUntilOver(fight, null, fixed(255), 20);
+  assert.equal(over.result, FIGHT_RESULT.won);
+});

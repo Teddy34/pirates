@@ -112,6 +112,8 @@ export const FENCING_TICK_SECONDS = 1 / 140;
 // almost all attacks, so strokes come back to back (two thrusts strike 4
 // frames apart). The port holds each fencer's follow-through pose this many
 // frames after an attack, unguarded and standing still, before the next move.
+// The last frame of every attack row has no guard or attack bits, so holding
+// it leaves the fencer open; only the steps need suppressing.
 export const RECOVERY_FRAMES = 3;
 
 // 0x1B087 with ability 1.
@@ -284,8 +286,8 @@ export function stepFight(previous, input, rng) {
     fight.thrust.you = move >= MOVE.thrustMid && move <= MOVE.thrustHigh;
     fight.startedMove = true;
   }
-  you.guard = youRecovering ? 0 : GUARD[index(you)];
-  you.attack = youRecovering ? 0 : ATTACK[index(you)];
+  you.guard = GUARD[index(you)];
+  you.attack = ATTACK[index(you)];
   if (you.attack) {
     you.guard = 0;
     if (foe.guard & you.attack) fight.events.push({ type: 'parry', by: 'you', close: distance <= 35 });
@@ -310,8 +312,8 @@ export function stepFight(previous, input, rng) {
   const foeAdvance = advanceFrame(foe);
   if (foeAdvance === 'next') chooseOpponentMove(fight, rng);
   const recovering = foeAdvance === 'hold';
-  foe.guard = recovering ? 0 : GUARD[index(foe)];
-  foe.attack = recovering ? 0 : ATTACK[index(foe)];
+  foe.guard = GUARD[index(foe)];
+  foe.attack = ATTACK[index(foe)];
   if (foe.attack) {
     foe.guard = 0;
     if (you.guard & foe.attack) fight.events.push({ type: 'parry', by: 'foe', close: distance < 35 });

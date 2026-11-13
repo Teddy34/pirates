@@ -65,7 +65,11 @@ const LUNGE = { front: 10, back: -8, crouch: 3, lean: 2 };
 // sword-mechanics.mjs): slashes on 3 (high slash on 4), thrusts on 2.
 const strikeFrame = (move) => (move === MOVE.slashHigh ? 4 : move >= MOVE.thrustMid ? 2 : 3);
 
-// The pose of a fencer for one animation frame of one move.
+// The pose of a fencer for one animation frame of one move. After the blow
+// an attack stays overextended, arm out and in the lunge: its last frame is
+// also the pose held for RECOVERY_FRAMES, when the fencer is open, so it
+// must not read as a guard.
+const OVEREXTENDED = .25;
 export function fencerPose(move, frame) {
   const line = move >= 0 && move < 12 ? move % 3 : 0;
   if (move === MOVE.yield) {
@@ -77,13 +81,13 @@ export function fencerPose(move, frame) {
     if (frame < hit - 1) return { arm: blend(GUARD_POSE[line], WINDUP_POSE[line], (frame + 1) / (hit - 1)), legs: STANCE };
     if (frame === hit - 1) return { arm: blend(WINDUP_POSE[line], STRIKE_POSE[line], .5), legs: STANCE };
     if (frame === hit) return { arm: STRIKE_POSE[line], legs: LUNGE, strike: true };
-    return { arm: blend(STRIKE_POSE[line], GUARD_POSE[line], (frame - hit) / (MOVE_FRAMES[move] - hit)), legs: frame === hit + 1 ? LUNGE : STANCE };
+    return { arm: blend(STRIKE_POSE[line], GUARD_POSE[line], (OVEREXTENDED * (frame - hit)) / (MOVE_FRAMES[move] - 1 - hit)), legs: LUNGE };
   }
   if (move >= MOVE.thrustMid && move <= MOVE.thrustHigh) {
     if (frame === 0) return { arm: DRAW_POSE[line], legs: STANCE };
     if (frame === 1) return { arm: blend(DRAW_POSE[line], THRUST_POSE[line], .5), legs: LUNGE };
     if (frame === 2) return { arm: THRUST_POSE[line], legs: LUNGE, strike: true };
-    return { arm: blend(THRUST_POSE[line], GUARD_POSE[line], .5), legs: STANCE };
+    return { arm: blend(THRUST_POSE[line], GUARD_POSE[line], OVEREXTENDED), legs: LUNGE };
   }
   if (move === MOVE.advance || move === MOVE.retreat) {
     const phase = (frame / 6) * Math.PI * 2 * (move === MOVE.retreat ? -1 : 1);
