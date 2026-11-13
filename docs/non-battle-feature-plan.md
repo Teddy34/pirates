@@ -181,6 +181,9 @@ evidence for each item. This list collects them in one place.
   defenders wait for land battles (K3).
 - A barmaid informant stands in for the governor's-house informant until
   marriage exists (K8).
+- The barmaid's regard is hidden, as in the original: no counter or rules
+  text, only her manner (four bands) hints at progress. The menu uses the
+  original's "A drink, lass" / "A drink and some company" choices.
 - Married is 0 in the retirement score and summary.
 
 ### Not ported yet
