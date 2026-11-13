@@ -123,11 +123,22 @@ export function signedAngleDifference(target, current) {
   return ((target - current + 128) & 0xff) - 128;
 }
 
-// True when his bow points within a quarter turn of you: he is closing.
-export function enemyHeadingTowardPlayer(battle) {
+// Who opened the range when the ships part: each ship's speed along the line
+// from him to you (headings: 0 north, 64 east; speed as moveShip uses it).
+// True when your motion away from him is at least his motion away from you,
+// so the escape is yours; false when he sailed off and you could not follow.
+export function playerOpenedRange(battle) {
   const { player, enemy } = battle;
-  const bearing = bearingByte(player.x - enemy.x, player.y - enemy.y);
-  return Math.abs(signedAngleDifference(bearing, enemy.heading)) < 64;
+  const dx = player.x - enemy.x;
+  const dy = player.y - enemy.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const along = (ship) => {
+    const angle = (ship.heading * Math.PI * 2) / 256;
+    return (ship.speed ?? 0) * (Math.sin(angle) * dx - Math.cos(angle) * dy) / length;
+  };
+  const yoursAway = along(player);
+  const hisAway = -along(enemy);
+  return yoursAway >= hisAway;
 }
 
 export function beamDifference(shooter, target) {

@@ -1336,8 +1336,8 @@ export const INLAND_RELEASE_OFFSETS = {
 // sea_battles.md §6: only leaving the field (event 6) lets an undamaged,
 // non-fleeing enemy overtake a reserve ship; sunset (event 8) just ends it.
 // DELIBERATE DEVIATION: the original also takes the ship when he was the one
-// sailing away (a duelling galleon running before the wind). The port
-// requires him to be heading towards you when the ships part.
-export function escapeCostsShip({ event, shipCount, enemyDamage, enemyTactic, enemyHeadingTowardYou }) {
-  return event === 'escaped' && shipCount > 1 && enemyDamage < 16 && enemyTactic !== 'flee' && enemyHeadingTowardYou;
+// sailing away (a duelling galleon running before the wind). The port only
+// takes it when you opened the range (playerOpenedRange in battle-mechanics).
+export function escapeCostsShip({ event, shipCount, enemyDamage, enemyTactic, youOpenedRange }) {
+  return event === 'escaped' && shipCount > 1 && enemyDamage < 16 && enemyTactic !== 'flee' && youOpenedRange;
 }
