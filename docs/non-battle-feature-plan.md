@@ -41,6 +41,13 @@ The plan was last revised with #33. These changes followed it:
   (CSTR 168) so its picture has a place.
 - **Starting in port (`52f5fd3`):** a new career opens in the town screen, not
   at sea (row 11).
+- **Era panel on the start screen:** the chosen era's manual title and
+  difficulty rating, the 1660 first-career suggestion, a description and
+  highlights written from `eras.md` (`src/eras.mjs`), and the chosen flag's
+  career: advice written from `careers.md` and the start record's ships,
+  crew, guns, gold and rank (row 11). Frigates are named "Frigate" in every
+  era, as elsewhere in the port; the original calls them "Fast galleon"
+  before 1660.
 - **Town pictures (`686fb51`, `0bbe2a5`):** the town menu shows a quay or a town
   square, landlocked towns drop the "port" wording, and the menu heading no
   longer names the nation.

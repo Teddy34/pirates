@@ -21,8 +21,18 @@ history.
   distance, and pick a town to see its City Information figures and its
   distance and bearing from your ship.
 - This changelog.
+- Era panel on the start screen: choosing an era shows its title, its
+  difficulty as the manual rates it (Easy to Very hard, also shown as
+  pips), whether it is the suggested first career (1660), a short
+  description with three highlights, and your career for the chosen flag:
+  its name, advice for that era and nation, and the ships, crew, guns,
+  gold and any rank it starts with. The descriptions and advice are written
+  for the port from the research archive, not quoted from the manual.
 
 ### Changed
+
+- The era menu uses the manual's titles: 1560 is "The Silver Empire" (was
+  "Early explorers") and 1680 is "Pirates' Sunset".
 
 - The barmaid's trust is hidden to keep the tavern in character: no trust
   counter, rules text or "+1 trust" label. Her manner hints at progress in

@@ -20,7 +20,27 @@ input,select { width:100%; margin-top:6px; padding:10px 12px; border:1px solid v
 input:focus,select:focus,button:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
 .primary,.secondary,#dialog-actions button { min-height:44px; padding:10px 18px; border:1px solid var(--brass); border-radius:2px; background:var(--brass); color:#1d1710; font-weight:700; cursor:pointer; }
 form .primary,form .secondary { grid-column:1/-1; }
+form .wide-field { grid-column:span 2; }
 .secondary { background:transparent; color:var(--ink); }
+.era-brief { grid-column:1/-1; display:grid; grid-template-columns:minmax(180px,240px) minmax(0,1fr); gap:6px 22px; padding:16px 18px; border:1px solid var(--line); border-left:3px solid var(--brass); background:rgba(0,0,0,.22); }
+.era-brief header { grid-row:span 3; }
+.era-brief h2 { color:var(--ink); font-size:26px; line-height:1.05; }
+.era-brief p { margin:0; }
+#era-brief-text { color:var(--ink); font-family:"IM Fell English",Georgia,serif; font-size:17px; line-height:1.4; }
+.era-difficulty { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-top:10px !important; color:var(--muted); font-size:13px; }
+.era-pips { display:inline-flex; gap:3px; }
+.era-pips i { width:9px; height:9px; border:1px solid var(--brass); transform:rotate(45deg); }
+.era-pips i.on { background:var(--brass); }
+.era-suggested { padding:2px 7px; border:1px solid var(--brass); color:var(--brass); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+#era-brief-highlights { display:flex; flex-wrap:wrap; gap:4px 18px; margin:0; padding:0; list-style:none; color:var(--muted); font-size:14px; }
+#era-brief-highlights li::before { content:"✦ "; color:var(--brass); }
+.career-brief { grid-column:1/-1; display:grid; grid-template-columns:minmax(180px,240px) minmax(0,1fr); gap:4px 22px; margin-top:10px; padding-top:12px; border-top:1px solid var(--line); }
+.career-brief .eyebrow { margin:0 0 4px; }
+.career-brief h3 { margin:0; font-family:"IM Fell English",Georgia,serif; font-size:21px; font-weight:400; color:var(--ink); }
+#career-advice { color:var(--ink); font-size:15px; line-height:1.4; }
+#career-force { display:flex; flex-wrap:wrap; gap:4px 8px; margin:8px 0 0; padding:0; list-style:none; }
+#career-force li { padding:2px 8px; border:1px solid var(--line); color:var(--muted); font-size:13px; }
+#career-force li.rank { border-color:var(--brass); color:var(--brass); }
 .fine-print { margin-top:22px; color:#877f70; font-size:12px; }
 #hud { position:fixed; top:max(14px,env(safe-area-inset-top)); left:14px; right:14px; display:flex; justify-content:space-between; gap:10px; pointer-events:none; }
 .hud-block { display:flex; gap:18px; min-height:54px; padding:9px 14px; border:1px solid var(--line); border-radius:3px; background:var(--panel); box-shadow:0 8px 24px rgba(0,0,0,.2); backdrop-filter:blur(10px); }
@@ -121,7 +141,7 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 }
 @media (min-width:761px) and (max-width:1100px) { #controls{display:grid;grid-template-columns:repeat(5,1fr);width:min(620px,calc(100% - 20px))}#controls button{min-width:0}#log{bottom:126px} }
 @media (min-width:761px) and (max-width:900px) { form{grid-template-columns:repeat(3,1fr)} }
-@media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}.screen-panel{justify-items:stretch;text-align:left}.crest{margin-left:0}.lede{margin-left:0}#hud{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}.hud-block{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;min-width:0;min-height:auto;padding:6px 10px}.hud-block b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.identity{grid-auto-flow:row;min-height:auto}.identity strong,.identity span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(5,1fr);width:calc(100% - 20px)}#controls button{min-width:0;justify-content:center}#controls button span{display:none}#log{bottom:126px;width:calc(100% - 172px)} }
+@media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}form .wide-field{grid-column:auto}.era-brief{grid-template-columns:1fr;padding:14px}.era-brief header{grid-row:auto}.career-brief{grid-template-columns:1fr}.screen-panel{justify-items:stretch;text-align:left}.crest{margin-left:0}.lede{margin-left:0}#hud{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}.hud-block{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;min-width:0;min-height:auto;padding:6px 10px}.hud-block b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.identity{grid-auto-flow:row;min-height:auto}.identity strong,.identity span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(5,1fr);width:calc(100% - 20px)}#controls button{min-width:0;justify-content:center}#controls button span{display:none}#log{bottom:126px;width:calc(100% - 172px)} }
 @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
 /* The sea chart: a full-screen old map with a gazetteer beside it (below it on narrow screens). */
 #sea-chart { position:fixed; inset:0; z-index:20; display:grid; grid-template-columns:minmax(0,1fr) 340px; background:#20160d; color:var(--paper-ink); }
