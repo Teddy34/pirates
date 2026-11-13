@@ -2663,6 +2663,16 @@ function missionDeliveryActions() {
   return [{ label, run: () => completeMission(showTownMenu) }];
 }
 
+// Rank is the title the crown has granted you (promotions only raise it);
+// standing is how the nation regards you now, from its favour, which moves
+// with every ship you take and decides commissions and pardons.
+const STANDING_TEXT = {
+  'Letter of marque': 'An ally: you hold a letter of marque',
+  'No title': 'Neutral: no letter of marque',
+  Wary: 'Wary of you',
+  Hostile: 'Hostile to you',
+};
+
 function showTownMenu() {
   const town = state.towns[state.visit.townIndex];
   const rank = RANK_NAMES[state.player.ranks[town.nation]];
@@ -2690,7 +2700,13 @@ function showTownMenu() {
   showDialog({
     vignette: { id: landlocked ? 'town-square' : 'port-quay', flag: town.nation },
     kicker: landlocked ? 'Inland town' : 'In port', title: town.name,
-    body: `<p>${welcome}</p><dl><dt>${town.nation} rank</dt><dd>${rank}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>Land</dt><dd>${(state.player.land * 50).toLocaleString()} acres</dd><dt>Governor</dt><dd>${governorState}</dd>${state.visit.sneaking ? '<dt>Merchant</dt><dd>Closed to you: you came in under a borrowed name</dd>' : ''}<dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
+    body: `<p>${welcome}</p><dl>`
+      + `<dt>Flag</dt><dd>${town.nation}</dd><dt>Prosperity</dt><dd>${prosperity(town.growth)}</dd>`
+      + `<dt>Citizens</dt><dd>${(town.population * 100).toLocaleString()}</dd><dt>Soldiers</dt><dd>${(town.soldiers * 5).toLocaleString()}</dd>`
+      + `<dt>Forts</dt><dd>${town.forts === 0 ? 'None' : town.forts}</dd><dt>Treasury</dt><dd>${(town.gold * 1000).toLocaleString()} gold</dd>`
+      + `<dt>Governor</dt><dd>${governorState}</dd>`
+      + `${state.visit.sneaking ? '<dt>Merchant</dt><dd>Closed to you: you came in under a borrowed name</dd>' : ''}`
+      + `<dt>Your title from ${town.nation}</dt><dd>${rank}</dd><dt>${town.nation}'s view of you</dt><dd>${STANDING_TEXT[standing]}</dd></dl>`,
     actions,
   });
 }
