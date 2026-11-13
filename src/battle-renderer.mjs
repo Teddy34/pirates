@@ -1,9 +1,10 @@
 import { NATIONS } from './data.mjs';
-import { BATTLE_SAIL_TRANSITION_FRAMES, FORT_FIELD, broadsideState, damageLevel, fieldToCompass, fortDamageLevel, fortFieldGround } from './battle-mechanics.mjs';
+import { BATTLE_SAIL_TRANSITION_FRAMES, FORT_FIELD, SMOKE_LIFE_FRAMES, broadsideState, damageLevel, fieldToCompass, fortDamageLevel, fortFieldGround } from './battle-mechanics.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite } from './town-sprites.mjs';
 import { headingSector, paintShipSprite, shipArtLength } from './ship-sprites.mjs';
 import { SEA_FRAMES, WIND_DIAL_SIZE, paintSea, paintWindDial } from './sea-sprites.mjs';
 import { paintShotSprite, volleyTier } from './shot-sprites.mjs';
+import { SMOKE_STAGES, paintSmokeSprite } from './smoke-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 
 const shipSpriteCache = new Map();
@@ -68,8 +69,21 @@ function sailsStatus(ship, compact) {
   return `${raising ? 'Raising' : 'Lowering'} sail (${sailProgress}%)`;
 }
 
-// Ring colours for hits, gun smoke and (any other effect) splashes.
-const EFFECT_COLORS = { hit: '#f2ad4e', smoke: 'rgba(230,225,205,.45)', splash: '#d5edf0' };
+const smokeSpriteCache = new Map();
+
+// A gun-smoke puff (smoke-sprites.mjs) at the stage its age has reached.
+function drawSmoke(context, puff, scale) {
+  const devicePixels = scale * devicePixelScale();
+  const detail = Math.max(1, Math.ceil(devicePixels / MAX_ART_PIXEL));
+  const age = Math.max(0, SMOKE_LIFE_FRAMES - puff.life);
+  const stage = Math.min(SMOKE_STAGES - 1, Math.floor(age * SMOKE_STAGES / SMOKE_LIFE_FRAMES));
+  const sprite = cachedSprite(smokeSpriteCache, `${stage}|${puff.variant}|${detail}`, () => paintSmokeSprite({ stage, variant: puff.variant, detail }));
+  if (!sprite) return;
+  drawPixelSprite(context, sprite, puff.x, puff.y, Math.max(1, Math.round(devicePixels / detail)));
+}
+
+// Ring colours for hits and (any other effect) splashes.
+const EFFECT_COLORS = { hit: '#f2ad4e', splash: '#d5edf0' };
 
 function shipStatus(ship, compact = false) {
   const sails = sailsStatus(ship, compact);
@@ -324,6 +338,7 @@ export function renderBattle(context, battle, width, height) {
   const compass = (angle) => fieldToCompass(angle, battle.orientation);
   if (battle.fort) drawFortField(context, battle, scale);
   for (const effect of battle.effects) {
+    if (effect.kind === 'smoke') continue;
     const radius = Math.max(2, (24 - effect.life) / 2);
     context.strokeStyle = EFFECT_COLORS[effect.kind] ?? EFFECT_COLORS.splash;
     context.beginPath(); context.arc(effect.x, effect.y, radius, 0, Math.PI * 2); context.stroke();
@@ -331,6 +346,8 @@ export function renderBattle(context, battle, width, height) {
   // The nearer ship (lower on screen) is drawn last; balls fly above both.
   const ships = battle.fort ? [battle.player] : [battle.player, battle.enemy].sort((a, b) => a.y - b.y);
   for (const ship of ships) drawShip(context, { ...ship, heading: compass(ship.heading) }, compass(battle.wind.direction), scale);
+  // Gun smoke hangs over the ships as it drifts downwind.
+  for (const effect of battle.effects) if (effect.kind === 'smoke') drawSmoke(context, effect, scale);
   // A fort's ball is sized by that fort's guns.
   const shotGuns = (shot) => (shot.battery === undefined ? battle[shot.owner] : battle.forts[shot.battery]).guns;
   for (const shot of battle.projectiles) drawShot(context, shot, shotGuns(shot), scale, compass(shot.direction));

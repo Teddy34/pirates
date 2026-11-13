@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { SPEED_TABLE_1560 } from '../src/data.mjs';
 import {
   BATTLE_EVENT, BATTLE_SAIL_TRANSITION_FRAMES, BATTLE_SHOT_SPLASH_END, BATTLE_WIND_SHIFT_FRAMES,
-  PLAYER_RUDDER_INTERVAL, PLAYER_RUDDER_STEP,
+  PLAYER_RUDDER_INTERVAL, PLAYER_RUDDER_STEP, SMOKE_DRIFT, SMOKE_LIFE_FRAMES, driftSmoke,
   applyCannonHit, battleDistance, battleSpeed, broadsideDirection, broadsideState, frameOutcome, shiftBattleWind, comparisonScore, cosScaled, createBattle,
   damageLevel, embarkedForBattle, enemyReloadTime, enemyTacticForScores, enemyWantedHeading,
   gunnerySkill, hitBox, initialPlacement, moveShip, playerReloadTime, shipRecord, shipsCloseEnoughToStrike,
@@ -664,4 +664,31 @@ test('the renderer draws a fort field turned a quarter turn', () => {
   assert.equal(battle.orientation, 1);
   assert.doesNotThrow(() => renderBattle(context, battle, 1440, 900));
   assert.doesNotThrow(() => renderBattle(context, battle, 390, 700));
+});
+
+test('a broadside leaves gun smoke on its firing side that the wind carries off', () => {
+  const quiet = { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false };
+  let battle = battleFixture();
+  battle.wind = { direction: 128, strength: 2 }; // blowing south
+  battle = stepBattle(battle, { ...quiet, firePressed: true }, zeroRng);
+  const smoke = battle.effects.filter((effect) => effect.kind === 'smoke');
+  assert.equal(smoke.length, 3);
+  // He lies due east, so the guns fire east: the puffs start east of the
+  // hull, strung along it, and are pushed east.
+  for (const puff of smoke) { assert.ok(puff.x > 170); assert.ok(puff.vx > 0); }
+  assert.ok(Math.max(...smoke.map((puff) => puff.y)) - Math.min(...smoke.map((puff) => puff.y)) >= 10);
+  const start = smoke[1];
+  for (let frame = 0; frame < 60; frame += 1) battle = stepBattle(battle, quiet, zeroRng);
+  const later = battle.effects.find((effect) => effect.kind === 'smoke' && effect.variant === start.variant);
+  assert.ok(later.y - start.y > 60 * SMOKE_DRIFT[2] * .9, 'drifted south with the wind');
+  assert.ok(later.x - start.x < 7.5, 'the outward push dies away');
+  while (battle.frame < SMOKE_LIFE_FRAMES + 1) battle = stepBattle(battle, quiet, zeroRng);
+  assert.equal(battle.effects.filter((effect) => effect.kind === 'smoke').length, 0, 'gone once its life is spent');
+});
+
+test('smoke drifts faster in a stronger wind, straight downwind', () => {
+  const puff = { kind: 'smoke', x: 0, y: 0, vx: 0, vy: 0, variant: 0, life: 50 };
+  const drift = (strength) => driftSmoke(puff, { direction: 64, strength }).x;
+  assert.ok(drift(0) < drift(1) && drift(1) < drift(2));
+  assert.equal(driftSmoke(puff, { direction: 64, strength: 1 }).y, 0);
 });

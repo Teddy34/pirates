@@ -462,7 +462,48 @@ function fire(shooter, target, owner, battle) {
     ...battle,
     [owner]: { ...shooter, reload: shooter.reloadTime, shotTimer: -frames },
     projectiles: [...battle.projectiles, projectile],
-    effects: [...battle.effects, { kind: 'smoke', x: shooter.x, y: shooter.y, life: 18 }],
+    effects: [...battle.effects, ...gunSmoke(shooter, direction, battle.frame)],
+  };
+}
+
+// Gun smoke (presentation only; the original's is not documented). A
+// broadside leaves three puffs along the firing side of the hull, blown out
+// from the gun ports; each frame the wind carries them downwind and their
+// outward push dies away, until they thin out after SMOKE_LIFE_FRAMES.
+// Battle pixels and frames; no random draws, so the battle's rng sequence is
+// unchanged.
+export const SMOKE_LIFE_FRAMES = 120;
+const SMOKE_PUFFS = [-7, 0, 7]; // along the hull from the ship's centre
+const SMOKE_OUT = 4; // from the centre line toward the guns
+const SMOKE_PUSH = .7; // first outward speed, px per frame
+const SMOKE_PUSH_DECAY = .9;
+// Downwind drift by wind strength (light, medium, strong), px per frame.
+export const SMOKE_DRIFT = Object.freeze([.15, .3, .45]);
+
+function gunSmoke(shooter, direction, frame) {
+  const out = [sinScaled(direction, 256) / 256, -cosScaled(direction, 256) / 256];
+  const along = [sinScaled(shooter.heading, 256) / 256, -cosScaled(shooter.heading, 256) / 256];
+  return SMOKE_PUFFS.map((offset, index) => ({
+    kind: 'smoke',
+    x: shooter.x + out[0] * SMOKE_OUT + along[0] * offset,
+    y: shooter.y + out[1] * SMOKE_OUT + along[1] * offset,
+    vx: out[0] * SMOKE_PUSH,
+    vy: out[1] * SMOKE_PUSH,
+    variant: (frame + index) % 3,
+    // Staggered a little, so the puffs don't all fade on one frame.
+    life: SMOKE_LIFE_FRAMES - 6 * index,
+  }));
+}
+
+// One frame of a smoke puff: its push, the wind's drift, and the push easing.
+export function driftSmoke(puff, wind) {
+  const drift = SMOKE_DRIFT[wind.strength] ?? SMOKE_DRIFT[0];
+  return {
+    ...puff,
+    x: puff.x + puff.vx + drift * sinScaled(wind.direction, 256) / 256,
+    y: puff.y + puff.vy - drift * cosScaled(wind.direction, 256) / 256,
+    vx: puff.vx * SMOKE_PUSH_DECAY,
+    vy: puff.vy * SMOKE_PUSH_DECAY,
   };
 }
 
@@ -629,7 +670,9 @@ function stepPlayerHalf(original, input, rng) {
     frame: original.frame + 1,
     noHitFrames: original.noHitFrames + 1,
     frameEvent: 0,
-    effects: original.effects.map((effect) => ({ ...effect, life: effect.life - 1 })).filter((effect) => effect.life > 1),
+    effects: original.effects
+      .map((effect) => ({ ...(effect.kind === 'smoke' ? driftSmoke(effect, original.wind) : effect), life: effect.life - 1 }))
+      .filter((effect) => effect.life > 1),
   };
   const setEvent = (code) => { battle = { ...battle, frameEvent: code }; };
   // 0x7E38: `cmp 0x44A16, 0x1194; jle`, so the sun sets after 4,501 frames.
