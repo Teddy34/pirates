@@ -56,6 +56,7 @@ import {
   ENDING_TIERS, RETIREMENT_JOBS, careerSummary, mayReturnToPirating, recordInHallOfFame, retirementHappiness, retirementLine, retirementScore,
 } from './retirement.mjs';
 import { openingSteps, sailingMasterBriefing } from './opening.mjs';
+import { ERA_DIFFICULTIES, careerBrief, eraBrief } from './eras.mjs';
 import { drawVignette, vignetteDescription, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
@@ -4471,10 +4472,36 @@ function updateNationalityOptions() {
   if (select.selectedOptions[0]?.disabled) select.value = Object.keys(scenarios[era].starts)[0];
 }
 
+// The start screen's panel on the chosen era (title, difficulty, description)
+// and on the career the chosen flag starts in that era.
+function updateEraBrief() {
+  const era = document.querySelector('#era').value;
+  const brief = eraBrief(era);
+  if (!brief) return;
+  const maxLevel = Math.max(...Object.values(ERA_DIFFICULTIES).map(({ level }) => level));
+  document.querySelector('#era-brief-year').textContent = era;
+  document.querySelector('#era-brief-title').textContent = brief.title;
+  document.querySelector('.era-pips').innerHTML = Array.from({ length: maxLevel }, (_, i) => `<i${i < brief.difficulty.level ? ' class="on"' : ''}></i>`).join('');
+  document.querySelector('#era-difficulty-label').textContent = `Era difficulty: ${brief.difficulty.label}`;
+  document.querySelector('#era-suggested').classList.toggle('hidden', !brief.suggested);
+  document.querySelector('#era-brief-text').textContent = brief.description;
+  document.querySelector('#era-brief-highlights').replaceChildren(...brief.highlights.map((text) => Object.assign(document.createElement('li'), { textContent: text })));
+  const nationality = document.querySelector('#nationality').value;
+  const career = careerBrief(era, nationality, scenarios?.[era]?.starts[nationality]);
+  document.querySelector('#career-brief').classList.toggle('hidden', !career);
+  if (!career) return;
+  document.querySelector('#career-name').textContent = career.name;
+  document.querySelector('#career-advice').textContent = career.advice;
+  const item = (text, className = '') => Object.assign(document.createElement('li'), { textContent: text, className });
+  document.querySelector('#career-force').replaceChildren(...(career.rank ? [item(career.rank, 'rank')] : []), ...career.force.map((text) => item(text)));
+}
+
 document.querySelector('#era').addEventListener('change', (event) => {
   document.querySelector('#start-era-label').textContent = `The Caribbean · ${event.target.value}`;
   updateNationalityOptions();
+  updateEraBrief();
 });
+document.querySelector('#nationality').addEventListener('change', updateEraBrief);
 
 function stepBattleSimulation() {
   if (!state?.battle || state.paused || state.mode !== 'battle') return;
@@ -4540,10 +4567,14 @@ function frame(now) {
 }
 
 resize();
+// The era half of the start panel needs no scenario data; the career half
+// fills in once the scenarios load.
+updateEraBrief();
 const beginButton = form.querySelector('button[type="submit"]');
 beginButton.disabled = true;
 loadScenarios().then(() => {
   updateNationalityOptions();
+  updateEraBrief();
   beginButton.disabled = false;
   const preview = new URLSearchParams(location.search).get('preview');
   // Local previews expose the live state to the browser smoke checks.

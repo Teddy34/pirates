@@ -45,10 +45,23 @@
       <p class="lede">Take command of a small corsair fleet. Read the wind, visit the ports of the Spanish Main, and build a name worth remembering.</p>
       <form id="new-game-form">
         <label>Captain's name<input id="captain-name" name="captain" value="Jordi" maxlength="24" autocomplete="name"></label>
-        <label>Starting era<select id="era" name="era"><option value="1560">1560 · Early explorers</option><option value="1600">1600 · Merchants and Smugglers</option><option value="1620">1620 · The New Colonists</option><option value="1640">1640 · War for Profit</option><option value="1660" selected>1660 · The Buccaneer Heroes</option><option value="1680">1680 · The Pirates' Sunset</option></select></label>
-        <label>Captain's flag<select id="nationality" name="nationality"><option value="England">English</option><option value="France" selected>French</option><option value="Holland">Dutch</option><option value="Spain">Spanish</option></select></label>
+        <label class="wide-field">Starting era<select id="era" name="era" aria-describedby="era-brief-title era-difficulty-label"><option value="1560">1560 · The Silver Empire</option><option value="1600">1600 · Merchants and Smugglers</option><option value="1620">1620 · The New Colonists</option><option value="1640">1640 · War for Profit</option><option value="1660" selected>1660 · The Buccaneer Heroes</option><option value="1680">1680 · Pirates' Sunset</option></select></label>
+        <label>Captain's flag<select id="nationality" name="nationality" aria-describedby="career-name"><option value="England">English</option><option value="France" selected>French</option><option value="Holland">Dutch</option><option value="Spain">Spanish</option></select></label>
         <label>Difficulty<select id="difficulty" name="difficulty"><option value="0">Apprentice</option><option value="1" selected>Journeyman</option><option value="2">Adventurer</option><option value="3">Swashbuckler</option></select></label>
         <label>Special ability<select id="ability" name="ability"><option value="navigation" selected>Navigation</option><option value="fencing">Fencing</option><option value="charm">Wit and charm</option><option value="gunnery">Gunnery</option><option value="medicine">Medicine</option></select></label>
+        <section id="era-brief" class="era-brief" aria-labelledby="era-brief-title">
+          <header>
+            <p id="era-brief-year" class="eyebrow">1660</p>
+            <h2 id="era-brief-title">The Buccaneer Heroes</h2>
+            <p class="era-difficulty"><span class="era-pips" aria-hidden="true"></span><span id="era-difficulty-label">Era difficulty: Easy</span><span id="era-suggested" class="era-suggested">Suggested for a first game</span></p>
+          </header>
+          <p id="era-brief-text"></p>
+          <ul id="era-brief-highlights"></ul>
+          <div id="career-brief" class="career-brief hidden">
+            <div><p class="eyebrow">Your career</p><h3 id="career-name"></h3></div>
+            <div><p id="career-advice"></p><ul id="career-force" aria-label="Starting force"></ul></div>
+          </div>
+        </section>
         <button class="primary" type="submit">Begin the voyage</button>
         <button id="continue-button" class="secondary hidden" type="button">Continue saved voyage</button>
       </form>
