@@ -8,6 +8,7 @@ import {
   damageLevel, embarkedForBattle, enemyReloadTime, enemyTacticForScores, enemyWantedHeading,
   gunnerySkill, hitBox, initialPlacement, moveShip, playerReloadTime, shipRecord, shipsCloseEnoughToStrike,
   shipsTouch, shotHitsShip, sinScaled, stepBattle, stepPlayerSailsAndReload,
+  FORT_FIELD, createFortBattle, fortTargetIndex, fieldToCompass, fortDamageLevel, fortFieldGround, fortOrientation, fortStart, garrisonAfterFortBattle,
 } from '../src/battle-mechanics.mjs';
 import { renderBattle } from '../src/battle-renderer.mjs';
 
@@ -472,4 +473,195 @@ test('the escape is yours only when your motion opened the range more than his',
   assert.equal(parting({ heading: 64, speed: 30 }, { heading: 64, speed: 20 }), true, 'you outrun him while he chases');
   assert.equal(parting({ heading: 192, speed: 20 }, { heading: 192, speed: 30 }), false, 'he runs off and you chase');
   assert.equal(parting({ heading: 0, speed: 20 }, { heading: 192, speed: 30 }), false, 'he sails away while you cross');
+});
+
+const quiet = { turn: 0, firePressed: false, raiseSailsPressed: false, lowerSailsPressed: false };
+
+function fortFixture(overrides = {}) {
+  return createFortBattle({
+    player: { ships: ['Sloop'], crew: 60, cannon: 12, wind: 0 },
+    town: { name: 'Havana', nation: 'Spain', soldiers: 29, forts: 2, ...overrides },
+    speedRows: SPEED_TABLE_1560, difficulty: 1, ability: 'navigation', crewMorale: 4, rng: zeroRng,
+  });
+}
+
+test('each fort is a type-8 battery of 12 guns with a 144-frame reload, sharing twice the soldiers', () => {
+  const battle = fortFixture();
+  assert.equal(battle.fort, true);
+  assert.equal(battle.forts.length, 2);
+  assert.equal(battle.enemy.men, 60, '4·((29 + 1)/2)');
+  assert.equal(battle.enemy.guns, 24);
+  for (const [index, fort] of battle.forts.entries()) {
+    assert.equal(fort.type, 8);
+    assert.equal(fort.guns, 12);
+    assert.equal(fort.men, 30);
+    assert.equal(fort.reloadTime, 144);
+    assert.deepEqual({ x: fort.x, y: fort.y }, FORT_FIELD.forts[index]);
+    assert.equal(fortFieldGround(fort), 'land');
+  }
+  assert.deepEqual(fortFixture({ soldiers: 31, forts: 3 }).forts.map((fort) => fort.men), [22, 21, 21], '64 gunners');
+  assert.equal(fortFixture({ forts: 9 }).forts.length, 1, 'forts & 7');
+  assert.equal(fortFixture({ forts: 7 }).forts.length, 4, 'at most four places');
+  assert.equal(fortFieldGround(battle.player), 'water');
+  assert.doesNotThrow(() => JSON.stringify(battle));
+});
+
+test('the forts never move, stay beam-on and each fires as soon as it is loaded', () => {
+  let battle = fortFixture();
+  const places = battle.forts.map(({ x, y }) => ({ x, y }));
+  battle = stepBattle(battle, quiet, zeroRng);
+  assert.deepEqual(battle.projectiles.filter((shot) => shot.owner === 'enemy').map((shot) => shot.battery), [0, 1]);
+  assert.deepEqual(battle.forts.map((fort) => fort.reload), [144, 144]);
+  for (let frame = 0; frame < 200; frame += 1) {
+    battle = stepBattle(battle, quiet, { int: (n) => n - 1 });
+    assert.deepEqual(battle.forts.map(({ x, y }) => ({ x, y })), places);
+    assert.ok(battle.projectiles.filter((shot) => shot.owner === 'enemy').length <= 2, 'one ball a fort');
+  }
+});
+
+test('your broadside is laid on the nearest fort with guns, and its hits silence that fort alone', () => {
+  const battle = fortFixture();
+  const [west, east] = battle.forts;
+  assert.equal(fortTargetIndex({ x: west.x, y: 150 }, battle.forts), 0);
+  assert.equal(fortTargetIndex({ x: east.x, y: 150 }, battle.forts), 1);
+  battle.forts[1] = { ...east, guns: 0 };
+  assert.equal(fortTargetIndex({ x: east.x, y: 150 }, battle.forts), 0, 'a silenced fort is passed over');
+  battle.forts[0] = { ...west, guns: 0 };
+  assert.equal(fortTargetIndex({ x: east.x, y: 150 }, battle.forts), 1, 'the nearest once all are silent');
+
+  // A ball landing on the eastern fort: only its guns and gunners suffer.
+  let next = fortFixture();
+  next.forts = next.forts.map((fort) => ({ ...fort, reload: 500 })); // they hold their fire
+  Object.assign(next.player, { x: next.forts[1].x, y: 150, heading: 0, shotTimer: -1 });
+  next.projectiles = [{ owner: 'player', x: next.forts[1].x, y: next.forts[1].y, direction: 0, remaining: 0, total: 10, target: 1 }];
+  next = stepBattle(next, quiet, { int: (n) => n - 1 });
+  assert.equal(next.frameEvent, BATTLE_EVENT.hit);
+  assert.equal(next.forts[0].guns, 12);
+  assert.ok(next.forts[1].guns < 12 && next.forts[1].men < 30);
+  assert.equal(next.enemy.guns, 12 + next.forts[1].guns);
+  assert.equal(next.enemy.men, 30 + next.forts[1].men);
+  assert.equal(next.enemy.startMen, 60);
+});
+
+test('a silenced fort holds its fire', () => {
+  let battle = fortFixture();
+  battle.forts[0] = { ...battle.forts[0], guns: 0 };
+  battle = stepBattle(battle, quiet, zeroRng);
+  assert.deepEqual(battle.projectiles.filter((shot) => shot.owner === 'enemy').map((shot) => shot.battery), [1]);
+  assert.equal(battle.enemy.firing, 1);
+});
+
+test('you sail at half speed against a fort', () => {
+  const ship = fortFixture();
+  const open = createBattle({
+    player: { ships: ['Sloop'], crew: 60, cannon: 12, wind: 0 },
+    enemy: { ship: 'Sloop', flag: 'Spain', crew: 12, guns: 0, kind: 5 },
+    speedRows: SPEED_TABLE_1560, difficulty: 1, ability: 'navigation', crewMorale: 4, rng: zeroRng,
+  });
+  for (const battle of [ship, open]) Object.assign(battle.player, { heading: 128 });
+  const fortSpeed = stepBattle(ship, quiet, zeroRng).player.speed;
+  const seaSpeed = stepBattle(open, quiet, zeroRng).player.speed;
+  assert.ok(seaSpeed > 0);
+  assert.equal(fortSpeed, Math.trunc(seaSpeed / 2));
+});
+
+test('the fort cannot be sunk; its hits only raise the damage shown', () => {
+  const battle = fortFixture();
+  battle.enemy.damage = 200;
+  battle.forts[0].damage = 200;
+  battle.frameEvent = BATTLE_EVENT.hit;
+  assert.equal(frameOutcome(BATTLE_EVENT.hit, battle), null);
+  assert.equal(fortDamageLevel(19), 0);
+  assert.equal(fortDamageLevel(40), 2);
+  assert.equal(fortDamageLevel(500), 3);
+  // No skill-0 bonus against the fort: 4·12/10 = 4.
+  const hit = applyCannonHit(battle.forts[1], 12, { playerShot: true, skill: 0, rng: zeroRng });
+  assert.equal(hit.damage - battle.forts[1].damage, 4);
+});
+
+test('reaching the quay lands the crew; any other shore, the fort included, is running aground', () => {
+  const at = (x, y) => {
+    const battle = fortFixture({ forts: 0 }); // no guns, so nothing else happens
+    Object.assign(battle.player, { x, y, heading: 0 });
+    battle.speedRows = Object.fromEntries(Object.keys(SPEED_TABLE_1560).map((name) => [name, Array(16).fill(0)]));
+    return stepBattle(battle, quiet, zeroRng).event;
+  };
+  const { quay, forts } = FORT_FIELD;
+  assert.equal(at(quay.x + 10, quay.y + 5), 'landed');
+  for (const fort of forts) assert.equal(at(fort.x, fort.y), 'beached');
+  assert.equal(at(40, 30), 'beached');
+  assert.equal(at(240, 200), null);
+  assert.equal(at(5, 200), 'escaped');
+  assert.equal(at(240, FORT_FIELD.height - 5), 'escaped');
+});
+
+test('a fort battle runs out at sunset like a ship battle', () => {
+  const battle = fortFixture({ forts: 0 });
+  battle.speedRows = Object.fromEntries(Object.keys(SPEED_TABLE_1560).map((name) => [name, Array(16).fill(0)]));
+  battle.noHitFrames = 4500;
+  assert.equal(stepBattle(battle, quiet, zeroRng).event, 'sunset');
+});
+
+test('the garrison after getting through keeps the fort survivors at a tenth', () => {
+  assert.equal(garrisonAfterFortBattle({ soldiers: 30, fortMenLeft: 60 }), 21);
+  assert.equal(garrisonAfterFortBattle({ soldiers: 30, fortMenLeft: 9 }), 15);
+});
+
+test('battle renderer draws the fort field', () => {
+  const context = new Proxy({}, {
+    get(target, property) {
+      if (!(property in target)) target[property] = () => {};
+      return target[property];
+    },
+    set(target, property, value) { target[property] = value; return true; },
+  });
+  for (const forts of [0, 1, 4]) {
+    const battle = fortFixture({ forts });
+    if (forts) battle.forts[0] = { ...battle.forts[0], guns: 0, damage: 70 };
+    assert.doesNotThrow(() => renderBattle(context, battle, 1440, 900));
+    assert.doesNotThrow(() => renderBattle(context, battle, 390, 700));
+  }
+});
+
+test('the fort field turns so the harbor lies within 45° of downwind, and the compass wind is kept', () => {
+  for (let wind = 0; wind < 256; wind += 4) {
+    const battle = createFortBattle({
+      player: { ships: ['Sloop'], crew: 60, cannon: 12, wind },
+      town: { name: 'Havana', nation: 'Spain', soldiers: 29, forts: 2 },
+      speedRows: SPEED_TABLE_1560, difficulty: 1, ability: 'navigation', crewMorale: 4, rng: zeroRng,
+    });
+    assert.equal(battle.orientation, fortOrientation(wind));
+    assert.equal(fieldToCompass(battle.wind.direction, battle.orientation), wind, 'the wind you sailed in');
+    const fieldWind = ((battle.wind.direction + 128) & 0xff) - 128;
+    assert.ok(fieldWind >= -32 && fieldWind < 32, `wind ${wind}: the harbor (north) is within 45° of downwind`);
+  }
+});
+
+test('you start in open water on a broad reach pointed at the harbor', () => {
+  const { margin, width, height } = FORT_FIELD;
+  for (let fieldWind = -32; fieldWind < 32; fieldWind += 1) {
+    const start = fortStart(fieldWind & 0xff);
+    assert.equal(fortFieldGround(start), 'water', `wind ${fieldWind}`);
+    assert.ok(start.x > margin && start.x < width - margin && start.y > margin && start.y < height - margin);
+    const sector = ((start.heading + 8 - (fieldWind & 0xff)) >> 4) & 15;
+    assert.ok([1, 2, 14, 15].includes(sector), `wind ${fieldWind}: sector ${sector}`);
+  }
+});
+
+test('the renderer draws a fort field turned a quarter turn', () => {
+  const context = new Proxy({}, {
+    get(target, property) {
+      if (!(property in target)) target[property] = () => {};
+      return target[property];
+    },
+    set(target, property, value) { target[property] = value; return true; },
+  });
+  const battle = createFortBattle({
+    player: { ships: ['Sloop'], crew: 60, cannon: 12, wind: 64 },
+    town: { name: 'Havana', nation: 'Spain', soldiers: 29, forts: 2 },
+    speedRows: SPEED_TABLE_1560, difficulty: 1, ability: 'navigation', crewMorale: 4, rng: zeroRng,
+  });
+  assert.equal(battle.orientation, 1);
+  assert.doesNotThrow(() => renderBattle(context, battle, 1440, 900));
+  assert.doesNotThrow(() => renderBattle(context, battle, 390, 700));
 });

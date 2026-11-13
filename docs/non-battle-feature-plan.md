@@ -26,7 +26,7 @@ as uncertain, and record any small playable assumption beside its code.
 | 9 | Courtship, marriage, and informants | Missing | Model daughters and nieces, charm checks, rival suitors, proposals, merchant marriage, family discounts, and informant reports. The rival suitor's duel can use the sword fight (row 13). | `marriage.md`, `town_economy.md` |
 | 10 | Health, age, land, and retirement | Partial (#33) | Done: wounds, health with Medicine, land income, forced retirement at the division and in captivity, voluntary retirement, the decoded score, career summary, post-career job, lure of the sea, hall of fame and another game. Left: marriage's share of the score (row 9). | `health_age_land.md`, main report retirement sections |
 | 11 | Career opening | Done (#35) | Start every career in the town screen of the town nearest the start record's point (`52f5fd3`), play the story for its era and nation, then the sailing master's briefing naming the closest city of each other nation. | `src/opening.mjs`, `0x139E2`, `0x13E3F`, `0x1D858` |
-| 13 | Sword fights | Partial (this change) | Done: the one fight engine of `sword_fights.md` (`src/sword-mechanics.mjs`), with the frame tables read from the executable: weapon choice, skill, reach, parries, hit rolls, morale transfer, yielding, the crews' clash, the edges, and the opponent's pattern AI with its counter-moves. Pixel-art fencers, crews and backdrops (`src/fencer-sprites.mjs`, `src/sword-renderer.mjs`). Boarding, storming the walls after an assault, the mutiny ringleader, the guard when sneaking, the villain and the opening's practice bout are real fights, and the town menu offers practice fencing (+5 hit bonus per bout, up to 30). Left: the fort and land battles before the walls (counted as won until K3), the duel-defeat scene's text (`0x159DF`), capture after a lost boarding (`0x16647`), sound, and art the user approves. | `sword_fights.md`, `sea_battles.md` §7, `fencing_*.asm` |
+| 13 | Sword fights | Partial (this change) | Done: the one fight engine of `sword_fights.md` (`src/sword-mechanics.mjs`), with the frame tables read from the executable: weapon choice, skill, reach, parries, hit rolls, morale transfer, yielding, the crews' clash, the edges, and the opponent's pattern AI with its counter-moves. Pixel-art fencers, crews and backdrops (`src/fencer-sprites.mjs`, `src/sword-renderer.mjs`). Boarding, storming the walls after an assault, the mutiny ringleader, the guard when sneaking, the villain and the opening's practice bout are real fights, and the town menu offers practice fencing (+5 hit bonus per bout, up to 30). Left: the land battle before the walls (counted as won until K3), the duel-defeat scene's text (`0x159DF`), capture after a lost boarding (`0x16647`), sound, and art the user approves. | `sword_fights.md`, `sea_battles.md` §7, `fencing_*.asm` |
 | 12 | Scene pictures | Partial (#34, #35) | Done: code-drawn placeholders in the dialogs for the governor, merchant, shipwright, tavern staff and visitors, the town approach and town menu, prizes, an exploding enemy, shipwreck, marooning, dividing the plunder, the career opening, the dig's results (treasure found, nothing found, a relative's reunion and the four lost cities), a sail sighted, boarding, a prisoner's offer, new recruits, the treasure fleet and silver train captures, mutiny, prison, the sword-fight alley, the hall of fame, the four retirement endings, the land and fort assaults, your own ship sinking, and a battle ended by outrunning or nightfall. Left: the courtship scenes (governor-daughter, governor-niece, wedding, merchant-daughter), which wait for row 9; happy-crew, pirate-delivered, ships-news, shipdeck-duel, treasure-trove and title, plus the optional ship portraits; and real art, which needs the user's rights confirmed first. | `scene-vignettes.md` |
 
 ## Added since the last plan update
@@ -170,14 +170,13 @@ evidence for each item. This list collects them in one place.
   (the original would divide by zero when both are zero).
 - The duel-defeat scene (`0x159DF`) has no text yet; each caller's dialog
   reports the loss.
-- Storming the walls (`0x18EFD`) is played after every assault, but the fort
-  battle (by sea, a town with forts) or the land battle (overland, soldiers ×
-  15 ≥ crew, a fort and 10+ soldiers) that comes first counts as won without
-  losses. A skipped fort battle still applies its documented results: alert
-  +16, reputation −2, the garrison at (s + 1)/2 plus a tenth of the fort's
-  untouched men, and only the flagship's crew lands (the first ship is taken
-  as the flagship). A skipped land battle leaves the garrison as it was and
-  adds no march alert. You may still withdraw before storming, for alert +16.
+- Storming the walls (`0x18EFD`) is played after every assault. By sea, a
+  town with forts is first fought as a fort battle (see
+  `tactical-sea-combat-plan.md` §7); landing at its quay leads to the walls.
+  The land battle that comes first overland (soldiers × 15 ≥ crew, a fort
+  and 10+ soldiers) still counts as won without losses: it leaves the
+  garrison as it was and adds no march alert. You may still withdraw before
+  storming, for alert +16.
 - A defeat at the walls also costs a tenth of the party's gold as ransom
   instead of capture (`0x16647`), as for a lost boarding.
 
@@ -197,8 +196,8 @@ evidence for each item. This list collects them in one place.
 
 - The famous expeditions, which are the only starts that open at sea, and their
   ending (CSTR 159).
-- Fort and land combat (K3), which count as won before the walls, and battle shallows, beaching and terrain
-  backdrops (K6).
+- Land combat (K3), which counts as won before the walls, and battle shallows, beaching and terrain
+  backdrops in ship battles (K6). The fort battle is playable.
 - Courtship (K8).
 - Status screens from the Captain's Cabin (D32); practice fencing is in the
   town menu. The

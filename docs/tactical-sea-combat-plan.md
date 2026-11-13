@@ -34,8 +34,7 @@ The first complete release should let the player:
 Boarding is now an interactive sword fight with crews (`src/sword-mechanics.mjs`,
 `sea_battles.md` §7, `sword_fights.md`): your men aboard against his battle men,
 quality `7 − damage/16` against `kind − damage/16`, and +1 or +2 skill for a
-named captain (`0xF207`). Fort battles should
-reuse the finished naval engine in a later milestone.
+named captain (`0xF207`). Fort battles reuse the naval engine (§7).
 
 ## Evidence boundary
 
@@ -119,6 +118,43 @@ reuse the finished naval engine in a later milestone.
   (table value −1) reads 255 and sails at the top speed of 40. It is
   unconfirmed at runtime and would be an exploit, so the port reads the table
   signed for both ships: your ship stops head to wind, as the enemy's does.
+
+- **You land at the town quay, not at the fort.** The original carries the
+  attack on when your ship touches the fort's 32 × 32 box or runs ashore
+  next to it (`0x8269`, event 5); any other shore is event 13. The port's
+  field (`FORT_FIELD`) puts the fort on a rocky headland with the town's
+  harbor in a cove beside it: the flagship's centre reaching the water along
+  the quay lands the crew, and any other land, the fort's rocks included,
+  is running aground. The field's layout (`FORT_FIELD.forts` places up to
+  four forts) and its 480 × 240 size are the
+  port's own; the original's start and backdrop for forts are not traced,
+  and its field spans 10–430 px.
+- **The attacker starts from a favourable position.** The field turns by
+  quarter turns so the harbor lies within 45° of downwind
+  (`fortOrientation`), and you start 110 px out on a broad reach pointed at
+  it (`fortStart`). The picture is drawn turned to the compass, so the wind
+  is the one you sailed in, and the wind dial moves to a corner over open
+  water.
+- **Each fort is its own battery.** The original fights all of a town's forts
+  as one enemy: one firing point and one 32 × 32 box with 12 guns a fort, so
+  four forts fire one 48-gun broadside. The port makes each fort a type-8
+  battery of 12 guns at its own place (`createFortBatteries`), with an equal
+  share of the `4·((soldiers + 1)/2)` gunners. Each fires on its own reload;
+  your ball is laid on the nearest fort with guns left (`fortTargetIndex`)
+  and tested against that fort's box; a fort with no guns is silenced. The
+  status line, HUD and garrison use the totals (`fortSummary`). A battery's
+  scatter of a few degrees makes a distant fort miss more often, which is
+  what makes several forts beatable. Seeded runs (200 each) that sail
+  straight in without firing give the balance: a sloop gets through one fort
+  almost always and two about one time in five; a frigate two about 95% of
+  the time, three about 85% and four about 73%; a galleon three about 58%
+  and four about half the time. With the old single 48-gun fort nothing got
+  through four.
+- **The log is hidden during sea battles**, as in sword fights, so it can't
+  cover the field.
+- **No gunfire alert after a fort battle.** Ship battles near a town raise its
+  alert by `24 − 2d` (`0xE60E`); a fort battle sets the alert only by its
+  result. Assumed, not traced.
 
 - **Pirates beaten near a town help its trade.** The original takes 10
   growth from the nearest town for every nearby capture and for every ship
@@ -350,16 +386,39 @@ the documented `+16` alert and `-2` reputation. Capture after a defeat
 (`0x16647`) is not ported, so a defeat also costs ten percent of party gold as
 an explicit interim ransom.
 
-### 7. Fort reuse
+### 7. Fort battles (done)
 
-Only after ship combat is stable, add fort attacks as a specialized stationary
-enemy:
+Attacking a fortified town by sea fights its fort with the ship engine
+(`createFortBattle`, `stepFortBattle` in `src/battle-mechanics.mjs`,
+`sea_battles.md` §8):
 
-- type 8, 12 guns per fort, and approximately twice the town's soldiers;
-- 144-frame reload, beam-on aim, and small shot scatter;
-- half player movement;
-- no movement, surrender, or sinking;
-- separate fort-damage display and transition to the later land-assault system.
+- in the original the fort is type 8 with `(forts & 7)·12` guns and
+  `4·((soldiers + 1)/2)` men, kind 0 (144-frame reload); its hits use
+  divisors 10 and 11. Each of the port's batteries keeps the type, kind and
+  reload, with 12 guns and its share of the men;
+- the original fights all of a town's forts as one fort (one firing point
+  and one 32 × 32 box with the guns of them all); the port splits them into
+  batteries of 12 guns at up to four places (see the deviations above);
+- it never moves, strikes or runs the captain AI; its heading is reset to
+  `bearing + 60 + rnd(8)` every frame, so it is always beam-on and fires
+  whenever it is loaded, a few degrees off;
+- it can't be sunk: your hits raise its damage, shown as `min(3, n/20)`
+  ("Walls intact" to "Walls crumbling"), skip the skill-0 bonus, and still
+  kill gunners and dismount guns;
+- your movement is halved; the wind strength is `rnd(3)` and the gunnery
+  extra 0; the sun still sets after 4,500 frames without a hit (CSTR 317);
+- the field is fixed: leaving it is CSTR 196 ("driven back to the open
+  sea"), running aground is CSTR 173, and your flagship sinking takes the
+  usual sinking path; each ends the attack and returns you to sea;
+- landing sets alert +16 and reputation −2, makes the garrison
+  `(soldiers + 1)/2 + fort men left/10`, and lands only the flagship's men
+  aboard to storm the walls.
+
+The briefing (`briefFortBattle` in `src/game.mjs`) tells the player to land
+at the town quay beside the fort, not under the fort, and with several forts
+that each fires on its own and the nearest one still firing draws your
+broadside. Check it with
+`?preview=fort-battle`; `?preview=fort-walls` skips to the landing.
 
 ## Controls and presentation
 
@@ -426,8 +485,8 @@ Each milestone ends in a runnable build:
    aftermath paths, and provisional boarding outcomes.
 5. **Polish and verification** — touch controls, accessibility, effects,
    balance observation, and comparison against the installed binary.
-6. **Follow-ons** — interactive sword fighting (done), then fort attack and
-   land assault.
+6. **Follow-ons** — interactive sword fighting (done), fort attack (done),
+   then land assault.
 
 ## Definition of done for the first release
 

@@ -237,8 +237,11 @@ for future work.
 - Save the voyage in browser storage while in town.
 - Attack a town and storm its walls in a sword fight with crews against ten
   men a soldier; a win captures it with the decoded treasury and town damage
-  formulas, possible governor installation, and transferable plunder. The fort
-  or land battle before the walls counts as won for now.
+  formulas, possible governor installation, and transferable plunder. By sea,
+  a fortified town is first fought as a fort battle against each of its forts
+  (12 guns apiece, silenced one by one): get the flagship to the town quay
+  to land. The land battle before the walls
+  overland counts as won for now.
 - See "The treasure fleet is in the harbor!" / "The silver train is in
   town!" on the approach (only the train's line when both are there, as the
   original overwrites one with the other at `0x19193`). An assault adds 10 soldiers per convoy in town
@@ -288,8 +291,8 @@ for future work.
 
 The following systems have no complete playable implementation:
 
-- fort bombardment and land battles (an assault counts them as won and goes
-  straight to storming the walls);
+- land battles (an overland assault counts them as won and goes straight to
+  storming the walls);
 - complete prize management and ship reordering (the original has no ship
   purchase);
 - complete cannon management;

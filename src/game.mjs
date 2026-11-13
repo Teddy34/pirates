@@ -31,7 +31,7 @@ import {
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
-  broadsideState, createBattle, damageLevel, embarkedForBattle, playerOpenedRange, shipName, shipRecord, stepBattle,
+  FORT_FIELD, broadsideState, createBattle, createFortBattle, damageLevel, embarkedForBattle, fieldToCompass, garrisonAfterFortBattle, playerOpenedRange, shipName, shipRecord, stepBattle,
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
 import {
@@ -1480,6 +1480,19 @@ function closeForBattle(enemy) {
   });
 }
 
+// Starts the battle mode once state.battle is set.
+function enterBattleMode(ariaLabel) {
+  state.player.ships = state.battle.fleet.map(shipRecord);
+  state.mode = 'battle';
+  state.paused = false;
+  battleAccumulator = 0;
+  input.firePressed = false;
+  input.raiseSailsPressed = false;
+  input.lowerSailsPressed = false;
+  canvas.setAttribute('aria-label', ariaLabel);
+  updateInterface();
+}
+
 function beginTacticalBattle(enemy, flagshipIndex) {
   state.battle = createBattle({
     player: state.player,
@@ -1492,16 +1505,8 @@ function beginTacticalBattle(enemy, flagshipIndex) {
     crewMorale: state.player.crewMorale,
     rng,
   });
-  state.player.ships = state.battle.fleet.map(shipRecord);
-  state.mode = 'battle';
-  state.paused = false;
-  battleAccumulator = 0;
-  input.firePressed = false;
-  input.raiseSailsPressed = false;
-  input.lowerSailsPressed = false;
-  canvas.setAttribute('aria-label', 'Tactical sea battle');
   addLog(`Battle joined with the ${enemy.flag} ${enemy.ship}.`);
-  updateInterface();
+  enterBattleMode('Tactical sea battle');
 }
 
 function applyBattleSurvivors(battle) {
@@ -1510,6 +1515,9 @@ function applyBattleSurvivors(battle) {
   const damage = Math.min(48, battle.player.damage & 0xf0);
   state.player.ships = battle.fleet.map(shipRecord);
   if (state.player.ships.length) state.player.ships[0] = { ...state.player.ships[0], damage };
+  // ASSUMED: the gunfire alert (0xE60E) is for ship battles; a fort battle
+  // sets the town's alert by its own result (sea_battles.md §8).
+  if (battle.fort) return;
   const distance = nearestTownDistance();
   if (distance < 12) state.alert += 24 - 2 * distance;
 }
@@ -1542,6 +1550,7 @@ function finishTacticalBattle() {
   if (!battle?.event || state.paused) return;
   state.paused = true;
   applyBattleSurvivors(battle);
+  if (battle.fort) { finishFortBattle(battle); return; }
   const enemy = {
     ...battle.encounter,
     crew: Math.max(1, Math.ceil(battle.enemy.men / 4)),
@@ -2344,31 +2353,127 @@ function attackTown(town) {
   town.soldiers = convoyGarrison(town.soldiers, convoysInTown(state.convoys, state.towns.indexOf(town)).length);
   const overland = Boolean(state.approach?.overland);
   const before = assaultBeforeTheWalls({ overland, soldiers: town.soldiers, forts: town.forts, crew: state.player.crew });
-  const approachText = {
-    fort: `<p>Your fleet runs in under the guns of the fort, and the flagship’s crew lands below its walls.</p><p><em>The battle against the fort is not playable yet; it counts as won.</em></p>`,
-    land: `<p>Your men march on ${town.name} and break through the defenders in the field.</p><p><em>The land battle is not playable yet; it counts as won.</em></p>`,
-  }[before.battle] ?? `<p>${town.forts ? 'The garrison is too weak to meet you in the field: your men march straight to the walls.' : `${town.name} has no fort. Your men march straight into the town.`}</p>`;
+  if (before.battle === 'fort') { briefFortBattle(town); return; }
+  const approachText = before.battle === 'land'
+    ? `<p>Your men march on ${town.name} and break through the defenders in the field.</p><p><em>The land battle is not playable yet; it counts as won.</em></p>`
+    : `<p>${town.forts ? 'The garrison is too weak to meet you in the field: your men march straight to the walls.' : `${town.name} has no fort. Your men march straight into the town.`}</p>`;
   showDialog({
     vignette: { id: overland ? 'land-attack' : 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
     body: approachText,
     actions: [
-      { label: 'Storm the walls', run: () => stormTheWalls(town, before) },
-      { label: 'Withdraw from the assault', secondary: true, run: () => { state.alert += 16; addLog(`Withdrew from the assault on ${town.name}.`); departFromApproach(); resumeSailing(); } },
+      { label: 'Storm the walls', run: () => stormTheWalls(town, { yourMen: state.player.crew, soldiers: before.soldiers }) },
+      withdrawFromAssault(town),
     ],
   });
 }
 
-function stormTheWalls(town, before) {
-  let yourMen = state.player.crew;
-  if (before.battle === 'fort') {
-    // Getting through to the fort (event 5, 0xE775): alert +16 and
-    // reputation -2. Only the flagship's crew lands (sea_battles.md §8);
-    // ASSUMED: the first ship is the flagship.
-    state.alert += 16;
-    state.player.reputation -= 2;
-    yourMen = embarkedForBattle({ ...state.player, flagshipIndex: 0 }).men;
+// Withdrawing alerts the town (+16). After landing at the quay the landing
+// has already raised it, so withdrawing then adds nothing more (ASSUMED).
+function withdrawFromAssault(town, { alert = 16 } = {}) {
+  return { label: 'Withdraw from the assault', secondary: true, run: () => { state.alert += alert; addLog(`Withdrew from the assault on ${town.name}.`); departFromApproach(); resumeSailing(); } };
+}
+
+// sea_battles.md §8: by sea, a fortified town is attacked through a battle
+// against its fort. The briefing names the goal: the port's field puts the
+// landing at the town's quay beside the fort, not under the fort itself
+// (FORT_FIELD in battle-mechanics.mjs).
+function briefFortBattle(town) {
+  const forts = Math.min(town.forts & 7, FORT_FIELD.forts.length);
+  const fortLine = forts === 1
+    ? `One fort guards the harbor of ${town.name} with 12 guns. It stands on a rocky headland: there is nowhere to land beneath its walls.`
+    : `${forts} forts guard the harbor of ${town.name}, with 12 guns each. They stand on rocky headlands along the coast: there is nowhere to land beneath their walls.`;
+  const fire = forts === 1
+    ? 'the fort fires whenever its guns bear'
+    : 'each fort fires whenever its guns bear. Your broadside bears on the nearest fort still firing, and a fort whose guns are all dismounted falls silent';
+  const choices = state.player.ships.map((ship, index) => ({
+    label: `Command ${describeShip(ship)}${index === 0 ? ' (flagship)' : ''}`,
+    run: () => beginFortBattle(town, index),
+  }));
+  showDialog({
+    vignette: { id: 'fort-walls', flag: town.nation }, kicker: 'Assault from the sea', title: `Attack ${town.name}`,
+    body: `<p>${fortLine}</p>`
+      + `<p><strong>Steer past the ${forts === 1 ? 'fort' : 'forts'} into the harbor and bring your flagship alongside the town quay.</strong> Your men will land there and take the fort from the town side. Run aground anywhere else, on a fort’s rocks included, and they will refuse to march; stand too far out to sea and the guns drive you off.</p>`
+      + `<p>In these narrow waters you sail at half speed, and ${fire}. Only the flagship’s crew goes ashore. Steer with Left/Right or A/D, fire with Space, and change sail with Up/Down.</p>`
+      + `<p>Choose the ship you will command. Eight hands remain aboard every reserve ship.</p>`,
+    actions: [...choices, withdrawFromAssault(town)],
+  });
+}
+
+function beginFortBattle(town, flagshipIndex) {
+  state.battle = {
+    ...createFortBattle({
+      player: state.player, town, flagshipIndex,
+      speedRows: scenarios[state.era].speeds, difficulty: state.difficulty, ability: state.ability,
+      playerFlag: state.nationality, crewMorale: state.player.crewMorale, rng,
+    }),
+    townIndex: state.towns.indexOf(town),
+  };
+  addLog(`Attacked the fort at ${town.name}.`);
+  enterBattleMode(`Sea battle against the fort of ${town.name}`);
+}
+
+// The end of a fort battle (sea_battles.md §8): only landing at the quay
+// carries the attack on; every other ending sends you back to sea.
+function finishFortBattle(battle) {
+  const town = state.towns[battle.townIndex];
+  state.battle = null;
+  state.mode = 'sailing';
+  canvas.setAttribute('aria-label', 'Caribbean sailing map');
+  if (battle.event === 'landed') {
+    landBelowTheFort(town, { yourMen: battle.player.men, fortMenLeft: battle.enemy.men });
+    return;
   }
-  town.soldiers = before.soldiers;
+  const back = (message) => { addLog(message); departFromApproach(); saveGame(false); resumeSailing(); };
+  // ASSUMED: losing your last ship to the fort is a shipwreck at sea (not
+  // prison in town); the original's path here is not traced.
+  if (battle.event === 'player-sunk') {
+    state.player.wounds = (state.player.wounds ?? 0) + 1;
+    showDialog({
+      vignette: 'sinking', kicker: 'Defeat at sea', title: 'Your ship goes down',
+      body: '<p>Your ship is holed in a dozen places, and gradually sinks beneath the waves.</p>',
+      actions: [{ label: 'Continue', run: () => loseShip(0, { done: (lost) => {
+        if (lost) { back(`The fort at ${town.name} sank your ${shipName(lost)}, and she took her share of the cargo down with her.`); return; }
+        addLog(`The fort at ${town.name} sank your last ship.`);
+        saveGame(false);
+        resumeSailing();
+      } }) }],
+    });
+    return;
+  }
+  // CSTR 196, 173 and 317.
+  const endings = {
+    escaped: { title: 'Driven off', text: 'An accurate salvo of cannon fire from the fort drives you back to the open sea.', log: `The fort at ${town.name} drove us back to the open sea.` },
+    beached: { title: 'Aground', text: 'You beach your ship far from the fort; your men refuse to march, and return to their ships.', log: `Ran aground off ${town.name}; the men refused to march on the fort.` },
+    sunset: { title: 'Night falls', text: 'After a great deal of time, the sun sets, ending the battle.', log: `Night ended the attack on the fort at ${town.name}.` },
+  };
+  const ending = endings[battle.event] ?? endings.escaped;
+  showDialog({
+    vignette: battle.event === 'sunset' ? 'nightfall' : { id: 'fort-walls', flag: town.nation }, kicker: 'The attack fails', title: ending.title,
+    body: `<p>${ending.text}</p>`,
+    actions: [{ label: 'Continue', run: () => back(ending.log) }],
+  });
+}
+
+// Getting through to the fort (event 5, 0xE775): alert +16 and reputation
+// -2; the garrison becomes (soldiers + 1)/2 + the fort's survivors/10, and
+// only the flagship's crew lands for the storming of the walls.
+function landBelowTheFort(town, { yourMen, fortMenLeft }) {
+  state.alert += 16;
+  state.player.reputation -= 2;
+  const soldiers = garrisonAfterFortBattle({ soldiers: town.soldiers, fortMenLeft });
+  addLog(`Landed ${yourMen} men at the quay of ${town.name}.`);
+  showDialog({
+    vignette: { id: 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
+    body: `<p>Your flagship comes alongside the town quay under the fort’s guns, and her ${yourMen} men swarm ashore. The fort lies before them.</p>`,
+    actions: [
+      { label: 'Storm the walls', run: () => stormTheWalls(town, { yourMen, soldiers }) },
+      withdrawFromAssault(town, { alert: 0 }),
+    ],
+  });
+}
+
+function stormTheWalls(town, { yourMen, soldiers }) {
+  town.soldiers = soldiers;
   const forts = town.forts > 0;
   const record = assaultRecord({
     yourMen, crewMorale: state.player.crewMorale ?? 0, roll: rng.int(3), soldiers: town.soldiers, forts: town.forts, nation: town.nation,
@@ -3976,6 +4081,7 @@ function updateInterface() {
   if (!state) return;
   const player = state.player;
   document.body.classList.toggle('sword-fight', state.mode === 'sword');
+  document.body.classList.toggle('sea-battle', state.mode === 'battle');
   if (state.mode === 'sword' && swordView) {
     updateSwordInterface(swordView);
     return;
@@ -4011,16 +4117,16 @@ function battleSailsLabel({ sails, sailTransition, targetSails }) {
 
 function updateBattleInterface(battle) {
   labels.captain.textContent = `Captain ${state.captain} · Battle`;
-  labels.date.textContent = `Engaging ${battle.encounter.flag} ${battle.enemy.name}`;
+  labels.date.textContent = battle.fort ? `Attacking the fort of ${battle.encounter.town}` : `Engaging ${battle.encounter.flag} ${battle.enemy.name}`;
   labels.speed.textContent = `${Math.abs(battle.player.speed ?? 0)} battle speed`;
-  labels.wind.textContent = `${windFrom(battle.wind.direction)} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
+  labels.wind.textContent = `${windFrom(fieldToCompass(battle.wind.direction, battle.orientation))} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
   labels.sails.textContent = battleSailsLabel(battle.player);
   labels.food.textContent = 'Clock stopped';
   labels.crew.textContent = `${battle.player.men} aboard`;
   labels.mood.textContent = crewMoodLabel();
   const guns = broadsideState(battle.player);
   labels.gold.textContent = guns.label;
-  labels.nearest.textContent = `${battle.enemy.men} crew · ${battle.enemy.guns} guns`;
+  labels.nearest.textContent = `${battle.enemy.men} ${battle.fort ? 'gunners' : 'crew'} · ${battle.enemy.guns} guns`;
   dockButton.disabled = state.paused || !guns.ready;
   logbookButton.disabled = true;
   chartButton.disabled = true;
@@ -4713,7 +4819,18 @@ const SCENE_PREVIEWS = {
     showRetirementEnding({ tier, job, points: 80 - tier * 20 }, retirementLine({ job, townName: state.towns[0].name, rng }), resumeSailing);
   }])),
   'land-attack': () => { state.approach = { overland: true }; attackTown(state.towns[0]); },
-  'fort-walls': () => { state.approach = { overland: false }; attackTown(state.towns.find((town) => town.forts > 0) ?? state.towns[0]); },
+  // fort-battle opens the briefing; fort-walls lands the crew as if the
+  // fort battle had been won.
+  // The town with the most forts, so every fort's place is drawn.
+  'fort-battle': () => {
+    state.approach = { overland: false };
+    attackTown(state.towns.reduce((best, town) => (town.forts > best.forts ? town : best)));
+  },
+  'fort-walls': () => {
+    state.approach = { overland: false };
+    const town = state.towns.find((candidate) => candidate.forts > 0) ?? state.towns[0];
+    landBelowTheFort(town, { yourMen: embarkedForBattle(state.player).men, fortMenLeft: 4 * ((town.soldiers + 1) >> 1) });
+  },
   // The battle ends on the next frame with the given event.
   ...Object.fromEntries([['sinking', 'player-sunk'], ['outrun', 'escaped'], ['nightfall', 'sunset']].map(([id, event]) => [id, () => {
     beginTacticalBattle({ ...PREVIEW_ENEMY, crew: 20 }, 0);
