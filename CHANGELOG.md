@@ -51,6 +51,9 @@ history.
 
 ### Fixed
 
+- The start screen's dropdown lists (era, flag, difficulty, ability) are
+  readable again: they had cream text on a white list in some browsers and
+  now use the game's dark panel colours.
 - The start screen's era highlights no longer describe one flag's career:
   1600 always said "Start as a Dutch trader" and 1680 "English pirates
   start at peace with all", whatever flag was chosen. They now read "No
