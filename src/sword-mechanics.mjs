@@ -140,9 +140,16 @@ export function startingMorale(yourMen, yourQuality, theirMen, theirQuality) {
 // that consumes it starts (0x38A0A), so a single tap of "away" keeps you
 // backing off. The port reads held keys instead, plus one latched tap per
 // move (the caller clears it when `startedMove` is set).
+// Up (y < 0) is the high line (2), down the low line (1), level the middle.
+function inputLine(y) {
+  if (y > 0) return 1;
+  if (y < 0) return 2;
+  return 0;
+}
+
 export function inputMove(input) {
   if (!input) return MOVE.guardMid;
-  const line = input.y > 0 ? 1 : input.y < 0 ? 2 : 0;
+  const line = inputLine(input.y);
   if (input.x < 0) return (input.quick ? MOVE.thrustMid : MOVE.slashMid) + line;
   if (input.x > 0) return MOVE.backMid + line;
   return line;
@@ -163,7 +170,7 @@ export function createFight({ record, difficulty = 1, hasFencing = false, practi
   const [yourX, theirX] = mode === FIGHT_MODE.battle ? START.battle : START.duel;
   const you = { ...fighter(yourX, record.yourMen, yourMorale), move: -1 };
   const foe = fighter(theirX, record.theirMen, theirMorale);
-  const patternSet = skill < 1 ? 0 : skill === 1 ? 1 : 2;
+  const patternSet = clamp(skill, 0, 2);
   const patternRow = rng.int(8);
   return {
     mode, skill, weapon, opponentWeapon,
@@ -217,32 +224,41 @@ function counterMove(code, yourMove, rng) {
   return other + (code === 0x92 ? 6 : 9);
 }
 
+// After a full pattern, stronger opponents change pattern once you have
+// been hitting them.
+function changesPattern(skill, hits) {
+  if (skill === 1) return hits.you > 2;
+  if (skill === 2) return hits.you !== 0;
+  if (skill === 3) return (hits.you | hits.foe) !== 0;
+  return false;
+}
+
+// His next move in the current attack pattern, close in.
+function nextPatternMove(fight, rng) {
+  const { you, pattern, hits, skill } = fight;
+  pattern.index = (pattern.index + 1) & 7;
+  if (pattern.index === 0 && changesPattern(skill, hits)) { pattern.row = rng.int(8); hits.you = 0; }
+  const move = PATTERNS[pattern.set][pattern.row][pattern.index];
+  return move >= 0x80 ? counterMove(move, you.move, rng) : move;
+}
+
 // 0x280EF: his next move when an animation ends.
 function chooseOpponentMove(fight, rng) {
-  const { foe, you, pattern, hits, skill } = fight;
+  const { foe, you, skill } = fight;
   if (foe.move === MOVE.yield) return;
   fight.thrust.foe = false;
   const distance = you.x - foe.x;
   let move;
   if (distance < 0 || distance >= OPPONENT_CLOSE) move = OPPONENT_FAR[rng.int(8)]; // unsigned, as above
   else if (rng.int(16) <= CLOSE_GUARD_CHANCE[skill]) move = MOVE.guardLow;
-  else {
-    pattern.index = (pattern.index + 1) & 7;
-    // After a full pattern, stronger opponents change pattern once you have
-    // been hitting them.
-    if (pattern.index === 0) {
-      const change = skill === 1 ? hits.you > 2 : skill === 2 ? hits.you !== 0 : skill === 3 ? (hits.you | hits.foe) !== 0 : false;
-      if (change) { pattern.row = rng.int(8); hits.you = 0; }
-    }
-    move = PATTERNS[pattern.set][pattern.row][pattern.index];
-    if (move >= 0x80) move = counterMove(move, you.move, rng);
-  }
+  else move = nextPatternMove(fight, rng);
   foe.move = move;
   foe.frame = 0;
-  if (move >= MOVE.thrustMid && move <= MOVE.thrustHigh) fight.thrust.foe = true;
+  if (isThrust(move)) fight.thrust.foe = true;
 }
 
 const isAttack = (move) => move >= MOVE.slashMid && move <= MOVE.thrustHigh;
+const isThrust = (move) => move >= MOVE.thrustMid && move <= MOVE.thrustHigh;
 
 // A fencer's animation advance (0x276F8 you, 0x27A71 him), plus the
 // recovery hold above: 'play' carries on the move, 'hold' keeps the
@@ -258,6 +274,86 @@ function advanceFrame(fencer) {
   return 'next';
 }
 
+// Your next move when your animation ends (0x276F8).
+function startYourMove(fight, requested, distance) {
+  const { you, foe } = fight;
+  // Unsigned in the original (`jb`): crossed fencers count as far apart.
+  let move = distance < 0 || distance >= FAR_APART ? FAR_MOVE[requested] : requested;
+  if (foe.move === MOVE.yield) move = MOVE.guardLow;
+  you.move = move;
+  you.frame = 0;
+  fight.thrust.you = isThrust(move);
+  fight.startedMove = true;
+}
+
+// Your stroke this frame, if any: parried, a miss or a hit. Returns the
+// fight state (0x44B86) after any morale the hit scores.
+function resolveYourStroke(fight, distance, rng, state) {
+  const { you, foe } = fight;
+  if (!you.attack) return state;
+  you.guard = 0;
+  if (foe.guard & you.attack) {
+    fight.events.push({ type: 'parry', by: 'you', close: distance <= 35 });
+    return state;
+  }
+  // The roll is drawn only within reach.
+  if (distance > PLAYER_REACH[fight.weapon] + REACH_BONUS[fight.skill] || rng.int(256) + fight.practice < HIT_ROLL[fight.skill]) {
+    fight.events.push({ type: 'miss', by: 'you' });
+    return state;
+  }
+  you.guard = 7;
+  foe.x -= HIT_PUSH;
+  const scored = scorePoints(fight, 'you', fight.thrust.you, 2 * fight.weapon + 1, state);
+  fight.hits.you += 1;
+  fight.events.push({ type: 'hit', by: 'you', points: scored.points });
+  if (fight.yielding === 'foe' && foe.move !== MOVE.yield) { foe.move = MOVE.yield; foe.frame = 0; foe.recovery = 0; }
+  return scored.state;
+}
+
+// His stroke this frame, as resolveYourStroke.
+function resolveFoeStroke(fight, distance, rng, state) {
+  const { you, foe } = fight;
+  if (!foe.attack) return state;
+  foe.guard = 0;
+  if (you.guard & foe.attack) {
+    fight.events.push({ type: 'parry', by: 'foe', close: distance < 35 });
+    return state;
+  }
+  if (distance > OPPONENT_REACH[fight.opponentWeapon] || rng.int(256) < HIT_ROLL[fight.skill]) {
+    fight.events.push({ type: 'miss', by: 'foe' });
+    return state;
+  }
+  foe.guard = 7;
+  you.x += HIT_PUSH;
+  const scored = scorePoints(fight, 'foe', fight.thrust.foe, fight.opponentWeapon + 1, state);
+  fight.hits.foe += 1;
+  fight.events.push({ type: 'hit', by: 'foe', points: scored.points });
+  if (fight.yielding === 'you') { you.move = MOVE.yield; you.frame = 0; you.recovery = 0; }
+  return scored.state;
+}
+
+// A fencer's footwork for the frame; `forward` is -1 for you (facing left)
+// and +1 for him.
+function stepFencer(fencer, distance, forward) {
+  if (distance >= STEP_MIN_DISTANCE) fencer.x += forward * STEP_FORWARD[index(fencer)];
+  fencer.x -= forward * STEP_BACK[index(fencer)];
+}
+
+// 0x27CFF: the crews clash every 16 frames in a battle.
+function crewClash(fight, rng, state) {
+  const { you, foe } = fight;
+  const yourRoll = rng.int(((you.men + 8) >> 2) * you.morale);
+  const theirRoll = rng.int(((foe.men + 8) >> 2) * foe.morale);
+  const loser = theirRoll < yourRoll ? foe : you; // ties go against you
+  const losses = ((you.men + foe.men) >> 6) + 1;
+  loser.men = clamp(loser.men - losses, 1, MAX_MEN);
+  const winner = loser === foe ? 'you' : 'foe';
+  if (loser.men === 1) fight.yielding = winner === 'you' ? 'foe' : 'you';
+  const next = transferMorale(fight, winner, state);
+  fight.events.push({ type: 'clash', winner });
+  return next;
+}
+
 // One animation frame. `input` is { x, y, quick } or null (see inputMove).
 // Returns the new fight; `result` is set once it is over, and `events`
 // lists this frame's strokes for the presentation.
@@ -270,82 +366,28 @@ export function stepFight(previous, input, rng) {
   fight.startedMove = false;
   fight.frame += 1;
   let distance = you.x - foe.x;
-  const requested = inputMove(input);
 
   // 0x276F8: your yield has played out.
   if (you.move === MOVE.yield && you.frame >= 9) return finish(fight, 3);
 
   const yourAdvance = you.move < 0 ? 'next' : advanceFrame(you);
-  const youRecovering = yourAdvance === 'hold';
-  if (yourAdvance === 'next') {
-    // Unsigned in the original (`jb`): crossed fencers count as far apart.
-    let move = distance < 0 || distance >= FAR_APART ? FAR_MOVE[requested] : requested;
-    if (foe.move === MOVE.yield) move = MOVE.guardLow;
-    you.move = move;
-    you.frame = 0;
-    fight.thrust.you = move >= MOVE.thrustMid && move <= MOVE.thrustHigh;
-    fight.startedMove = true;
-  }
+  if (yourAdvance === 'next') startYourMove(fight, inputMove(input), distance);
   you.guard = GUARD[index(you)];
   you.attack = ATTACK[index(you)];
-  if (you.attack) {
-    you.guard = 0;
-    if (foe.guard & you.attack) fight.events.push({ type: 'parry', by: 'you', close: distance <= 35 });
-    else if (distance > PLAYER_REACH[fight.weapon] + REACH_BONUS[fight.skill]) fight.events.push({ type: 'miss', by: 'you' });
-    else if (rng.int(256) + fight.practice >= HIT_ROLL[fight.skill]) {
-      you.guard = 7;
-      foe.x -= HIT_PUSH;
-      let points;
-      ({ points, state } = scorePoints(fight, 'you', fight.thrust.you, 2 * fight.weapon + 1, state));
-      fight.hits.you += 1;
-      fight.events.push({ type: 'hit', by: 'you', points });
-      if (fight.yielding === 'foe' && foe.move !== MOVE.yield) { foe.move = MOVE.yield; foe.frame = 0; foe.recovery = 0; }
-    } else fight.events.push({ type: 'miss', by: 'you' });
-  }
-  if (!youRecovering) {
-    if (distance >= STEP_MIN_DISTANCE) you.x -= STEP_FORWARD[index(you)];
-    you.x += STEP_BACK[index(you)];
-  }
+  state = resolveYourStroke(fight, distance, rng, state);
+  if (yourAdvance !== 'hold') stepFencer(you, distance, -1);
   if (you.x >= RIGHT_EDGE) state = 2;
   distance = you.x - foe.x;
 
   const foeAdvance = advanceFrame(foe);
   if (foeAdvance === 'next') chooseOpponentMove(fight, rng);
-  const recovering = foeAdvance === 'hold';
   foe.guard = GUARD[index(foe)];
   foe.attack = ATTACK[index(foe)];
-  if (foe.attack) {
-    foe.guard = 0;
-    if (you.guard & foe.attack) fight.events.push({ type: 'parry', by: 'foe', close: distance < 35 });
-    else if (distance > OPPONENT_REACH[fight.opponentWeapon]) fight.events.push({ type: 'miss', by: 'foe' });
-    else if (rng.int(256) >= HIT_ROLL[fight.skill]) {
-      foe.guard = 7;
-      you.x += HIT_PUSH;
-      let points;
-      ({ points, state } = scorePoints(fight, 'foe', fight.thrust.foe, fight.opponentWeapon + 1, state));
-      fight.hits.foe += 1;
-      fight.events.push({ type: 'hit', by: 'foe', points });
-      if (fight.yielding === 'you') { you.move = MOVE.yield; you.frame = 0; you.recovery = 0; }
-    } else fight.events.push({ type: 'miss', by: 'foe' });
-  }
-  if (!recovering) {
-    if (distance >= STEP_MIN_DISTANCE) foe.x += STEP_FORWARD[index(foe)];
-    foe.x -= STEP_BACK[index(foe)];
-  }
+  state = resolveFoeStroke(fight, distance, rng, state);
+  if (foeAdvance !== 'hold') stepFencer(foe, distance, 1);
   if (foe.x <= LEFT_EDGE) state = 1;
 
-  // 0x27CFF: the crews clash every 16 frames in a battle.
-  if (fight.mode === FIGHT_MODE.battle && (fight.frame & (CREW_CLASH_FRAMES - 1)) === 0) {
-    const yourRoll = rng.int(((you.men + 8) >> 2) * you.morale);
-    const theirRoll = rng.int(((foe.men + 8) >> 2) * foe.morale);
-    const loser = theirRoll < yourRoll ? foe : you; // ties go against you
-    const losses = ((you.men + foe.men) >> 6) + 1;
-    loser.men = clamp(loser.men - losses, 1, MAX_MEN);
-    const winner = loser === foe ? 'you' : 'foe';
-    if (loser.men === 1) fight.yielding = winner === 'you' ? 'foe' : 'you';
-    state = transferMorale(fight, winner, state);
-    fight.events.push({ type: 'clash', winner });
-  }
+  if (fight.mode === FIGHT_MODE.battle && (fight.frame & (CREW_CLASH_FRAMES - 1)) === 0) state = crewClash(fight, rng, state);
 
   if (you.move === MOVE.yield && you.frame >= 9) state = 3;
   if (foe.move === MOVE.yield && foe.frame >= 9) state = 1;

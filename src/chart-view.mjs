@@ -23,13 +23,20 @@ function toCanvas({ pixels, width, height }) {
   return image;
 }
 
+// Screen (CSS) pixels per marker art pixel at a chart scale of `css` screen
+// pixels per world cell.
+function markerPixelSize(css) {
+  if (css >= 6) return 4;
+  if (css >= 3.5) return 3;
+  return css >= 1.2 ? 2 : 1;
+}
+
 export function createChartView(root) {
   const stage = root.querySelector('.chart-stage');
   const canvas = root.querySelector('#chart-canvas');
   const ctx = canvas.getContext('2d');
   const eraLabel = root.querySelector('#chart-era');
   const detail = root.querySelector('#chart-detail');
-  const gazetteer = root.querySelector('#chart-gazetteer');
   const search = root.querySelector('#chart-search');
   const nationGroup = root.querySelector('#chart-nations');
   const sortButton = root.querySelector('#chart-sort');
@@ -140,7 +147,7 @@ export function createChartView(root) {
   // Marker art pixels grow with the zoom, one to four screen pixels each.
   const markerScale = () => {
     const css = view.scale / dpr;
-    return dpr * (css >= 6 ? 4 : css >= 3.5 ? 3 : css >= 1.2 ? 2 : 1);
+    return dpr * markerPixelSize(css);
   };
 
   const matches = () => new Set(filterTowns(data.towns, filter).map(({ index }) => index));

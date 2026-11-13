@@ -56,13 +56,20 @@ function drawShot(context, shot, guns, scale) {
   drawPixelSprite(context, sprite, shot.x, shot.y, Math.max(1, Math.round(devicePixels / detail)));
 }
 
-function shipStatus(ship, compact = false) {
+// The sails, or their change in progress (compact: an arrow and percent).
+function sailsStatus(ship, compact) {
+  if (!ship.sailTransition) return ship.sails === 'full' ? 'Full sails' : 'Battle sails';
   const sailProgress = Math.round((1 - ship.sailTransition / BATTLE_SAIL_TRANSITION_FRAMES) * 100);
-  const sails = ship.sailTransition
-    ? compact
-      ? `Sails ${ship.targetSails === 'full' ? '↑' : '↓'}${sailProgress}%`
-      : `${ship.targetSails === 'full' ? 'Raising' : 'Lowering'} sail (${sailProgress}%)`
-    : ship.sails === 'full' ? 'Full sails' : 'Battle sails';
+  const raising = ship.targetSails === 'full';
+  if (compact) return `Sails ${raising ? '↑' : '↓'}${sailProgress}%`;
+  return `${raising ? 'Raising' : 'Lowering'} sail (${sailProgress}%)`;
+}
+
+// Ring colours for hits, gun smoke and (any other effect) splashes.
+const EFFECT_COLORS = { hit: '#f2ad4e', smoke: 'rgba(230,225,205,.45)', splash: '#d5edf0' };
+
+function shipStatus(ship, compact = false) {
+  const sails = sailsStatus(ship, compact);
   const reload = broadsideState(ship).label;
   const condition = damageLevel(ship.damage) || 'Sound';
   // The original's HUD shows each ship's battle speed / 4 (0xF602, 0xF65C).
@@ -142,7 +149,7 @@ export function renderBattle(context, battle, width, height) {
   drawSea(context, battle);
   for (const effect of battle.effects) {
     const radius = Math.max(2, (24 - effect.life) / 2);
-    context.strokeStyle = effect.kind === 'hit' ? '#f2ad4e' : effect.kind === 'smoke' ? 'rgba(230,225,205,.45)' : '#d5edf0';
+    context.strokeStyle = EFFECT_COLORS[effect.kind] ?? EFFECT_COLORS.splash;
     context.beginPath(); context.arc(effect.x, effect.y, radius, 0, Math.PI * 2); context.stroke();
   }
   // The nearer ship (lower on screen) is drawn last; balls fly above both.

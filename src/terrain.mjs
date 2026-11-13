@@ -65,35 +65,37 @@ export function buildCoastField(map) {
   return { width, height, sea, land };
 }
 
+// One chamfer pass. `step` +1 scans forward and relaxes each cell from its
+// already-visited neighbours above and to the left; -1 scans backward and
+// mirrors them (below and to the right).
+function chamferPass(field, width, height, straight, diagonal, step) {
+  const first = step > 0 ? 0 : height - 1;
+  for (let row = 0; row < height; row += 1) {
+    const y = first + row * step;
+    for (let column = 0; column < width; column += 1) {
+      const x = step > 0 ? column : width - 1 - column;
+      const index = y * width + x;
+      let value = field[index];
+      if (!value) continue;
+      const back = x - step; // the visited neighbour along the row
+      const ahead = x + step;
+      const previousRow = y - step;
+      const rowInside = previousRow >= 0 && previousRow < height;
+      if (back >= 0 && back < width) value = Math.min(value, field[index - step] + straight);
+      if (rowInside) {
+        const above = index - step * width;
+        value = Math.min(value, field[above] + straight);
+        if (back >= 0 && back < width) value = Math.min(value, field[above - step] + diagonal);
+        if (ahead >= 0 && ahead < width) value = Math.min(value, field[above + step] + diagonal);
+      }
+      field[index] = value;
+    }
+  }
+}
+
 function chamfer(field, width, height, straight, diagonal) {
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const index = y * width + x;
-      let value = field[index];
-      if (!value) continue;
-      if (x > 0) value = Math.min(value, field[index - 1] + straight);
-      if (y > 0) {
-        value = Math.min(value, field[index - width] + straight);
-        if (x > 0) value = Math.min(value, field[index - width - 1] + diagonal);
-        if (x < width - 1) value = Math.min(value, field[index - width + 1] + diagonal);
-      }
-      field[index] = value;
-    }
-  }
-  for (let y = height - 1; y >= 0; y -= 1) {
-    for (let x = width - 1; x >= 0; x -= 1) {
-      const index = y * width + x;
-      let value = field[index];
-      if (!value) continue;
-      if (x < width - 1) value = Math.min(value, field[index + 1] + straight);
-      if (y < height - 1) {
-        value = Math.min(value, field[index + width] + straight);
-        if (x < width - 1) value = Math.min(value, field[index + width + 1] + diagonal);
-        if (x > 0) value = Math.min(value, field[index + width - 1] + diagonal);
-      }
-      field[index] = value;
-    }
-  }
+  chamferPass(field, width, height, straight, diagonal, 1);
+  chamferPass(field, width, height, straight, diagonal, -1);
 }
 
 // Bilinear sample at a world-cell position, with values held at cell centres.
@@ -112,37 +114,88 @@ function sampleField(field, coast, x, y) {
 // in a fixed retro palette instead of blending smoothly.
 const pick = (from, to, t, x, y) => (t > dither(x, y) ? to : from);
 
+// Open water deepens through these bands, by depth in cells.
+const DEPTH_BANDS = [
+  [0, COLORS.shelf], [.7, COLORS.reach], [1.8, COLORS.mid], [4, COLORS.sea], [9, COLORS.deep], [18, COLORS.abyss],
+];
+
+function depthColor(px, py, depthCells) {
+  const depth = depthCells + (valueNoise(px, py, 40, 5) - .5) * 1.4;
+  for (let index = 0; index < DEPTH_BANDS.length - 1; index += 1) {
+    const [start, from] = DEPTH_BANDS[index];
+    const [end, to] = DEPTH_BANDS[index + 1];
+    if (depth < end) return pick(from, to, (depth - start) / (end - start), px, py);
+  }
+  return DEPTH_BANDS[DEPTH_BANDS.length - 1][1];
+}
+
+// Short wave crests: one possible dash per 12x8 block, offset per block.
+function isWaveCrest(px, py) {
+  const bx = Math.floor(px / 12), by = Math.floor(py / 8);
+  if (hash(bx, by, 17) >= .32) return false;
+  const dashX = bx * 12 + Math.floor(hash(bx, by, 19) * 6);
+  const dashY = by * 8 + Math.floor(hash(bx, by, 23) * 6);
+  const dx = px - dashX;
+  return (py === dashY && dx >= 1 && dx <= 3) || (py === dashY + 1 && (dx === 0 || dx === 4));
+}
+
 function paintWater(px, py, cls, coastPixels, depthCells) {
   if (coastPixels <= 1.5 && valueNoise(px, py, 5, 7) > .28) return COLORS.foam;
   if (coastPixels <= 2.5 && hash(px, py, 3) > .55) return COLORS.foam;
   if (coastPixels <= 6) return pick(COLORS.lagoon, COLORS.surf, (coastPixels - 2.5) / 3.5, px, py);
   if (cls === PIXEL.SHALLOW) return pick(COLORS.surf, COLORS.shelf, valueNoise(px, py, 9, 11), px, py);
-  const bands = [
-    [0, COLORS.shelf], [.7, COLORS.reach], [1.8, COLORS.mid], [4, COLORS.sea], [9, COLORS.deep], [18, COLORS.abyss],
-  ];
-  const depth = depthCells + (valueNoise(px, py, 40, 5) - .5) * 1.4;
-  let base = bands[bands.length - 1][1];
-  for (let index = 0; index < bands.length - 1; index += 1) {
-    const [start, from] = bands[index];
-    const [end, to] = bands[index + 1];
-    if (depth < end) { base = pick(from, to, (depth - start) / (end - start), px, py); break; }
-  }
-  // Short wave crests: one possible dash per 12x8 block, offset per block.
-  const bx = Math.floor(px / 12), by = Math.floor(py / 8);
-  if (hash(bx, by, 17) < .32) {
-    const dashX = bx * 12 + Math.floor(hash(bx, by, 19) * 6);
-    const dashY = by * 8 + Math.floor(hash(bx, by, 23) * 6);
-    const dx = px - dashX;
-    if ((py === dashY && dx >= 1 && dx <= 3) || (py === dashY + 1 && (dx === 0 || dx === 4))) {
-      return depthCells > 6 ? COLORS.glintDeep : COLORS.glint;
-    }
-  }
-  return base;
+  const base = depthColor(px, py, depthCells);
+  if (!isWaveCrest(px, py)) return base;
+  return depthCells > 6 ? COLORS.glintDeep : COLORS.glint;
 }
 
 // Hills rise with distance inland, broken up by two octaves of noise.
 function elevationAt(px, py, inlandCells) {
   return inlandCells * .85 + (valueNoise(px, py, 56, 41) - .5) * 3.4 + (valueNoise(px, py, 17, 43) - .5) * 1.2;
+}
+
+// Bare rock above the tree line, shaded by `light` (-1 to 1, lit from the
+// north-west), with snowy peaks on the lit faces.
+function rockColor(px, py, elevation, light) {
+  if (elevation < 5.6 && hash(px, py, 37) > .5) return COLORS.rockDark;
+  let tone = COLORS.rock;
+  if (light > .18) tone = COLORS.rockLight;
+  else if (light < -.18) tone = COLORS.rockDark;
+  if (elevation > 7.5 && light > -.1) return pick(tone, COLORS.peak, (elevation - 7.5) / 1.5, px, py);
+  return tone;
+}
+
+// `facing` runs from -1 (away from the light) to 1 (toward it).
+function canopyColor(facing) {
+  if (facing > .55) return COLORS.canopyLight;
+  if (facing < -.75) return COLORS.canopyDark;
+  return COLORS.canopy;
+}
+
+// Trees: jittered 7px grid of round canopies, lit from the north-west, each
+// casting a shadow to the south-east. The colour at (px, py), or null where
+// no tree or shadow falls.
+function treeColor(px, py, forest) {
+  for (let gy = Math.floor(py / 7) - 1; gy <= Math.floor(py / 7) + 1; gy += 1) {
+    for (let gx = Math.floor(px / 7) - 1; gx <= Math.floor(px / 7) + 1; gx += 1) {
+      if (hash(gx, gy, 59) > .2 + (forest - .52) * 2.5) continue;
+      const cx = gx * 7 + 3 + Math.floor(hash(gx, gy, 61) * 3) - 1;
+      const cy = gy * 7 + 3 + Math.floor(hash(gx, gy, 67) * 3) - 1;
+      const dx = px - cx, dy = py - cy;
+      const radius = 3.2 + hash(gx, gy, 71) * .8;
+      if (dx * dx + dy * dy <= radius * radius) return canopyColor(-(dx + dy) / radius);
+      const sx = dx - 1.5, sy = dy - 1.5;
+      if (sx * sx + sy * sy <= radius * radius) return COLORS.shade;
+    }
+  }
+  return null;
+}
+
+function grassColor(px, py, light) {
+  const grass = valueNoise(px, py, 11, 47) + light * .35;
+  if (grass > .68) return COLORS.grassLight;
+  if (grass < .32) return COLORS.grassDark;
+  return COLORS.grass;
 }
 
 function paintLand(px, py, coastPixels, inlandCells, light) {
@@ -152,36 +205,31 @@ function paintLand(px, py, coastPixels, inlandCells, light) {
   if (coastPixels <= beach + 2) return pick(COLORS.dune, COLORS.scrub, (coastPixels - beach) / 2, px, py);
 
   const elevation = elevationAt(px, py, inlandCells);
-  if (elevation > 5.2) {
-    if (elevation < 5.6 && hash(px, py, 37) > .5) return COLORS.rockDark;
-    const tone = light > .18 ? COLORS.rockLight : light < -.18 ? COLORS.rockDark : COLORS.rock;
-    if (elevation > 7.5 && light > -.1) return pick(tone, COLORS.peak, (elevation - 7.5) / 1.5, px, py);
-    return tone;
-  }
+  if (elevation > 5.2) return rockColor(px, py, elevation, light);
   if (elevation > 4.4) return pick(COLORS.grassDark, COLORS.scrub, (elevation - 4.4) / .8, px, py);
-
-  // Trees: jittered 7px grid of round canopies, lit from the north-west.
   const forest = valueNoise(px, py, 36, 53) + Math.min(inlandCells, 3) * .08;
-  if (forest > .52) {
-    for (let gy = Math.floor(py / 7) - 1; gy <= Math.floor(py / 7) + 1; gy += 1) {
-      for (let gx = Math.floor(px / 7) - 1; gx <= Math.floor(px / 7) + 1; gx += 1) {
-        if (hash(gx, gy, 59) > .2 + (forest - .52) * 2.5) continue;
-        const cx = gx * 7 + 3 + Math.floor(hash(gx, gy, 61) * 3) - 1;
-        const cy = gy * 7 + 3 + Math.floor(hash(gx, gy, 67) * 3) - 1;
-        const dx = px - cx, dy = py - cy;
-        const radius = 3.2 + hash(gx, gy, 71) * .8;
-        if (dx * dx + dy * dy <= radius * radius) {
-          const facing = -(dx + dy) / radius;
-          return facing > .55 ? COLORS.canopyLight : facing < -.75 ? COLORS.canopyDark : COLORS.canopy;
-        }
-        // Cast shadow to the south-east of each canopy.
-        const sx = dx - 1.5, sy = dy - 1.5;
-        if (sx * sx + sy * sy <= radius * radius) return COLORS.shade;
-      }
-    }
-  }
-  const grass = valueNoise(px, py, 11, 47) + light * .35;
-  return grass > .68 ? COLORS.grassLight : grass < .32 ? COLORS.grassDark : COLORS.grass;
+  return (forest > .52 && treeColor(px, py, forest)) || grassColor(px, py, light);
+}
+
+// A land pixel at terrain pixel (px, py), world cell (wx, wy), `toWater`
+// pixels from the nearest water inside the chunk's padded window.
+function landPixel(coast, px, py, wx, wy, toWater) {
+  const inland = Math.max(toWater / TERRAIN_PIXELS_PER_CELL, sampleField(coast.land, coast, wx, wy) - .5);
+  // Slope of the elevation, lit from the north-west.
+  const step = 3 / TERRAIN_PIXELS_PER_CELL;
+  const light = inland < 2 ? 0 : (
+    elevationAt(px + 3, py + 3, sampleField(coast.land, coast, wx + step, wy + step) - .5)
+    - elevationAt(px - 3, py - 3, sampleField(coast.land, coast, wx - step, wy - step) - .5)) * .8;
+  return paintLand(px, py, toWater, inland, Math.max(-1, Math.min(1, light)));
+}
+
+// A water pixel, as landPixel; beyond the padded window the depth comes from
+// the world-wide coast field.
+function waterPixel(coast, px, py, wx, wy, cls, toLand) {
+  const depth = toLand < PAD
+    ? toLand / TERRAIN_PIXELS_PER_CELL
+    : Math.max(PAD / TERRAIN_PIXELS_PER_CELL, sampleField(coast.sea, coast, wx, wy) - .5);
+  return paintWater(px, py, cls, toLand, depth);
 }
 
 // Paints one TERRAIN_CHUNK_CELLS square chunk whose top-left cell is
@@ -218,21 +266,9 @@ export function paintTerrainChunk(map, coast, chunkX, chunkY) {
       const index = (y + PAD) * span + x + PAD;
       const px = originX + PAD + x, py = originY + PAD + y;
       const wx = (px + .5) / TERRAIN_PIXELS_PER_CELL, wy = (py + .5) / TERRAIN_PIXELS_PER_CELL;
-      let color;
-      if (classes[index] === PIXEL.LAND) {
-        const inland = Math.max(toWater[index] / TERRAIN_PIXELS_PER_CELL, sampleField(coast.land, coast, wx, wy) - .5);
-        // Slope of the elevation, lit from the north-west.
-        const step = 3 / TERRAIN_PIXELS_PER_CELL;
-        const light = inland < 2 ? 0 : (
-          elevationAt(px + 3, py + 3, sampleField(coast.land, coast, wx + step, wy + step) - .5)
-          - elevationAt(px - 3, py - 3, sampleField(coast.land, coast, wx - step, wy - step) - .5)) * .8;
-        color = paintLand(px, py, toWater[index], inland, Math.max(-1, Math.min(1, light)));
-      } else {
-        const depth = toLand[index] < PAD
-          ? toLand[index] / TERRAIN_PIXELS_PER_CELL
-          : Math.max(PAD / TERRAIN_PIXELS_PER_CELL, sampleField(coast.sea, coast, wx, wy) - .5);
-        color = paintWater(px, py, classes[index], toLand[index], depth);
-      }
+      const color = classes[index] === PIXEL.LAND
+        ? landPixel(coast, px, py, wx, wy, toWater[index])
+        : waterPixel(coast, px, py, wx, wy, classes[index], toLand[index]);
       const offset = (y * size + x) * 4;
       pixels[offset] = color[0]; pixels[offset + 1] = color[1]; pixels[offset + 2] = color[2]; pixels[offset + 3] = 255;
     }

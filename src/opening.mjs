@@ -102,9 +102,13 @@ export function openingSteps(eraIndex, nationality) {
 }
 
 // CSTN 75, indexed by the signs of the offset (0 for an exact match on an axis).
+const COMPASS_POINTS = [
+  ['northwest', 'north', 'northeast'],
+  ['west', '', 'east'],
+  ['southwest', 'south', 'southeast'],
+];
 function compassPoint(dx, dy) {
-  const row = dy < 0 ? ['northwest', 'north', 'northeast'] : dy > 0 ? ['southwest', 'south', 'southeast'] : ['west', '', 'east'];
-  return row[Math.sign(dx) + 1];
+  return COMPASS_POINTS[Math.sign(dy) + 1][Math.sign(dx) + 1];
 }
 
 // 0x13E3F, shown once as a career starts. CSTN 71 gives the adjectives.

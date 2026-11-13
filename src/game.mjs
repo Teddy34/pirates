@@ -491,6 +491,17 @@ async function loadWorldMap(era) {
   mapCache.set(era, { map: worldMap, layer: worldMapLayer, terrain });
 }
 
+// The palette row for one quarter of a cell: the cell's own class, except
+// that a mixed coastal cell samples the pixel class at the quarter's centre
+// (x, y), with row 4 for shallows.
+function quarterTone(map, cell, x, y) {
+  if (cell !== CELL.MIXED) return cell;
+  const pixel = pixelClassAt(map, x, y);
+  if (pixel === PIXEL.LAND) return CELL.MIXED;
+  if (pixel === PIXEL.SHALLOW) return 4;
+  return CELL.WATER;
+}
+
 function buildWorldMapLayer(map) {
   const layer = document.createElement('canvas');
   layer.width = WORLD.width * 2;
@@ -510,13 +521,7 @@ function buildWorldMapLayer(map) {
       const shade = Math.abs((x * 17 + y * 31) % 3);
       for (let py = 0; py < 2; py += 1) {
         for (let px = 0; px < 2; px += 1) {
-          // Mixed coastal cells sample the pixel class at each quarter's centre.
-          let tone = cell;
-          if (cell === CELL.MIXED) {
-            const pixel = pixelClassAt(map, x + px / 2 + .25, y + py / 2 + .25);
-            tone = pixel === PIXEL.LAND ? CELL.MIXED : pixel === PIXEL.SHALLOW ? 4 : CELL.WATER;
-          }
-          const color = palette[tone][shade];
+          const color = palette[quarterTone(map, cell, x + px / 2 + .25, y + py / 2 + .25)][shade];
           const offset = ((y * 2 + py) * layer.width + x * 2 + px) * 4;
           image.data[offset] = color[0] + (px === py ? 2 : -2);
           image.data[offset + 1] = color[1] + (px === py ? 2 : -2);
@@ -1401,14 +1406,14 @@ function revealEncounter(town, distance) {
     kicker: 'The sail draws nearer', title: `She looks like a ${ship}`,
     body: '<p>The lookout cannot yet make out her colors. Will you close the distance?</p>',
     actions: [
-      { label: 'Investigate', run: () => identifyEncounter(enemy, town) },
+      { label: 'Investigate', run: () => identifyEncounter(enemy) },
       // A hunter ignores this answer (0xD560) and closes regardless.
-      { label: 'Sail away', secondary: true, run: () => (enemy.hostile ? identifyEncounter(enemy, town) : escapeEncounter(enemy, town)) },
+      { label: 'Sail away', secondary: true, run: () => (enemy.hostile ? identifyEncounter(enemy) : escapeEncounter(enemy)) },
     ],
   });
 }
 
-function identifyEncounter(enemy, town) {
+function identifyEncounter(enemy) {
   // CSTR 121 names a hunter: renown (CSTN 34), "pirate" or "pirate-hunter"
   // (CSTN 105) and the captain's name.
   const hunterLine = enemy.captainName
@@ -1419,8 +1424,8 @@ function identifyEncounter(enemy, town) {
     body: `${hunterLine}<p>She carries about ${enemy.crew * 4} hands and ${enemy.guns} guns. ${enemy.hostile ? 'She alters course and gives chase.' : 'Her crew watches your approach.'}</p>`,
     actions: [
       { label: 'Close for battle', run: () => closeForBattle(enemy) },
-      { label: 'Hail for news', run: () => evadeHunter(enemy, () => hailForNews(enemy, town)) },
-      { label: 'Sail away', secondary: true, run: () => evadeHunter(enemy, () => escapeEncounter(enemy, town)) },
+      { label: 'Hail for news', run: () => evadeHunter(enemy, () => hailForNews(enemy)) },
+      { label: 'Sail away', secondary: true, run: () => evadeHunter(enemy, () => escapeEncounter(enemy)) },
     ],
   });
 }
@@ -1437,13 +1442,13 @@ function evadeHunter(enemy, next) {
   });
 }
 
-function escapeEncounter(enemy, town) {
+function escapeEncounter(enemy) {
   state.alert += 16;
   addLog(`You leave the ${enemy.ship} astern.`);
   resumeAfterEncounter();
 }
 
-function hailForNews(enemy, town) {
+function hailForNews(enemy) {
   if (state.player.favour[enemy.flag] <= -4) {
     showDialog({
       kicker: 'No reply', title: 'Your hail goes unanswered',
@@ -1585,7 +1590,7 @@ function finishTacticalBattle() {
     return;
   }
   const messages = {
-    escaped: battle.enemy.tactic === 'flee' ? `The ${enemy.ship} escaped.` : youLeft ? 'Your flagship sailed out of range.' : `The ${enemy.ship} sailed out of range.`,
+    escaped: escapeLogLine(enemy, battle.enemy.tactic, youLeft),
     sunset: 'The sun set after a long chase; both ships withdrew.',
     beached: 'The flagship touched land and withdrew from the engagement.',
   };
@@ -1599,11 +1604,11 @@ function finishTacticalBattle() {
 // ASSUMED: the port gives these lines a dialog; the original's exact screen
 // for them is not traced.
 const BATTLE_END_DIALOGS = {
-  escaped: (enemy, tactic, youLeft) => (tactic === 'flee'
-    ? { vignette: { id: 'outrun', escaper: enemy.flag, pursuer: 'pirate' }, title: `The ${enemy.ship} escapes`, text: 'Using full sails and skillful seamanship, the enemy vessel pulls out of range.' }
-    : !youLeft
-      ? { vignette: { id: 'outrun', escaper: enemy.flag, pursuer: 'pirate' }, title: 'Out of range', text: `The ${enemy.ship} sails out of range of your guns; the battle is over.` }
-      : { vignette: { id: 'outrun', escaper: 'pirate', pursuer: enemy.flag }, title: 'Out of range', text: 'Your ship sails out of range of the enemy; the battle is over.' }),
+  escaped: (enemy, tactic, youLeft) => {
+    if (tactic === 'flee') return { vignette: { id: 'outrun', escaper: enemy.flag, pursuer: 'pirate' }, title: `The ${enemy.ship} escapes`, text: 'Using full sails and skillful seamanship, the enemy vessel pulls out of range.' };
+    if (youLeft) return { vignette: { id: 'outrun', escaper: 'pirate', pursuer: enemy.flag }, title: 'Out of range', text: 'Your ship sails out of range of the enemy; the battle is over.' };
+    return { vignette: { id: 'outrun', escaper: enemy.flag, pursuer: 'pirate' }, title: 'Out of range', text: `The ${enemy.ship} sails out of range of your guns; the battle is over.` };
+  },
   sunset: () => ({ vignette: 'nightfall', title: 'Night falls', text: 'After a long chase, the sun sets, ending the battle.' }),
 };
 
@@ -2010,9 +2015,9 @@ function beginPlunderTransfer(title, loot, done) {
     const finish = () => {
       stopTransferRepeat();
       const left = [
-        remaining.food > 0 ? `${remaining.food} ${remaining.food === 1 ? 'ton' : 'tons'} of food` : '',
-        remaining.goods > 0 ? `${remaining.goods} ${remaining.goods === 1 ? 'ton' : 'tons'} of goods` : '',
-        remaining.specialGoods > 0 ? `${remaining.specialGoods} ${remaining.specialGoods === 1 ? 'ton' : 'tons'} of ${specialGoodsName().toLowerCase()}` : '',
+        remaining.food > 0 ? `${countOf(remaining.food, 'ton')} of food` : '',
+        remaining.goods > 0 ? `${countOf(remaining.goods, 'ton')} of goods` : '',
+        remaining.specialGoods > 0 ? `${countOf(remaining.specialGoods, 'ton')} of ${specialGoodsName().toLowerCase()}` : '',
         remaining.cannon > 0 ? `${remaining.cannon} cannon` : '',
       ].filter(Boolean);
       if (left.length === 0) addLog('Transferred all useful plunder.');
@@ -2110,7 +2115,7 @@ function approachTown({ overland = Boolean(state.player.onFoot) } = {}) {
   // cell. The guard, cleared once the ship is off every trigger cell, covers
   // an overland visit, which leaves the fleet where it lay.
   state.player.arrivalGuard = true;
-  const fortText = town.forts === 0 ? 'No fort guards the harbor.' : `${town.forts === 1 ? 'One fort guards' : `${town.forts} forts guard`} the harbor.`;
+  const fortText = harborFortsText(town.forts);
   // 0x19C62 shows the town's information screen (0x196D0), which has the
   // figures only for a town you have current information on.
   // Departure from the original, which also shows the land scene to a party
@@ -2708,7 +2713,7 @@ function showTownMenu() {
   // 0x18734: a town under 600 citizens (population < 6) has no governor; it
   // gains one once it grows (town_economy.md).
   const governorAvailable = town.population >= 6 && !state.visit.governorSeen;
-  const governorState = town.population < 6 ? 'None: under 600 citizens, too small for a governor' : state.visit.governorSeen ? 'Audience completed' : 'Audience available';
+  const governorState = governorStatus(town);
   const actions = [];
   if (governorAvailable) actions.push({ label: 'Governor', run: showGovernor });
   actions.push(
@@ -2724,7 +2729,7 @@ function showTownMenu() {
     { label: 'Put to sea', secondary: true, run: leaveTown },
   );
   const landlocked = townLandlocked(town);
-  const welcome = state.visit.sneaking ? 'You move through the streets under a borrowed name.' : landlocked ? 'Your men take their ease in the town.' : 'Your ships lie safely at anchor.';
+  const welcome = townWelcome(landlocked);
   showDialog({
     vignette: { id: landlocked ? 'town-square' : 'port-quay', flag: town.nation },
     kicker: landlocked ? 'Inland town' : 'In port', title: town.name,
@@ -3216,7 +3221,7 @@ function cityInformationLine(town) {
   const status = townInfoStatus(town.flags);
   if (status === 'none') return `<li><b>${town.name}</b><small>No information</small></li>`;
   if (status === 'obsolete') return `<li><b>${town.name}</b><small>Recent events in ${town.name} have made your information obsolete.</small></li>`;
-  const forts = town.forts === 0 ? 'no fort' : `${town.forts} fort${town.forts === 1 ? '' : 's'}`;
+  const forts = town.forts === 0 ? 'no fort' : countOf(town.forts, 'fort');
   return `<li><b>${town.name}</b> (${town.nation}) · ${prosperity(town.growth)}<small>${forts} · ${(town.gold * 1000).toLocaleString()} gold · ${(town.soldiers * 5).toLocaleString()} soldiers · ${(town.population * 100).toLocaleString()} citizens</small></li>`;
 }
 
@@ -3723,7 +3728,7 @@ function showMerchant(preferredTransfer = '', preferredKind = '') {
   const rows = ['food', 'goods', 'specialGoods'].map((kind) => {
     const price = market.prices[kind];
     const aboard = kind === 'food' ? Math.floor(state.player.foodFixed / 256) : state.player[kind];
-    const label = kind === 'specialGoods' ? specialGoodsName() : kind === 'food' ? 'Food' : 'Goods';
+    const label = kind === 'specialGoods' ? specialGoodsName() : COMMODITY_LABELS[kind];
     return {
       kind, label, aboard, price, stock: market.stocks[kind],
       unit: `ton of ${label.toLowerCase()}`,
@@ -3834,10 +3839,6 @@ function putToSea() {
   addLog(`Put to sea from ${town.name}.`);
 }
 
-function showNotice(title, body) {
-  showDialog({ kicker: 'Captain’s log', title, body: `<p>${body}</p>`, actions: [{ label: 'Continue', run: resumeSailing }] });
-}
-
 // An action's optional `key` is a one-letter keyboard shortcut, such as the
 // original's Y/N for "Disembark".
 let dialogShortcuts = new Map();
@@ -3929,6 +3930,36 @@ function updateLog() {
   }));
 }
 
+// "1 ton", "3 tons": `count` with `noun` pluralised by an s.
+function countOf(count, noun) {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+function harborFortsText(forts) {
+  if (forts === 0) return 'No fort guards the harbor.';
+  if (forts === 1) return 'One fort guards the harbor.';
+  return `${forts} forts guard the harbor.`;
+}
+
+// Whether the town has a governor and whether you have seen him this visit.
+function governorStatus(town) {
+  if (town.population < 6) return 'None: under 600 citizens, too small for a governor';
+  return state.visit.governorSeen ? 'Audience completed' : 'Audience available';
+}
+
+function townWelcome(landlocked) {
+  if (state.visit.sneaking) return 'You move through the streets under a borrowed name.';
+  return landlocked ? 'Your men take their ease in the town.' : 'Your ships lie safely at anchor.';
+}
+
+const COMMODITY_LABELS = { food: 'Food', goods: 'Goods' };
+
+// The log line for a battle that ends out of range.
+function escapeLogLine(enemy, tactic, youLeft) {
+  if (tactic === 'flee') return `The ${enemy.ship} escaped.`;
+  return youLeft ? 'Your flagship sailed out of range.' : `The ${enemy.ship} sailed out of range.`;
+}
+
 function prosperity(growth) {
   return ['struggling', 'surviving', 'prospering', 'wealthy'][prosperityLevel(growth)];
 }
@@ -3951,10 +3982,17 @@ function updateInterface() {
   }
   const inBattle = state.mode === 'battle' && state.battle;
   const onFoot = !inBattle && player.onFoot;
+  updateControls(inBattle, onFoot);
+  if (inBattle) updateBattleInterface(state.battle);
+  else updateSailingInterface(player, onFoot);
+}
+
+// The dock button fires, digs or opens the maps; on foot the four steering
+// buttons walk the party (0x1B210).
+function updateControls(inBattle, onFoot) {
   if (inBattle) setControl(dockButton, '● ', 'Fire', 'Fire loaded broadside');
   else if (onFoot) setControl(dockButton, '⛏ ', 'Dig', 'Search for treasure here');
   else setControl(dockButton, '✉ ', 'Maps', 'Study your treasure maps');
-  // On foot the four steering buttons walk the party (0x1B210).
   setControl(turnLeftButton, onFoot ? '← ' : '↶ ', onFoot ? 'West' : 'Port', onFoot ? 'Walk west' : 'Turn to port');
   setControl(turnRightButton, onFoot ? '→ ' : '↷ ', onFoot ? 'East' : 'Starboard', onFoot ? 'Walk east' : 'Turn to starboard');
   setControl(lowerSailsButton, '↓ ', onFoot ? 'South' : 'Sails', onFoot ? 'Walk south' : 'Lower sails');
@@ -3962,31 +4000,44 @@ function updateInterface() {
   controls.setAttribute('aria-label', onFoot ? 'Landing party controls' : 'Sailing controls');
   zoomOutButton.disabled = Boolean(inBattle);
   zoomInButton.disabled = Boolean(inBattle);
-  if (inBattle) {
-    const battle = state.battle;
-    labels.captain.textContent = `Captain ${state.captain} · Battle`;
-    labels.date.textContent = `Engaging ${battle.encounter.flag} ${battle.enemy.name}`;
-    labels.speed.textContent = `${Math.abs(battle.player.speed ?? 0)} battle speed`;
-    labels.wind.textContent = `${windFrom(battle.wind.direction)} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
-    labels.sails.textContent = battle.player.sailTransition
-      ? `${battle.player.targetSails === 'full' ? 'Raising' : 'Lowering'} · ${Math.round((1 - battle.player.sailTransition / BATTLE_SAIL_TRANSITION_FRAMES) * 100)}%`
-      : battle.player.sails === 'full' ? 'Full' : 'Battle';
-    labels.food.textContent = 'Clock stopped';
-    labels.crew.textContent = `${battle.player.men} aboard`;
-    labels.mood.textContent = crewMoodLabel();
-    const guns = broadsideState(battle.player);
-    labels.gold.textContent = guns.label;
-    labels.nearest.textContent = `${battle.enemy.men} crew · ${battle.enemy.guns} guns`;
-    dockButton.disabled = state.paused || !guns.ready;
-    logbookButton.disabled = true;
-    chartButton.disabled = true;
-    return;
-  }
+}
+
+// Raising or lowering (with progress), else the set sails.
+function battleSailsLabel({ sails, sailTransition, targetSails }) {
+  if (!sailTransition) return sails === 'full' ? 'Full' : 'Battle';
+  const progress = Math.round((1 - sailTransition / BATTLE_SAIL_TRANSITION_FRAMES) * 100);
+  return `${targetSails === 'full' ? 'Raising' : 'Lowering'} · ${progress}%`;
+}
+
+function updateBattleInterface(battle) {
+  labels.captain.textContent = `Captain ${state.captain} · Battle`;
+  labels.date.textContent = `Engaging ${battle.encounter.flag} ${battle.enemy.name}`;
+  labels.speed.textContent = `${Math.abs(battle.player.speed ?? 0)} battle speed`;
+  labels.wind.textContent = `${windFrom(battle.wind.direction)} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
+  labels.sails.textContent = battleSailsLabel(battle.player);
+  labels.food.textContent = 'Clock stopped';
+  labels.crew.textContent = `${battle.player.men} aboard`;
+  labels.mood.textContent = crewMoodLabel();
+  const guns = broadsideState(battle.player);
+  labels.gold.textContent = guns.label;
+  labels.nearest.textContent = `${battle.enemy.men} crew · ${battle.enemy.guns} guns`;
+  dockButton.disabled = state.paused || !guns.ready;
+  logbookButton.disabled = true;
+  chartButton.disabled = true;
+}
+
+function speedLabel(player, onFoot) {
+  const fast = fastTravel ? ' · fast' : '';
+  if (!onFoot) return `${player.speed.toFixed(1)} cells/day${fast}`;
+  return player.blockedByWater ? '⚠ Blocked' : `On foot · 2 cells/day${fast}`;
+}
+
+function updateSailingInterface(player, onFoot) {
   const town = nearestTown();
   const distance = nearestTownDistance();
   labels.captain.textContent = `Captain ${state.captain} · ${state.nationality}`;
   labels.date.textContent = formatDate(state.calendar);
-  labels.speed.textContent = onFoot ? (player.blockedByWater ? '⚠ Blocked' : `On foot · 2 cells/day${fastTravel ? ' · fast' : ''}`) : `${player.speed.toFixed(1)} cells/day${fastTravel ? ' · fast' : ''}`;
+  labels.speed.textContent = speedLabel(player, onFoot);
   labels.wind.textContent = windFrom(player.wind);
   labels.sails.previousElementSibling.textContent = onFoot ? 'Boat' : 'Sails';
   labels.sails.textContent = onFoot ? boatBearing() : { furled: 'Closed', battle: 'Low', full: 'High' }[player.sails];
@@ -4141,7 +4192,10 @@ function drawLand() {
 // Town markers are sized in screen pixels: each art pixel covers 2 screen
 // pixels, stepping up to 3 and 4 as the map zooms in so the town keeps pace
 // with the terrain without breaking the pixel grid. Labels stay one size.
-const townSpriteScale = (zoom) => (zoom >= 48 ? 4 : zoom >= 28 ? 3 : 2);
+function townSpriteScale(zoom) {
+  if (zoom >= 48) return 4;
+  return zoom >= 28 ? 3 : 2;
+}
 const TOWN_LABEL_GAP = 14;
 const townSpriteCache = new Map();
 
@@ -4398,49 +4452,69 @@ for (const [button, name] of [[raiseSailsButton, 'high'], [lowerSailsButton, 'lo
   for (const type of ['pointerup', 'pointercancel', 'pointerleave']) button.addEventListener(type, () => { swordKeys[name] = false; });
 }
 
+// Keys during a sword fight: the fencing moves and pause. Nothing else.
+function handleSwordKey(event, key) {
+  const name = SWORD_KEYS[key];
+  if (name) {
+    event.preventDefault();
+    if (!event.repeat && !state.paused) pressSwordKey(name);
+  }
+  if ((key === 'escape' || key === 'p' || key === ' ') && !event.repeat) { event.preventDefault(); togglePause(); }
+}
+
+// Walking ashore: the arrows and WASD walk, S searches for treasure.
+function handleWalkKey(event, key) {
+  const directions = walkKeyDirections(event);
+  if (directions) {
+    for (const direction of directions) walkKeys[direction] = true;
+    setWalk(directions.length === 2 ? Object.fromEntries(directions.map((direction) => [direction, true])) : walkKeys);
+    event.preventDefault();
+  }
+  if (key === 's' && !event.repeat && !state.paused) showDigPrompt();
+}
+
+// At the helm: left and right turn while held, up and down set the sails.
+function handleHelmKey(event, key) {
+  if (event.key === 'ArrowLeft' || key === 'a') input.left = true;
+  if (event.key === 'ArrowRight' || key === 'd') input.right = true;
+  if (event.repeat) return;
+  if (event.key === 'ArrowUp') { changeSails(1); flashControl(raiseSailsButton); }
+  if (event.key === 'ArrowDown') { changeSails(-1); flashControl(lowerSailsButton); }
+}
+
+// One-press commands at sea and in battle; the caller drops key repeats.
+function handleCommandKey(event, key) {
+  if (event.key === ' ') {
+    if (state?.mode === 'battle' && !state.paused) { input.firePressed = true; flashControl(dockButton); }
+    else togglePause();
+  }
+  if (event.key === 'Escape' || key === 'p') togglePause();
+  if (key === 'm') openTreasureMapsAtSea();
+  if (key === 't' && state?.mode === 'sailing') {
+    fastTravel = !fastTravel;
+    addLog(fastTravel ? 'Fast travel: time runs five times faster.' : 'Fast travel off.');
+  }
+  // Kept from typing into the field the logbook or chart focuses.
+  if (key === 'l' && openLogbookAtSea()) event.preventDefault();
+  if (key === 'c' && openSeaChartAtSea()) event.preventDefault();
+}
+
+const PAGE_SCROLL_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'];
+
 addEventListener('keydown', (event) => {
   // Typing in a field (the captain's name) is never a game command.
   if (dialog.open || event.target.closest?.('input, select, textarea')) return;
   const key = event.key.toLowerCase();
   if (state?.mode === 'sword') {
-    const name = SWORD_KEYS[key];
-    if (name) {
-      event.preventDefault();
-      if (!event.repeat && !state.paused) pressSwordKey(name);
-    }
-    if ((key === 'escape' || key === 'p' || key === ' ') && !event.repeat) { event.preventDefault(); togglePause(); }
+    handleSwordKey(event, key);
     return;
   }
-  if (state?.player.onFoot && state.mode === 'sailing') {
-    const directions = walkKeyDirections(event);
-    if (directions) {
-      for (const direction of directions) walkKeys[direction] = true;
-      setWalk(directions.length === 2 ? Object.fromEntries(directions.map((direction) => [direction, true])) : walkKeys);
-      event.preventDefault();
-    }
-    if (key === 's' && !event.repeat && !state.paused) showDigPrompt();
-  } else {
-    if (event.key === 'ArrowLeft' || key === 'a') input.left = true;
-    if (event.key === 'ArrowRight' || key === 'd') input.right = true;
-    if (event.key === 'ArrowUp' && !event.repeat) { changeSails(1); flashControl(raiseSailsButton); }
-    if (event.key === 'ArrowDown' && !event.repeat) { changeSails(-1); flashControl(lowerSailsButton); }
-  }
-  if (event.key === ' ' && !event.repeat) {
-    if (state?.mode === 'battle' && !state.paused) { input.firePressed = true; flashControl(dockButton); }
-    else togglePause();
-  }
-  if ((event.key === 'Escape' || key === 'p') && !event.repeat) togglePause();
-  if (key === 'm' && !event.repeat) openTreasureMapsAtSea();
-  if (key === 't' && !event.repeat && state?.mode === 'sailing') {
-    fastTravel = !fastTravel;
-    addLog(fastTravel ? 'Fast travel: time runs five times faster.' : 'Fast travel off.');
-  }
-  // Kept from typing into the field the logbook or chart focuses.
-  if (key === 'l' && !event.repeat && openLogbookAtSea()) event.preventDefault();
-  if (key === 'c' && !event.repeat && openSeaChartAtSea()) event.preventDefault();
+  if (state?.player.onFoot && state.mode === 'sailing') handleWalkKey(event, key);
+  else handleHelmKey(event, key);
+  if (!event.repeat) handleCommandKey(event, key);
   if (event.key === '+' || event.key === '=') changeZoom(ZOOM_STEP);
   if (event.key === '-' || event.key === '_') changeZoom(-ZOOM_STEP);
-  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'].includes(event.key)) event.preventDefault();
+  if (PAGE_SCROLL_KEYS.includes(event.key)) event.preventDefault();
 });
 addEventListener('keyup', (event) => {
   const swordKey = SWORD_KEYS[event.key.toLowerCase()];
@@ -4529,9 +4603,13 @@ function flashControl(button) {
 function syncPressedControls(now) {
   const sword = state?.mode === 'sword';
   const onFoot = !sword && state?.player?.onFoot;
+  // The steering pair: attack and back off, walk west and east, or the helm.
+  let [left, right] = [input.left, input.right];
+  if (sword) [left, right] = [swordKeys.toward, swordKeys.away];
+  else if (onFoot) [left, right] = [walkKeys.west, walkKeys.east];
   const held = new Map([
-    [turnLeftButton, sword ? swordKeys.toward : onFoot ? walkKeys.west : input.left],
-    [turnRightButton, sword ? swordKeys.away : onFoot ? walkKeys.east : input.right],
+    [turnLeftButton, left],
+    [turnRightButton, right],
     [raiseSailsButton, sword && swordKeys.high],
     [lowerSailsButton, sword && swordKeys.low],
     [dockButton, sword && swordKeys.quick],
@@ -4566,6 +4644,313 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+// ---------------------------------------------------------------------------
+// Local previews (?preview=<id> on localhost): each opens one screen or
+// moment directly, for manual checks and the browser smoke checks.
+
+const PREVIEW_HOSTS = ['localhost', '127.0.0.1'];
+const PREVIEW_ENEMY = { ship: 'Merchantman', flag: 'Spain', crew: 12, guns: 12, kind: 5, gold: 10, cargo: 10 };
+
+function previewState(overrides = {}) {
+  return newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation', ...overrides });
+}
+
+// Starts a 1680 French preview career, then runs `then` once it is under way.
+function startPreview(then, overrides) {
+  return startGame(previewState(overrides)).then(then);
+}
+
+const previewTownIndex = (name) => state.towns.findIndex((town) => town.name === name);
+
+// Puts the paused captain ashore in the town screen of `townIndex`.
+function enterPreviewTown(townIndex, { sneaking = false } = {}) {
+  state.nearestTownIndex = townIndex;
+  state.mode = 'town';
+  state.paused = true;
+  state.visit = { townIndex, sneaking, recruited: false, merchant: null };
+}
+
+// A screen in Guadeloupe (or `town`), after `prepare` adjusts the state.
+const townPreview = (show, { town = 'Guadeloupe', prepare } = {}) => () => startPreview(() => {
+  enterPreviewTown(previewTownIndex(town));
+  prepare?.();
+  show();
+});
+
+// One dialog of each moment that has its own scene picture, by scene id,
+// opened over a paused voyage.
+const SCENE_PREVIEWS = {
+  'sail-ho': () => showSighting(state.towns[0], 5),
+  boarding: () => {
+    beginTacticalBattle(PREVIEW_ENEMY, 0);
+    state.paused = true;
+    offerBoarding(state.battle.encounter);
+  },
+  // Sword fights straight away, for the browser checks.
+  'sword-duel': () => beginSwordFight({
+    record: duelRecord({ title: 'Guard', nation: 'Spain', extraSkill: 1 }), scene: 'alley',
+    onEnd: ({ result }) => { addLog(`Preview duel: ${result}.`); resumeSailing(); },
+  }),
+  'sword-boarding': () => {
+    beginTacticalBattle(PREVIEW_ENEMY, 0);
+    const enemy = state.battle.encounter;
+    beginSwordFight({
+      record: boardingRecord({ yourMen: state.battle.player.men, theirMen: state.battle.enemy.men, kind: state.battle.enemy.kind, nation: enemy.flag }),
+      scene: 'deck', onEnd: (outcome) => resolveBoarding(enemy, outcome),
+    });
+  },
+  'sword-practice': () => practiceFencing(resumeSailing),
+  'hostage-talks': () => resolveNamedCaptain({ ship: 'Galleon', flag: 'Spain', captainId: 3 }, resumeSailing),
+  'crew-recruits': () => showRecruitOffer(12),
+  'treasure-fleet-capture': () => showConvoyCaptures(['treasureFleet'], resumeSailing),
+  'silver-train-capture': () => showConvoyCaptures(['silverTrain'], resumeSailing),
+  mutiny: () => showMutiny(resumeSailing),
+  prison: () => loseLastShip({ inTown: true, done: resumeSailing }),
+  'hall-of-fame': () => offerHallOfFame({ points: 40, job: 0 }, state.towns[0]),
+  'alley-duel': () => showGuardDuel(state.towns[0]),
+  ...Object.fromEntries([0, 1, 2, 3].map((tier) => [`retire-${4 - tier}`, () => {
+    const job = tier * 4;
+    showRetirementEnding({ tier, job, points: 80 - tier * 20 }, retirementLine({ job, townName: state.towns[0].name, rng }), resumeSailing);
+  }])),
+  'land-attack': () => { state.approach = { overland: true }; attackTown(state.towns[0]); },
+  'fort-walls': () => { state.approach = { overland: false }; attackTown(state.towns.find((town) => town.forts > 0) ?? state.towns[0]); },
+  // The battle ends on the next frame with the given event.
+  ...Object.fromEntries([['sinking', 'player-sunk'], ['outrun', 'escaped'], ['nightfall', 'sunset']].map(([id, event]) => [id, () => {
+    beginTacticalBattle({ ...PREVIEW_ENEMY, crew: 20 }, 0);
+    Object.assign(state.battle, { event });
+    if (id === 'outrun') state.battle.enemy.tactic = 'flee';
+    state.paused = false;
+  }])),
+};
+
+// A party ashore on the first dig site (259, 192 in Cuba) holding three
+// pieces of its map; the ship waits at the nearest water. `dig` stands on a
+// buried-treasure map's site; the other digs show one picture of the search:
+// dig-found, dig-nothing, reunion-<relative> and lost-city-<culture>.
+const DIG_PREVIEW = /^(dig|dig-found|dig-nothing|reunion-(sister|father|niece|uncle)|lost-city-(incan|aztec|olmec|mayan))$/;
+
+function startDigPreview(preview, [, , relative, culture]) {
+  const previewSetup = previewState({ era: '1560' });
+  const [siteX, siteY] = TREASURE_SITES[0];
+  Object.assign(previewSetup.player, { x: siteX + .5, y: siteY + .5 });
+  startGame(previewSetup).then(() => {
+    const player = state.player;
+    const shore = { x: player.x, y: player.y };
+    Object.assign(player, { ship: { ...shore, heading: player.heading }, landing: shore, onFoot: true, walk: null, x: siteX + .5, y: siteY + .5 });
+    const record = { pieces: 7, site: [siteX, siteY], townIndex: nearestTriggerTown(townTriggers(), siteX, siteY), city: 0 };
+    if (relative) {
+      state.relativesRescued = RELATIVE_NAMES.indexOf(relative);
+      state.villains[0] = { townIndex: 0, history: [null, null, null, null], surname: 0, title: 0, nationality: 0 };
+      state.treasureMaps[MAP_KIND.RELATIVE] = record;
+    } else if (culture) {
+      state.treasureMaps[MAP_KIND.LOST_CITY] = { ...record, city: LOST_CITY_NAMES.indexOf(culture[0].toUpperCase() + culture.slice(1)) };
+    } else if (preview !== 'dig-nothing') {
+      state.treasureMaps[MAP_KIND.BURIED] = record;
+    }
+    updateNearestTown();
+    resetSailingInterpolation();
+    if (preview !== 'dig') resolveDig();
+  });
+}
+
+// A career ready to end at the counting house; `retirement-poor` is nine
+// years in with two wounds, poor health that still allows a return.
+const retirementPreview = (poorHealth) => townPreview(showPlunderDivision, {
+  prepare: () => {
+    Object.assign(state.player, { personalWealth: 50000, land: 20, reputation: 20, wounds: 1, partyGold: 8000 });
+    state.player.ranks.France = 4;
+    state.player.ranks.England = 2;
+    state.relativesRescued = 1;
+    state.calendar.year += 6;
+    if (poorHealth) {
+      state.calendar.year += 3;
+      state.player.wounds = 2;
+    }
+  },
+});
+
+// A tavern stranger's offer: `traveller` or `map-seller`.
+const strangerPreview = (kind) => townPreview(() => {
+  const encounter = { kind, price: kind === 'traveller' ? 80 : 500, townIndex: 0, resolved: false };
+  state.visit.tavernEncounters = [encounter];
+  showTavernSpecialEncounter(encounter);
+});
+
+// In the tavern of the Spanish town a villain stays in; `villain-rumour`
+// stands in the town he left, so the gossip says where he went.
+const villainPreview = (inHisTown) => () => startPreview(() => {
+  const [left, here] = state.towns.flatMap(({ nation }, index) => (nation === 'Spain' ? [index] : []));
+  state.villains[0] = { townIndex: here, history: [left, null, null, null], surname: 5, title: 2, nationality: 2 };
+  state.towns[here].villainStaying = true;
+  enterPreviewTown(inHisTown ? here : left);
+  showTavern();
+});
+
+const PREVIEWS = {
+  ...Object.fromEntries(Object.entries(SCENE_PREVIEWS).map(([id, scene]) => [id, () => startPreview(() => {
+    state.paused = true;
+    scene();
+  })])),
+  plunder: () => startPreview(() => {
+    state.paused = true;
+    beginPlunderTransfer('Spoils from the Cargo fluyt', {
+      gold: 70, food: 4, goods: 11, specialGoods: 6, cannon: 4,
+    }, () => {});
+  }),
+  // The placeholder vignettes outside the governor and counting-house previews.
+  ...Object.fromEntries(['prize', 'enemy-destroyed'].map((id) => [id, () => startPreview(() => {
+    state.paused = true;
+    const enemy = { ship: 'Merchantman', flag: 'Spain', guns: 18, damage: 0, kind: 'merchant' };
+    if (id === 'prize') beginShipCapture(enemy);
+    else showEnemyDestroyed(enemy, resumeSailing);
+  })])),
+  // The town approach at a coastal town, or (`arrival-land`) a landlocked one.
+  ...Object.fromEntries([['arrival', false], ['arrival-land', true]].map(([id, overland]) => [id, () => startPreview(() => {
+    state.nearestTownIndex = previewTownIndex(overland ? 'Panama' : 'Guadeloupe');
+    approachTown({ overland });
+  })])),
+  // The town menu at a coastal town, or (`in-town`) a landlocked one.
+  'in-port': townPreview(showTownMenu),
+  'in-town': townPreview(showTownMenu, { town: 'Panama' }),
+  marooned: () => startPreview(() => {
+    state.paused = true;
+    loseLastShip({ inTown: false, cause: REEF_TEXT, done: resumeSailing });
+  }),
+  'reef-loss': () => {
+    const previewSetup = previewState();
+    previewSetup.player.ships = [shipRecord('Sloop'), shipRecord('Frigate')];
+    startGame(previewSetup).then(() => strikeReef(1));
+  },
+  tavern: townPreview(showTavern),
+  barmaid: townPreview(showBarmaid),
+  traveller: strangerPreview('traveller'),
+  'map-seller': strangerPreview('map-seller'),
+  shipwright: townPreview(showShipwright),
+  // A second, damaged ship whose hold the cargo needs: selling her warns.
+  'sell-ship': townPreview(showSellShips, {
+    prepare: () => {
+      state.player.ships = [state.player.ships[0], { type: 'Merchantman', damage: 32 }];
+      state.player.goods = cargoCapacity() - cargoUsed() - 10;
+      state.portTrade.shipwrightCash = 10000;
+    },
+  }),
+  merchant: townPreview(openMerchant, { prepare: () => { state.player.partyGold = 5000; } }),
+  'governor-promotion': () => startPreview(() => {
+    enterPreviewTown(state.towns.findIndex(({ nation }) => nation === 'France'));
+    state.player.favour.France = 6;
+    showGovernor();
+  }),
+  'town-rank': townPreview(showTownMenu, {
+    prepare: () => {
+      state.player.ranks.France = 1;
+      state.player.favour.France = 3;
+      state.player.land = 3;
+    },
+  }),
+  retirement: retirementPreview(false),
+  'retirement-poor': retirementPreview(true),
+  'governor-amnesty': () => startPreview(() => {
+    enterPreviewTown(previewTownIndex('Guadeloupe'), { sneaking: true });
+    state.player.favour.France = -3;
+    state.player.partyGold = 7000;
+    state.towns[state.nearestTownIndex].mood = -3;
+    showGovernor();
+  }),
+  'villain-tavern': villainPreview(true),
+  'villain-rumour': villainPreview(false),
+  news: () => startPreview(() => {
+    state.calendar = { day: 12, month: 9, year: 1680 };
+    addWorldNews('A new gold mine has opened at Havana.');
+    showDialog({
+      vignette: 'bartender', kicker: 'The bartender', title: 'News from across the Caribbean',
+      body: newsBody(state.worldNews.slice(0, 6)),
+      actions: [{ label: 'Return to the tavern', run: () => {} }],
+    });
+  }),
+  // Half a year of the monthly world, then the sea chart at sea.
+  chart: () => startPreview(() => {
+    passDays(180);
+    updateInterface();
+    openSeaChartAtSea();
+  }, { era: '1660', nationality: 'England' }),
+  // A Swashbuckler year of the monthly world, then the logbook at sea.
+  logbook: () => startPreview(() => {
+    passDays(360);
+    updateInterface();
+    openLogbookAtSea();
+  }, { era: '1660', nationality: 'England', difficulty: 3 }),
+  deserters: () => {
+    // Havana 1560: the coast cell (244, 178) south of the ship is a trigger
+    // cell. One ship, 8 men and morale -2, so leaving Havana costs 2 men and
+    // the departure fleet check sends the captain to prison.
+    const previewSetup = previewState({ era: '1560' });
+    Object.assign(previewSetup.player, { x: 244.5, y: 176.5, heading: 128, speed: 12 });
+    Object.assign(previewSetup.player, { crew: 8, partyGold: 0, monthsAtSea: 5 });
+    previewSetup.player.ships = previewSetup.player.ships.slice(0, 1);
+    startGame(previewSetup);
+  },
+  'treasure-fleet': () => {
+    // Both convoys lie in Campeche 1560, stop 13 of each route; the ship
+    // waits on the town's departure cell and opens the approach.
+    const previewSetup = previewState({ era: '1560' });
+    const campeche = previewSetup.towns.findIndex((town) => town.name === 'Campeche');
+    previewSetup.convoys = { treasureFleet: { position: 13, townIndex: campeche }, silverTrain: { position: 13, townIndex: campeche } };
+    const [x, y, heading] = scenarios['1560'].towns[campeche].departure;
+    Object.assign(previewSetup.player, { x: x + 0.5, y: y + 0.5, heading, speed: 0, sails: 'furled' });
+    startGame(previewSetup).then(() => {
+      state.nearestTownIndex = campeche;
+      approachTown();
+    });
+  },
+  landing: () => {
+    // Panama 1560 is inland: the ship sails north onto the coast at (318, 441),
+    // two cells east of the town's trigger cells.
+    const previewSetup = previewState({ era: '1560' });
+    Object.assign(previewSetup.player, { x: 318.5, y: 443.5, heading: 0, speed: 8, sails: 'full' });
+    startGame(previewSetup);
+  },
+  reef: () => {
+    // A frigate and a sloop sailing east over a run of shallow pixels in the
+    // reefs at (192, 288), 1560.
+    const previewSetup = previewState({ era: '1560' });
+    Object.assign(previewSetup.player, { x: 3079.5 / 16, y: 4607.5 / 16, heading: 64, speed: 4, sails: 'battle', crew: 300 });
+    previewSetup.player.ships = [shipRecord('Frigate'), shipRecord('Sloop')];
+    startGame(previewSetup);
+  },
+  // A sea battle against a Spanish Merchantman, for checking the battle
+  // screen and its pace.
+  battle: () => startPreview(() => beginTacticalBattle({ ...PREVIEW_ENEMY, crew: 20 }, 0)),
+  shipwreck: () => {
+    // Four men cannot sail the last ship: the fleet check takes the at-sea
+    // last-ship path to the uncharted island.
+    const previewSetup = previewState({ era: '1560', difficulty: 2 });
+    Object.assign(previewSetup.player, { crew: 4, reputation: 2, capturedCaptains: [{ pirate: true, ship: 'Sloop', value: 7 }] });
+    previewSetup.player.ships = previewSetup.player.ships.slice(0, 1);
+    startGame(previewSetup);
+  },
+};
+
+// Opens the local preview `preview`; false when there is none to open.
+function openPreview(preview) {
+  if (!preview || !PREVIEW_HOSTS.includes(location.hostname)) return false;
+  // Local previews expose the live state to the browser smoke checks.
+  globalThis.piratesPreview = {
+    get state() { return state; },
+    // Ends the current sword fight with `result`, for checks of its callers.
+    settleFight(result) {
+      if (!swordView) return false;
+      swordView.fight = { ...swordView.fight, result };
+      swordView.endPause = 0;
+      return true;
+    },
+  };
+  const digScene = DIG_PREVIEW.exec(preview);
+  if (Object.hasOwn(PREVIEWS, preview)) PREVIEWS[preview]();
+  else if (digScene) startDigPreview(preview, digScene);
+  else return false;
+  return true;
+}
+
 resize();
 // The era half of the start panel needs no scenario data; the career half
 // fills in once the scenarios load.
@@ -4576,405 +4961,7 @@ loadScenarios().then(() => {
   updateNationalityOptions();
   updateEraBrief();
   beginButton.disabled = false;
-  const preview = new URLSearchParams(location.search).get('preview');
-  // Local previews expose the live state to the browser smoke checks.
-  if (preview && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    globalThis.piratesPreview = {
-      get state() { return state; },
-      // Ends the current sword fight with `result`, for checks of its callers.
-      settleFight(result) {
-        if (!swordView) return false;
-        swordView.fight = { ...swordView.fight, result };
-        swordView.endPause = 0;
-        return true;
-      },
-    };
-  }
-  if (preview === 'plunder' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.paused = true;
-      beginPlunderTransfer('Spoils from the Cargo fluyt', {
-        gold: 70, food: 4, goods: 11, specialGoods: 6, cannon: 4,
-      }, () => {});
-    });
-    return;
-  }
-  // The placeholder vignettes outside the governor and counting-house previews.
-  if (['prize', 'enemy-destroyed'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.paused = true;
-      const enemy = { ship: 'Merchantman', flag: 'Spain', guns: 18, damage: 0, kind: 'merchant' };
-      if (preview === 'prize') beginShipCapture(enemy);
-      else showEnemyDestroyed(enemy, resumeSailing);
-    });
-    return;
-  }
-  // The town approach at a coastal town, or (`arrival-land`) a landlocked one.
-  if (['arrival', 'arrival-land'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      const overland = preview === 'arrival-land';
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === (overland ? 'Panama' : 'Guadeloupe'));
-      approachTown({ overland });
-    });
-    return;
-  }
-  // The town menu at a coastal town, or (`in-town`) a landlocked one.
-  if (['in-port', 'in-town'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === (preview === 'in-town' ? 'Panama' : 'Guadeloupe'));
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      showTownMenu();
-    });
-    return;
-  }
-  if (preview === 'marooned' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.paused = true;
-      loseLastShip({ inTown: false, cause: REEF_TEXT, done: resumeSailing });
-    });
-    return;
-  }
-  if (preview === 'reef-loss' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    previewState.player.ships = [shipRecord('Sloop'), shipRecord('Frigate')];
-    startGame(previewState).then(() => strikeReef(1));
-    return;
-  }
-  // One dialog of each moment that has its own scene picture, by scene id.
-  const scenePreviews = {
-    'sail-ho': () => showSighting(state.towns[0], 5),
-    boarding: () => {
-      beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 12, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);
-      state.paused = true;
-      offerBoarding(state.battle.encounter);
-    },
-    // Sword fights straight away, for the browser checks.
-    'sword-duel': () => beginSwordFight({
-      record: duelRecord({ title: 'Guard', nation: 'Spain', extraSkill: 1 }), scene: 'alley',
-      onEnd: ({ result }) => { addLog(`Preview duel: ${result}.`); resumeSailing(); },
-    }),
-    'sword-boarding': () => {
-      beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 12, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);
-      const enemy = state.battle.encounter;
-      beginSwordFight({
-        record: boardingRecord({ yourMen: state.battle.player.men, theirMen: state.battle.enemy.men, kind: state.battle.enemy.kind, nation: enemy.flag }),
-        scene: 'deck', onEnd: (outcome) => resolveBoarding(enemy, outcome),
-      });
-    },
-    'sword-practice': () => practiceFencing(resumeSailing),
-    'hostage-talks': () => resolveNamedCaptain({ ship: 'Galleon', flag: 'Spain', captainId: 3 }, resumeSailing),
-    'crew-recruits': () => showRecruitOffer(12),
-    'treasure-fleet-capture': () => showConvoyCaptures(['treasureFleet'], resumeSailing),
-    'silver-train-capture': () => showConvoyCaptures(['silverTrain'], resumeSailing),
-    mutiny: () => showMutiny(resumeSailing),
-    prison: () => loseLastShip({ inTown: true, done: resumeSailing }),
-    'hall-of-fame': () => offerHallOfFame({ points: 40, job: 0 }, state.towns[0]),
-    'alley-duel': () => showGuardDuel(state.towns[0]),
-    ...Object.fromEntries([0, 1, 2, 3].map((tier) => [`retire-${4 - tier}`, () => {
-      const job = tier * 4;
-      showRetirementEnding({ tier, job, points: 80 - tier * 20 }, retirementLine({ job, townName: state.towns[0].name, rng }), resumeSailing);
-    }])),
-    'land-attack': () => { state.approach = { overland: true }; attackTown(state.towns[0]); },
-    'fort-walls': () => { state.approach = { overland: false }; attackTown(state.towns.find((town) => town.forts > 0) ?? state.towns[0]); },
-    // The battle ends on the next frame with the given event.
-    ...Object.fromEntries([['sinking', 'player-sunk'], ['outrun', 'escaped'], ['nightfall', 'sunset']].map(([id, event]) => [id, () => {
-      beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 20, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);
-      Object.assign(state.battle, { event });
-      if (id === 'outrun') state.battle.enemy.tactic = 'flee';
-      state.paused = false;
-    }])),
-  };
-  if (Object.hasOwn(scenePreviews, preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    startGame(newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' })).then(() => {
-      state.paused = true;
-      scenePreviews[preview]();
-    });
-    return;
-  }
-  if (preview === 'tavern' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      showTavern();
-    });
-    return;
-  }
-  if (preview === 'barmaid' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      showBarmaid();
-    });
-    return;
-  }
-  // A tavern stranger's offer: `traveller` or `map-seller`.
-  if (['traveller', 'map-seller'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      const encounter = { kind: preview, price: preview === 'traveller' ? 80 : 500, townIndex: 0, resolved: false };
-      state.visit.tavernEncounters = [encounter];
-      showTavernSpecialEncounter(encounter);
-    });
-    return;
-  }
-  if (preview === 'shipwright' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      showShipwright();
-    });
-    return;
-  }
-  if (preview === 'sell-ship' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // A second, damaged ship whose hold the cargo needs: selling her warns.
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      state.player.ships = [state.player.ships[0], { type: 'Merchantman', damage: 32 }];
-      state.player.goods = cargoCapacity() - cargoUsed() - 10;
-      state.portTrade.shipwrightCash = 10000;
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      showSellShips();
-    });
-    return;
-  }
-  if (preview === 'merchant' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      state.player.partyGold = 5000;
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      openMerchant();
-    });
-    return;
-  }
-  if (preview === 'governor-promotion' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ nation }) => nation === 'France');
-      state.player.favour.France = 6;
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      showGovernor();
-    });
-    return;
-  }
-  if (preview === 'town-rank' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      state.player.ranks.France = 1;
-      state.player.favour.France = 3;
-      state.player.land = 3;
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      showTownMenu();
-    });
-    return;
-  }
-  // A career ready to end at the counting house; `retirement-poor` is nine
-  // years in with two wounds, poor health that still allows a return.
-  if (['retirement', 'retirement-poor'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      Object.assign(state.player, { personalWealth: 50000, land: 20, reputation: 20, wounds: 1, partyGold: 8000 });
-      state.player.ranks.France = 4;
-      state.player.ranks.England = 2;
-      state.relativesRescued = 1;
-      state.calendar.year += 6;
-      if (preview === 'retirement-poor') {
-        state.calendar.year += 3;
-        state.player.wounds = 2;
-      }
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      showPlunderDivision();
-    });
-    return;
-  }
-  if (preview === 'governor-amnesty' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
-      state.player.favour.France = -3;
-      state.player.partyGold = 7000;
-      state.towns[state.nearestTownIndex].mood = -3;
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: true, recruited: false, merchant: null };
-      showGovernor();
-    });
-    return;
-  }
-  // In the tavern of the Spanish town a villain stays in; `villain-rumour`
-  // stands in the town he left, so the gossip says where he went.
-  if (['villain-tavern', 'villain-rumour'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      const [left, here] = state.towns.flatMap(({ nation }, index) => (nation === 'Spain' ? [index] : []));
-      state.villains[0] = { townIndex: here, history: [left, null, null, null], surname: 5, title: 2, nationality: 2 };
-      state.towns[here].villainStaying = true;
-      state.nearestTownIndex = preview === 'villain-tavern' ? here : left;
-      state.mode = 'town';
-      state.paused = true;
-      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
-      showTavern();
-    });
-    return;
-  }
-  if (preview === 'news' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      state.calendar = { day: 12, month: 9, year: 1680 };
-      addWorldNews('A new gold mine has opened at Havana.');
-      showDialog({
-        vignette: 'bartender', kicker: 'The bartender', title: 'News from across the Caribbean',
-        body: newsBody(state.worldNews.slice(0, 6)),
-        actions: [{ label: 'Return to the tavern', run: () => {} }],
-      });
-    });
-    return;
-  }
-  if (preview === 'chart' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // Half a year of the monthly world, then the sea chart at sea.
-    const previewState = newState({ era: '1660', captain: 'Preview', nationality: 'England', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      passDays(180);
-      updateInterface();
-      openSeaChartAtSea();
-    });
-    return;
-  }
-  if (preview === 'logbook' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // A Swashbuckler year of the monthly world, then the logbook at sea.
-    const previewState = newState({ era: '1660', captain: 'Preview', nationality: 'England', difficulty: 3, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      passDays(360);
-      updateInterface();
-      openLogbookAtSea();
-    });
-    return;
-  }
-  if (['arrival', 'deserters'].includes(preview) && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // Havana 1560: the coast cell (244, 178) south of the ship is a trigger cell.
-    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    Object.assign(previewState.player, { x: 244.5, y: 176.5, heading: 128, speed: 12 });
-    // Deserters: one ship, 8 men and morale -2, so leaving Havana costs 2
-    // men and the departure fleet check sends the captain to prison.
-    if (preview === 'deserters') {
-      Object.assign(previewState.player, { crew: 8, partyGold: 0, monthsAtSea: 5 });
-      previewState.player.ships = previewState.player.ships.slice(0, 1);
-    }
-    startGame(previewState);
-    return;
-  }
-  if (preview === 'treasure-fleet' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // Both convoys lie in Campeche 1560, stop 13 of each route; the ship
-    // waits on the town's departure cell and opens the approach.
-    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    const campeche = previewState.towns.findIndex((town) => town.name === 'Campeche');
-    previewState.convoys = { treasureFleet: { position: 13, townIndex: campeche }, silverTrain: { position: 13, townIndex: campeche } };
-    const [x, y, heading] = scenarios['1560'].towns[campeche].departure;
-    Object.assign(previewState.player, { x: x + 0.5, y: y + 0.5, heading, speed: 0, sails: 'furled' });
-    startGame(previewState).then(() => {
-      state.nearestTownIndex = campeche;
-      approachTown();
-    });
-    return;
-  }
-  if (preview === 'landing' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // Panama 1560 is inland: the ship sails north onto the coast at (318, 441),
-    // two cells east of the town's trigger cells.
-    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    Object.assign(previewState.player, { x: 318.5, y: 443.5, heading: 0, speed: 8, sails: 'full' });
-    startGame(previewState);
-    return;
-  }
-  // `dig` stands on a buried-treasure map's site; the other digs show one
-  // picture of the search: dig-found, dig-nothing, reunion-<relative> and
-  // lost-city-<culture>.
-  const digScene = /^(dig|dig-found|dig-nothing|reunion-(sister|father|niece|uncle)|lost-city-(incan|aztec|olmec|mayan))$/.exec(preview ?? '');
-  if (digScene && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // A party ashore on the first dig site (259, 192 in Cuba) holding three
-    // pieces of its map; the ship waits at the nearest water.
-    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    const [siteX, siteY] = TREASURE_SITES[0];
-    Object.assign(previewState.player, { x: siteX + .5, y: siteY + .5 });
-    startGame(previewState).then(() => {
-      const player = state.player;
-      const shore = { x: player.x, y: player.y };
-      Object.assign(player, { ship: { ...shore, heading: player.heading }, landing: shore, onFoot: true, walk: null, x: siteX + .5, y: siteY + .5 });
-      const record = { pieces: 7, site: [siteX, siteY], townIndex: nearestTriggerTown(townTriggers(), siteX, siteY), city: 0 };
-      if (digScene[2]) {
-        state.relativesRescued = RELATIVE_NAMES.indexOf(digScene[2]);
-        state.villains[0] = { townIndex: 0, history: [null, null, null, null], surname: 0, title: 0, nationality: 0 };
-        state.treasureMaps[MAP_KIND.RELATIVE] = record;
-      } else if (digScene[3]) {
-        state.treasureMaps[MAP_KIND.LOST_CITY] = { ...record, city: LOST_CITY_NAMES.indexOf(digScene[3][0].toUpperCase() + digScene[3].slice(1)) };
-      } else if (preview !== 'dig-nothing') {
-        state.treasureMaps[MAP_KIND.BURIED] = record;
-      }
-      updateNearestTown();
-      resetSailingInterpolation();
-      if (preview !== 'dig') resolveDig();
-    });
-    return;
-  }
-  if (preview === 'reef' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // A frigate and a sloop sailing east over a run of shallow pixels in the
-    // reefs at (192, 288), 1560.
-    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    Object.assign(previewState.player, { x: 3079.5 / 16, y: 4607.5 / 16, heading: 64, speed: 4, sails: 'battle', crew: 300 });
-    previewState.player.ships = [shipRecord('Frigate'), shipRecord('Sloop')];
-    startGame(previewState);
-    return;
-  }
-  if (preview === 'battle' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // A sea battle against a Spanish Merchantman, for checking the battle
-    // screen and its pace.
-    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
-    startGame(previewState).then(() => {
-      beginTacticalBattle({ ship: 'Merchantman', flag: 'Spain', crew: 20, guns: 12, kind: 5, gold: 10, cargo: 10 }, 0);
-    });
-    return;
-  }
-  if (preview === 'shipwreck' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
-    // Four men cannot sail the last ship: the fleet check takes the at-sea
-    // last-ship path to the uncharted island.
-    const previewState = newState({ era: '1560', captain: 'Preview', nationality: 'France', difficulty: 2, ability: 'navigation' });
-    Object.assign(previewState.player, { crew: 4, reputation: 2, capturedCaptains: [{ pirate: true, ship: 'Sloop', value: 7 }] });
-    previewState.player.ships = previewState.player.ships.slice(0, 1);
-    startGame(previewState);
-    return;
-  }
+  if (openPreview(new URLSearchParams(location.search).get('preview'))) return;
   continueButton.classList.toggle('hidden', !loadGame());
 }).catch((error) => {
   console.error('Scenario data unavailable:', error);

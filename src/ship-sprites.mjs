@@ -71,7 +71,10 @@ export function paintShipSprite({ type, heading, sails = 'full', changing = fals
   const palette = rig.warship ? WARSHIP : WOOD;
   const hullLayers = [];
   for (let h = 0; h <= depth; h += 1) {
-    const color = h === depth ? palette.deck : h === 0 ? palette.sideDark : rig.warship && h === depth - 1 ? COLORS.wale : palette.side;
+    let color = palette.side;
+    if (h === depth) color = palette.deck;
+    else if (h === 0) color = palette.sideDark;
+    else if (rig.warship && h === depth - 1) color = COLORS.wale;
     hullLayers.push({ shape: outline.map(([u, v]) => project(u, v, h)), color });
   }
   if (type >= 1) {

@@ -934,7 +934,8 @@ export function captureConvoys({ convoys, townIndex, goldByte }) {
 // Havana." Away, the fleet is "in Spain" and the train "in Peru".
 export function convoyReport(kind, convoy, towns) {
   const name = kind === 'treasureFleet' ? 'Treasure Fleet' : 'Silver Train';
-  const place = convoy.townIndex === null ? (kind === 'treasureFleet' ? 'Spain' : 'Peru') : towns[convoy.townIndex].name;
+  const away = kind === 'treasureFleet' ? 'Spain' : 'Peru';
+  const place = convoy.townIndex === null ? away : towns[convoy.townIndex].name;
   return { name, place, away: convoy.townIndex === null, message: `The ${name} is in ${place}.` };
 }
 
@@ -959,6 +960,13 @@ export function merchantStock({ growth, population, month, rng }) {
   return quantity + rng.int(quantity);
 }
 
+// The garrison drifts one soldier a month toward its target, within a byte.
+function garrisonToward(soldiers, target) {
+  if (soldiers < target) return Math.min(255, soldiers + 1);
+  if (soldiers > target) return soldiers - 1;
+  return soldiers;
+}
+
 export function updateTownMonthly(town, month, rng) {
   if (rng.int(4) !== 0) return { ...town };
   const growthGain = rng.int(255 - town.growth) >> 5;
@@ -968,10 +976,7 @@ export function updateTownMonthly(town, month, rng) {
   let income = (roll * population) >> 9;
   if (town.nation === 'Spain') income = Math.floor(income / 2);
   const target = Math.floor((income + population) / 2);
-  const soldiers = town.soldiers < target
-    ? Math.min(255, town.soldiers + 1)
-    : town.soldiers > target ? town.soldiers - 1 : town.soldiers;
-  return { ...town, growth, population, soldiers, gold: town.gold + income };
+  return { ...town, growth, population, soldiers: garrisonToward(town.soldiers, target), gold: town.gold + income };
 }
 
 // ---------------------------------------------------------------------------
