@@ -2,7 +2,7 @@
 // morale panel, all from cached pixel sprites (fencer-sprites.mjs). Reads the
 // fight record of sword-mechanics.mjs and never changes it.
 
-import { BACKDROP, FENCER_ART, FIGHT_UNITS_PER_ART_PIXEL, LOOKS, paintBackdrop, paintFencer, paintSpark } from './fencer-sprites.mjs';
+import { BACKDROP, FIGHT_UNITS_PER_ART_PIXEL, LOOKS, paintBackdrop, paintFencer, paintSpark } from './fencer-sprites.mjs';
 import { FIGHT_MODE, MOVE, WEAPONS } from './sword-mechanics.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 

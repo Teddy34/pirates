@@ -39,6 +39,15 @@ history.
   four bands, the menu offers the original's "A drink, lass" and "A drink and
   some company", and winning her uses the original "won the barmaid's heart"
   line.
+- Code-quality pass driven by SonarJS static analysis, with no change to
+  play. The seven browser smoke checks share one harness
+  (`tools/browser-harness.mjs`) instead of seven copies of the same 90 lines
+  of server, Chromium and DevTools code. The `?preview=` states are one table
+  instead of forty `if` branches. The sea chart, terrain, sea, fencer and
+  backdrop painters, the sword-fight and sea-battle steps, the keyboard
+  handler and the voyage status bar are split into small named functions.
+  Painted pixels, fights and battles were checked to match the previous code
+  exactly. Terrain chunks paint about 15% faster.
 
 ### Fixed
 
@@ -47,3 +56,12 @@ history.
 - The sea chart frees its canvas memory on close, ignores non-primary mouse
   buttons, lets its town panel scroll on short screens, and the game stops
   redrawing underneath it.
+- The browser smoke checks no longer fail intermittently when Chromium is
+  still writing its profile as a check finishes.
+- `make syntax` now checks every source file: four modules, including the
+  sea-battle rules and renderer, were missing from its hand-kept list.
+
+### Removed
+
+- An unreachable second `?preview=arrival` branch (the first always matched),
+  an unused notice dialog and unused function parameters.

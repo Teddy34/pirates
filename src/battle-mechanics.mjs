@@ -253,9 +253,10 @@ export function initialPlacement(arena, rng) {
   const player = { x: arena.width / 2 + offsetX, y: arena.height / 2 + offsetY };
   const enemy = { x: arena.width / 2 - offsetX, y: arena.height / 2 - offsetY };
   const wantedHeading = rng.int(256);
-  let heading;
-  if (player.x > enemy.x) heading = player.y === enemy.y ? 0xc0 : player.y > enemy.y ? 0xe0 : 0xa0;
-  else heading = player.y === enemy.y ? 0x40 : player.y > enemy.y ? 0x20 : 0x60;
+  // By the side he lies on, then the sign of your y offset from him
+  // (less, level, greater).
+  const headings = player.x > enemy.x ? [0xa0, 0xc0, 0xe0] : [0x60, 0x40, 0x20];
+  const heading = headings[Math.sign(player.y - enemy.y) + 1];
   const enemyHeading = (heading + (rng.int(256) & 31) - 16 - 0x60) & 0xff;
   return {
     player: { ...player, heading },
@@ -555,6 +556,37 @@ export function frameOutcome(code, battle) {
   }[code] ?? null;
 }
 
+function requestedSails({ raiseSailsPressed, lowerSailsPressed }) {
+  if (raiseSailsPressed) return 'full';
+  if (lowerSailsPressed) return 'battle';
+  return null;
+}
+
+// The event your sails or guns raise this frame, or 0.
+function playerSailsEvent(before, after) {
+  if (before.sailTransition === 0 && after.sailTransition > 0) return BATTLE_EVENT.sailStart;
+  if (before.sailTransition > 0 && after.sailTransition === 0) return BATTLE_EVENT.sailDone;
+  if (before.reload > 0 && after.reload === 0) return BATTLE_EVENT.loaded;
+  return 0;
+}
+
+// Every 64 frames his captain may strike, picks a tactic, sets his sails to
+// suit it (unless something else happened this frame) and takes aim.
+// `battle` is this frame's working copy; returns it with any event set.
+function enemyCaptainTurn(battle) {
+  let next = battle;
+  if (canEnemyStrike(next.player, next.enemy)) next = { ...next, frameEvent: BATTLE_EVENT.struck };
+  const tactic = chooseEnemyTactic(next.player, next.enemy);
+  next.enemy = { ...next.enemy, tactic };
+  if (next.frameEvent === 0) {
+    const sails = tactic === 'duel' ? 'battle' : 'full';
+    if (sails !== next.enemy.sails) next = { ...next, frameEvent: BATTLE_EVENT.enemySails };
+    next.enemy = { ...next.enemy, sails, targetSails: sails };
+  }
+  next.enemy = aimEnemy(next);
+  return next;
+}
+
 // Frame order follows the engine: the sunset count, your rudder, sails and
 // reload, movement and shot (0x7E22-0x8729); then his reload, boarding
 // contact, the wind, separation, his captain, movement and shot
@@ -575,12 +607,10 @@ export function stepBattle(original, input, rng) {
   if (input.turn && battle.frame % PLAYER_RUDDER_INTERVAL === 0) {
     battle.player = { ...battle.player, heading: (battle.player.heading + input.turn * PLAYER_RUDDER_STEP) & 0xff };
   }
-  const requestedSails = input.raiseSailsPressed ? 'full' : input.lowerSailsPressed ? 'battle' : null;
   const before = battle.player;
-  battle.player = stepPlayerSailsAndReload(battle.player, requestedSails);
-  if (before.sailTransition === 0 && battle.player.sailTransition > 0) setEvent(BATTLE_EVENT.sailStart);
-  else if (before.sailTransition > 0 && battle.player.sailTransition === 0) setEvent(BATTLE_EVENT.sailDone);
-  else if (before.reload > 0 && battle.player.reload === 0) setEvent(BATTLE_EVENT.loaded);
+  battle.player = stepPlayerSailsAndReload(battle.player, requestedSails(input));
+  const sailsEvent = playerSailsEvent(before, battle.player);
+  if (sailsEvent) setEvent(sailsEvent);
   battle.player = moveShip(battle.player, battle);
   battle = stepShot(battle, 'player', Boolean(input.firePressed), rng);
 
@@ -594,17 +624,7 @@ export function stepBattle(original, input, rng) {
   if (Math.abs(battle.player.x - battle.enemy.x) > 240 || Math.abs(battle.player.y - battle.enemy.y) > 240) {
     setEvent(BATTLE_EVENT.outOfRange);
   }
-  if (battle.frame % 64 === 0) {
-    if (canEnemyStrike(battle.player, battle.enemy)) setEvent(BATTLE_EVENT.struck);
-    const tactic = chooseEnemyTactic(battle.player, battle.enemy);
-    battle.enemy = { ...battle.enemy, tactic };
-    if (battle.frameEvent === 0) {
-      const sails = tactic === 'duel' ? 'battle' : 'full';
-      if (sails !== battle.enemy.sails) setEvent(BATTLE_EVENT.enemySails);
-      battle.enemy = { ...battle.enemy, sails, targetSails: sails };
-    }
-    battle.enemy = aimEnemy(battle);
-  }
+  if (battle.frame % 64 === 0) battle = enemyCaptainTurn(battle);
   if (battle.frame % 8 === 0) battle.enemy = steerEnemy(battle.enemy);
   battle.enemy = moveShip(battle.enemy, battle, { enemySkill: battle.skill });
   // 0x8EDF: he fires whenever he is loaded, has guns, has no ball out, and you

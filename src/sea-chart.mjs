@@ -43,6 +43,12 @@ function stain(x, y, size, salt) {
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 const dither = (x, y, amount) => BAYER[(y & 3) * 4 + (x & 3)] < amount * 16;
 
+function chartClass(pixel) {
+  if (pixel === PIXEL.LAND) return LAND;
+  if (pixel === PIXEL.SHALLOW) return SHALLOW;
+  return SEA;
+}
+
 // Each cell's class, sampled at its centre like the original samples the
 // pixel under a ship.
 export function chartClasses(map) {
@@ -51,7 +57,7 @@ export function chartClasses(map) {
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const pixel = pixelClassAt(map, x + .5, y + .5);
-      classes[y * width + x] = pixel === PIXEL.LAND ? LAND : pixel === PIXEL.SHALLOW ? SHALLOW : SEA;
+      classes[y * width + x] = chartClass(pixel);
     }
   }
   return classes;
@@ -100,23 +106,9 @@ export function compassRoseCentre(seaDistance, width, height) {
   return best;
 }
 
-// The chart's base image: sea, coasts, land, rhumb lines, compass rose and
-// frame, with the world's (x, y) cell at chart pixel (x + border, y + border).
-export function paintChartBase(map) {
-  const { width, height } = map;
-  const classes = chartClasses(map);
-  const seaDistance = distanceField(classes, width, height, (value) => value === LAND, 40);
-  const landDistance = distanceField(classes, width, height, (value) => value !== LAND, 12);
-  const rose = compassRoseCentre(seaDistance, width, height);
-  const chartWidth = width + CHART_BORDER * 2;
-  const chartHeight = height + CHART_BORDER * 2;
-  const pixels = new Uint8ClampedArray(chartWidth * chartHeight * 4);
-  const put = (x, y, [r, g, b], shade = 1) => {
-    const offset = ((y + CHART_BORDER) * chartWidth + x + CHART_BORDER) * 4;
-    pixels[offset] = r * shade; pixels[offset + 1] = g * shade; pixels[offset + 2] = b * shade; pixels[offset + 3] = 255;
-  };
-
-  // Rhumb lines radiate from the rose over open water, as on a portolan chart.
+// Rhumb lines radiate from the rose over open water, as on a portolan chart.
+// Per cell: 0 none, 1 on an odd (minor) point's line, 2 on an even one.
+function rhumbLines(rose, width, height) {
   const rhumb = new Uint8Array(width * height);
   for (let point = 0; point < 16; point += 1) {
     const angle = (point / 16) * Math.PI * 2;
@@ -129,40 +121,81 @@ export function paintChartBase(map) {
       if (step % 3 !== 2) rhumb[y * width + x] = point % 2 ? 1 : 2;
     }
   }
+  return rhumb;
+}
+
+// Aged paper: darker toward the edges, with faint broad stains.
+function paperShade(x, y, width, height) {
+  const edge = Math.min(x, y, width - 1 - x, height - 1 - y);
+  return (1 - Math.max(0, 1 - edge / 70) ** 2 * .16) * (1 - stain(x, y, 48, 3) * .07 - stain(x, y, 13, 7) * .03);
+}
+
+// Little hills dot the interior in staggered rows.
+function isHill(x, y, inland) {
+  if (inland < 5) return false;
+  const row = y >> 2;
+  const column = x + row * 3;
+  const phase = column % 7;
+  const line = y & 3;
+  if (phase >= 3 || line >= 2) return false;
+  return hash(Math.floor(column / 7), row, 11) < .28 && ((phase === 1 && line === 0) || line === 1);
+}
+
+// `inland` is the chessboard distance to the nearest water.
+function landColor(x, y, inland) {
+  if (isHill(x, y, inland)) return PAPER.hill;
+  if (inland <= 1) return PAPER.coast;
+  if (inland === 2) return PAPER.landInner;
+  return dither(x, y, Math.min(1, (inland - 2) / 8)) ? PAPER.landDeep : PAPER.land;
+}
+
+// Sparse wave strokes in open sea, one chance per 12×9 cell.
+function isWaveStroke(x, y) {
+  const cellX = Math.floor(x / 12);
+  const cellY = Math.floor(y / 9);
+  if (hash(cellX, cellY, 9) >= .45) return false;
+  const waveX = cellX * 12 + Math.floor(hash(cellX, cellY, 5) * 8);
+  const waveY = cellY * 9 + Math.floor(hash(cellX, cellY, 6) * 7);
+  return (y === waveY && (x === waveX || x === waveX + 3)) || (y === waveY - 1 && (x === waveX + 1 || x === waveX + 2));
+}
+
+// `near` is the chessboard distance to the nearest land; `rhumb` the cell's
+// rhumb-line value.
+function seaColor(x, y, value, near, rhumb) {
+  // Water-lining: dotted rings echo the coast offshore.
+  if ((near === 4 || near === 8) && (x + y) % 2 === 0) return PAPER.waterLine;
+  if (near >= 3 && rhumb) return rhumb === 2 ? PAPER.waterLine : PAPER.rhumb;
+  if (near >= 7 && isWaveStroke(x, y)) return PAPER.wave;
+  if (value === SHALLOW) return PAPER.shallow;
+  if (near <= 2) return PAPER.seaNear;
+  return dither(x, y, Math.min(.5, near / 60)) ? PAPER.seaDeep : PAPER.sea;
+}
+
+// The chart's base image: sea, coasts, land, rhumb lines, compass rose and
+// frame, with the world's (x, y) cell at chart pixel (x + border, y + border).
+export function paintChartBase(map) {
+  const { width, height } = map;
+  const classes = chartClasses(map);
+  const seaDistance = distanceField(classes, width, height, (value) => value === LAND, 40);
+  const landDistance = distanceField(classes, width, height, (value) => value !== LAND, 12);
+  const rose = compassRoseCentre(seaDistance, width, height);
+  const rhumb = rhumbLines(rose, width, height);
+  const chartWidth = width + CHART_BORDER * 2;
+  const chartHeight = height + CHART_BORDER * 2;
+  const pixels = new Uint8ClampedArray(chartWidth * chartHeight * 4);
+  const put = (x, y, [r, g, b], shade = 1) => {
+    const offset = ((y + CHART_BORDER) * chartWidth + x + CHART_BORDER) * 4;
+    pixels[offset] = r * shade; pixels[offset + 1] = g * shade; pixels[offset + 2] = b * shade; pixels[offset + 3] = 255;
+  };
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const index = y * width + x;
       const value = classes[index];
-      // Aged paper: darker toward the edges, with faint broad stains.
-      const edge = Math.min(x, y, width - 1 - x, height - 1 - y);
-      const shade = (1 - Math.max(0, 1 - edge / 70) ** 2 * .16) * (1 - stain(x, y, 48, 3) * .07 - stain(x, y, 13, 7) * .03);
-      if (value === LAND) {
-        const inland = landDistance[index];
-        let color = inland <= 1 ? PAPER.coast : inland === 2 ? PAPER.landInner
-          : dither(x, y, Math.min(1, (inland - 2) / 8)) ? PAPER.landDeep : PAPER.land;
-        // Little hills dot the interior in staggered rows.
-        if (inland >= 5 && (x + (y >> 2) * 3) % 7 < 3 && (y & 3) < 2) {
-          const cx = Math.floor((x + (y >> 2) * 3) / 7);
-          if (hash(cx, y >> 2, 11) < .28 && (((x + (y >> 2) * 3) % 7 === 1 && (y & 3) === 0) || (y & 3) === 1)) color = PAPER.hill;
-        }
-        put(x, y, color, shade);
-        continue;
-      }
-      const near = seaDistance[index];
-      let color = value === SHALLOW ? PAPER.shallow : near <= 2 ? PAPER.seaNear : dither(x, y, Math.min(.5, near / 60)) ? PAPER.seaDeep : PAPER.sea;
-      // Water-lining: dotted rings echo the coast offshore.
-      if ((near === 4 || near === 8) && (x + y) % 2 === 0) color = PAPER.waterLine;
-      else if (near >= 3 && rhumb[index]) color = rhumb[index] === 2 ? PAPER.waterLine : PAPER.rhumb;
-      // Sparse wave strokes in open sea.
-      else if (near >= 7) {
-        const cellX = Math.floor(x / 12);
-        const cellY = Math.floor(y / 9);
-        const waveX = cellX * 12 + Math.floor(hash(cellX, cellY, 5) * 8);
-        const waveY = cellY * 9 + Math.floor(hash(cellX, cellY, 6) * 7);
-        if (hash(cellX, cellY, 9) < .45 && ((y === waveY && (x === waveX || x === waveX + 3)) || (y === waveY - 1 && (x === waveX + 1 || x === waveX + 2)))) color = PAPER.wave;
-      }
-      put(x, y, color, shade);
+      const color = value === LAND
+        ? landColor(x, y, landDistance[index])
+        : seaColor(x, y, value, seaDistance[index], rhumb[index]);
+      put(x, y, color, paperShade(x, y, width, height));
     }
   }
 
@@ -172,11 +205,11 @@ export function paintChartBase(map) {
   for (let y = 0; y < art.height; y += 1) {
     for (let x = 0; x < art.width; x += 1) {
       const offset = (y * art.width + x) * 4;
-      if (!art.pixels[offset + 3]) continue;
       const cx = roseLeft + x;
       const cy = roseTop + y;
-      if (cx < 0 || cy < 0 || cx >= width || cy >= height) continue;
-      put(cx, cy, [art.pixels[offset], art.pixels[offset + 1], art.pixels[offset + 2]]);
+      if (art.pixels[offset + 3] && cx >= 0 && cy >= 0 && cx < width && cy < height) {
+        put(cx, cy, [art.pixels[offset], art.pixels[offset + 1], art.pixels[offset + 2]]);
+      }
     }
   }
 
@@ -211,7 +244,9 @@ function paintCompassRose() {
     const left = [c + .5 + Math.sin(angle - Math.PI / 2) * halfWidth, c + .5 - Math.cos(angle - Math.PI / 2) * halfWidth];
     const right = [c + .5 + Math.sin(angle + Math.PI / 2) * halfWidth, c + .5 - Math.cos(angle + Math.PI / 2) * halfWidth];
     const centre = [c + .5, c + .5];
-    art.polygon([centre, left, tip], point === 0 ? red : point % 2 ? tan : pale);
+    let lightHalf = point % 2 ? tan : pale;
+    if (point === 0) lightHalf = red;
+    art.polygon([centre, left, tip], lightHalf);
     art.polygon([centre, tip, right], point === 0 ? '#7a2a1a' : ink);
   }
   art.rect(c - 1, c - 1, 3, 3, red);

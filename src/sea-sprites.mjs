@@ -23,6 +23,10 @@ function hash(x, y, salt = 0) {
 // 4×4 ordered dither thresholds, for the soft pixel-art swell.
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((value) => (value + .5) / 16);
 
+// Wave crests sit one to a cell of this grid, jittered inside it.
+const CREST_CELL_WIDTH = 36;
+const CREST_CELL_HEIGHT = 18;
+
 // The whole arena at one art pixel per battle pixel. Broad, slow swells
 // (ordered-dithered between three blues) run across it, with sparse short
 // wave crests: a bright top pixel row over a darker trough, drifting with
@@ -31,37 +35,40 @@ export function paintSea({ width, height, frame = 0 }) {
   const art = createArt(width, height);
   const phase = frame % SEA_FRAMES;
   for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      // Swells lean a little and shift one pixel a frame.
-      const swell = Math.sin(((y + x / 6 + phase) / 40) * Math.PI * 2) * .6
-        + Math.sin(((x - y / 3) / 90) * Math.PI * 2) * .4;
-      const threshold = BAYER[(y & 3) * 4 + (x & 3)];
-      let color = SEA;
-      if (swell > .35 && (swell - .35) * 1.6 > threshold) color = SWELL;
-      else if (swell < -.45 && (-swell - .45) * 1.6 > threshold) color = DEEP;
-      art.set(x, y, color);
-    }
+    for (let x = 0; x < width; x += 1) art.set(x, y, swellColor(x, y, phase));
   }
   // Wave crests on a jittered grid, so they never line up into stripes.
-  const cellW = 36;
-  const cellH = 18;
-  for (let row = 0; row * cellH < height + cellH; row += 1) {
-    for (let col = -1; col * cellW < width + cellW; col += 1) {
-      if (hash(col, row, 7) < .45) continue;
-      const length = 3 + Math.floor(hash(col, row, 3) * 4);
-      const drift = (phase + Math.floor(hash(col, row, 5) * SEA_FRAMES)) % SEA_FRAMES;
-      const x0 = col * cellW + Math.floor(hash(col, row, 1) * (cellW - length)) + drift;
-      const y0 = row * cellH + Math.floor(hash(col, row, 2) * (cellH - 2));
-      // Crests swell and fade over the cycle: longest, with foam, at drift 1.
-      const visible = drift === 3 ? length - 2 : length;
-      if (visible <= 0) continue;
-      for (let index = 0; index < visible; index += 1) {
-        art.set(x0 + index, y0, drift === 1 && index > 0 && index < visible - 1 ? FOAM : CREST);
-        if (index > 0 && index < visible - 1) art.set(x0 + index, y0 + 1, DEEP);
-      }
-    }
+  for (let row = 0; row * CREST_CELL_HEIGHT < height + CREST_CELL_HEIGHT; row += 1) {
+    for (let col = -1; col * CREST_CELL_WIDTH < width + CREST_CELL_WIDTH; col += 1) paintCrest(art, col, row, phase);
   }
   return { pixels: rasterize(art, { outline: null, shadow: false }), width, height, anchor: { x: 0, y: 0 } };
+}
+
+// Swells lean a little and shift one pixel a frame.
+function swellColor(x, y, phase) {
+  const swell = Math.sin(((y + x / 6 + phase) / 40) * Math.PI * 2) * .6
+    + Math.sin(((x - y / 3) / 90) * Math.PI * 2) * .4;
+  const threshold = BAYER[(y & 3) * 4 + (x & 3)];
+  if (swell > .35 && (swell - .35) * 1.6 > threshold) return SWELL;
+  if (swell < -.45 && (-swell - .45) * 1.6 > threshold) return DEEP;
+  return SEA;
+}
+
+// The crest, if any, in grid cell (col, row): a bright top row over a
+// darker trough. Crests swell and fade over the cycle: longest, with foam,
+// at drift 1.
+function paintCrest(art, col, row, phase) {
+  if (hash(col, row, 7) < .45) return;
+  const length = 3 + Math.floor(hash(col, row, 3) * 4);
+  const drift = (phase + Math.floor(hash(col, row, 5) * SEA_FRAMES)) % SEA_FRAMES;
+  const x0 = col * CREST_CELL_WIDTH + Math.floor(hash(col, row, 1) * (CREST_CELL_WIDTH - length)) + drift;
+  const y0 = row * CREST_CELL_HEIGHT + Math.floor(hash(col, row, 2) * (CREST_CELL_HEIGHT - 2));
+  const visible = drift === 3 ? length - 2 : length;
+  for (let index = 0; index < visible; index += 1) {
+    const inner = index > 0 && index < visible - 1;
+    art.set(x0 + index, y0, drift === 1 && inner ? FOAM : CREST);
+    if (inner) art.set(x0 + index, y0 + 1, DEEP);
+  }
 }
 
 const RIM = '#c8a25a';

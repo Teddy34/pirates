@@ -101,7 +101,10 @@ make syntax
 Run `make test` for the deterministic mechanics suite and `make test-browser`
 for the browser interaction smoke tests (transfer windows; landing,
 walking, digging and reefs; retirement; the family quest; the scene pictures; sword fights; and the sea chart, through the local `?preview=` states). `make check` runs the complete
-automated set. Use `make serve-test` for manual browser checks on isolated
+automated set; `make syntax` checks every `src/`, `tools/` and server file. The
+browser checks share `tools/browser-harness.mjs`, which starts the server and
+a headless Chromium and provides the DevTools helpers; build new checks on it.
+Use `make serve-test` for manual browser checks on isolated
 port 8011. Add rule tests with Node's built-in `node:test`; avoid adding a
 package manager or framework solely for basic tests. Verify visible or
 input-related changes in a browser at both a desktop size and a narrow

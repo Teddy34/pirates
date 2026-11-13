@@ -51,7 +51,8 @@ export function walkVectorForDirections({ west = false, east = false, north = fa
 }
 
 export function walkStep(vector) {
-  const axis = (value) => (value > WALK_DEAD_ZONE ? 1 : value < -WALK_DEAD_ZONE ? -1 : 0);
+  // -1, 0 or 1: the stick's sign, ignoring the dead zone.
+  const axis = (value) => (Math.abs(value) > WALK_DEAD_ZONE ? Math.sign(value) : 0);
   const dx = axis(vector?.x ?? 0);
   const dy = axis(vector?.y ?? 0);
   const dirBits = (dx < 0 ? DIR.WEST : 0) | (dx > 0 ? DIR.EAST : 0)

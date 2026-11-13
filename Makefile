@@ -15,38 +15,7 @@ serve-test:
 	PORT=8011 HOST=127.0.0.1 node server.js
 
 syntax:
-	node --check src/game.mjs
-	node --check src/mechanics.mjs
-	node --check src/world-map.mjs
-	node --check src/terrain.mjs
-	node --check src/terrain-worker.mjs
-	node --check src/town-sprites.mjs
-	node --check src/pixel-art.mjs
-	node --check src/ship-sprites.mjs
-	node --check src/party-sprites.mjs
-	node --check src/shot-sprites.mjs
-	node --check src/sprite-canvas.mjs
-	node --check src/cloud-sprites.mjs
-	node --check src/overland.mjs
-	node --check src/sea-chart.mjs
-	node --check src/chart-view.mjs
-	node --check src/villains.mjs
-	node --check src/treasure-sites.mjs
-	node --check src/retirement.mjs
-	node --check src/opening.mjs
-	node --check src/vignettes.mjs
-	node --check src/sword-mechanics.mjs
-	node --check src/fencer-sprites.mjs
-	node --check src/sword-renderer.mjs
-	node --check server.js
-	node --check tools/build_scenarios.mjs
-	node --check tools/check_plunder_hold.mjs
-	node --check tools/check_landing.mjs
-	node --check tools/check_retirement.mjs
-	node --check tools/check_villains.mjs
-	node --check tools/check_vignettes.mjs
-	node --check tools/check_sword_fights.mjs
-	node --check tools/check_sea_chart.mjs
+	@for file in src/*.mjs tools/*.mjs server.js; do echo "node --check $$file"; node --check "$$file" || exit 1; done
 
 test: syntax
 	node --test

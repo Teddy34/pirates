@@ -44,7 +44,7 @@ export function volleyLayout(tier) {
   // Centre the volley on the ball nearest its middle, listed first.
   const middle = balls.reduce(([x, y], [bx, by]) => [x + bx / balls.length, y + by / balls.length], [0, 0]);
   const distance = ([x, y]) => Math.hypot(x - middle[0], y - middle[1]);
-  const centre = balls.reduce((best, ball) => (distance(ball) < distance(best) ? ball : best));
+  const centre = balls.reduce((best, ball) => (distance(ball) < distance(best) ? ball : best), balls[0]);
   return [centre, ...balls.filter((ball) => ball !== centre)].map(([x, y]) => [x - centre[0], y - centre[1]]);
 }
 
