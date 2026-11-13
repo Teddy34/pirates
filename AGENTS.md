@@ -147,6 +147,8 @@ Do not rewrite working code merely to impose a preferred architecture. Preserve 
 
 A change is complete when the affected flow is playable, syntax checks and relevant tests pass, browser behavior has been checked when applicable, and the documentation reflects any new command or deliberate mechanics deviation.
 
+Log every change in `CHANGELOG.md`: add an entry under **Unreleased** (Added, Changed, Fixed or Removed) in the same commit as the change, written for a player or maintainer, and note any deliberate departure from the original's mechanics. A change is not complete without its changelog entry.
+
 After finishing work, always align the plan with what was done: update `docs/non-battle-feature-plan.md` (or `docs/tactical-sea-combat-plan.md` for sea combat), including its known differences from the original.
 
 ## Reciprocal review
