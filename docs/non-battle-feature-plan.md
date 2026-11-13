@@ -68,6 +68,14 @@ The plan was last revised with #33. These changes followed it:
   Previews `sword-duel`, `sword-boarding` and `sword-practice`;
   `tools/check_sword_fights.mjs` is their browser check. The player's
   `fencingPractice` (`0x45E90`) is a new save field, defaulted to 0 on load.
+- **Sea chart:** a full-screen, old-map chart of the whole Caribbean with
+  every town on it (`src/sea-chart.mjs` paints it from the era's navigation
+  map; `src/chart-view.mjs` runs the screen). Open it with C, the Chart
+  control or the logbook's "Sea chart". The gazetteer beside it searches,
+  filters by flag and sorts by name or distance; picking a town (in the list
+  or on the chart) shows the same figures as City Information, plus its
+  distance and compass bearing from your ship. `?preview=chart` opens it and
+  `tools/check_sea_chart.mjs` is its browser check. No save change.
 
 ## Known differences from the original
 
@@ -114,6 +122,11 @@ evidence for each item. This list collects them in one place.
   `src/villains.mjs`); and the "Shipping losses" news now appears for a
   capture only when the town had growth to lose, as it already did for a
   sinking.
+- The sea chart is a port addition. The original's map view from the cabin
+  is a scrolling view of the sailing map; the chart shows the whole sea at
+  once, stops the clock while open like the logbook at sea, and costs no time.
+  Its town figures follow the town information rules (current, obsolete or no
+  information). Town positions are on it regardless of what the captain knows.
 
 ### Sword fights (row 13)
 

@@ -123,3 +123,61 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 @media (min-width:761px) and (max-width:900px) { form{grid-template-columns:repeat(3,1fr)} }
 @media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}.screen-panel{justify-items:stretch;text-align:left}.crest{margin-left:0}.lede{margin-left:0}#hud{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}.hud-block{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;min-width:0;min-height:auto;padding:6px 10px}.hud-block b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.identity{grid-auto-flow:row;min-height:auto}.identity strong,.identity span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(5,1fr);width:calc(100% - 20px)}#controls button{min-width:0;justify-content:center}#controls button span{display:none}#log{bottom:126px;width:calc(100% - 172px)} }
 @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
+/* The sea chart: a full-screen old map with a gazetteer beside it (below it on narrow screens). */
+#sea-chart { position:fixed; inset:0; z-index:20; display:grid; grid-template-columns:minmax(0,1fr) 340px; background:#20160d; color:var(--paper-ink); }
+.chart-stage { position:relative; min-width:0; min-height:0; overflow:hidden; }
+#chart-canvas { display:block; width:100%; height:100%; cursor:grab; touch-action:none; image-rendering:pixelated; }
+.chart-cartouche { position:absolute; top:max(14px,env(safe-area-inset-top)); left:14px; padding:8px 16px 9px; border:2px solid #3d2a18; outline:1px solid #3d2a18; outline-offset:2px; background:#ead8ad; box-shadow:4px 4px 0 rgba(20,12,6,.45); pointer-events:none; }
+.chart-cartouche .eyebrow { margin:0; color:#7b5420; font-size:11px; }
+.chart-cartouche h2 { font-size:24px; line-height:1.1; font-style:italic; }
+.chart-zoom { position:absolute; right:14px; bottom:max(14px,env(safe-area-inset-bottom)); display:grid; gap:6px; }
+.chart-zoom button { width:44px; height:44px; border:2px solid #3d2a18; border-radius:0; background:#ead8ad; color:#3d2a18; font-size:22px; font-weight:700; line-height:1; cursor:pointer; box-shadow:3px 3px 0 rgba(20,12,6,.45); }
+.chart-zoom button:active { transform:translate(1px,1px); box-shadow:2px 2px 0 rgba(20,12,6,.45); }
+.chart-panel { display:flex; flex-direction:column; min-height:0; border-left:3px solid #3d2a18; background:var(--paper); }
+.chart-panel-head { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid rgba(114,95,67,.4); }
+.chart-hint { flex:1; margin:0; color:#725f43; font-size:12px; line-height:1.4; }
+.chart-hint kbd { padding:0 4px; border:1px solid #8f713e; border-radius:2px; font-size:11px; }
+#sea-chart button.secondary,#sea-chart .chart-detail-actions button { min-height:40px; padding:8px 12px; border:1px solid #8f713e; border-radius:2px; background:transparent; color:var(--paper-ink); font-weight:700; cursor:pointer; }
+#sea-chart .chart-detail-actions button:not(.secondary) { background:var(--brass); border-color:var(--brass); color:#1d1710; }
+#chart-detail { padding:14px 16px; border-bottom:1px solid rgba(114,95,67,.4); background:#f0e2bd; }
+#chart-detail .eyebrow { color:#7b5420; margin:0 0 3px; }
+#chart-detail h3 { margin:0; font-family:"IM Fell English",Georgia,serif; font-size:28px; font-weight:400; }
+#chart-detail p { margin:6px 0; font-family:"IM Fell English",Georgia,serif; font-size:16px; line-height:1.35; }
+#chart-detail .chart-course { color:#7a2a1a; font-style:italic; }
+#chart-detail dl { display:grid; grid-template-columns:1fr auto; gap:3px 16px; margin:10px 0 0; font-size:14px; }
+#chart-detail dt { color:#725f43; }
+#chart-detail dd { margin:0; font-weight:700; }
+.chart-detail-actions { display:flex; gap:8px; margin-top:12px; }
+.chart-detail-actions button { flex:1; }
+#chart-gazetteer { display:flex; flex-direction:column; min-height:0; flex:1; }
+.chart-search-row { display:flex; align-items:end; gap:8px; padding:12px 14px 6px; }
+.chart-search-row label { flex:1; color:#725f43; }
+#chart-search { margin-top:4px; border-color:#8f713e; background:#f6ead0; color:var(--paper-ink); }
+.chart-search-row button { min-width:112px; }
+.chart-nations { display:flex; flex-wrap:wrap; gap:6px; padding:4px 14px 10px; }
+.chart-nations button { display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:4px 10px; border:1px solid #8f713e; border-radius:2px; background:transparent; color:var(--paper-ink); font-size:13px; cursor:pointer; }
+.chart-nations button[aria-pressed="true"] { background:#3d2a18; color:#f3e5c5; }
+.chart-flag { display:inline-block; flex:none; width:14px; height:10px; border:1px solid #21180f; background:linear-gradient(90deg,var(--flag) 60%,var(--flag-dark) 60%); }
+#chart-towns { flex:1; min-height:0; margin:0; padding:0 0 12px; overflow:auto; list-style:none; border-top:1px solid rgba(114,95,67,.4); }
+#chart-towns button { display:grid; grid-template-columns:auto 1fr; column-gap:10px; align-items:center; width:100%; padding:8px 14px; border:0; border-bottom:1px solid rgba(114,95,67,.25); background:transparent; color:var(--paper-ink); text-align:left; cursor:pointer; }
+#chart-towns button:hover,#chart-towns button[aria-pressed="true"] { background:#f0e2bd; }
+#chart-towns button .chart-flag { grid-row:1/3; }
+#chart-towns b { font-family:"IM Fell English",Georgia,serif; font-size:17px; font-weight:400; }
+#chart-towns small { color:#725f43; font-size:12px; }
+.chart-empty { padding:14px; color:#725f43; font-style:italic; }
+@media (max-width:760px) {
+  #sea-chart { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); }
+  /* The stage takes the chart's own proportions, so no band is left empty. */
+  .chart-stage { aspect-ratio:652/492; max-height:60dvh; }
+  .chart-panel { border-left:0; border-top:3px solid #3d2a18; }
+  .chart-cartouche { padding:5px 10px 6px; }
+  .chart-cartouche h2 { font-size:18px; }
+  .chart-zoom { grid-auto-flow:column; right:8px; bottom:8px; gap:4px; }
+  .chart-zoom button { width:36px; height:36px; font-size:18px; }
+  .chart-hint { display:none; }
+  .chart-panel-head { justify-content:flex-end; padding:8px 12px; }
+  /* A selected town takes the panel; "All towns" brings the list back. */
+  #sea-chart.has-selection #chart-gazetteer { display:none; }
+  #chart-detail { flex:1; overflow:auto; border-bottom:0; }
+  #chart-detail h3 { font-size:24px; }
+}

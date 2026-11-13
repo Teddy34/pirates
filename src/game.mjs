@@ -62,6 +62,7 @@ import { headingSector, paintShipSprite } from './ship-sprites.mjs';
 import { paintPartySprite } from './party-sprites.mjs';
 import { CLOUD_ART_PIXEL, paintCloudSprite } from './cloud-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
+import { createChartView } from './chart-view.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
@@ -100,6 +101,9 @@ const logElement = document.querySelector('#log');
 const dockButton = document.querySelector('#dock-button');
 const pauseButton = document.querySelector('#pause-button');
 const logbookButton = document.querySelector('#logbook-button');
+const chartButton = document.querySelector('#chart-button');
+// Created before the game's key handler so the chart takes keys first.
+const chartView = createChartView(document.querySelector('#sea-chart'));
 const zoomOutButton = document.querySelector('#zoom-out-button');
 const zoomInButton = document.querySelector('#zoom-in-button');
 const lowerSailsButton = document.querySelector('#lower-sails-button');
@@ -3190,6 +3194,7 @@ function showLogbook(close) {
     actions: [
       { label: 'Ship’s log', run: () => showShipsLog(close) },
       { label: 'City information', run: () => showCityInformation(close) },
+      { label: 'Sea chart', run: () => showSeaChart(() => showLogbook(close)) },
       { label: 'Close the logbook', secondary: true, run: close },
     ],
   });
@@ -3226,8 +3231,43 @@ function showCityInformation(close) {
   });
 }
 
+// The sea chart: every town on a full-screen old map, with the gazetteer's
+// figures for the town you pick. A port addition with no counterpart in the
+// original; like the logbook at sea it stops the clock while open.
+function seaChartTownInfo(town) {
+  const kicker = townInfoStatus(town.flags) === 'current' ? `${town.nation} · ${prosperity(town.growth)}` : town.nation;
+  const inland = townLandlocked(town) ? '<p>An inland town: land a party and march to it.</p>' : '';
+  return { kicker, body: `${inland}${townInfoBody(town)}` };
+}
+
+function showSeaChart(close) {
+  const player = state.player;
+  chartView.open({
+    map: worldMap,
+    towns: state.towns,
+    nations: NATIONS,
+    era: state.era,
+    ship: { x: player.x, y: player.y, onFoot: Boolean(player.onFoot) },
+    distanceTo: (town) => townDistanceCells(town, ...playerCell()),
+    describe: seaChartTownInfo,
+    onClose: close,
+  });
+}
+
+function openSeaChartAtSea() {
+  if (!state || state.mode !== 'sailing' || dialog.open || chartView.isOpen()) return;
+  const wasPaused = state.paused;
+  state.paused = true;
+  updateInterface();
+  showSeaChart(() => {
+    state.paused = wasPaused;
+    if (!wasPaused) resetSailingInterpolation();
+    updateInterface();
+  });
+}
+
 function openLogbookAtSea() {
-  if (!state || state.mode !== 'sailing' || dialog.open) return;
+  if (!state || state.mode !== 'sailing' || dialog.open || chartView.isOpen()) return;
   const wasPaused = state.paused;
   state.paused = true;
   showLogbook(() => {
@@ -3850,7 +3890,7 @@ function startVoyage() {
 }
 
 function togglePause() {
-  if (!state || !['sailing', 'battle', 'sword'].includes(state.mode) || dialog.open) return;
+  if (!state || !['sailing', 'battle', 'sword'].includes(state.mode) || dialog.open || chartView.isOpen()) return;
   state.paused = !state.paused;
   if (state.paused) {
     input.firePressed = false;
@@ -3927,6 +3967,7 @@ function updateInterface() {
     labels.nearest.textContent = `${battle.enemy.men} crew · ${battle.enemy.guns} guns`;
     dockButton.disabled = state.paused || !guns.ready;
     logbookButton.disabled = true;
+    chartButton.disabled = true;
     return;
   }
   const town = nearestTown();
@@ -3946,6 +3987,7 @@ function updateInterface() {
   zoomOutButton.disabled = false;
   zoomInButton.disabled = false;
   logbookButton.disabled = state.mode !== 'sailing';
+  chartButton.disabled = state.mode !== 'sailing';
 }
 
 // The sailing buttons become the fight's controls: the steering pair attack
@@ -3962,6 +4004,7 @@ function updateSwordInterface({ fight, foeName }) {
   zoomOutButton.disabled = true;
   zoomInButton.disabled = true;
   logbookButton.disabled = true;
+  chartButton.disabled = true;
   const battle = fight.mode === FIGHT_MODE.battle;
   labels.captain.textContent = `Captain ${state.captain} · Fight`;
   labels.date.textContent = `Against the ${foeName}`;
@@ -4224,6 +4267,7 @@ form.addEventListener('submit', async (event) => {
 continueButton.addEventListener('click', async () => { const saved = loadGame(); if (saved && scenarios) await startGame(saved); });
 pauseButton.addEventListener('click', togglePause);
 logbookButton.addEventListener('click', openLogbookAtSea);
+chartButton.addEventListener('click', openSeaChartAtSea);
 dockButton.addEventListener('click', () => {
   if (state?.mode === 'sword') return;
   if (state?.mode === 'battle') input.firePressed = true;
@@ -4293,7 +4337,7 @@ function setWalk(directions) {
 }
 
 function openTreasureMapsAtSea() {
-  if (state?.mode !== 'sailing' || state.paused || dialog.open || !state.treasureMaps.some(({ pieces }) => pieces)) return;
+  if (state?.mode !== 'sailing' || state.paused || dialog.open || chartView.isOpen() || !state.treasureMaps.some(({ pieces }) => pieces)) return;
   showTreasureMaps(continueVoyage);
 }
 
@@ -4378,7 +4422,9 @@ addEventListener('keydown', (event) => {
     fastTravel = !fastTravel;
     addLog(fastTravel ? 'Fast travel: time runs five times faster.' : 'Fast travel off.');
   }
-  if (key === 'l' && !event.repeat) openLogbookAtSea();
+  // Kept from typing into the field the logbook or chart focuses.
+  if (key === 'l' && !event.repeat) { event.preventDefault(); openLogbookAtSea(); }
+  if (key === 'c' && !event.repeat) { event.preventDefault(); openSeaChartAtSea(); }
   if (event.key === '+' || event.key === '=') changeZoom(ZOOM_STEP);
   if (event.key === '-' || event.key === '_') changeZoom(-ZOOM_STEP);
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'].includes(event.key)) event.preventDefault();
@@ -4770,6 +4816,16 @@ loadScenarios().then(() => {
         body: newsBody(state.worldNews.slice(0, 6)),
         actions: [{ label: 'Return to the tavern', run: () => {} }],
       });
+    });
+    return;
+  }
+  if (preview === 'chart' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // Half a year of the monthly world, then the sea chart at sea.
+    const previewState = newState({ era: '1660', captain: 'Preview', nationality: 'England', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      passDays(180);
+      updateInterface();
+      openSeaChartAtSea();
     });
     return;
   }

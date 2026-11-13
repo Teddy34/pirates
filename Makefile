@@ -5,7 +5,7 @@ help:
 	@echo "make serve-test    Start the game on isolated port 8011"
 	@echo "make syntax        Check JavaScript syntax"
 	@echo "make test          Run syntax and deterministic tests"
-	@echo "make test-browser  Run the transfer-window, landing, retirement, villain, vignette and sword-fight smoke tests"
+	@echo "make test-browser  Run the transfer-window, landing, retirement, villain, vignette, sword-fight and sea-chart smoke tests"
 	@echo "make check         Run every automated check"
 
 serve:
@@ -28,6 +28,8 @@ syntax:
 	node --check src/sprite-canvas.mjs
 	node --check src/cloud-sprites.mjs
 	node --check src/overland.mjs
+	node --check src/sea-chart.mjs
+	node --check src/chart-view.mjs
 	node --check src/villains.mjs
 	node --check src/treasure-sites.mjs
 	node --check src/retirement.mjs
@@ -44,6 +46,7 @@ syntax:
 	node --check tools/check_villains.mjs
 	node --check tools/check_vignettes.mjs
 	node --check tools/check_sword_fights.mjs
+	node --check tools/check_sea_chart.mjs
 
 test: syntax
 	node --test
@@ -55,6 +58,7 @@ test-browser:
 	node tools/check_villains.mjs
 	node tools/check_vignettes.mjs
 	node tools/check_sword_fights.mjs
+	node tools/check_sea_chart.mjs
 
 check: test test-browser
 	git diff --check
