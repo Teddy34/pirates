@@ -7,7 +7,7 @@ import {
   shiftWind, cloudCountForMonth, navigationSkill, turnHeadingDownwind,
   createVoyageClouds, driftClouds, nearestCloudDistancePixels, cloudWrapOpacity,
   applyBoardingOutcome,
-  capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
+  capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits, seaVictoryTownEffect,
   acceptsRudderInput,
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
   triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
@@ -1554,9 +1554,7 @@ function finishTacticalBattle() {
   if (battle.event === 'enemy-sunk') {
     state.player.reputation += 1;
     // Likely trade-loss target per sea_battles.md; the nearest-town pointer is not fully confirmed.
-    const tradeTown = nearestTown();
-    if (tradeTown.growth > 0) addWorldNews(`Shipping losses have hurt trade at ${tradeTown.name}.`);
-    tradeTown.growth = Math.max(0, tradeTown.growth - 10);
+    applySeaVictoryToTown(enemy, 'sunk');
     showEnemyDestroyed(enemy, () => endBattleToSailing(`The ${enemy.ship} exploded and sank. No prize remained.`));
     return;
   }
@@ -1798,16 +1796,29 @@ function finishPrizeDecision(enemy, keepShip) {
   state.player.reputation += 1;
   state.player.crewMorale += prizeMoraleBonus(enemy.kind);
   if (enemy.flag !== 'pirate') propagateFavour(enemy.flag, -1);
-  const nearbyTown = nearestTown();
-  const distance = Math.round(Math.abs(state.player.x - nearbyTown.x) + Math.abs(state.player.y - nearbyTown.y));
-  if (SHIPS[enemy.ship].type + 5 > distance) {
-    nearbyTown.growth = Math.max(0, nearbyTown.growth - 10);
-    addWorldNews(`Shipping losses have hurt trade at ${nearbyTown.name}.`);
+  if (applySeaVictoryToTown(enemy, 'captured') !== 'none') {
     // 0xDE2B: close to town, the captured crewmen know its comings and goings.
     offerVillainGossip('crewmen', state.nearestTownIndex, () => settlePrizeCaptain(enemy));
     return;
   }
   settlePrizeCaptain(enemy);
+}
+
+// Applies seaVictoryTownEffect to the nearest town and reports it; returns
+// the effect ('loss', 'cleared' or 'none').
+function applySeaVictoryToTown(enemy, outcome) {
+  const town = nearestTown();
+  const result = seaVictoryTownEffect({
+    flag: enemy.flag, shipType: SHIPS[enemy.ship].type, distanceCells: nearestTownDistance(), outcome, town,
+  });
+  if (result.effect === 'loss' && town.growth > 0) addWorldNews(`Shipping losses have hurt trade at ${town.name}.`);
+  if (result.effect === 'cleared') {
+    addWorldNews(`Merchants at ${town.name} rejoice: a pirate ${enemy.ship} no longer haunts their waters.`);
+    addLog(`Clearing the pirate from ${town.name}'s waters has helped its trade${result.mood > town.mood ? ' and pleased its governor' : ''}.`);
+  }
+  town.growth = result.growth;
+  town.mood = result.mood;
+  return result.effect;
 }
 
 function settlePrizeCaptain(enemy) {

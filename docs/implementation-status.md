@@ -167,6 +167,11 @@ for future work.
   gold / 4. The fleet restarts in October and the train in April (a month
   earlier in odd eras); a new game places both from the day of the year
   (`0x13679`). Their movement is never announced.
+- Charge the nearest town 10 growth for a ship captured within `type + 5`
+  cells or blown up at any distance (`0xDDDB`, `0xE706`). Deliberate
+  deviation: a pirate taken or sunk within `type + 5` cells instead gives the
+  town +10 growth and its governor +1 mood (up to +3), with a "Merchants at
+  … rejoice" news line; a pirate beaten farther out changes nothing.
 - Open the opening news with each war or alliance and a reported town event
   for each pair of nations at peace (`0x13679`).
 - Track the single nearest-town alert (reset when the nearest town changes), national favour, ranks, reputation, stored crew morale, and time

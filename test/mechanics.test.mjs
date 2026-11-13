@@ -13,7 +13,7 @@ import {
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
   applyBoardingOutcome,
-  capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits,
+  capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits, seaVictoryTownEffect,
   triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
   assaultBeforeTheWalls,
 } from '../src/mechanics.mjs';
@@ -638,4 +638,28 @@ test('before the walls: a fort battle by sea, a land battle against a strong for
   assert.equal(assaultBeforeTheWalls({ overland: true, soldiers: 10, forts: 1, crew: 151 }).battle, null);
   assert.equal(assaultBeforeTheWalls({ overland: true, soldiers: 9, forts: 1, crew: 10 }).battle, null);
   assert.equal(assaultBeforeTheWalls({ overland: true, soldiers: 40, forts: 0, crew: 10 }).battle, null);
+});
+
+test('a won sea fight hurts nearby trade, except that beating a pirate near a town helps it', () => {
+  const town = { growth: 150, mood: 0, population: 20 };
+  const effect = (flag, outcome, distanceCells, over = {}) => seaVictoryTownEffect({
+    flag, shipType: 2, distanceCells, outcome, town: { ...town, ...over },
+  });
+  // Original rules for national ships (0xDDDB within type + 5 cells, 0xE706 at any distance).
+  assert.deepEqual(effect('Spain', 'captured', 6), { effect: 'loss', growth: 140, mood: 0 });
+  assert.deepEqual(effect('Spain', 'captured', 7), { effect: 'none', growth: 150, mood: 0 });
+  assert.deepEqual(effect('England', 'sunk', 40), { effect: 'loss', growth: 140, mood: 0 });
+  assert.equal(effect('France', 'sunk', 3, { growth: 8 }).growth, 0);
+  // Deviation: a pirate taken or sunk within type + 5 cells clears the waters.
+  assert.deepEqual(effect('pirate', 'captured', 6), { effect: 'cleared', growth: 160, mood: 1 });
+  assert.deepEqual(effect('pirate', 'sunk', 1), { effect: 'cleared', growth: 160, mood: 1 });
+  assert.equal(effect('pirate', 'sunk', 1, { growth: 250 }).growth, 255);
+  assert.equal(effect('pirate', 'sunk', 1, { mood: 3 }).mood, 3);
+  assert.equal(effect('pirate', 'sunk', 1, { mood: 5 }).mood, 5);
+  assert.equal(effect('pirate', 'sunk', 1, { mood: -2 }).mood, -1);
+  // No governor below 600 citizens: trade still improves.
+  assert.deepEqual(effect('pirate', 'captured', 2, { population: 5 }), { effect: 'cleared', growth: 160, mood: 0 });
+  // Beaten far out at sea, a pirate leaves the town alone either way.
+  assert.deepEqual(effect('pirate', 'sunk', 7), { effect: 'none', growth: 150, mood: 0 });
+  assert.deepEqual(effect('pirate', 'captured', 40), { effect: 'none', growth: 150, mood: 0 });
 });

@@ -100,6 +100,15 @@ evidence for each item. This list collects them in one place.
   `src/villains.mjs`).
 - With no Spanish town left in the range, a promotion names no villain. The
   original would loop for ever.
+- Beating a pirate (a ship under the pirate flag, not a national pirate
+  hunter) near a town helps that town instead of hurting it. Taken or sunk
+  within `type + 5` cells of the nearest town, it gives the town +10 growth
+  (at most 255), and the governor, if the town has one, +1 mood up to +3. A
+  pirate beaten farther out leaves the town alone. The original takes 10
+  growth for any capture that close and for any ship blown up at any distance,
+  pirates included (`0xDDDB`, `0xE706`, `town_economy.md` §3). National ships
+  still follow the original rule. See `seaVictoryTownEffect` in
+  `src/mechanics.mjs`.
 
 ### Sword fights (row 13)
 

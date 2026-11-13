@@ -242,6 +242,35 @@ export function applyTownCapture(town, plunder) {
   };
 }
 
+// What a won sea fight does to the nearest town (town_economy.md §3).
+// Original: capturing any ship within `type + 5` cells (Manhattan, 0xDDDB)
+// costs that town 10 growth, and blowing one up costs 10 at any distance
+// (0xE706); pirates are not exempt.
+// DELIBERATE DEVIATION: a pirate ship (flag 'pirate', not a national pirate
+// hunter) taken or sunk within the same `type + 5` cells clears the town's
+// waters instead: growth +10 (capped at 255), and a governor (population 6
+// or more) gains 1 mood, up to +3 (a higher mood is kept). A pirate beaten
+// farther out leaves the town alone. `outcome` is 'captured' or 'sunk'.
+export const PIRATE_CLEARED_GROWTH = 10;
+export const PIRATE_CLEARED_MOOD_CAP = 3;
+
+export function seaVictoryTownEffect({ flag, shipType, distanceCells, outcome, town }) {
+  const near = shipType + 5 > distanceCells;
+  if (flag === 'pirate') {
+    if (!near) return { effect: 'none', growth: town.growth, mood: town.mood };
+    const hasGovernor = town.population >= 6;
+    return {
+      effect: 'cleared',
+      growth: Math.min(255, town.growth + PIRATE_CLEARED_GROWTH),
+      mood: hasGovernor && town.mood < PIRATE_CLEARED_MOOD_CAP ? town.mood + 1 : town.mood,
+    };
+  }
+  if (outcome === 'sunk' || near) {
+    return { effect: 'loss', growth: Math.max(0, town.growth - 10), mood: town.mood };
+  }
+  return { effect: 'none', growth: town.growth, mood: town.mood };
+}
+
 export function capturedShipRecruits({ enemyCrew, reputation, crew, capacity, rng }) {
   const range = Math.floor(((reputation + 5) * enemyCrew) / 10);
   const recruits = range > 0 ? rng.int(range) : 0;
