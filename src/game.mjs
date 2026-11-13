@@ -3340,7 +3340,7 @@ function spendEveningWithBarmaid(cost, rapportGain) {
     : 'She pours your drink and moves on to the next customer.';
   if (rapport >= 10 && !state.player.barmaidInformants.includes(key)) {
     state.player.barmaidInformants.push(key);
-    title = 'You\'ve won the barmaid\'s heart!';
+    title = 'You’ve won the barmaid’s heart!';
     text = 'She agrees to gather information for you: from now on she will tell you what she hears of the treasure fleet and the silver train.';
     addLog(`Won the heart of a barmaid in ${state.towns[state.visit.townIndex].name}; she will gather information.`);
   }
