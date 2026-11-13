@@ -102,13 +102,18 @@ evidence for each item. This list collects them in one place.
   original would loop for ever.
 - Beating a pirate (a ship under the pirate flag, not a national pirate
   hunter) near a town helps that town instead of hurting it. Taken or sunk
-  within `type + 5` cells of the nearest town, it gives the town +10 growth
+  fewer than `type + 5` cells from the nearest town (4 for a Pinnace), it gives the town +10 growth
   (at most 255), and the governor, if the town has one, +1 mood up to +3. A
   pirate beaten farther out leaves the town alone. The original takes 10
   growth for any capture that close and for any ship blown up at any distance,
   pirates included (`0xDDDB`, `0xE706`, `town_economy.md` §3). National ships
   still follow the original rule. See `seaVictoryTownEffect` in
-  `src/mechanics.mjs`.
+  `src/mechanics.mjs`. Side effects: the extra growth can push a Spanish town
+  over its "We do not trade with pirates!" limit, as repeated trade can; a
+  happier Spanish governor draws villains slightly more (`4 * mood` in
+  `src/villains.mjs`); and the "Shipping losses" news now appears for a
+  capture only when the town had growth to lose, as it already did for a
+  sinking.
 
 ### Sword fights (row 13)
 

@@ -123,8 +123,8 @@ reuse the finished naval engine in a later milestone.
 - **Pirates beaten near a town help its trade.** The original takes 10
   growth from the nearest town for every nearby capture and for every ship
   blown up, pirates included (`town_economy.md` §3). The port gives that town
-  +10 growth (and its governor +1 mood, up to +3) when you take or sink a
-  pirate within `type + 5` cells, and leaves the town alone for a pirate
+  +10 growth (and its governor, if it has one, +1 mood up to +3) when you take or sink a
+  pirate fewer than `type + 5` cells away, and leaves the town alone for a pirate
   beaten farther out. National ships, pirate hunters included, keep the
   original penalty (`seaVictoryTownEffect`).
 

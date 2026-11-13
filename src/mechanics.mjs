@@ -243,14 +243,14 @@ export function applyTownCapture(town, plunder) {
 }
 
 // What a won sea fight does to the nearest town (town_economy.md §3).
-// Original: capturing any ship within `type + 5` cells (Manhattan, 0xDDDB)
-// costs that town 10 growth, and blowing one up costs 10 at any distance
-// (0xE706); pirates are not exempt.
+// Original: capturing any ship fewer than `type + 5` cells (Manhattan,
+// 0xDDDB) from the nearest town costs it 10 growth, and blowing one up costs
+// 10 at any distance (0xE706); pirates are not exempt.
 // DELIBERATE DEVIATION: a pirate ship (flag 'pirate', not a national pirate
-// hunter) taken or sunk within the same `type + 5` cells clears the town's
-// waters instead: growth +10 (capped at 255), and a governor (population 6
-// or more) gains 1 mood, up to +3 (a higher mood is kept). A pirate beaten
-// farther out leaves the town alone. `outcome` is 'captured' or 'sunk'.
+// hunter) taken or sunk that close clears the town's waters instead: growth
+// +10 (capped at 255), and a governor (population 6 or more) gains 1 mood,
+// up to +3 (a higher mood is kept). A pirate beaten farther out leaves the
+// town alone. `outcome` is 'captured' or 'sunk'.
 export const PIRATE_CLEARED_GROWTH = 10;
 export const PIRATE_CLEARED_MOOD_CAP = 3;
 
