@@ -4365,11 +4365,11 @@ addEventListener('keydown', (event) => {
   } else {
     if (event.key === 'ArrowLeft' || key === 'a') input.left = true;
     if (event.key === 'ArrowRight' || key === 'd') input.right = true;
-    if (event.key === 'ArrowUp' && !event.repeat) changeSails(1);
-    if (event.key === 'ArrowDown' && !event.repeat) changeSails(-1);
+    if (event.key === 'ArrowUp' && !event.repeat) { changeSails(1); flashControl(raiseSailsButton); }
+    if (event.key === 'ArrowDown' && !event.repeat) { changeSails(-1); flashControl(lowerSailsButton); }
   }
   if (event.key === ' ' && !event.repeat) {
-    if (state?.mode === 'battle' && !state.paused) input.firePressed = true;
+    if (state?.mode === 'battle' && !state.paused) { input.firePressed = true; flashControl(dockButton); }
     else togglePause();
   }
   if ((event.key === 'Escape' || key === 'p') && !event.repeat) togglePause();
@@ -4432,6 +4432,30 @@ function stepBattleSimulation() {
   if (state.battle.event) finishTacticalBattle();
 }
 
+// Light up the on-screen control a key drives, so keyboard players see the
+// press register even when a slow ship takes a while to answer the helm.
+// Held keys light their button while held; one-shot keys flash it briefly.
+const CONTROL_FLASH_MS = 180;
+const controlFlashUntil = new Map();
+function flashControl(button) {
+  controlFlashUntil.set(button, performance.now() + CONTROL_FLASH_MS);
+}
+
+function syncPressedControls(now) {
+  const sword = state?.mode === 'sword';
+  const onFoot = !sword && state?.player?.onFoot;
+  const held = new Map([
+    [turnLeftButton, sword ? swordKeys.toward : onFoot ? walkKeys.west : input.left],
+    [turnRightButton, sword ? swordKeys.away : onFoot ? walkKeys.east : input.right],
+    [raiseSailsButton, sword && swordKeys.high],
+    [lowerSailsButton, sword && swordKeys.low],
+    [dockButton, sword && swordKeys.quick],
+  ]);
+  for (const [button, isHeld] of held) {
+    button.classList.toggle('pressed', Boolean(isHeld) || (controlFlashUntil.get(button) ?? 0) > now);
+  }
+}
+
 function frame(now) {
   const elapsed = Math.min(.25, (now - lastFrame) / 1000);
   lastFrame = now;
@@ -4451,6 +4475,7 @@ function frame(now) {
     while (accumulator >= tickSeconds()) { stepSimulation(); accumulator -= tickSeconds(); }
   }
   updateInterface();
+  syncPressedControls(now);
   render();
   requestAnimationFrame(frame);
 }
