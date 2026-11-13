@@ -591,6 +591,13 @@ export function morale({ partyGold, crew, monthsAtSea, difficulty }) {
   return Math.floor(2 * Math.sqrt(partyGold / 10 / crew)) + 4 - monthsAtSea - difficulty;
 }
 
+// The crew's mood as the original's Party Status names it (0x1DB2C):
+// morale / 4 (idiv, so it truncates towards zero) + 1, clamped to 0..3.
+export const CREW_MOODS = ['angry', 'unhappy', 'pleased', 'happy'];
+export function crewMood(crewMorale) {
+  return CREW_MOODS[clamp(Math.trunc(crewMorale / 4) + 1, 0, 3)];
+}
+
 // add_prize (0xDB7B): every captured prize, kept or sunk, raises the stored
 // crew morale by 1, or by 2 when the encounter template's kind is above 5.
 export function prizeMoraleBonus(kind) {

@@ -32,7 +32,7 @@ const LINE_HEIGHT = [25, 17, 32];
 // the screen.
 export function swordLayout(width, height, centre = SCENE_UNITS / 2) {
   const compact = width <= 760;
-  const panelTop = compact ? 140 : 82;
+  const panelTop = compact ? 186 : 82; // below the three-row phone HUD
   const top = panelTop + 70;
   const bottom = height - (width <= 1100 ? 150 : 96);
   const available = Math.max(140, bottom - top);

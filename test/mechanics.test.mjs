@@ -639,3 +639,9 @@ test('before the walls: a fort battle by sea, a land battle against a strong for
   assert.equal(assaultBeforeTheWalls({ overland: true, soldiers: 9, forts: 1, crew: 10 }).battle, null);
   assert.equal(assaultBeforeTheWalls({ overland: true, soldiers: 40, forts: 0, crew: 10 }).battle, null);
 });
+
+test('the crew mood follows 0x1DB2C: morale / 4 truncated, + 1, clamped', async () => {
+  const { crewMood } = await import('../src/mechanics.mjs');
+  assert.deepEqual([-8, -4, -3, -1, 0, 3, 4, 7, 8, 30].map(crewMood),
+    ['angry', 'angry', 'unhappy', 'unhappy', 'unhappy', 'unhappy', 'pleased', 'pleased', 'happy', 'happy']);
+});
