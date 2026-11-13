@@ -463,3 +463,13 @@ test('ships start mirrored about the centre, you pointing at him (0x9A79)', () =
   assert.equal(other.enemy.x, 272);
   assert.equal(other.enemy.heading, (0x60 - 16 - 0x60) & 0xff);
 });
+
+test('the escape is yours only when your motion opened the range more than his', async () => {
+  const { playerOpenedRange } = await import('../src/battle-mechanics.mjs');
+  // You are due east of him. Heading 64 is east, 192 west, 0 north.
+  const parting = (player, enemy) => playerOpenedRange({ player: { x: 100, y: 0, ...player }, enemy: { x: 0, y: 0, ...enemy } });
+  assert.equal(parting({ heading: 64, speed: 30 }, { heading: 0, speed: 20 }), true, 'you run while he duels broadside');
+  assert.equal(parting({ heading: 64, speed: 30 }, { heading: 64, speed: 20 }), true, 'you outrun him while he chases');
+  assert.equal(parting({ heading: 192, speed: 20 }, { heading: 192, speed: 30 }), false, 'he runs off and you chase');
+  assert.equal(parting({ heading: 0, speed: 20 }, { heading: 192, speed: 30 }), false, 'he sails away while you cross');
+});

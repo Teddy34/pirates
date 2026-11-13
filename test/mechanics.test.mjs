@@ -493,12 +493,13 @@ test('leaving a town starts at the departure cell centre with its heading', () =
 });
 
 test('only escaping, not sunset, lets an undamaged pursuer take a reserve ship', () => {
-  const base = { event: 'escaped', shipCount: 2, enemyDamage: 15, enemyTactic: 'close' };
+  const base = { event: 'escaped', shipCount: 2, enemyDamage: 15, enemyTactic: 'close', youOpenedRange: true };
   assert.equal(escapeCostsShip(base), true);
   assert.equal(escapeCostsShip({ ...base, event: 'sunset' }), false);
   assert.equal(escapeCostsShip({ ...base, shipCount: 1 }), false);
   assert.equal(escapeCostsShip({ ...base, enemyDamage: 16 }), false);
   assert.equal(escapeCostsShip({ ...base, enemyTactic: 'flee' }), false);
+  assert.equal(escapeCostsShip({ ...base, enemyTactic: 'duel', youOpenedRange: false }), false, 'he sailed away: no chase');
 });
 
 test('the voyage clock starts at 63 and charges tick / 64 + 1 days on leaving', () => {

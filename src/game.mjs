@@ -30,7 +30,7 @@ import {
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
-  broadsideState, createBattle, damageLevel, embarkedForBattle, shipName, shipRecord, stepBattle,
+  broadsideState, createBattle, damageLevel, embarkedForBattle, playerOpenedRange, shipName, shipRecord, stepBattle,
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
 import {
@@ -1555,7 +1555,8 @@ function finishTacticalBattle() {
     showEnemyDestroyed(enemy, () => endBattleToSailing(`The ${enemy.ship} exploded and sank. No prize remained.`));
     return;
   }
-  if (escapeCostsShip({ event: battle.event, shipCount: state.player.ships.length, enemyDamage: battle.enemy.damage, enemyTactic: battle.enemy.tactic })) {
+  const youLeft = playerOpenedRange(battle);
+  if (escapeCostsShip({ event: battle.event, shipCount: state.player.ships.length, enemyDamage: battle.enemy.damage, enemyTactic: battle.enemy.tactic, youOpenedRange: youLeft })) {
     let slowest = 1;
     for (let index = 2; index < state.player.ships.length; index += 1) {
       if (statsFor(state.player.ships[index]).type > statsFor(state.player.ships[slowest]).type) slowest = index;
@@ -1564,23 +1565,25 @@ function finishTacticalBattle() {
     return;
   }
   const messages = {
-    escaped: battle.enemy.tactic === 'flee' ? `The ${enemy.ship} escaped.` : 'Your flagship sailed out of range.',
+    escaped: battle.enemy.tactic === 'flee' ? `The ${enemy.ship} escaped.` : youLeft ? 'Your flagship sailed out of range.' : `The ${enemy.ship} sailed out of range.`,
     sunset: 'The sun set after a long chase; both ships withdrew.',
     beached: 'The flagship touched land and withdrew from the engagement.',
   };
   if (battle.event === 'beached') state.player.reputation -= 1;
   const ending = BATTLE_END_DIALOGS[battle.event];
   if (!ending) { endBattleToSailing(messages[battle.event] ?? 'The battle ended.'); return; }
-  showBattleEnd(ending(enemy, battle.enemy.tactic), () => endBattleToSailing(messages[battle.event]));
+  showBattleEnd(ending(enemy, battle.enemy.tactic, youLeft), () => endBattleToSailing(messages[battle.event]));
 }
 
 // CSTR 197-198 (out of range) and 169 (sunset), each with its picture.
 // ASSUMED: the port gives these lines a dialog; the original's exact screen
 // for them is not traced.
 const BATTLE_END_DIALOGS = {
-  escaped: (enemy, tactic) => (tactic === 'flee'
+  escaped: (enemy, tactic, youLeft) => (tactic === 'flee'
     ? { vignette: { id: 'outrun', escaper: enemy.flag, pursuer: 'pirate' }, title: `The ${enemy.ship} escapes`, text: 'Using full sails and skillful seamanship, the enemy vessel pulls out of range.' }
-    : { vignette: { id: 'outrun', escaper: 'pirate', pursuer: enemy.flag }, title: 'Out of range', text: 'Your ship sails out of range of the enemy; the battle is over.' }),
+    : !youLeft
+      ? { vignette: { id: 'outrun', escaper: enemy.flag, pursuer: 'pirate' }, title: 'Out of range', text: `The ${enemy.ship} sails out of range of your guns; the battle is over.` }
+      : { vignette: { id: 'outrun', escaper: 'pirate', pursuer: enemy.flag }, title: 'Out of range', text: 'Your ship sails out of range of the enemy; the battle is over.' }),
   sunset: () => ({ vignette: 'nightfall', title: 'Night falls', text: 'After a long chase, the sun sets, ending the battle.' }),
 };
 
