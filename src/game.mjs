@@ -2666,6 +2666,7 @@ function showTownMenu() {
   actions.push(
     ...missionDeliveryActions(),
     { label: 'Tavern', run: showTavern },
+    // 0x186D9: sneaking in (flag 0x08) disables the merchant until you leave.
     ...(!state.visit.sneaking ? [{ label: 'Merchant', run: openMerchant }] : []),
     { label: 'Shipwright', run: showShipwright },
     { label: 'Divide the plunder', run: showPlunderDivision },
@@ -2679,7 +2680,7 @@ function showTownMenu() {
   showDialog({
     vignette: { id: landlocked ? 'town-square' : 'port-quay', flag: town.nation },
     kicker: landlocked ? 'Inland town' : 'In port', title: town.name,
-    body: `<p>${welcome}</p><dl><dt>${town.nation} rank</dt><dd>${rank}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>Land</dt><dd>${(state.player.land * 50).toLocaleString()} acres</dd><dt>Governor</dt><dd>${governorState}</dd><dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
+    body: `<p>${welcome}</p><dl><dt>${town.nation} rank</dt><dd>${rank}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>Land</dt><dd>${(state.player.land * 50).toLocaleString()} acres</dd><dt>Governor</dt><dd>${governorState}</dd>${state.visit.sneaking ? '<dt>Merchant</dt><dd>Closed to you: you came in under a borrowed name</dd>' : ''}<dt>Crew</dt><dd>${state.player.crew}</dd><dt>Food</dt><dd>${Math.floor(state.player.foodFixed / 256)}</dd><dt>Gold</dt><dd>${state.player.partyGold}</dd></dl>`,
     actions,
   });
 }
