@@ -474,7 +474,10 @@ function fire(shooter, target, owner, battle) {
 // unchanged.
 export const SMOKE_LIFE_FRAMES = 120;
 const SMOKE_PUFFS = [-7, 0, 7]; // along the hull from the ship's centre
-const SMOKE_OUT = 4; // from the centre line toward the guns
+// From the centre line toward the guns: a ship's gun ports, or a fort's wall
+// (its 44 px square, battle-renderer.mjs).
+const SMOKE_OUT = 4;
+const FORT_SMOKE_OUT = 24;
 const SMOKE_PUSH = .7; // first outward speed, px per frame
 const SMOKE_PUSH_DECAY = .9;
 // Downwind drift by wind strength (light, medium, strong), px per frame.
@@ -482,11 +485,12 @@ export const SMOKE_DRIFT = Object.freeze([.15, .3, .45]);
 
 function gunSmoke(shooter, direction, frame) {
   const out = [sinScaled(direction, 256) / 256, -cosScaled(direction, 256) / 256];
+  const reach = shooter.fort ? FORT_SMOKE_OUT : SMOKE_OUT;
   const along = [sinScaled(shooter.heading, 256) / 256, -cosScaled(shooter.heading, 256) / 256];
   return SMOKE_PUFFS.map((offset, index) => ({
     kind: 'smoke',
-    x: shooter.x + out[0] * SMOKE_OUT + along[0] * offset,
-    y: shooter.y + out[1] * SMOKE_OUT + along[1] * offset,
+    x: shooter.x + out[0] * reach + along[0] * offset,
+    y: shooter.y + out[1] * reach + along[1] * offset,
     vx: out[0] * SMOKE_PUSH,
     vy: out[1] * SMOKE_PUSH,
     variant: (frame + index) % 3,
