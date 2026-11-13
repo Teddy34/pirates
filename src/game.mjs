@@ -77,6 +77,9 @@ const DIFFICULTY_NAMES = ['Apprentice', 'Journeyman', 'Adventurer', 'Swashbuckle
 const DIVISION_REFIT_STEPS = 4;
 const DIVISION_REFIT_STEP_DAYS = 26;
 const WIND_NAMES = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+// The wind value is where it blows towards (sailing.md §2); sailors name a
+// wind by where it comes from, so 192 (blowing west) reads "from E".
+const windFrom = (direction) => `from ${WIND_NAMES[(((direction + 128) & 0xff) >> 4) & 15]}`;
 
 const canvas = document.querySelector('#game');
 const ctx = canvas.getContext('2d');
@@ -3873,7 +3876,7 @@ function updateInterface() {
     labels.captain.textContent = `Captain ${state.captain} · Battle`;
     labels.date.textContent = `Engaging ${battle.encounter.flag} ${battle.enemy.name}`;
     labels.speed.textContent = `${Math.abs(battle.player.speed ?? 0)} battle speed`;
-    labels.wind.textContent = `${WIND_NAMES[(battle.wind.direction >> 4) & 15]} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
+    labels.wind.textContent = `${windFrom(battle.wind.direction)} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
     labels.sails.textContent = battle.player.sailTransition
       ? `${battle.player.targetSails === 'full' ? 'Raising' : 'Lowering'} · ${Math.round((1 - battle.player.sailTransition / BATTLE_SAIL_TRANSITION_FRAMES) * 100)}%`
       : battle.player.sails === 'full' ? 'Full' : 'Battle';
@@ -3891,7 +3894,7 @@ function updateInterface() {
   labels.captain.textContent = `Captain ${state.captain} · ${state.nationality}`;
   labels.date.textContent = formatDate(state.calendar);
   labels.speed.textContent = onFoot ? (player.blockedByWater ? '⚠ Blocked' : `On foot · 2 cells/day${fastTravel ? ' · fast' : ''}`) : `${player.speed.toFixed(1)} cells/day${fastTravel ? ' · fast' : ''}`;
-  labels.wind.textContent = WIND_NAMES[(player.wind >> 4) & 15];
+  labels.wind.textContent = windFrom(player.wind);
   labels.sails.previousElementSibling.textContent = onFoot ? 'Boat' : 'Sails';
   labels.sails.textContent = onFoot ? boatBearing() : { furled: 'Closed', battle: 'Low', full: 'High' }[player.sails];
   labels.food.textContent = `${foodDays(player.foodFixed, player.crew)} days`;
