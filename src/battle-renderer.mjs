@@ -115,7 +115,12 @@ export function renderBattle(context, battle, width, height) {
   for (const shot of battle.projectiles) drawShot(context, shot, battle[shot.owner].guns, scale);
   const windAngle = battle.wind.direction / 256 * Math.PI * 2;
   context.strokeStyle = '#f3e5c5'; context.fillStyle = '#f3e5c5'; context.lineWidth = 2 / scale;
-  context.beginPath(); context.moveTo(30, 35); context.lineTo(30 + Math.sin(windAngle) * 24, 35 - Math.cos(windAngle) * 24); context.stroke();
+  // A streamer through the dial, its head pointing where the wind blows.
+  const [dx, dy] = [Math.sin(windAngle), -Math.cos(windAngle)];
+  const head = [30 + dx * 14, 35 + dy * 14];
+  context.beginPath(); context.moveTo(30 - dx * 14, 35 - dy * 14); context.lineTo(...head); context.stroke();
+  context.beginPath(); context.moveTo(head[0] + dx * 5, head[1] + dy * 5);
+  context.lineTo(head[0] - dy * 5, head[1] + dx * 5); context.lineTo(head[0] + dy * 5, head[1] - dx * 5); context.closePath(); context.fill();
   context.font = `${11 / scale}px system-ui, sans-serif`; context.fillText(`Wind ${['light', 'medium', 'strong'][battle.wind.strength]}`, 8, 58);
   context.restore();
   drawStatus(context, battle, width, statusTop);
