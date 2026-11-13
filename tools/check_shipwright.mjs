@@ -55,6 +55,11 @@ await withBrowser({ name: 'shipwright', portOffset: 8, screenshotEnv: 'SHIPWRIGH
     await clickTransfer('sell-cannon-all');
     await until('all spare cannon sold', `${inYard} && ${S}.player.cannon === 1`);
     if (!await evaluate(`document.querySelector('[data-transfer="sell-cannon"]').disabled`)) throw new Error(`${viewport.name}: the last cannon is still for sale`);
+    // With nothing left to repair or sell, focus must not fall onto a Sell-ship
+    // button, where a held Enter would sell ships unasked.
+    const focused = await evaluate(`document.activeElement?.dataset.transfer ?? document.activeElement?.textContent`);
+    if (focused === 'sell-ship') throw new Error(`${viewport.name}: focus fell onto a Sell-ship button`);
+    if (!await evaluate(`document.querySelector('.shipwright-refusals')?.textContent.includes('only cannon')`)) throw new Error(`${viewport.name}: the refusal for the last cannon is not shown`);
     // Leaving logs the cannon sold during the visit once.
     await clickButton('Part company');
     await until('the town menu', `${dialogTitle} !== ${JSON.stringify(yardTitle)}`);

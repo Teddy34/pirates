@@ -2279,11 +2279,17 @@ addEventListener('pointerup', stopTransferRepeat);
 addEventListener('pointercancel', stopTransferRepeat);
 addEventListener('blur', stopTransferRepeat);
 
-function bindTransferButtons(apply, { repeatable, preferredTransfer, preferredKind, defaultTransfer }) {
-  const buttons = [...dialogBody.querySelectorAll('[data-transfer]')];
-  for (const button of buttons) {
+// `neverFocus` lists transfers too drastic to receive focus after a redraw,
+// where a held Enter would trigger them unasked.
+function bindTransferButtons(apply, { repeatable, preferredTransfer, preferredKind, defaultTransfer, neverFocus = [] }) {
+  const all = [...dialogBody.querySelectorAll('[data-transfer]')];
+  for (const button of all) {
     button.addEventListener('click', () => apply(button.dataset.transfer, button.dataset.kind));
-    if (!repeatable.includes(button.dataset.transfer)) continue;
+    if (!repeatable.includes(button.dataset.transfer)) {
+      // A held Enter or Space repeats only the transfers meant to repeat.
+      button.addEventListener('keydown', (event) => { if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault(); });
+      continue;
+    }
     button.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 || button.disabled) return;
       event.preventDefault();
@@ -2297,6 +2303,7 @@ function bindTransferButtons(apply, { repeatable, preferredTransfer, preferredKi
       }, 320);
     });
   }
+  const buttons = all.filter((button) => !neverFocus.includes(button.dataset.transfer));
   const nextFocus = buttons.find(button => !button.disabled && button.dataset.transfer === preferredTransfer && button.dataset.kind === preferredKind)
     ?? buttons.find(button => !button.disabled && preferredKind && button.dataset.kind === preferredKind)
     ?? buttons.find(button => !button.disabled && button.dataset.transfer === defaultTransfer)
@@ -4023,7 +4030,13 @@ function showShipwright(preferredTransfer = '', preferredKind = '') {
   // be less than your gold (0x218C2).
   const affordable = (price) => price < gold;
   const cannonForSale = Math.min(Math.max(0, cannon - 1), Math.floor(cash / CANNON_PRICE));
-  const button = (transfer, kind, label, disabled, hint = '') => `<button type="button" class="plunder-take-all" data-transfer="${transfer}" data-kind="${kind}"${hint ? ` title="${hint}"` : ''}${disabled ? ' disabled' : ''}>${label}</button>`;
+  // Why a button is disabled is also spelled out below the table: a tooltip
+  // never shows on touch, and a disabled button cannot take focus.
+  const refusals = new Set();
+  const button = (transfer, kind, label, disabled, hint = '') => {
+    if (disabled && hint) refusals.add(hint);
+    return `<button type="button" class="plunder-take-all" data-transfer="${transfer}" data-kind="${kind}"${hint ? ` title="${hint}"` : ''}${disabled ? ' disabled' : ''}>${label}</button>`;
+  };
   const shipRows = ships.map((ship, index) => {
     const stats = statsFor(ship);
     const repair = repairPriceOf(ship);
@@ -4062,6 +4075,7 @@ function showShipwright(preferredTransfer = '', preferredKind = '') {
         <tbody>${shipRows}${cannonRow}</tbody>
       </table>
       ${repairAllControl}
+      ${refusals.size ? `<p class="shipwright-refusals">${[...refusals].map((reason) => `${reason}.`).join(' ')}</p>` : ''}
       <p class="shipwright-help">The fleet shares its guns; each ship is shown filled in turn. Cannon fetch ${CANNON_PRICE} gold apiece and take a ton of hold for every two, and one must stay aboard. A sold ship’s crew, cannon and cargo stay with the fleet.</p>`,
     actions: [{ label: 'Part company', secondary: true, run: finishShipwrightVisit }],
   });
@@ -4074,7 +4088,9 @@ function showShipwright(preferredTransfer = '', preferredKind = '') {
     if (transfer === 'sell-cannon-all') return sellCannon(cannonForSale);
     return 0;
   };
-  bindTransferButtons(apply, { repeatable: ['sell-cannon'], preferredTransfer, preferredKind, defaultTransfer: 'repair' });
+  // Focus never lands on a Sell-ship button by itself: when nothing else is
+  // left, it stays on Part company.
+  bindTransferButtons(apply, { repeatable: ['sell-cannon'], preferredTransfer, preferredKind, defaultTransfer: 'repair', neverFocus: ['sell-ship'] });
 }
 
 // Cannon sold one at a time are logged once, as the captain leaves the yard.
@@ -4133,7 +4149,7 @@ function sellShip(index) {
   addLog(`Sold the ${type} at ${state.towns[state.visit.townIndex].name} for ${price} gold.`);
   shipwrightNote = `Sold the ${type} for ${price} gold.`;
   if (cargoUsed() > cargoCapacity()) showOverfullHold(showShipwright);
-  else showShipwright('sell-ship');
+  else showShipwright();
   return 1;
 }
 
