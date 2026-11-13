@@ -198,11 +198,13 @@ test('captured sailors volunteer only when the offer fits fleet capacity', () =>
   assert.equal(capturedShipRecruits({ enemyCrew: 40, reputation: 1, crew: 95, capacity: 100, rng: fixedRng({ integer: 12 }) }), 0);
 });
 
-test('sailing speed steps by two, clamps, then applies reduced sail', () => {
+test('sailing speed steps by up to two, clamps, then applies reduced sail', () => {
   assert.equal(stepSailingSpeed(4, 12, 'full'), 6);
   assert.equal(stepSailingSpeed(10, 30, 'full'), 12);
   assert.equal(stepSailingSpeed(5, 9, 'full'), 7);
-  assert.equal(stepSailingSpeed(8, 9, 'full'), 10);
+  assert.equal(stepSailingSpeed(8, 9, 'full'), 9, 'stops on an odd target');
+  assert.equal(stepSailingSpeed(9, 9, 'full'), 9, 'then holds it instead of flipping 8, 10, 8');
+  assert.equal(stepSailingSpeed(10, 9, 'full'), 9);
   assert.equal(stepSailingSpeed(8, 12, 'battle'), 5);
   assert.equal(stepSailingSpeed(5, 12, 'battle'), 3);
   assert.equal(stepSailingSpeed(8, 12, 'furled'), 0);

@@ -252,7 +252,11 @@ export function stepSailingSpeed(current, target, sailState) {
   // ASSUMED: furled sail is a web-port extension. The low-sail path follows
   // the decoded reduced-sail flag: accelerate, clamp, then halve.
   if (sailState === 'furled') return 0;
-  const stepped = clamp(current + 2 * Math.sign(target - current), 4, 12);
+  // DELIBERATE DEVIATION: the original steps by exactly 2 (sailing.md §3), so
+  // an odd target makes the speed flip between the two even values around it
+  // every tick (8, 10, 8, …), the same distance on average. The port stops on
+  // the target instead, so the speed shown holds steady.
+  const stepped = clamp(current + clamp(target - current, -2, 2), 4, 12);
   return sailState === 'battle' ? Math.floor(stepped / 2) : stepped;
 }
 
