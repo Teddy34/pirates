@@ -1966,8 +1966,8 @@ function beginPlunderTransfer(title, loot, done) {
     const canTakeAnything = rows.some(row => row.maximum > 0);
     const rowMarkup = rows.map(row => `<tr>
       <th scope="row">${row.label}</th>
-      <td><div class="plunder-cell"><button type="button" class="plunder-arrow" data-transfer="take" data-kind="${row.kind}" aria-label="Take one ${row.unit}" title="Take one ${row.unit}"${row.maximum === 0 ? ' disabled' : ''}>←</button><strong>${row.aboard}</strong></div></td>
-      <td><div class="plunder-cell plunder-source"><strong>${row.available}</strong><button type="button" class="plunder-arrow" data-transfer="return" data-kind="${row.kind}" aria-label="Move one ${row.unit} to the looted ship or town" title="Move one ${row.unit} to the looted ship or town"${row.aboard === 0 ? ' disabled' : ''}>→</button><button type="button" class="plunder-take-all" data-transfer="take-all" data-kind="${row.kind}"${row.maximum === 0 ? ' disabled' : ''}>Take all</button></div></td>
+      <td><div class="plunder-cell"><button type="button" class="plunder-arrow" data-transfer="take" data-kind="${row.kind}" aria-label="Take one ${row.unit}" title="Take one ${row.unit}"${row.maximum === 0 ? ' disabled' : ''}>←</button><strong>${row.aboard}</strong><button type="button" class="plunder-take-all" data-transfer="take-all" data-kind="${row.kind}"${row.maximum === 0 ? ' disabled' : ''}>Take all</button></div></td>
+      <td><div class="plunder-cell plunder-source"><strong>${row.available}</strong><button type="button" class="plunder-arrow" data-transfer="return" data-kind="${row.kind}" aria-label="Move one ${row.unit} to the looted ship or town" title="Move one ${row.unit} to the looted ship or town"${row.aboard === 0 ? ' disabled' : ''}>→</button></div></td>
     </tr>`).join('');
 
     const finish = () => {
@@ -3605,9 +3605,9 @@ function showMerchant(preferredTransfer = '', preferredKind = '') {
   });
   const rowMarkup = rows.map(row => `<tr>
       <th scope="row">${row.label}</th>
-      <td><div class="plunder-cell"><button type="button" class="plunder-arrow" data-transfer="buy" data-kind="${row.kind}" aria-label="Buy one ${row.unit}" title="Buy one ${row.unit}"${row.buyMaximum === 0 ? ' disabled' : ''}>←</button><strong>${row.aboard}</strong><button type="button" class="plunder-take-all" data-transfer="sell-all" data-kind="${row.kind}"${row.sellMaximum === 0 ? ' disabled' : ''}>Sell all</button></div></td>
+      <td><div class="plunder-cell"><button type="button" class="plunder-arrow" data-transfer="buy" data-kind="${row.kind}" aria-label="Buy one ${row.unit}" title="Buy one ${row.unit}"${row.buyMaximum === 0 ? ' disabled' : ''}>←</button><strong>${row.aboard}</strong><button type="button" class="plunder-take-all" data-transfer="buy-max" data-kind="${row.kind}"${row.buyMaximum === 0 ? ' disabled' : ''}>Buy max</button></div></td>
       <td class="merchant-price">${row.price}</td>
-      <td><div class="plunder-cell plunder-source"><strong>${row.stock}</strong><button type="button" class="plunder-arrow" data-transfer="sell" data-kind="${row.kind}" aria-label="Sell one ${row.unit}" title="Sell one ${row.unit}"${row.sellMaximum === 0 ? ' disabled' : ''}>→</button><button type="button" class="plunder-take-all" data-transfer="buy-max" data-kind="${row.kind}"${row.buyMaximum === 0 ? ' disabled' : ''}>Buy max</button></div></td>
+      <td><div class="plunder-cell plunder-source"><strong>${row.stock}</strong><button type="button" class="plunder-arrow" data-transfer="sell" data-kind="${row.kind}" aria-label="Sell one ${row.unit}" title="Sell one ${row.unit}"${row.sellMaximum === 0 ? ' disabled' : ''}>→</button><button type="button" class="plunder-take-all" data-transfer="sell-all" data-kind="${row.kind}"${row.sellMaximum === 0 ? ' disabled' : ''}>Sell all</button></div></td>
     </tr>`).join('');
   showDialog({
     vignette: 'merchant', kicker: `The merchant · ${town.name}`, title: 'Buy or sell by the ton',
