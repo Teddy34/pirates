@@ -2657,8 +2657,10 @@ function showTownMenu() {
   const town = state.towns[state.visit.townIndex];
   const rank = RANK_NAMES[state.player.ranks[town.nation]];
   const standing = nationalStanding(state.player.favour[town.nation]);
+  // 0x18734: a town under 600 citizens (population < 6) has no governor; it
+  // gains one once it grows (town_economy.md).
   const governorAvailable = town.population >= 6 && !state.visit.governorSeen;
-  const governorState = town.population < 6 ? 'No resident governor' : state.visit.governorSeen ? 'Audience completed' : 'Audience available';
+  const governorState = town.population < 6 ? 'None: under 600 citizens, too small for a governor' : state.visit.governorSeen ? 'Audience completed' : 'Audience available';
   const actions = [];
   if (governorAvailable) actions.push({ label: 'Governor', run: showGovernor });
   actions.push(
