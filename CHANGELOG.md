@@ -53,6 +53,10 @@ history.
 
 ### Changed
 
+- Fast travel (T, at sea or on foot) now runs time twice as fast instead
+  of five times, so the ship stays steerable; T still toggles it off, and any
+  voyage event still clears it. The speed readout starts with "×2" while it is
+  on. Departure from the original, whose fast mode is five times faster.
 - The era menu uses the manual's titles: 1560 is "The Silver Empire" (was
   "Early explorers") and 1680 is "Pirates' Sunset".
 

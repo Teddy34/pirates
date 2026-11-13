@@ -129,10 +129,13 @@ let battleAccumulator = 0;
 let previousSailingPose = null;
 let previousSailingClouds = null;
 let lastFrame = performance.now();
-// T toggles fast mode (0x33FCC): a tick waits 1 timer unit instead of 5.
+// T toggles fast mode (0x33FCC). The original's tick waits 1 timer unit
+// instead of 5 (five times faster); this port runs it at FAST_TRAVEL_FACTOR
+// times instead, a deliberate departure so the helm stays steerable.
 // Any voyage event clears it (0x284B6). Real-time pacing only.
+const FAST_TRAVEL_FACTOR = 2;
 let fastTravel = false;
-const tickSeconds = () => (fastTravel ? TICK_SECONDS / 5 : TICK_SECONDS);
+const tickSeconds = () => (fastTravel ? TICK_SECONDS / FAST_TRAVEL_FACTOR : TICK_SECONDS);
 let viewWidth = innerWidth;
 let viewHeight = innerHeight;
 let worldMap = null;
@@ -4133,9 +4136,10 @@ function updateBattleInterface(battle) {
 }
 
 function speedLabel(player, onFoot) {
-  const fast = fastTravel ? ' · fast' : '';
-  if (!onFoot) return `${player.speed.toFixed(1)} cells/day${fast}`;
-  return player.blockedByWater ? '⚠ Blocked' : `On foot · 2 cells/day${fast}`;
+  // Leading, so the narrow layout's truncated field still shows it.
+  const fast = fastTravel ? `×${FAST_TRAVEL_FACTOR} · ` : '';
+  if (!onFoot) return `${fast}${player.speed.toFixed(1)} cells/day`;
+  return player.blockedByWater ? '⚠ Blocked' : `${fast}On foot · 2 cells/day`;
 }
 
 function updateSailingInterface(player, onFoot) {
@@ -4598,7 +4602,7 @@ function handleCommandKey(event, key) {
   if (key === 'm') openTreasureMapsAtSea();
   if (key === 't' && state?.mode === 'sailing') {
     fastTravel = !fastTravel;
-    addLog(fastTravel ? 'Fast travel: time runs five times faster.' : 'Fast travel off.');
+    addLog(fastTravel ? 'Fast travel: time runs twice as fast. Press T again for normal speed.' : 'Fast travel off: time runs at normal speed.');
   }
   // Kept from typing into the field the logbook or chart focuses.
   if (key === 'l' && openLogbookAtSea()) event.preventDefault();
