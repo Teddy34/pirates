@@ -4,6 +4,9 @@
 // Periods" plus each era's scenario block); they are not the manual's text.
 // DOM-free.
 
+// Era highlights hold for every flag; anything about one nation's start
+// belongs in that career's advice below.
+
 // The manual rates the eras in words. `level` orders them, 1 easiest to 4 hardest.
 export const ERA_DIFFICULTIES = {
   easy: { label: 'Easy', level: 1 },
@@ -23,7 +26,7 @@ export const ERA_BRIEFS = {
     title: 'Merchants and Smugglers',
     difficulty: 'very hard',
     description: 'Spain is a little weaker, but its grip is still nearly total. The few English and French settlements are tiny, and Dutch smugglers run the trade the Spanish crown forbids. The Spanish markets are more open to an outsider than in any other early era.',
-    highlights: ['30 of 34 towns are Spanish', 'Wars and alliances change least', 'Start as a Dutch trader'],
+    highlights: ['30 of 34 towns are Spanish', 'Wars and alliances change least', 'No Dutch towns, only smugglers'],
   },
   1620: {
     title: 'The New Colonists',
@@ -48,7 +51,7 @@ export const ERA_BRIEFS = {
     title: 'Pirates’ Sunset',
     difficulty: 'somewhat hard',
     description: 'The last days of Caribbean piracy. Navies patrol the sea lanes, letters of marque are harder to get and governors less forgiving. Spain holds barely half the towns, and the treasure fleets carry less than ever.',
-    highlights: ['46 towns, the fewest Spanish', 'The smallest treasure fleets', 'English pirates start at peace with all'],
+    highlights: ['46 towns, the fewest Spanish', 'The smallest treasure fleets', 'Cheap sugar on the sugar islands'],
   },
 };
 

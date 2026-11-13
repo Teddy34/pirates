@@ -26,6 +26,16 @@ test('the manual ratings: 1660 is the suggested first career, the early eras the
   assert.equal(eraBrief(1700), null);
 });
 
+test('era highlights hold for every flag, not one career', () => {
+  for (const [era, { starts }] of Object.entries(scenarios)) {
+    const roles = Object.values(starts).map(({ name }) => name.split(' ').slice(1).join(' ').toLowerCase());
+    for (const highlight of ERA_BRIEFS[era].highlights) {
+      assert.doesNotMatch(highlight, /\bstarts?\b/i, `${era}: ${highlight}`);
+      for (const role of roles) assert.ok(!highlight.toLowerCase().includes(role), `${era}: "${highlight}" names the ${role} career`);
+    }
+  }
+});
+
 test('every start record has career advice, and the brief reads the record', () => {
   for (const [era, { starts }] of Object.entries(scenarios)) {
     for (const [nationality, start] of Object.entries(starts)) {

@@ -51,6 +51,11 @@ history.
 
 ### Fixed
 
+- The start screen's era highlights no longer describe one flag's career:
+  1600 always said "Start as a Dutch trader" and 1680 "English pirates
+  start at peace with all", whatever flag was chosen. They now read "No
+  Dutch towns, only smugglers" and "Cheap sugar on the sugar islands";
+  each career's own advice still covers its start.
 - The captain's name on the start screen can contain C and L again; game
   keys no longer fire while typing in a form field.
 - The sea chart frees its canvas memory on close, ignores non-primary mouse
