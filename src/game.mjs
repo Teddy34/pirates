@@ -1551,7 +1551,9 @@ function finishTacticalBattle() {
   if (battle.event === 'enemy-sunk') {
     state.player.reputation += 1;
     // Likely trade-loss target per sea_battles.md; the nearest-town pointer is not fully confirmed.
-    nearestTown().growth = Math.max(0, nearestTown().growth - 10);
+    const tradeTown = nearestTown();
+    if (tradeTown.growth > 0) addWorldNews(`Shipping losses have hurt trade at ${tradeTown.name}.`);
+    tradeTown.growth = Math.max(0, tradeTown.growth - 10);
     showEnemyDestroyed(enemy, () => endBattleToSailing(`The ${enemy.ship} exploded and sank. No prize remained.`));
     return;
   }
@@ -2393,6 +2395,7 @@ function captureTown(town) {
 function resolveTownCapture(town) {
   const oldNation = town.nation;
   town.growth = Math.max(0, town.growth - 20);
+  addWorldNews(`${town.name} has been sacked; its trade suffers.`);
   // 0x2297B: a treasure fleet or silver train in the town adds its bonus
   // to the loot and is finished for the year.
   const convoys = captureConvoys({ convoys: state.convoys, townIndex: state.towns.indexOf(town), goldByte: scenarios[state.era].treasureFleet[5] });
