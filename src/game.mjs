@@ -188,7 +188,8 @@ function interpolatedSailingClouds() {
 const statsFor = (ship) => SHIPS[shipName(ship)];
 const describeShip = (ship) => {
   const record = shipRecord(ship);
-  return `${record.type}${record.damage ? ` (${record.damage / 16} damage)` : ''}`;
+  const condition = damageLevel(record.damage);
+  return `${record.type}${condition ? ` (${condition.toLowerCase()})` : ''}`;
 };
 
 function newState(options) {
@@ -3486,9 +3487,29 @@ function showSellShips() {
     actions: [
       ...state.player.ships.map((ship, index) => {
         const price = shipSalePrice({ type: statsFor(ship).type, damage: ship.damage });
-        return { label: `${describeShip(ship)} · ${price} gold`, run: () => sellShip(index, price) };
+        return { label: `${describeShip(ship)} · ${price} gold`, run: () => confirmShipSale(index, price) };
       }),
       { label: 'None, thanks', secondary: true, run: showShipwright },
+    ],
+  });
+}
+
+// Warn before a sale that leaves more cargo than the remaining hold carries;
+// the overfull-hold screen then makes you throw the excess overboard.
+function confirmShipSale(index, price) {
+  const ship = state.player.ships[index];
+  const capacityAfter = cargoCapacity() - statsFor(ship).cargo;
+  const excess = cargoUsed() - capacityAfter;
+  if (state.player.ships.length < 2 || excess <= 0) {
+    sellShip(index, price);
+    return;
+  }
+  showDialog({
+    vignette: 'shipwright', kicker: 'The shipwright', title: 'Not enough hold',
+    body: `<p>Without the ${describeShip(ship)}, your fleet holds ${capacityAfter} tons but carries ${cargoUsed()} tons of food, goods and cannon. You would have to throw ${excess} tons overboard.</p>`,
+    actions: [
+      { label: `Sell her and lose ${excess} tons`, run: () => sellShip(index, price) },
+      { label: 'Keep her', secondary: true, run: showSellShips },
     ],
   });
 }
@@ -4548,6 +4569,21 @@ loadScenarios().then(() => {
       state.paused = true;
       state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
       showShipwright();
+    });
+    return;
+  }
+  if (preview === 'sell-ship' && ['localhost', '127.0.0.1'].includes(location.hostname)) {
+    // A second, damaged ship whose hold the cargo needs: selling her warns.
+    const previewState = newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation' });
+    startGame(previewState).then(() => {
+      state.nearestTownIndex = state.towns.findIndex(({ name }) => name === 'Guadeloupe');
+      state.player.ships = [state.player.ships[0], { type: 'Merchantman', damage: 32 }];
+      state.player.goods = cargoCapacity() - cargoUsed() - 10;
+      state.portTrade.shipwrightCash = 10000;
+      state.mode = 'town';
+      state.paused = true;
+      state.visit = { townIndex: state.nearestTownIndex, sneaking: false, recruited: false, merchant: null };
+      showSellShips();
     });
     return;
   }
