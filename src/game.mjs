@@ -4567,6 +4567,9 @@ function frame(now) {
 }
 
 resize();
+// The era half of the start panel needs no scenario data; the career half
+// fills in once the scenarios load.
+updateEraBrief();
 const beginButton = form.querySelector('button[type="submit"]');
 beginButton.disabled = true;
 loadScenarios().then(() => {

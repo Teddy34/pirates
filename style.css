@@ -23,7 +23,7 @@ form .primary,form .secondary { grid-column:1/-1; }
 form .wide-field { grid-column:span 2; }
 .secondary { background:transparent; color:var(--ink); }
 .era-brief { grid-column:1/-1; display:grid; grid-template-columns:minmax(180px,240px) minmax(0,1fr); gap:6px 22px; padding:16px 18px; border:1px solid var(--line); border-left:3px solid var(--brass); background:rgba(0,0,0,.22); }
-.era-brief header { grid-row:span 3; }
+.era-brief header { grid-row:span 2; }
 .era-brief h2 { color:var(--ink); font-size:26px; line-height:1.05; }
 .era-brief p { margin:0; }
 #era-brief-text { color:var(--ink); font-family:"IM Fell English",Georgia,serif; font-size:17px; line-height:1.4; }
@@ -33,7 +33,7 @@ form .wide-field { grid-column:span 2; }
 .era-pips i.on { background:var(--brass); }
 .era-suggested { padding:2px 7px; border:1px solid var(--brass); color:var(--brass); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
 #era-brief-highlights { display:flex; flex-wrap:wrap; gap:4px 18px; margin:0; padding:0; list-style:none; color:var(--muted); font-size:14px; }
-#era-brief-highlights li::before { content:"✦ "; color:var(--brass); }
+#era-brief-highlights li::before { content:"✦ " / ""; color:var(--brass); }
 .career-brief { grid-column:1/-1; display:grid; grid-template-columns:minmax(180px,240px) minmax(0,1fr); gap:4px 22px; margin-top:10px; padding-top:12px; border-top:1px solid var(--line); }
 .career-brief .eyebrow { margin:0 0 4px; }
 .career-brief h3 { margin:0; font-family:"IM Fell English",Georgia,serif; font-size:21px; font-weight:400; color:var(--ink); }

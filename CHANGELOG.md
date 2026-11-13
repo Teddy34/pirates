@@ -23,7 +23,7 @@ history.
 - This changelog.
 - Era panel on the start screen: choosing an era shows its title, its
   difficulty as the manual rates it (Easy to Very hard, also shown as
-  pips), whether it is the suggested first career (1660), a short
+  pips), whether it is the suggested era for a first game (1660), a short
   description with three highlights, and your career for the chosen flag:
   its name, advice for that era and nation, and the ships, crew, guns,
   gold and any rank it starts with. The descriptions and advice are written
