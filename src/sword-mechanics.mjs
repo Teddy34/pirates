@@ -133,13 +133,6 @@ export function startingMorale(yourMen, yourQuality, theirMen, theirQuality) {
   return [morale, 47 - morale];
 }
 
-// The joystick of 0x27638 as the port's keys: `x` -1 towards him (left),
-// 1 away; `y` -1 up (high line), 1 down (low line); `quick` turns an attack
-// into the quick thrust. No input at all is the middle guard.
-// ASSUMED: the original's keyboard path latches a key press until a move
-// that consumes it starts (0x38A0A), so a single tap of "away" keeps you
-// backing off. The port reads held keys instead, plus one latched tap per
-// move (the caller clears it when `startedMove` is set).
 // Up (y < 0) is the high line (2), down the low line (1), level the middle.
 function inputLine(y) {
   if (y > 0) return 1;
@@ -147,6 +140,13 @@ function inputLine(y) {
   return 0;
 }
 
+// The joystick of 0x27638 as the port's keys: `x` -1 towards him (left),
+// 1 away; `y` -1 up (high line), 1 down (low line); `quick` turns an attack
+// into the quick thrust. No input at all is the middle guard.
+// ASSUMED: the original's keyboard path latches a key press until a move
+// that consumes it starts (0x38A0A), so a single tap of "away" keeps you
+// backing off. The port reads held keys instead, plus one latched tap per
+// move (the caller clears it when `startedMove` is set).
 export function inputMove(input) {
   if (!input) return MOVE.guardMid;
   const line = inputLine(input.y);

@@ -108,7 +108,8 @@ const COMPASS_POINTS = [
   ['southwest', 'south', 'southeast'],
 ];
 function compassPoint(dx, dy) {
-  return COMPASS_POINTS[Math.sign(dy) + 1][Math.sign(dx) + 1];
+  // A non-number dy reads as level, as the original row choice did.
+  return COMPASS_POINTS[(Math.sign(dy) || 0) + 1][Math.sign(dx) + 1];
 }
 
 // 0x13E3F, shown once as a career starts. CSTN 71 gives the adjectives.

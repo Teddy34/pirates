@@ -109,14 +109,19 @@ function pageHelpers({ command, base, screenshotDirectory }) {
   return { evaluate, until, press, click, clickButton, screenshot, navigate, open, setViewport };
 }
 
+// Chromium's helper processes can outlive it for a moment, so removal is
+// retried. A leftover profile in the temp directory only earns a warning: it
+// must never hide the check's own result.
 async function removeProfile(profile) {
-  // Chromium's helper processes can outlive it for a moment.
   for (let attempt = 0; ; attempt += 1) {
     try {
       rmSync(profile, { recursive: true, force: true });
       return;
     } catch (error) {
-      if (attempt >= 20) throw error;
+      if (attempt >= 20) {
+        console.warn(`Could not remove the browser profile ${profile}: ${error.message}`);
+        return;
+      }
       await delay(250);
     }
   }

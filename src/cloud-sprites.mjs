@@ -16,7 +16,6 @@ export const CLOUD_ART_PIXEL = 2;
 
 const COLORS = { highlight: '#fffbe8', body: '#eef0de', shade: '#c4d4cd', deep: '#9fb5b2', outline: '#4d6670', shadow: '#02141b' };
 
-// Paints cloud form `shape`; with `shadow` the silhouette is one flat colour.
 // A cloud top's colour by its slope toward the north-west light.
 function litColor(slope) {
   if (slope > .9) return COLORS.highlight;
@@ -24,6 +23,7 @@ function litColor(slope) {
   return COLORS.body;
 }
 
+// Paints cloud form `shape`; with `shadow` the silhouette is one flat colour.
 export function paintCloudSprite(shape, { shadow = false } = {}) {
   const puffs = (FORMS[shape] ?? FORMS[0]).map(([x, y, radius]) => [x / CLOUD_ART_PIXEL, y / CLOUD_ART_PIXEL, radius / CLOUD_ART_PIXEL]);
   const left = Math.floor(Math.min(...puffs.map(([x, , r]) => x - r))) - 2;

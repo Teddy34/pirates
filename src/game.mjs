@@ -4682,7 +4682,7 @@ const townPreview = (show, { town = 'Guadeloupe', prepare } = {}) => () => start
 const SCENE_PREVIEWS = {
   'sail-ho': () => showSighting(state.towns[0], 5),
   boarding: () => {
-    beginTacticalBattle(PREVIEW_ENEMY, 0);
+    beginTacticalBattle({ ...PREVIEW_ENEMY }, 0);
     state.paused = true;
     offerBoarding(state.battle.encounter);
   },
@@ -4692,7 +4692,7 @@ const SCENE_PREVIEWS = {
     onEnd: ({ result }) => { addLog(`Preview duel: ${result}.`); resumeSailing(); },
   }),
   'sword-boarding': () => {
-    beginTacticalBattle(PREVIEW_ENEMY, 0);
+    beginTacticalBattle({ ...PREVIEW_ENEMY }, 0);
     const enemy = state.battle.encounter;
     beginSwordFight({
       record: boardingRecord({ yourMen: state.battle.player.men, theirMen: state.battle.enemy.men, kind: state.battle.enemy.kind, nation: enemy.flag }),
@@ -4730,10 +4730,10 @@ const SCENE_PREVIEWS = {
 const DIG_PREVIEW = /^(dig|dig-found|dig-nothing|reunion-(sister|father|niece|uncle)|lost-city-(incan|aztec|olmec|mayan))$/;
 
 function startDigPreview(preview, [, , relative, culture]) {
-  const previewSetup = previewState({ era: '1560' });
+  const career = previewState({ era: '1560' });
   const [siteX, siteY] = TREASURE_SITES[0];
-  Object.assign(previewSetup.player, { x: siteX + .5, y: siteY + .5 });
-  startGame(previewSetup).then(() => {
+  Object.assign(career.player, { x: siteX + .5, y: siteY + .5 });
+  startGame(career).then(() => {
     const player = state.player;
     const shore = { x: player.x, y: player.y };
     Object.assign(player, { ship: { ...shore, heading: player.heading }, landing: shore, onFoot: true, walk: null, x: siteX + .5, y: siteY + .5 });
@@ -4817,9 +4817,9 @@ const PREVIEWS = {
     loseLastShip({ inTown: false, cause: REEF_TEXT, done: resumeSailing });
   }),
   'reef-loss': () => {
-    const previewSetup = previewState();
-    previewSetup.player.ships = [shipRecord('Sloop'), shipRecord('Frigate')];
-    startGame(previewSetup).then(() => strikeReef(1));
+    const career = previewState();
+    career.player.ships = [shipRecord('Sloop'), shipRecord('Frigate')];
+    startGame(career).then(() => strikeReef(1));
   },
   tavern: townPreview(showTavern),
   barmaid: townPreview(showBarmaid),
@@ -4883,21 +4883,20 @@ const PREVIEWS = {
     // Havana 1560: the coast cell (244, 178) south of the ship is a trigger
     // cell. One ship, 8 men and morale -2, so leaving Havana costs 2 men and
     // the departure fleet check sends the captain to prison.
-    const previewSetup = previewState({ era: '1560' });
-    Object.assign(previewSetup.player, { x: 244.5, y: 176.5, heading: 128, speed: 12 });
-    Object.assign(previewSetup.player, { crew: 8, partyGold: 0, monthsAtSea: 5 });
-    previewSetup.player.ships = previewSetup.player.ships.slice(0, 1);
-    startGame(previewSetup);
+    const career = previewState({ era: '1560' });
+    Object.assign(career.player, { x: 244.5, y: 176.5, heading: 128, speed: 12, crew: 8, partyGold: 0, monthsAtSea: 5 });
+    career.player.ships = career.player.ships.slice(0, 1);
+    startGame(career);
   },
   'treasure-fleet': () => {
     // Both convoys lie in Campeche 1560, stop 13 of each route; the ship
     // waits on the town's departure cell and opens the approach.
-    const previewSetup = previewState({ era: '1560' });
-    const campeche = previewSetup.towns.findIndex((town) => town.name === 'Campeche');
-    previewSetup.convoys = { treasureFleet: { position: 13, townIndex: campeche }, silverTrain: { position: 13, townIndex: campeche } };
+    const career = previewState({ era: '1560' });
+    const campeche = career.towns.findIndex((town) => town.name === 'Campeche');
+    career.convoys = { treasureFleet: { position: 13, townIndex: campeche }, silverTrain: { position: 13, townIndex: campeche } };
     const [x, y, heading] = scenarios['1560'].towns[campeche].departure;
-    Object.assign(previewSetup.player, { x: x + 0.5, y: y + 0.5, heading, speed: 0, sails: 'furled' });
-    startGame(previewSetup).then(() => {
+    Object.assign(career.player, { x: x + 0.5, y: y + 0.5, heading, speed: 0, sails: 'furled' });
+    startGame(career).then(() => {
       state.nearestTownIndex = campeche;
       approachTown();
     });
@@ -4905,17 +4904,17 @@ const PREVIEWS = {
   landing: () => {
     // Panama 1560 is inland: the ship sails north onto the coast at (318, 441),
     // two cells east of the town's trigger cells.
-    const previewSetup = previewState({ era: '1560' });
-    Object.assign(previewSetup.player, { x: 318.5, y: 443.5, heading: 0, speed: 8, sails: 'full' });
-    startGame(previewSetup);
+    const career = previewState({ era: '1560' });
+    Object.assign(career.player, { x: 318.5, y: 443.5, heading: 0, speed: 8, sails: 'full' });
+    startGame(career);
   },
   reef: () => {
     // A frigate and a sloop sailing east over a run of shallow pixels in the
     // reefs at (192, 288), 1560.
-    const previewSetup = previewState({ era: '1560' });
-    Object.assign(previewSetup.player, { x: 3079.5 / 16, y: 4607.5 / 16, heading: 64, speed: 4, sails: 'battle', crew: 300 });
-    previewSetup.player.ships = [shipRecord('Frigate'), shipRecord('Sloop')];
-    startGame(previewSetup);
+    const career = previewState({ era: '1560' });
+    Object.assign(career.player, { x: 3079.5 / 16, y: 4607.5 / 16, heading: 64, speed: 4, sails: 'battle', crew: 300 });
+    career.player.ships = [shipRecord('Frigate'), shipRecord('Sloop')];
+    startGame(career);
   },
   // A sea battle against a Spanish Merchantman, for checking the battle
   // screen and its pace.
@@ -4923,10 +4922,10 @@ const PREVIEWS = {
   shipwreck: () => {
     // Four men cannot sail the last ship: the fleet check takes the at-sea
     // last-ship path to the uncharted island.
-    const previewSetup = previewState({ era: '1560', difficulty: 2 });
-    Object.assign(previewSetup.player, { crew: 4, reputation: 2, capturedCaptains: [{ pirate: true, ship: 'Sloop', value: 7 }] });
-    previewSetup.player.ships = previewSetup.player.ships.slice(0, 1);
-    startGame(previewSetup);
+    const career = previewState({ era: '1560', difficulty: 2 });
+    Object.assign(career.player, { crew: 4, reputation: 2, capturedCaptains: [{ pirate: true, ship: 'Sloop', value: 7 }] });
+    career.player.ships = career.player.ships.slice(0, 1);
+    startGame(career);
   },
 };
 
