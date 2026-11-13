@@ -60,7 +60,7 @@ form .wide-field { grid-column:span 2; }
 #log p { margin:2px 0; }
 #log p:not(:last-child) { color:var(--muted); font-size:13px; }
 /* The log would cover the fencers; the fight's own panel replaces it. */
-.sword-fight #log { display:none; }
+.sword-fight #log, .sea-battle #log { display:none; }
 #controls { position:fixed; left:50%; bottom:max(14px,env(safe-area-inset-bottom)); display:flex; gap:7px; transform:translateX(-50%); }
 #controls button { display:grid; grid-template-columns:auto auto; gap:7px; align-items:center; min-width:96px; min-height:48px; padding:9px 13px; border:1px solid var(--line); border-radius:3px; background:var(--panel); color:var(--ink); cursor:pointer; backdrop-filter:blur(10px); }
 #controls button:active,#controls button.pressed { background:#153e46; transform:translateY(1px); }

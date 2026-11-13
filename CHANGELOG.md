@@ -13,6 +13,28 @@ history.
 
 ### Added
 
+- Fort battles: attacking a fortified town from the sea is now fought with
+  the sea-battle controls against its forts, which stand on rocky headlands
+  along the coast beside the town's harbor. Each fort has 12 guns, never
+  moves, always turns its guns on you and cannot be sunk, though your
+  broadsides kill its gunners, dismount its guns and breach its walls; a fort
+  with no guns left falls silent. Your broadside bears on the nearest fort
+  still firing. You sail at half speed. Bring your flagship alongside the
+  town quay to land her crew and storm the walls (alert +16, reputation −2, the garrison left at half the
+  soldiers plus a tenth of the surviving gunners). Running aground, the fort's
+  rocks included, leaving the field, nightfall or sinking ends the attack.
+  The briefing says to land at the quay, not under the fort. Departure from
+  the original: there you get through by touching the fort itself or the
+  shore beside it; the port's landing place is the quay, and the field's
+  layout is the port's own. The field turns with the wind so you always
+  start upwind of the harbor, on a broad reach toward the quay; the original's
+  start is not known. Also unlike the original, where all of a town's
+  forts fight as one, with one 48-gun broadside for four forts, which made a
+  four-fort town all but impossible to take from the sea, each fort fires
+  its own 12 guns from its own place, and a distant fort misses more often.
+  Check it with `?preview=fort-battle`.
+- The captain's log is hidden during sea battles, as in sword fights, so it
+  no longer covers the battle.
 - Full-screen pixel-art sea chart of the Caribbean, painted as an old map
   from the era's navigation map, with every town and your ship marked.
   Open it with C, the Chart control at sea or the logbook; the voyage pauses

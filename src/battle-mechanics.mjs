@@ -152,11 +152,13 @@ export function damageLevel(damage) {
   return ['', 'Sail damage', 'Lost a mast', 'Hull leaking', 'Ship sinking'][clamp(Math.floor(damage / 16), 0, 4)];
 }
 
+// A fort is type 8, so its hits use divisors 10 and 11. Its hull hits go to
+// a separate counter (0x8634) that skips the skill-0 bonus (0x8604).
 export function applyCannonHit(target, shooterGuns, { playerShot = false, skill = 4, rng }) {
   let hull = Math.max(1, Math.floor((4 * shooterGuns) / (target.type + 2)));
   if (target.sails === 'battle') hull = Math.floor(hull / 2);
   hull = Math.max(1, hull);
-  if (playerShot && skill === 0) hull += Math.floor(hull / 2);
+  if (playerShot && skill === 0 && !target.fort) hull += Math.floor(hull / 2);
   const men = Math.floor((4 * Math.floor((target.men * shooterGuns) / (target.type + 3)) + rng.int(64)) / 64);
   const guns = Math.floor((Math.floor((4 * target.guns * shooterGuns) / (target.type + 3)) + rng.int(64)) / 64);
   return {
@@ -400,12 +402,12 @@ function steerEnemy(enemy) {
 // Movement (0x8077 you, the same for him): the 24.8 position moves by
 // 4·sin(heading, s) and −4·cos(heading, s) per frame, about s/64 pixels. The
 // steps are multiples of 1/256, so plain numbers hold the 24.8 value exactly.
-export function moveShip(ship, battle, { enemySkill = null } = {}) {
+export function moveShip(ship, battle, { enemySkill = null, fort = false } = {}) {
   const speed = battleSpeed({
     heading: ship.heading, wind: battle.wind.direction,
     speedRow: battle.speedRows[ship.name], type: ship.type,
     damage: ship.damage, sails: ship.sails, windStrength: battle.wind.strength,
-    enemySkill,
+    enemySkill, fort,
   });
   return {
     ...ship,
@@ -539,20 +541,22 @@ export function shiftBattleWind(wind, rng) {
 // the next hit, as in the original.
 export const BATTLE_EVENT = Object.freeze({
   fired: 1, loaded: 2, wind: 4, contact: 5, outOfRange: 6, hit: 7, sunset: 8,
-  struck: 9, sailStart: 10, sailDone: 11, enemySails: 12,
+  struck: 9, sailStart: 10, sailDone: 11, enemySails: 12, beached: 13,
 });
 
+// The fort can't be sunk (sea_battles.md §8), so a hit only checks you.
 export function frameOutcome(code, battle) {
   if (code === BATTLE_EVENT.hit) {
     if (battle.player.damage >= 64) return 'player-sunk';
-    if (battle.enemy.damage >= 64) return 'enemy-sunk';
+    if (battle.enemy.damage >= 64 && !battle.enemy.fort) return 'enemy-sunk';
     return null;
   }
   return {
-    [BATTLE_EVENT.contact]: 'boarding',
+    [BATTLE_EVENT.contact]: battle.fort ? 'landed' : 'boarding',
     [BATTLE_EVENT.outOfRange]: 'escaped',
     [BATTLE_EVENT.sunset]: 'sunset',
     [BATTLE_EVENT.struck]: 'enemy-struck',
+    [BATTLE_EVENT.beached]: 'beached',
   }[code] ?? null;
 }
 
@@ -593,6 +597,33 @@ function enemyCaptainTurn(battle) {
 // (0x8729-0x938C).
 export function stepBattle(original, input, rng) {
   if (original.event) return original;
+  if (original.fort) return stepFortBattle(original, input, rng);
+  let battle = stepPlayerHalf(original, input, rng);
+  const setEvent = (code) => { battle = { ...battle, frameEvent: code }; };
+
+  battle.enemy = stepEnemyReload(battle.enemy);
+  if (shipsTouch(battle.player, battle.enemy)) setEvent(BATTLE_EVENT.contact);
+  battle = stepBattleWind(battle, rng);
+  if (Math.abs(battle.player.x - battle.enemy.x) > 240 || Math.abs(battle.player.y - battle.enemy.y) > 240) {
+    setEvent(BATTLE_EVENT.outOfRange);
+  }
+  if (battle.frame % 64 === 0) battle = enemyCaptainTurn(battle);
+  if (battle.frame % 8 === 0) battle.enemy = steerEnemy(battle.enemy);
+  battle.enemy = moveShip(battle.enemy, battle, { enemySkill: battle.skill });
+  // 0x8EDF: he fires whenever he is loaded, has guns, has no ball out, and you
+  // are less than 6 units off either beam (0x8F6E `cmp ax,6; jge`), whatever
+  // his tactic.
+  battle = stepShot(battle, 'enemy', beamDifference(battle.enemy, battle.player) < 6, rng);
+
+  battle = recenterOpenSea(battle);
+  const event = frameOutcome(battle.frameEvent, battle);
+  return event ? { ...battle, event } : battle;
+}
+
+// The frame's start and your half of it, the same in both kinds of battle:
+// the sunset count, your rudder, sails and reload, movement (halved against
+// a fort, 0x85EC) and shot.
+function stepPlayerHalf(original, input, rng) {
   let battle = {
     ...original,
     frame: original.frame + 1,
@@ -611,28 +642,237 @@ export function stepBattle(original, input, rng) {
   battle.player = stepPlayerSailsAndReload(battle.player, requestedSails(input));
   const sailsEvent = playerSailsEvent(before, battle.player);
   if (sailsEvent) setEvent(sailsEvent);
-  battle.player = moveShip(battle.player, battle);
-  battle = stepShot(battle, 'player', Boolean(input.firePressed), rng);
-
-  battle.enemy = stepEnemyReload(battle.enemy);
-  if (shipsTouch(battle.player, battle.enemy)) setEvent(BATTLE_EVENT.contact);
-  if (battle.frame % BATTLE_WIND_SHIFT_FRAMES === 0) {
-    const shifted = shiftBattleWind(battle.wind, rng);
-    battle = { ...battle, wind: shifted.wind };
-    if (shifted.changed) setEvent(BATTLE_EVENT.wind);
+  battle.player = moveShip(battle.player, battle, { fort: Boolean(battle.fort) });
+  if (battle.fort) {
+    // 0x81B6-0x8269: the map pixel under you. The port's quay replaces the
+    // original's "touching the fort" test; see FORT_FIELD.
+    const ground = fortFieldGround(battle.player);
+    if (ground === 'quay') setEvent(BATTLE_EVENT.contact);
+    else if (ground === 'land') setEvent(BATTLE_EVENT.beached);
   }
-  if (Math.abs(battle.player.x - battle.enemy.x) > 240 || Math.abs(battle.player.y - battle.enemy.y) > 240) {
-    setEvent(BATTLE_EVENT.outOfRange);
-  }
-  if (battle.frame % 64 === 0) battle = enemyCaptainTurn(battle);
-  if (battle.frame % 8 === 0) battle.enemy = steerEnemy(battle.enemy);
-  battle.enemy = moveShip(battle.enemy, battle, { enemySkill: battle.skill });
-  // 0x8EDF: he fires whenever he is loaded, has guns, has no ball out, and you
-  // are less than 6 units off either beam (0x8F6E `cmp ax,6; jge`), whatever
-  // his tactic.
-  battle = stepShot(battle, 'enemy', beamDifference(battle.enemy, battle.player) < 6, rng);
+  return stepShot(battle, 'player', Boolean(input.firePressed), rng);
+}
 
-  battle = recenterOpenSea(battle);
+function stepBattleWind(battle, rng) {
+  if (battle.frame % BATTLE_WIND_SHIFT_FRAMES !== 0) return battle;
+  const shifted = shiftBattleWind(battle.wind, rng);
+  return { ...battle, wind: shifted.wind, frameEvent: shifted.changed ? BATTLE_EVENT.wind : battle.frameEvent };
+}
+
+// Attacking a fort from the sea (sea_battles.md §8, 0x18D67). The fort is
+// an enemy "ship" of type 8 that never moves, never strikes and runs no AI
+// (0x891C). Its men are 4·((soldiers + 1) / 2), its guns 12 per fort, and
+// its kind 0 gives a 144-frame reload.
+//
+// DELIBERATE DEVIATION: in the original you get through by touching the
+// fort's box or running ashore next to it (0x8269, event 5), and running
+// ashore anywhere else is event 13 (CSTR 173). The port's field draws the
+// fort on a rocky headland with the town's harbor in a cove beside it: you
+// land by bringing the flagship up to the quay, and any other land, the
+// fort's rocks included, is running ashore. The field is fixed; leaving it
+// is event 6 (CSTR 196). The original's field spans 10–430 px; the port keeps
+// a 10 px margin on its own arena. Battle pixels; rectangles are x, y, w, h.
+export const FORT_FIELD = Object.freeze({
+  width: 480,
+  height: 240,
+  margin: 10,
+  land: Object.freeze([
+    Object.freeze({ x: 0, y: 0, w: 296, h: 64 }), // the coast west of the harbor
+    Object.freeze({ x: 392, y: 0, w: 88, h: 64 }), // the coast east of it
+    Object.freeze({ x: 296, y: 0, w: 96, h: 30 }), // the town behind the quay
+    Object.freeze({ x: 168, y: 0, w: 104, h: 108 }), // the first fort's headland
+    Object.freeze({ x: 412, y: 0, w: 56, h: 88 }), // the second fort's headland
+    Object.freeze({ x: 56, y: 0, w: 72, h: 84 }), // the third fort's headland
+  ]),
+  // The water along the quay: your ship's centre here lands the crew.
+  quay: Object.freeze({ x: 300, y: 30, w: 88, h: 18 }),
+  // Where the town's forts stand, in order: west of the harbor mouth, east
+  // of it, further west, and on the coast at the field's western end.
+  forts: Object.freeze([
+    Object.freeze({ x: 220, y: 76 }),
+    Object.freeze({ x: 440, y: 62 }),
+    Object.freeze({ x: 92, y: 58 }),
+    Object.freeze({ x: 36, y: 32 }),
+  ]),
+});
+
+const inRect = (rect, x, y) => x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
+
+// 'quay', 'land' or 'water' under a point (the whole-pixel ship centre, as
+// the original reads one map pixel, 0x81B6).
+export function fortFieldGround({ x, y }) {
+  const px = pixel(x);
+  const py = pixel(y);
+  if (inRect(FORT_FIELD.quay, px, py)) return 'quay';
+  return FORT_FIELD.land.some((rect) => inRect(rect, px, py)) ? 'land' : 'water';
+}
+
+// The fort's damage display: min(3, hits/20) (0xECF0).
+export function fortDamageLevel(damage) {
+  return Math.min(3, Math.floor(damage / 20));
+}
+
+// sea_battles.md §8: after you get through, the garrison is
+// (soldiers + 1)/2 + the fort's surviving men/10.
+export function garrisonAfterFortBattle({ soldiers, fortMenLeft }) {
+  return ((soldiers + 1) >> 1) + Math.trunc(fortMenLeft / 10);
+}
+
+// ASSUMED: the original's start against a fort is not traced. The port gives
+// the attacker a favourable one. The field is laid out with the coast to the
+// north, and each battle turns it by quarter turns so that the harbor lies
+// within 45° of downwind: `orientation` k means the field's north is the
+// compass heading 64·k. The engine runs in the field's own frame, so the
+// battle wind is the campaign wind − 64·k; the renderer turns the picture
+// back to the compass. (Wind bytes are the heading the wind blows toward.)
+export function fortOrientation(wind) {
+  return (((wind + 32) & 0xff) >> 6) & 3;
+}
+
+// A field heading or wind as a compass heading.
+export function fieldToCompass(angle, orientation = 0) {
+  return (angle + 64 * orientation) & 0xff;
+}
+
+// Where you start in the field's frame: 110 px out from the harbor mouth on
+// a broad reach (24 units, about 34°, off the wind, the side nearer north),
+// pointed at the harbor. The wind is within 32 units of north here, so the
+// course is within 56 units of north and the start lies in open water.
+const HARBOR_MOUTH = Object.freeze({ x: 344, y: 56 });
+export function fortStart(fieldWind) {
+  const wind = signedAngleDifference(fieldWind, 0);
+  const heading = (wind >= 0 ? wind - 24 : wind + 24) & 0xff;
+  const radians = heading * Math.PI * 2 / 256;
+  return {
+    x: clamp(Math.round(HARBOR_MOUTH.x - 110 * Math.sin(radians)), 40, FORT_FIELD.width - 40),
+    y: Math.round(HARBOR_MOUTH.y + 110 * Math.cos(radians)),
+    heading,
+  };
+}
+
+// DELIBERATE DEVIATION: the original fights all of a town's forts as one
+// enemy with 12 guns a fort (sea_battles.md §8). The port gives each fort its
+// own battery of 12 guns at its own place on the field (at most four), with
+// an equal share of the gunners, so you can silence them one at a time and a
+// distant battery's scatter makes it miss more often. Each battery is a
+// type-8 "ship" with the fort's rules.
+export function createFortBatteries({ forts, men, flag }) {
+  const count = Math.min(forts & 7, FORT_FIELD.forts.length);
+  return FORT_FIELD.forts.slice(0, count).map((place, index) => {
+    const share = Math.floor(men / count) + (index < men % count ? 1 : 0);
+    return {
+      name: 'Fort', type: 8, fort: true, x: place.x, y: place.y, heading: 0,
+      // ASSUMED: the fort's sail flag is not traced; its hits are not halved.
+      damage: 0, men: share, startMen: share, guns: 12,
+      reload: 0, reloadTime: enemyReloadTime(0), sails: 'none', targetSails: 'none', sailTransition: 0,
+      shotTimer: 0, speed: 0, kind: 0, flag, tactic: null,
+    };
+  });
+}
+
+// The town's forts taken together, for the status line, the HUD and the
+// garrison afterwards. A town without forts has an empty, silent summary.
+export function fortSummary(forts, startMen, flag) {
+  const total = (key) => forts.reduce((sum, fort) => sum + fort[key], 0);
+  return {
+    name: 'Fort', type: 8, fort: true,
+    x: forts[0]?.x ?? FORT_FIELD.forts[0].x, y: forts[0]?.y ?? FORT_FIELD.forts[0].y, heading: 0,
+    damage: total('damage'), men: total('men'), startMen, guns: total('guns'),
+    firing: forts.filter((fort) => fort.guns > 0).length,
+    reload: 0, reloadTime: enemyReloadTime(0), sails: 'none', targetSails: 'none', sailTransition: 0,
+    shotTimer: 0, speed: 0, kind: 0, flag, tactic: null,
+  };
+}
+
+// The fort your broadside is laid on: the nearest one with guns left, or the
+// nearest one once all are silent.
+export function fortTargetIndex(player, forts) {
+  const distance = (fort) => battleDistance(fort.x - player.x, fort.y - player.y);
+  const pick = (candidates) => candidates.reduce((best, index) => (
+    best === -1 || distance(forts[index]) < distance(forts[best]) ? index : best), -1);
+  const armed = forts.map((fort, index) => (fort.guns > 0 ? index : -1)).filter((index) => index >= 0);
+  return pick(armed.length ? armed : forts.map((_, index) => index));
+}
+
+export function createFortBattle({ player, town, flagshipIndex = 0, speedRows, difficulty, ability, crewMorale, playerFlag = 'pirate', rng }) {
+  const embarked = embarkedForBattle({ ...player, flagshipIndex });
+  const fleet = player.ships.map(shipRecord);
+  const [selected] = fleet.splice(flagshipIndex, 1);
+  fleet.unshift(selected);
+  const windStrength = rng.int(3); // sea_battles.md §1: rnd(3) for a fort.
+  const orientation = fortOrientation(player.wind);
+  const fieldWind = (player.wind - 64 * orientation) & 0xff;
+  const start = fortStart(fieldWind);
+  const fortMen = 4 * ((town.soldiers + 1) >> 1);
+  const forts = createFortBatteries({ forts: town.forts, men: fortMen, flag: town.nation });
+  return {
+    frame: 0,
+    noHitFrames: 0,
+    fort: true,
+    orientation,
+    wind: { direction: fieldWind, strength: windStrength },
+    terrain: 'fort',
+    arena: { width: FORT_FIELD.width, height: FORT_FIELD.height },
+    skill: gunnerySkill(difficulty, ability === 'gunnery', 0), // extra is 0 for a fort.
+    speedRows,
+    fleet,
+    player: {
+      ...initialShip({
+        name: embarked.flagship.type, ...start,
+        damage: embarked.flagship.damage, men: embarked.men, guns: embarked.guns,
+        reloadTime: playerReloadTime(crewMorale),
+      }),
+      flag: playerFlag,
+      reserveMen: embarked.reserveMen,
+      reserveGuns: embarked.reserveGuns,
+    },
+    forts,
+    enemy: fortSummary(forts, fortMen, town.nation),
+    encounter: { ship: 'Fort', flag: town.nation, town: town.name, forts: town.forts },
+    projectiles: [], effects: [], event: null, frameEvent: 0,
+    assumptions: [
+      'Wall-clock battle frame duration is assumed.',
+      'The start position and the harbor quay are the port\'s own field.',
+      'Each of the town\'s forts is its own battery of 12 guns.',
+    ],
+  };
+}
+
+// The forts' half of the frame. Your ball is laid on one fort and tested
+// against that fort when it lands. Then each fort's reload, the wind, leaving
+// the field, and each fort's aim and shot. A fort's heading is reset to
+// bearing + 60 + rnd(8) every frame, so it is always beam-on and fires
+// whenever it is loaded, with a scatter of a few degrees (0x8F25).
+function stepFortBattle(original, input, rng) {
+  const forts = [...original.forts];
+  const { startMen, flag } = original.enemy;
+  const inFlight = original.projectiles.find((shot) => shot.owner === 'player');
+  const target = inFlight?.target ?? (forts.length ? fortTargetIndex(original.player, forts) : -1);
+  let battle = stepPlayerHalf(target >= 0 ? { ...original, enemy: forts[target] } : original, input, rng);
+  if (target >= 0) forts[target] = battle.enemy;
+  battle.projectiles = battle.projectiles.map((shot) => (
+    shot.owner === 'player' && shot.target === undefined ? { ...shot, target } : shot));
+  forts.forEach((fort, index) => { forts[index] = stepEnemyReload(fort); });
+  battle = stepBattleWind(battle, rng);
+  const { margin, width, height } = FORT_FIELD;
+  const { x, y } = battle.player;
+  if (x < margin || x > width - margin || y < margin || y > height - margin) {
+    battle = { ...battle, frameEvent: BATTLE_EVENT.outOfRange };
+  }
+  forts.forEach((fort, index) => {
+    const bearing = bearingByte(battle.player.x - fort.x, battle.player.y - fort.y);
+    const aimed = { ...fort, heading: (bearing + 60 + rng.int(8)) & 0xff };
+    const own = (shot) => shot.owner === 'enemy' && shot.battery === index;
+    const others = battle.projectiles.filter((shot) => !own(shot));
+    const next = stepShot({ ...battle, enemy: aimed, projectiles: battle.projectiles.filter(own) },
+      'enemy', beamDifference(aimed, battle.player) < 6, rng);
+    forts[index] = next.enemy;
+    battle = {
+      ...next,
+      projectiles: [...others, ...next.projectiles.map((shot) => (shot.owner === 'enemy' ? { ...shot, battery: index } : shot))],
+    };
+  });
+  battle = { ...battle, forts, enemy: fortSummary(forts, startMen, flag) };
   const event = frameOutcome(battle.frameEvent, battle);
   return event ? { ...battle, event } : battle;
 }
