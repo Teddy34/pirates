@@ -91,6 +91,8 @@ evidence for each item. This list collects them in one place.
 
 ### Deliberate
 
+- Fast travel (T) runs time twice as fast; the original's fast mode runs it
+  five times faster.
 - The manual-based copy protection in the opening is left out, with its penalty
   branch and the +16 favour with each nation it grants on a pass.
 - Every opening screen has a picture; the original shows none there.

@@ -44,7 +44,7 @@ for future work.
 - Wreck the last ship bigger than a sloop once per 100 ticks over shallow
   pixels; men who no longer fit drown, and a lone big ship takes the shipwreck
   path (§5).
-- Toggle the original's fast mode with `T` (ticks five times faster).
+- Toggle the original's fast mode with `T`. The port runs time twice as fast; the original ran it five times faster.
 - Paint the sea and land as pixel art at the navigation mask's own
   resolution (16 pixels per tile). Sea depth comes from distance to land, and
   the coast gets surf and a beach. Inland there are grass, forest and shaded
