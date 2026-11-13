@@ -120,6 +120,14 @@ reuse the finished naval engine in a later milestone.
   unconfirmed at runtime and would be an exploit, so the port reads the table
   signed for both ships: your ship stops head to wind, as the enemy's does.
 
+- **Pirates beaten near a town help its trade.** The original takes 10
+  growth from the nearest town for every nearby capture and for every ship
+  blown up, pirates included (`town_economy.md` §3). The port gives that town
+  +10 growth (and its governor, if it has one, +1 mood up to +3) when you take or sink a
+  pirate fewer than `type + 5` cells away, and leaves the town alone for a pirate
+  beaten farther out. National ships, pirate hunters included, keep the
+  original penalty (`seaVictoryTownEffect`).
+
 ### Open points that must stay explicit
 
 - The navigation map now records the original per-pixel classes (water,
