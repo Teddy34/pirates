@@ -1289,11 +1289,14 @@ function monthEndCrewCheck({ monthsCrossed, aboard }, next) {
   if (event === 'divide') addLog('After many months at sea the men are anxious to divide the plunder.');
   const notice = monthsCrossed > 0 ? healthNotice() : null;
   if (notice) {
+    // Restore the caller's pause state: some callers (the food warning)
+    // carry on sailing without unpausing.
+    const wasPaused = state.paused;
     state.paused = true;
     showDialog({
       kicker: `Captain ${state.captain} · Age ${captainAge()}`, title: 'Your health',
       body: `<p>${notice}</p><p>Your age and health are on the Personal status page of the logbook.</p>`,
-      actions: [{ label: 'Continue', run: () => next(false) }],
+      actions: [{ label: 'Continue', run: () => { state.paused = wasPaused; next(false); } }],
     });
     return;
   }

@@ -24,6 +24,9 @@ await withBrowser({ name: 'health', portOffset: 11, screenshotEnv: 'HEALTH_SCREE
       state.player.wounds = 2;
       state.calendar = { ...state.calendar, year: state.calendar.year + 3, day: 29 };
       state.player.voyageTick = 64;
+      // Sailing unpaused, as when a food warning ends the voyage.
+      state.mode = 'sailing';
+      state.paused = false;
       document.querySelector('#event-dialog').close();
       globalThis.piratesPreview.endVoyage(() => { globalThis.healthCheckDone = true; });
       return true;
@@ -35,6 +38,7 @@ await withBrowser({ name: 'health', portOffset: 11, screenshotEnv: 'HEALTH_SCREE
     await screenshot(`notice-${viewport.name}`);
     await clickButton('Continue');
     await until('the voyage to go on', 'globalThis.healthCheckDone === true');
+    if (await evaluate(`${S}.paused`)) throw new Error(`${viewport.name}: the notice left the voyage paused`);
 
     // The next month end at the same health says nothing.
     await evaluate(`(() => {
