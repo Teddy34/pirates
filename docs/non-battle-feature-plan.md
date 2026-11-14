@@ -123,6 +123,12 @@ evidence for each item. This list collects them in one place.
   portraits.
 - The browser also autosaves at sea and after battles, where the original saves
   only in town (D37, allowed by the porting guide).
+- Saving in a town also writes one of ten numbered save slots, which the
+  start screen lists to load or delete; the autosave stays separate and is
+  what "Continue saved voyage" resumes. The original kept a single save.
+- A voyage saved in a town reopens that town's menu when loaded, keeping the
+  visit (no second governor audience or recruiting round). The original
+  resumed at sea on the town's departure cell (`0x19B9E`).
 - A dig that finds both treasure and a relative pays once, not twice.
 - Rumours and villain news go to the Ship's Log as dated text, not the
   original's event records. The "heard" bit is kept only on a villain's current
