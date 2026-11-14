@@ -74,6 +74,8 @@ const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
 const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
 const HALL_OF_FAME_KEY = 'fortune-and-freedom-hall-of-fame';
 const SAVE_VERSION = 10;
+const SAVE_SLOT_COUNT = 10;
+const slotKey = (slot) => `fortune-and-freedom-slot-${slot + 1}`;
 const TICK_SECONDS = 0.125;
 const ZOOM_STEP = 4;
 const MIN_ZOOM = 16;
@@ -93,6 +95,7 @@ const ctx = canvas.getContext('2d');
 const startScreen = document.querySelector('#start-screen');
 const form = document.querySelector('#new-game-form');
 const continueButton = document.querySelector('#continue-button');
+const loadSlotButton = document.querySelector('#load-slot-button');
 const dialog = document.querySelector('#event-dialog');
 const dialogKicker = document.querySelector('#dialog-kicker');
 const dialogTitle = document.querySelector('#dialog-title');
@@ -357,8 +360,12 @@ async function startGame(nextState, { startTownIndex = null } = {}) {
   // Loading recomputes morale (0x1D9A2). ASSUMED: a new game does the same;
   // the new-game routine does not set 0x45FAA.
   refreshCrewMorale();
-  // A game saved in port resumes at sea as if leaving the town (0x19B9E).
-  if (state.visit) placeForDeparture(state.visit.townIndex, state.visit.overland);
+  // DEPARTURE from the original: a game saved in port resumed at sea as if
+  // leaving the town (0x19B9E). The port reopens that town's menu instead
+  // (issue #86) and keeps the visit record, so a reload grants no second
+  // governor audience or recruiting round. Leaving still runs the usual
+  // departure (roll call, fleet check, 0x19B9E placement).
+  const resumeVisit = startTownIndex === null && state.visit ? state.visit : null;
   state.visit = null;
   // ASSUMED: a party saved ashore stays ashore with its ship waiting
   // (landing_and_overland.md §4), although the voyage reset after loading
@@ -382,6 +389,14 @@ async function startGame(nextState, { startTownIndex = null } = {}) {
   updateNearestTown();
   updateLog();
   updateInterface();
+  if (resumeVisit) {
+    state.nearestTownIndex = resumeVisit.townIndex;
+    state.mode = 'town';
+    state.paused = true;
+    state.visit = resumeVisit;
+    showTownMenu();
+    return;
+  }
   if (startTownIndex === null) {
     resumeSailing();
     return;
@@ -433,16 +448,143 @@ function playBriefing(done) {
   showDialog({ vignette: 'sailing-master', kicker, title: 'The sailing master', body: `<p>${greeting}</p>`, actions: [{ label: 'Continue', run: cities.length ? showCities : done }] });
 }
 
+// The autosave (SAVE_KEY) follows the voyage; "Save voyage" in a town also
+// writes one of SAVE_SLOT_COUNT numbered slots that only the player
+// overwrites or deletes (issue #87). The original kept one save file per
+// disk; the slots are a port convenience.
 function saveGame(showMessage = true) {
   if (!state || state.mode === 'battle' || state.mode === 'sword') return;
   state.rngState = rng.state;
+  state.savedAt = Date.now();
   localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   if (showMessage) addLog('Voyage saved in this browser.');
 }
 
-function loadGame() {
+function saveToSlot(slot) {
+  saveGame(false);
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(PREVIOUS_SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY));
+    localStorage.setItem(slotKey(slot), JSON.stringify(state));
+  } catch {
+    return false;
+  }
+  addLog(`Voyage saved in slot ${slot + 1}.`);
+  return true;
+}
+
+// The slot's label fields, without migrating or keeping the whole voyage.
+function slotSummary(slot) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(slotKey(slot)));
+    if (!saved?.player || !saved.towns) return null;
+    const townIndex = saved.visit?.townIndex ?? saved.nearestTownIndex;
+    return {
+      captain: saved.captain || 'Anonymous',
+      era: saved.era,
+      date: saved.calendar ? formatDate(saved.calendar) : '',
+      town: saved.towns[townIndex]?.name ?? '',
+      inTown: Boolean(saved.visit),
+      ships: saved.player.ships?.length ?? 0,
+      gold: saved.player.partyGold ?? 0,
+      savedAt: saved.savedAt ?? 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+const slotLabel = (slot, summary) => (summary
+  ? `${slot + 1} · ${summary.captain}, ${summary.date}, ${summary.inTown ? 'in' : 'near'} ${summary.town}`
+  : `${slot + 1} · Empty`);
+
+function slotDetails(summary) {
+  if (!summary) return '';
+  const saved = summary.savedAt ? `, saved ${new Date(summary.savedAt).toLocaleString()}` : '';
+  return `${summary.era} career, ${summary.ships} ship${summary.ships === 1 ? '' : 's'}, ${summary.gold.toLocaleString()} gold${saved}`;
+}
+
+function savedSlots() {
+  return Array.from({ length: SAVE_SLOT_COUNT }, (_, slot) => slotSummary(slot));
+}
+
+// "Save voyage" in a town: pick a slot; a used one asks before overwriting.
+function showSaveSlots(back) {
+  const slots = savedSlots();
+  const rows = slots.map((summary, slot) => summary ? `<li><strong>${slot + 1}.</strong> ${escapeHtml(slotDetails(summary))}</li>` : '').join('');
+  showDialog({
+    kicker: 'Save voyage', title: 'Choose a save slot',
+    body: `<p>Your voyage is also saved automatically; “Continue saved voyage” resumes the latest.</p>${rows ? `<ul class="save-slots">${rows}</ul>` : ''}`,
+    actions: [
+      ...slots.map((summary, slot) => ({ label: slotLabel(slot, summary), run: () => {
+        if (!summary) { finishSlotSave(slot, back); return; }
+        showDialog({
+          kicker: 'Save voyage', title: `Overwrite slot ${slot + 1}?`,
+          body: `<p>${escapeHtml(slotLabel(slot, summary))}</p><p>${escapeHtml(slotDetails(summary))}</p>`,
+          actions: [
+            { label: 'Overwrite', run: () => finishSlotSave(slot, back) },
+            { label: 'Back', secondary: true, run: () => showSaveSlots(back) },
+          ],
+        });
+      } })),
+      { label: 'Back', secondary: true, run: back },
+    ],
+  });
+}
+
+function finishSlotSave(slot, back) {
+  if (saveToSlot(slot)) { back(); return; }
+  showDialog({
+    kicker: 'Save voyage', title: 'Not saved',
+    body: '<p>This browser has no room left for another save. Delete an old one from the start screen and try again.</p>',
+    actions: [{ label: 'Continue', run: back }],
+  });
+}
+
+// The start screen's slot list: load a voyage or delete a save.
+function showLoadSlots() {
+  const slots = savedSlots();
+  showDialog({
+    kicker: 'Saved voyages', title: 'Load a voyage',
+    body: `<ul class="save-slots">${slots.map((summary, slot) => summary ? `<li><strong>${slot + 1}.</strong> ${escapeHtml(slotDetails(summary))}</li>` : '').join('')}</ul>`,
+    actions: [
+      ...slots.flatMap((summary, slot) => (summary ? [{ label: slotLabel(slot, summary), run: async () => {
+        const saved = loadGame(slotKey(slot));
+        if (saved && scenarios) await startGame(saved); else showLoadSlots();
+      } }] : [])),
+      { label: 'Delete a save…', secondary: true, run: showDeleteSlots },
+      { label: 'Back', secondary: true, run: refreshSaveButtons },
+    ],
+  });
+}
+
+function showDeleteSlots() {
+  const slots = savedSlots();
+  showDialog({
+    kicker: 'Saved voyages', title: 'Delete a save',
+    body: '<p>A deleted save cannot be recovered.</p>',
+    actions: [
+      ...slots.flatMap((summary, slot) => (summary ? [{ label: `Delete ${slotLabel(slot, summary)}`, run: () => showDialog({
+        kicker: 'Saved voyages', title: `Delete slot ${slot + 1}?`,
+        body: `<p>${escapeHtml(slotLabel(slot, summary))}</p><p>${escapeHtml(slotDetails(summary))}</p>`,
+        actions: [
+          { label: 'Delete', run: () => { localStorage.removeItem(slotKey(slot)); refreshSaveButtons(); if (savedSlots().some(Boolean)) showDeleteSlots(); } },
+          { label: 'Back', secondary: true, run: showDeleteSlots },
+        ],
+      }) }] : [])),
+      { label: 'Back', secondary: true, run: () => (savedSlots().some(Boolean) ? showLoadSlots() : refreshSaveButtons()) },
+    ],
+  });
+}
+
+function refreshSaveButtons() {
+  continueButton.classList.toggle('hidden', !loadGame());
+  loadSlotButton.classList.toggle('hidden', !savedSlots().some(Boolean));
+}
+
+function loadGame(key = null) {
+  try {
+    const saved = JSON.parse(key
+      ? localStorage.getItem(key)
+      : localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(PREVIOUS_SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY));
     if (![1, 2, 3, 4, 5, 6, 7, 8, 9, SAVE_VERSION].includes(saved?.version) || !saved.player || !saved.towns) return null;
     // Version 7 adds the town-information bits (0x80 current, 0x20
     // obsolete) to each town's flags. Earlier versions showed every town's
@@ -863,6 +1005,7 @@ function retire({ inTown, onReturn }) {
   const finish = () => {
     addLog(`Retired from privateering at the age of ${years + 25}: ${score.points} pirate points.`);
     // Older save keys still load as a fallback, so the ended career goes too.
+    // The numbered slots stay: the player made them and may reload one.
     for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, LEGACY_SAVE_KEY]) localStorage.removeItem(key);
     // 0x47BA: outside a town the driver skips both the lure and the hall of fame.
     if (inTown) offerHallOfFame(score, town); else offerAnotherGame();
@@ -2841,7 +2984,7 @@ function showTownMenu() {
     { label: 'Divide the plunder', run: showPlunderDivision },
     { label: 'Practice fencing', secondary: true, run: () => practiceFencing(showTownMenu) },
     { label: 'Logbook', secondary: true, run: () => showLogbook(showTownMenu) },
-    { label: 'Save voyage', secondary: true, run: () => { saveGame(); showTownMenu(); } },
+    { label: 'Save voyage', secondary: true, run: () => showSaveSlots(showTownMenu) },
     { label: 'Put to sea', secondary: true, run: leaveTown },
   );
   const landlocked = townLandlocked(town);
@@ -4651,6 +4794,7 @@ form.addEventListener('submit', async (event) => {
 });
 
 continueButton.addEventListener('click', async () => { const saved = loadGame(); if (saved && scenarios) await startGame(saved); });
+loadSlotButton.addEventListener('click', () => { if (scenarios) showLoadSlots(); });
 pauseButton.addEventListener('click', togglePause);
 logbookButton.addEventListener('click', openLogbookAtSea);
 chartButton.addEventListener('click', openSeaChartAtSea);
@@ -5327,7 +5471,7 @@ loadScenarios().then(() => {
   updateEraBrief();
   beginButton.disabled = false;
   if (openPreview(new URLSearchParams(location.search).get('preview'))) return;
-  continueButton.classList.toggle('hidden', !loadGame());
+  refreshSaveButtons();
 }).catch((error) => {
   console.error('Scenario data unavailable:', error);
   beginButton.textContent = 'Scenario data failed to load';

@@ -204,3 +204,5 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
   #chart-detail { flex:1; overflow:auto; border-bottom:0; }
   #chart-detail h3 { font-size:24px; }
 }
+.save-slots { margin:8px 0 0; padding:0; list-style:none; font-size:14px; }
+.save-slots li { margin:4px 0; }

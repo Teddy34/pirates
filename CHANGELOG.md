@@ -36,6 +36,12 @@ history.
   exist. `?preview=governor-daughter`, `governor-niece`,
   `governor-informant`, `governor-wife`, `merchant-daughter` and
   `merchant-family` open them, and `make test-browser` checks them.
+- Ten save slots. "Save voyage" in a town now asks which slot to use and
+  checks before overwriting a used one. The start screen's "Load a voyage"
+  lists the slots with the captain, date, town, ships and gold, and can
+  delete a save. The autosave still follows the voyage and is what "Continue
+  saved voyage" resumes; retiring clears only the autosave. The original kept
+  a single save.
 
 - Fort battles: attacking a fortified town from the sea is now fought with
   the sea-battle controls against its forts, which stand on rocky headlands
@@ -107,6 +113,10 @@ history.
   diagonally (#78).
 - After a drink with the barmaid, the only choice is now "Return to the
   tavern"; another round starts from the tavern, as in the original.
+- Loading a voyage saved in a town now reopens that town instead of putting
+  you at sea outside it. The visit carries on where you saved, so a reload
+  gives no second governor audience or recruiting round. This departs from
+  the original, which resumed at sea on the town's departure cell.
 - The start screen's dropdown lists (era, flag, difficulty, ability) are
   readable again: they had cream text on a white list in some browsers and
   now use the game's dark panel colours.
