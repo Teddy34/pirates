@@ -105,6 +105,8 @@ history.
   and East, whether you hold the button or the arrow key. Holding them also
   walks like West and East do, so holding two buttons at once walks
   diagonally (#78).
+- After a drink with the barmaid, the only choice is now "Return to the
+  tavern"; another round starts from the tavern, as in the original.
 - The start screen's dropdown lists (era, flag, difficulty, ability) are
   readable again: they had cream text on a white list in some browsers and
   now use the game's dark panel colours.
