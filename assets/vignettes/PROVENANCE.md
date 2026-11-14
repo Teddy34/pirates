@@ -6,8 +6,8 @@ The governor portraits, one 96 × 128 cell per era and nation (columns Spain,
 England, France, Holland; rows 1560, 1600, 1620, 1640, 1660, 1680). See
 `docs/governor-dress-1560-1680.md` for why each painting was chosen.
 
-- **Sources:** European portraits painted between about 1560 and 1690, all by
-  painters who died before 1750. Each is marked public domain on Wikimedia
+- **Sources:** European portraits painted between about 1560 and 1690, all
+  public domain by age (the named painters died before 1750). Each is marked public domain on Wikimedia
   Commons (faithful reproductions of two-dimensional public-domain works).
   No material from the original game was used.
 - **Process:** `tools/build_governor_portraits.py` downloads a standard

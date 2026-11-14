@@ -419,7 +419,7 @@ function playOpening(done) {
     if (index >= steps.length) { done(); return; }
     const next = () => show(index + 1);
     const step = steps[index];
-    const vignette = { id: step.vignette, flag: state.nationality };
+    const vignette = { id: step.vignette, flag: state.nationality, era: state.era, nation: state.nationality };
     if (!step.duel) {
       showDialog({ vignette, kicker, title, body: `<p>${step.text}</p>`, actions: [{ label: 'Continue', run: next }] });
       return;
@@ -4464,10 +4464,12 @@ function showDialog({ kicker, title, body, actions, vignette }) {
 }
 
 // A landscape sits above the dialog text, a portrait beside it.
+let shownVignette = null;
 function showVignette(vignette) {
   dialogVignette.classList.toggle('hidden', !vignette);
   const { id, ...options } = typeof vignette === 'string' ? { id: vignette } : vignette ?? {};
   dialog.classList.toggle('has-portrait', Boolean(vignette) && vignetteShape(id) === 'portrait');
+  shownVignette = vignette;
   if (!vignette) return;
   const size = vignetteSize(id);
   dialogVignetteCanvas.width = size.width;
@@ -4479,12 +4481,10 @@ function showVignette(vignette) {
     dialogVignetteCanvas.setAttribute('aria-label', vignetteDescription(id, options));
   };
   paint();
-  shownVignette = vignette;
   // Picture art loads in the background; repaint once it arrives if this
   // vignette is still the one on screen.
   if (vignetteNeedsArt(id)) loadVignetteArt().then(() => { if (shownVignette === vignette) paint(); });
 }
-let shownVignette = null;
 
 // Every return to the sailing map starts a new voyage, and each voyage begins
 // with the fleet check (porting_guide.md §4).

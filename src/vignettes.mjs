@@ -108,7 +108,7 @@ const NATION_ADJECTIVES = { Spain: 'Spanish', England: 'English', France: 'Frenc
 let governorSheet = null;
 let artLoading = null;
 
-function governorCell({ era, nation } = {}) {
+export function governorCell({ era, nation } = {}) {
   const column = GOVERNOR_NATIONS.indexOf(nation);
   const row = GOVERNOR_ERAS.indexOf(String(era));
   if (column < 0 || row < 0) return null;
