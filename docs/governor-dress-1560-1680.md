@@ -130,7 +130,7 @@ Colonial status: no permanent French Caribbean administration at this date.
 ### 1620: Louis XIII period
 
 - Pointed or close-fitting doublet, fuller sleeves and breeches.
-- A falling linen collar with lace edging becomes increasingly fashionable.
+- A falling linen collar with lace edging becomes increasingly fashionable; prefer it to the stiff standing collar of the 1600s and 1610s.
 - Stockings, decorative shoe bows; boots and a broad-brimmed hat for travel or riding.
 
 Colonial status: the French settlement on St Kitts was established in 1625,
@@ -185,6 +185,7 @@ before the 1707 union that created Great Britain.
 - Pointed doublet, falling band or ruff, broad sleeves and full breeches.
 - Stockings, rosettes or ribbons, broad-brimmed hat and cloak.
 - Boots are plausible for travel and riding.
+- By the mid-1620s the soft falling band had largely displaced the stiff standing lace collar; a 1620 figure should show it.
 
 Colonial status: Bermuda had been settled from 1612; English settlement on
 St Kitts began in 1623 and Barbados in 1627.
@@ -269,6 +270,7 @@ in Brazil and Guiana.
 - Short jacket or doublet, breeches, white collar or emerging cravat, long hair.
 - Generally less flamboyant than the French court's petticoat-breeches fashion, though wealthy Dutchmen adopted international trends.
 - Hats remain important in some portrait conventions, but wigs become increasingly visible in later seventeenth-century portraits.
+- Keep the Dutch official distinct from the Spanish: a soft falling band (often with tasselled band strings) and a broad hat, never the rigid golilla.
 
 Colonial status: Dutch Brazil had been lost in 1654; Suriname was captured
 from the English in 1667.
@@ -320,8 +322,7 @@ the table below names the painting; `assets/vignettes/PROVENANCE.md` has the
 Commons links. Check them all with `?preview=governor-portraits`.
 
 The paintings were picked to match this guide's silhouette for each date, not
-because the sitters governed anywhere in the Caribbean (only Stuyvesant did,
-at Curaçao). Where no colony existed (France and England before the 1620s,
+because the sitters governed anywhere in the Caribbean (none did). Where no colony existed (France and England before the 1620s,
 the Dutch in 1560), the portrait stands for the guide's expedition leader,
 merchant or gentleman of that nation.
 
@@ -329,11 +330,25 @@ merchant or gentleman of that nation.
 |---|---|---|---|---|
 | 1560 | Anguissola, *Philip II*, 1573: black doublet, small ruff | Mor, *Sir Thomas Gresham*, c. 1560: merchant in black, small ruff, cap | Clouet, *Pierre Quthe*, 1562: dark doublet, standing collar | Mor, *Portrait of a man*, early 1560s: small ruff, dark doublet |
 | 1600 | Pantoja de la Cruz, *Philip III*, 1605: large ruff (in parade armour) | 'H' monogrammist, *Sir Walter Ralegh*, 1588: embroidered doublet, ruff | Pourbus, *Henri IV*, c. 1610: dark doublet, ruff | Mierevelt, *Johan van Oldenbarnevelt*, 1617: black, large pleated ruff |
-| 1620 | Velázquez, *Philip IV*, 1623: dark doublet, early golilla | Mierevelt, *George Villiers*, 1625–26: lace collar, rich doublet | Pourbus, *Portrait of a Frenchman*, c. 1610–20: lace falling collar | Hals, *The Laughing Cavalier*, 1624: broad hat, lace collar, rich doublet |
-| 1640 | Velázquez, *Olivares*, 1638: black, golilla | Van Dyck, *Sir Thomas Hanmer*, c. 1638: black doublet, falling band | Champaigne, *Portrait of a man*, 1650: black, plain falling collar | Rembrandt, *Nicolaes van Bambeeck*, 1641: black, lace *platte kraag*, broad hat |
-| 1660 | Velázquez, *Philip IV*, 1656: black, golilla, longer hair | Lely, *Unknown gentleman*, c. 1660: long hair, lace band, rich silks | Le Brun, *Louis XIV*, 1667: full curled hair, lace cravat | Couturier (attr.), *Petrus Stuyvesant*, c. 1660: white collar, sash, half-armour |
-| 1680 | Carreño de Miranda, *Fernando de Valenzuela*, c. 1675: black, golilla | Style of Riley, *Unknown gentleman*, c. 1680–90: full wig, cravat | Rigaud, *Jules Hardouin-Mansart*, 1685: wig, cravat, justaucorps | Maes, *Man in a black wig*, 1680: wig, cravat, loose silk |
+| 1620 | Velázquez, *Philip IV*, 1623: dark doublet, early golilla | Johnson, *Unknown gentleman*, 1629: falling lace band, black doublet | Montmorency (French school), c. 1625: curled hair, falling lace collar, sash | Hals, *The Laughing Cavalier*, 1624: broad hat, lace collar, rich doublet |
+| 1640 | Velázquez, *Don Diego del Corral y Arellano*, c. 1632: black, rigid golilla | Dobson, *Portrait of a Royalist*, c. 1643: orange silk doublet, plain falling band, long hair | Champaigne, *Louis XIII*, c. 1640: long curls, lace collar, blue Saint-Esprit sash | Rembrandt, *Nicolaes van Bambeeck*, 1641: black, lace *platte kraag*, broad hat |
+| 1660 | Velázquez, *Philip IV*, 1656: black, golilla, longer hair | Lely, *Unknown gentleman*, c. 1660: long hair, lace band, rich silks | Le Brun, *Louis XIV*, 1667: full curled hair, lace cravat | Rembrandt, *The Syndics* (one syndic), 1662: black, broad hat, plain white band, long hair |
+| 1680 | Coello, *Charles II*, 1680–83: black, rigid golilla, Golden Fleece chain, unpowdered straight hair | Style of Riley, *Unknown gentleman*, c. 1680–90: full wig, cravat | Rigaud, *Jules Hardouin-Mansart*, 1685: wig, cravat, justaucorps | Maes, *Man in a black wig*, 1680: wig, cravat, loose silk |
 
 Known compromises: Spain 1600 shows Philip III in parade armour, not a
-doublet, though the ruff and head are right; Holland 1660 shows Stuyvesant
-in half-armour. The France 1640 painting dates from 1650.
+doublet, though the ruff and head are right; France 1640 shows Louis XIII in
+a cuirass. The England and France 1620 portraits date from the later 1620s
+and Spain 1640 from about 1632, chosen because they show that decade's
+neckwear (falling bands; the golilla) clearly at 96 × 128.
+
+### Review of the portrait sheet (November 2026)
+
+A dress-history review of the first sheet found 1560 and 1600 broadly
+right, and asked for changes from 1620 onwards:
+
+| Era | Finding | Change |
+|---|---|---|
+| 1620 | English and French collars looked late-sixteenth-century; falling collars should be more visible | England (Mierevelt, *Buckingham*) and France (Pourbus, *A Frenchman*) wore stiff standing lace collars; both replaced with falling-collar portraits |
+| 1640 | The Spanish figure needed a distinct golilla, not a broad collar | Olivares's golilla read as a broad collar once pixelated; replaced with Velázquez's *Diego del Corral*, whose golilla is crisp white on black. England and France both showed black with a plain band, so they now differ: an English Royalist in silk, Louis XIII in lace and sash |
+| 1660 | Spanish and Dutch figures needed more careful distinction | Holland's Stuyvesant (plain band, dark dress, half-armour) was too close to Philip IV; replaced with a hatted Amsterdam syndic in civic regent dress |
+| 1680 | The Spanish figure looked too French-influenced | Valenzuela's loose dark hair read as a French wig; replaced with Coello's *Charles II*: black, golilla, no cravat |
