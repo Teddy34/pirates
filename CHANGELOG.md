@@ -122,6 +122,10 @@ history.
 
 ### Fixed
 
+- A fort battle now puts the town on alert like any sea battle fought near
+  it (24 − 2 per cell away, about +24 at the town), whether you land, run
+  aground, are driven off or fight until nightfall, as in the original. A
+  failed attack from the sea is no longer free.
 - Ashore, the North and South buttons now light up while held, like West
   and East, whether you hold the button or the arrow key. Holding them also
   walks like West and East do, so holding two buttons at once walks

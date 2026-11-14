@@ -1712,9 +1712,9 @@ function applyBattleSurvivors(battle) {
   const damage = Math.min(48, battle.player.damage & 0xf0);
   state.player.ships = battle.fleet.map(shipRecord);
   if (state.player.ships.length) state.player.ships[0] = { ...state.player.ships[0], damage };
-  // ASSUMED: the gunfire alert (0xE60E) is for ship battles; a fort battle
-  // sets the town's alert by its own result (sea_battles.md §8).
-  if (battle.fort) return;
+  // The gunfire alert (0xE9AC) follows every sea battle, fort battles
+  // included: a fort battle at the town adds about +24 whatever its result,
+  // and a landing adds its own +16 on top (0xE775).
   const distance = nearestTownDistance();
   if (distance < 12) state.alert += 24 - 2 * distance;
 }
