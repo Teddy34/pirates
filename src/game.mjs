@@ -461,8 +461,8 @@ function saveGame(showMessage = true) {
 }
 
 function saveToSlot(slot) {
-  saveGame(false);
   try {
+    saveGame(false);
     localStorage.setItem(slotKey(slot), JSON.stringify(state));
   } catch {
     return false;
@@ -474,8 +474,9 @@ function saveToSlot(slot) {
 // The slot's label fields, without migrating or keeping the whole voyage.
 function slotSummary(slot) {
   try {
-    const saved = JSON.parse(localStorage.getItem(slotKey(slot)));
-    if (!saved?.player || !saved.towns) return null;
+    // loadGame's checks, so a slot listed is a slot that loads.
+    const saved = loadGame(slotKey(slot));
+    if (!saved) return null;
     const townIndex = saved.visit?.townIndex ?? saved.nearestTownIndex;
     return {
       captain: saved.captain || 'Anonymous',
@@ -1130,13 +1131,14 @@ function endCaptivity({ inTown, town, lost, done, before }) {
       ? `Your former comrades take pity on you and trade a captured nobleman for your freedom. They agree to take you back as ${captainKind} captain.`
       : `One day a small ship puts in at the island to resupply, and you recognize some of your former crew. They agree to take you back as ${captainKind} captain.`}</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
     actions: [{ label: 'Continue', run: () => {
-      saveGame(false);
-      if (state.mode !== 'town') { done(); return; }
+      if (state.mode !== 'town') { saveGame(false); done(); return; }
       // Released from a port visit: the new voyage starts at the release point.
       state.visit = null;
       state.mode = 'sailing';
       setupClouds();
       startVoyage();
+      // Saved once out of the town, or loading would reopen its menu.
+      saveGame(false);
     } }],
   });
 }
