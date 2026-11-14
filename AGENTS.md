@@ -69,6 +69,7 @@ The project has no build step or third-party dependency:
 - `src/mechanics.mjs` contains deterministic, DOM-free game rules.
 - `src/overland.mjs` contains the DOM-free landing, walking, reef, treasure-map and dig rules; `src/treasure-sites.mjs` holds the 256 decoded dig sites.
 - `src/villains.mjs` contains the DOM-free villain records of the family quest: creation, monthly moves, gossip answers and flight.
+- `src/romance.mjs` contains the DOM-free courtship and marriage rules (`marriage.md`): the governor's daughter or niece, charm, informants, the rival suitor, the merchant's daughter and the father-in-law; check them with `?preview=governor-daughter`, `governor-niece`, `governor-informant`, `governor-wife`, `merchant-daughter` and `merchant-family`.
 - `src/retirement.mjs` contains the DOM-free retirement score, career summary, post-career line and hall-of-fame rules.
 - `src/eras.mjs` contains the DOM-free era briefs for the start screen: each era's manual title and difficulty rating, a description and highlights written from `eras.md`, and each career's advice (by era and nation) written from `careers.md` with its starting force read from the start record.
 - `src/opening.mjs` contains the DOM-free career opening: each era and nation's story, its picture per screen, and the sailing master's first briefing. Its `open-*` and `sailing-master` vignettes appear when starting a new career.
@@ -100,7 +101,7 @@ make syntax
 
 Run `make test` for the deterministic mechanics suite and `make test-browser`
 for the browser interaction smoke tests (transfer windows; landing,
-walking, digging and reefs; retirement; the family quest; the scene pictures; sword fights; the sea chart; and the fort battle, through the local `?preview=` states). `make check` runs the complete
+walking, digging and reefs; retirement; the family quest; the scene pictures; sword fights; the sea chart; the fort battle; and courtship and marriage, through the local `?preview=` states). `make check` runs the complete
 automated set; `make syntax` checks every `src/`, `tools/` and server file. The
 browser checks share `tools/browser-harness.mjs`, which starts the server and
 a headless Chromium and provides the DevTools helpers; build new checks on it.

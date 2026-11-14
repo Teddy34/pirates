@@ -140,7 +140,26 @@ for future work.
   town (`0x47BA` skips it on the uncharted island), kept in this
   browser as the ten best careers (ASSUMED: `0x529A`'s layout is not
   decoded), then another game (CSTR 80). A finished career deletes its save.
-- Courtship is not playable, so the score and summary use married = 0.
+- The score and summary count marriage (1000 × married, the bride's line).
+
+### Courtship and marriage
+
+- At favour 2 or more an audience ends with the governor's daughter or niece
+  (town word w11, `0x128C1`, `src/romance.mjs`): charm
+  `(wealth/499 + 2·rank + difficulty) / (1 + niece)`, none below 1 or once
+  married, then halved and doubled with Wit and Charm. Conversation makes an
+  informant on `rnd(charm) > 2` (and reopens a merchant closed by sneaking);
+  a proposal is refused below charm 4 (CSTR 142/143), otherwise the rival
+  suitor (name id `(town & 3)·8 + nation·32 + 2·niece + 1`) fights a duel:
+  a win marries her (married 2 or 3, mood +2), a loss sets reputation −1.
+- An informant or wife turns later audiences into her report of the
+  treasure fleet and silver train (CSTN 26).
+- Leaving a merchant (`0x223C6`): the son-in-law dines with his wife
+  (CSTR 295); a single captain meets the daughter on `rnd(10) == 0`.
+  Proposing needs 400 personal wealth (200 with Wit and Charm) and 500 party
+  gold (the text's 5,000 is not what the code takes). The merchant family
+  (w12 bit 0x40) gives the father-in-law's greetings (CSTR 291–294), three
+  quarters of the price, and trade in a Spanish town that refuses others.
 
 ### World simulation
 
@@ -254,8 +273,9 @@ for future work.
   Spanish and pirate captains offer treasure-fleet or silver-train news
   first ("The Treasure Fleet is in Havana.", "in Spain" / "in Peru" when
   away, `0x1E953`/`0x1EA24`); asking frees the captain. A barmaid informant
-  gives both reports, standing in for the governor's-house informant
-  (ASSUMED until marriage, K8). Each report is noted in the captain's log
+  also gives both reports (ASSUMED: the original's barmaid gives the
+  traveller's city information or a map piece instead; the governor's-house
+  informant now exists too). Each report is noted in the captain's log
   with the original's unused "Treasure fleet in %s." line (ASSUMED).
   Governors ransom any prisoner, and leaving a town may let one jump
   overboard (`0x17EFB`). The traced pirate hand-over
@@ -298,7 +318,6 @@ The following systems have no complete playable implementation:
   purchase);
 - complete cannon management;
 - the named captains' battle skill;
-- courtship, rival suitors, marriage, and family benefits;
 - aging and illness effects beyond the captivity message, ransom, and the
   retirement check at the start of captivity;
 - the famous-expedition ending (CSTR 159; the port has no famous
