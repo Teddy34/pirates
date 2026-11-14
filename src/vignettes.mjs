@@ -89,8 +89,49 @@ const DESCRIPTIONS = {
   nightfall: 'Two ships slip apart in the dark as night ends the chase',
 };
 
-export function vignetteDescription(id) {
+export function vignetteDescription(id, options = {}) {
+  if (id === 'governor' && governorSheet && governorCell(options)) {
+    return `Portrait of the ${NATION_ADJECTIVES[options.nation]} governor in the dress of the ${options.era}s, pixelated from a period painting.`;
+  }
   return `Placeholder picture: ${DESCRIPTIONS[id] ?? id}.`;
+}
+
+// The governor's portrait follows the era and the town's nation
+// (docs/governor-dress-1560-1680.md). Each is a public-domain period painting
+// pixelated by tools/build_governor_portraits.py into one sheet of 96 x 128
+// cells: a column per nation, a row per era. Sources are listed in
+// assets/vignettes/PROVENANCE.md.
+const GOVERNOR_SHEET_URL = new URL('../assets/vignettes/governors.png', import.meta.url).href;
+export const GOVERNOR_NATIONS = ['Spain', 'England', 'France', 'Holland'];
+export const GOVERNOR_ERAS = ['1560', '1600', '1620', '1640', '1660', '1680'];
+const NATION_ADJECTIVES = { Spain: 'Spanish', England: 'English', France: 'French', Holland: 'Dutch' };
+let governorSheet = null;
+let artLoading = null;
+
+function governorCell({ era, nation } = {}) {
+  const column = GOVERNOR_NATIONS.indexOf(nation);
+  const row = GOVERNOR_ERAS.indexOf(String(era));
+  if (column < 0 || row < 0) return null;
+  return { x: column * PICTURE_SIZES.portrait.width, y: row * PICTURE_SIZES.portrait.height };
+}
+
+// Loads the picture art once. Until it arrives, or if it cannot be loaded
+// (or there is no DOM), the code-drawn placeholder stands in.
+export function loadVignetteArt() {
+  if (artLoading) return artLoading;
+  if (typeof Image === 'undefined') return (artLoading = Promise.resolve());
+  artLoading = new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => { governorSheet = image; resolve(); };
+    image.onerror = () => resolve();
+    image.src = GOVERNOR_SHEET_URL;
+  });
+  return artLoading;
+}
+
+// True while a vignette would be drawn better once the art has loaded.
+export function vignetteNeedsArt(id) {
+  return id === 'governor' && !governorSheet;
 }
 
 export function vignetteShape(id) {
@@ -136,7 +177,9 @@ function painter(ctx) {
     parts.forEach(([x, y, w, h]) => rect(x - 1, y - 1, w + 2, h + 2, OUTLINE));
     parts.forEach(([x, y, w, h, color]) => rect(x, y, w, h, color));
   };
-  return { rect, disc, outlined };
+  // Copies a sw x sh region of a loaded image, one art pixel per pixel.
+  const image = (source, sx, sy, sw, sh, dx, dy) => ctx.drawImage(source, sx, sy, sw, sh, dx, dy, sw, sh);
+  return { rect, disc, outlined, image };
 }
 
 // A painter that magnifies drawing about (cx, cy), snapping both edges of
@@ -228,9 +271,16 @@ function ship(p, x, y, { facing = 1, flag = 'pirate', sails = PARCHMENT, scale =
   p.rect(flagX + 3 * scale, flagY + 1, 2 * scale, 3 * scale, mark);
 }
 
-// Head and shoulders of a governor in a plumed hat, periwig, lace falling
-// collar and velvet doublet, before a curtain and a panelled wall.
-function drawGovernor(picture) {
+// The period portrait for the era and nation, once loaded; otherwise the
+// placeholder: head and shoulders of a governor in a plumed hat, periwig,
+// lace falling collar and velvet doublet, before a curtain and a panelled
+// wall.
+function drawGovernor(picture, options = {}) {
+  const cell = governorCell(options);
+  if (governorSheet && cell) {
+    picture.image(governorSheet, cell.x, cell.y, PICTURE_SIZES.portrait.width, PICTURE_SIZES.portrait.height, 0, 0);
+    return;
+  }
   picture.rect(0, 0, 96, 128, '#3a2418');
   // Drawn at 4 : 5 and magnified, a close head-and-shoulders crop.
   const p = zoomed(picture, 1.3, 48, 2);
