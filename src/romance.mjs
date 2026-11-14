@@ -54,7 +54,7 @@ export function governorCharm({ personalWealth, rank, difficulty, governorRelati
 // (town & 3) * 8 + nation * 32 + 2 * niece + 1, read by `captainName`. With
 // the nation at bits 5-6 rather than 6-7, as the hunters store it, the
 // surname list is nation >> 1 and the row (town & 3) + 4 * (nation & 1):
-// an English governor's daughter is courted by a Spaniard, as in the original.
+// a French governor's daughter is courted by an Englishman, as in the original.
 export function suitorId({ townIndex, nationIndex, governorRelative }) {
   return (townIndex & 3) * 8 + nationIndex * 32 + 2 * (governorRelative & GOVERNOR_NIECE) + 1;
 }

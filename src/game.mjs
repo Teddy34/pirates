@@ -3932,6 +3932,8 @@ function finishMerchantVisit() {
     if (trades.length) addLog(`At the ${town.name} merchant: ${trades.join(', ')}.`);
   }
   state.visit.merchant = null;
+  // 0x223C6 skips this when 0x47AD0 is set, but the executable only ever
+  // clears that word (0x19320), so the farewell follows every visit.
   const farewell = merchantFarewell({ merchantFamily: town.merchantFamily, married: state.player.married, rng });
   if (farewell === 'wife') {
     showDialog({
