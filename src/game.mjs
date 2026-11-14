@@ -3591,10 +3591,9 @@ function spendEveningWithBarmaid(cost, rapportGain) {
   showDialog({
     vignette: 'barmaid', kicker: 'The barmaid', title,
     body: `<p>${text}</p>`,
-    actions: [
-      ...(rapport < 10 ? [{ label: 'Back to the barmaid', run: showBarmaid }] : []),
-      { label: 'Return to the tavern', secondary: rapport < 10, run: showTavern },
-    ],
+    // An evening ends at the tavern (issue #88): the original's barmaid is
+    // one tavern hotspot (0x114D4), so another round starts from there.
+    actions: [{ label: 'Return to the tavern', run: showTavern }],
   });
 }
 
