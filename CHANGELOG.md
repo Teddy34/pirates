@@ -13,6 +13,30 @@ history.
 
 ### Added
 
+- Courtship and marriage. At favour 2 or more with a town's nation, an
+  audience ends with dinner and the governor's daughter or niece, courted by
+  a rival suitor. Your charm is (personal wealth / 499 + twice your rank with
+  that nation + difficulty), divided by two for a niece, then halved, and
+  doubled with Wit and Charm. Making conversation can win her as an
+  informant who reports the treasure fleet and silver train on later visits;
+  proposing needs charm 4 or more and a sword duel with the suitor (losing
+  sets reputation to −1). Winning marries her and pleases the governor (mood
+  +2). After leaving a merchant, a single captain has one chance in ten to
+  meet his daughter: proposing needs 400 personal wealth (200 with Wit and
+  Charm) and 500 gold for her father's debt. Your father-in-law greets you by
+  your purse, sells at three quarters of the usual price, trades even in a
+  Spanish town that would turn you away, and you dine with your wife after
+  each visit. Marriage now counts in the retirement score and career
+  summary. As in the original, the debt is 500 gold although the text says
+  5,000; one marriage blocks every other; and the suitor's surname comes
+  from the original's name-id arithmetic, so a French governor's daughter
+  may be courted by an Englishman. Departures: the informant's message names
+  a niece as a niece (the original always says "daughter"), and the courtship
+  scenes use the governor and merchant portraits until their own pictures
+  exist. `?preview=governor-daughter`, `governor-niece`,
+  `governor-informant`, `governor-wife`, `merchant-daughter` and
+  `merchant-family` open them, and `make test-browser` checks them.
+
 - Fort battles: attacking a fortified town from the sea is now fought with
   the sea-battle controls against its forts, which stand on rocky headlands
   along the coast beside the town's harbor. Each fort has 12 guns, never
