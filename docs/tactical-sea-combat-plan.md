@@ -152,9 +152,6 @@ named captain (`0xF207`). Fort battles reuse the naval engine (§7).
   through four.
 - **The log is hidden during sea battles**, as in sword fights, so it can't
   cover the field.
-- **No gunfire alert after a fort battle.** Ship battles near a town raise its
-  alert by `24 − 2d` (`0xE60E`); a fort battle sets the alert only by its
-  result. Assumed, not traced.
 
 - **Pirates beaten near a town help its trade.** The original takes 10
   growth from the nearest town for every nearby capture and for every ship
@@ -410,6 +407,12 @@ Attacking a fortified town by sea fights its fort with the ship engine
 - the field is fixed: leaving it is CSTR 196 ("driven back to the open
   sea"), running aground is CSTR 173, and your flagship sinking takes the
   usual sinking path; each ends the attack and returns you to sea;
+- every fort battle, won or lost, raises the alert by the gunfire rule of
+  ship battles, `24 − 2d` within 12 cells of the town (`0xE9AC` has no fort
+  exception), so about +24 at the town;
+- failing costs no other ship: the "escaping costs a ship" pick at `0x94A2`
+  adds the fort flag `0x44A1C` to its test, so it never fires in a fort
+  battle; only your flagship can be lost, by sinking;
 - landing sets alert +16 and reputation −2, makes the garrison
   `(soldiers + 1)/2 + fort men left/10`, and lands only the flagship's men
   aboard to storm the walls.

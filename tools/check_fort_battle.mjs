@@ -52,10 +52,13 @@ await withBrowser({ name: 'fort', portOffset: 8, screenshotEnv: 'FORT_SCREENSHOT
     await clickButton('Continue');
     await until(`${where}: back at sea`, `${S}.mode === 'sailing' && !document.querySelector('#event-dialog[open]')`);
 
-    // Leaving the field: the fort drives you off.
+    // Leaving the field: the fort drives you off, and the gunfire still
+    // alerts the town.
     await startBattle(`${where}-driven-off`);
+    const alertBefore = await evaluate(`${S}.alert`);
     await placeShip(240, 236);
     await until(`${where}: driven off`, `${dialogTitle} === 'Driven off'`);
+    if (await evaluate(`${S}.alert`) <= alertBefore) throw new Error(`${where}: being driven off by the fort does not alert the town`);
     await clickButton('Continue');
     await until(`${where}: back at sea`, `${S}.mode === 'sailing' && !document.querySelector('#event-dialog[open]')`);
     console.log(`${where}: the fort battle briefs, draws, lands at the quay, runs aground and is driven off.`);
