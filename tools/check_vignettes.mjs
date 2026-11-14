@@ -71,6 +71,34 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     if (await evaluate(`${dialogTitle}`) !== 'The Merchantman escapes') throw new Error(`${viewport.name}: the fleeing enemy's escape has the wrong title`);
     await clickButton('Continue');
     await until('the map', `!document.querySelector('#event-dialog[open]') && ${S}.mode === 'sailing'`);
-    console.log(`${viewport.name}: all ${scenes.length} scene pictures show and fit.`);
+    // The governor's portrait follows the era and the town's nation: the
+    // 1680 French preview career's governor, then the gallery of all 24.
+    await open('governor-promotion');
+    await until('the governor portrait', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('period painting')`);
+    await expectPicture(`${viewport.name} governor`, 'French governor in the dress of the 1680s');
+    await open('governor-portraits');
+    const seen = new Set();
+    for (let index = 0; index < 24; index += 1) {
+      const title = await evaluate(dialogTitle);
+      const [nation, era] = title.split(', ');
+      const adjective = { Spain: 'Spanish', England: 'English', France: 'French', Holland: 'Dutch' }[nation];
+      await until(`${title} portrait`, `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('period painting')`);
+      await expectPicture(`${viewport.name} ${title}`, `${adjective} governor in the dress of the ${era}s`);
+      // The cell is drawn, not left blank: sample the picture's pixels.
+      const colours = await evaluate(`(() => {
+        const canvas = document.querySelector('#dialog-vignette canvas');
+        const data = canvas.getContext('2d').getImageData(8, 8, 96, 128).data;
+        const set = new Set();
+        for (let i = 0; i < data.length; i += 4) set.add((data[i] << 16) | (data[i + 1] << 8) | data[i + 2]);
+        return set.size;
+      })()`);
+      if (colours < 12) throw new Error(`${viewport.name} ${title}: the portrait looks blank (${colours} colours)`);
+      seen.add(title);
+      if (index === 9) await screenshot(`${viewport.name}-governor-portrait`);
+      await clickButton('Next');
+      await until('the next portrait', `${dialogTitle} !== ${JSON.stringify(title)}`);
+    }
+    if (seen.size !== 24) throw new Error(`${viewport.name}: the gallery showed ${seen.size} of 24 portraits`);
+    console.log(`${viewport.name}: all ${scenes.length} scene pictures and 24 governor portraits show and fit.`);
   }
 });

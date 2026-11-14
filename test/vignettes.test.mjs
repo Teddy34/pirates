@@ -46,3 +46,19 @@ test('each new scene paints its whole picture, with no transparent gaps', () => 
     }
   }
 });
+
+test('the governor portrait cell follows the era and the nation', async () => {
+  const { governorCell, loadVignetteArt, vignetteNeedsArt } = await import('../src/vignettes.mjs');
+  assert.deepEqual(governorCell({ era: '1560', nation: 'Spain' }), { x: 0, y: 0 });
+  assert.deepEqual(governorCell({ era: '1680', nation: 'France' }), { x: 192, y: 640 });
+  // Saves may hold the era as a number.
+  assert.deepEqual(governorCell({ era: 1640, nation: 'Holland' }), { x: 288, y: 384 });
+  assert.equal(governorCell({ era: '1680', nation: 'pirate' }), null);
+  assert.equal(governorCell({ era: '1700', nation: 'Spain' }), null);
+  assert.equal(governorCell(), null);
+  // Without a DOM the art never loads and the placeholder stands in.
+  await loadVignetteArt();
+  assert.equal(vignetteNeedsArt('governor'), true);
+  assert.equal(vignetteNeedsArt('tavern'), false);
+  assert.match(vignetteDescription('governor', { era: '1680', nation: 'France' }), /^Placeholder picture/);
+});

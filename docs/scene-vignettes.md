@@ -124,6 +124,11 @@ marque or amnesty offer, promotions, land grants, missions, ransom offers
 and villain news (`0x11D6D`, `governor_visit.asm`, `promotion.asm`) ·
 *"Over a delicious dinner, the governor offers you a Letter of Marque…"*,
 *"…I do gladly confer upon you the title of %s!"* (CSTR 134, 147, 200)
+In the game this is a 96 × 128 portrait, not this dining-hall scene: one
+public-domain period painting per era and nation, pixelated
+(`docs/governor-dress-1560-1680.md`, `assets/vignettes/governors.png`). The
+prompt below is kept for a future landscape version.
+
 > The candlelit dining hall of a colonial governor's mansion: a portly
 > governor in a lace collar and a dark velvet doublet sits at a long table
 > with silver dishes, roast fowl, wine and a sealed parchment proclamation.

@@ -61,7 +61,7 @@ import {
   isMerchantFamily, makeInformant, marryGovernorRelative, merchantFarewell, merchantSuitAccepted, proposalAnswer, relativeWord, suitorId,
 } from './romance.mjs';
 import { ERA_DIFFICULTIES, careerBrief, eraBrief } from './eras.mjs';
-import { drawVignette, vignetteDescription, vignetteShape, vignetteSize } from './vignettes.mjs';
+import { GOVERNOR_ERAS, GOVERNOR_NATIONS, drawVignette, loadVignetteArt, vignetteDescription, vignetteNeedsArt, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
 import { paintPartySprite } from './party-sprites.mjs';
@@ -419,7 +419,7 @@ function playOpening(done) {
     if (index >= steps.length) { done(); return; }
     const next = () => show(index + 1);
     const step = steps[index];
-    const vignette = { id: step.vignette, flag: state.nationality };
+    const vignette = { id: step.vignette, flag: state.nationality, era: state.era, nation: state.nationality };
     if (!step.duel) {
       showDialog({ vignette, kicker, title, body: `<p>${step.text}</p>`, actions: [{ label: 'Continue', run: next }] });
       return;
@@ -2930,7 +2930,7 @@ function governorMission(town, next) {
       town.mood -= 1;
       addLog('Governor displeased by failure.');
       showDialog({
-        vignette: 'governor', kicker, title: 'A mission unfulfilled',
+        vignette: governorPortrait(town), kicker, title: 'A mission unfulfilled',
         body: '<p>“I am disappointed that you have failed to complete the mission I gave to you,” the governor says.</p>',
         actions: [{ label: 'Continue the audience', run: next }],
       });
@@ -2941,7 +2941,7 @@ function governorMission(town, next) {
     state.player.favour[mission.nation] += 1;
     town.mood -= mission.type;
     showDialog({
-      vignette: 'governor', kicker, title: 'A mission fulfilled',
+      vignette: governorPortrait(town), kicker, title: 'A mission fulfilled',
       body: mission.type === MISSION.PIRATE
         ? `<p>“So you have brought me that despicable pirate, ${captainName(mission.captainId)},” the governor observes. “The king will be very pleased at this news.”</p>`
         : '<p>“I am greatly pleased that you have fulfilled the mission I gave you,” the governor says. “Your service will be remembered.”</p>',
@@ -2955,7 +2955,7 @@ function governorMission(town, next) {
   });
   if (!offer) { next(); return; }
   showDialog({
-    vignette: 'governor', kicker, title: 'An urgent mission',
+    vignette: governorPortrait(town), kicker, title: 'An urgent mission',
     body: '<p>“I have an urgent mission for you,” the governor says.</p>',
     actions: [
       { label: 'Accept the mission', run: () => acceptMission(town, offer, next) },
@@ -2972,7 +2972,7 @@ function acceptMission(town, { type, target }, next) {
   const pirate = mission.captainId === undefined ? '' : captainName(mission.captainId);
   addLog(MISSION_ACCEPTED_LOGS[type](targetName, pirate));
   showDialog({
-    vignette: 'governor', kicker: `${town.nation} governor`, title: 'Your orders',
+    vignette: governorPortrait(town), kicker: `${town.nation} governor`, title: 'Your orders',
     body: `<p>${MISSION_ORDERS[type](targetName, pirate)}</p>`,
     actions: [{ label: 'Continue the audience', run: next }],
   });
@@ -3157,6 +3157,26 @@ function governorBriefingBody(town) {
     : `<p>The governor reports that ${town.nation} is at peace with every European power in the Caribbean.</p>`;
 }
 
+// The governor dresses for his era and nation (docs/governor-dress-1560-1680.md).
+function governorPortrait(town) {
+  return { id: 'governor', era: state.era, nation: town.nation };
+}
+
+// The preview gallery of governor portraits (?preview=governor-portraits).
+function showGovernorPortraitGallery(index) {
+  const era = GOVERNOR_ERAS[Math.floor(index / GOVERNOR_NATIONS.length)];
+  const nation = GOVERNOR_NATIONS[index % GOVERNOR_NATIONS.length];
+  const count = GOVERNOR_ERAS.length * GOVERNOR_NATIONS.length;
+  showDialog({
+    vignette: { id: 'governor', era, nation }, kicker: `Governor portraits · ${index + 1} of ${count}`, title: `${nation}, ${era}`,
+    body: '<p>The governor’s portrait for this era and nation.</p>',
+    actions: [
+      { label: 'Next', run: () => showGovernorPortraitGallery((index + 1) % count) },
+      { label: 'Close', secondary: true, run: resumeSailing },
+    ],
+  });
+}
+
 function showGovernor() {
   const town = state.towns[state.visit.townIndex];
   state.visit.governorSeen = true;
@@ -3184,7 +3204,7 @@ function deliverGovernorPirates(town) {
   const names = delivered.map(({ name, ship }) => name ?? `the captain of a ${ship}`).join(', ');
   addLog(`Turned over ${names} in ${town.name}; ${town.nation} favour rose by ${favourGain}.`);
   showDialog({
-    vignette: 'governor', kicker: `${town.nation} governor`, title: delivered.length === 1 ? 'A pirate brought to justice' : `${delivered.length} pirates brought to justice`,
+    vignette: governorPortrait(town), kicker: `${town.nation} governor`, title: delivered.length === 1 ? 'A pirate brought to justice' : `${delivered.length} pirates brought to justice`,
     body: `<p>The governor takes ${names} into custody and promises that the Crown will remember your service.</p>`,
     actions: [{ label: 'Continue the audience', run: () => continueGovernorAudience(town) }],
   });
@@ -3206,7 +3226,7 @@ function continueGovernorAudience(town) {
   state.player.land += promotion.landUnits;
   addLog(`${town.nation} promoted you from ${RANK_NAMES[oldRank]} to ${RANK_NAMES[promotion.rank]}.`);
   showDialog({
-    vignette: 'governor', kicker: `${town.nation} governor`, title: `Promotion to ${RANK_NAMES[promotion.rank]}`,
+    vignette: governorPortrait(town), kicker: `${town.nation} governor`, title: `Promotion to ${RANK_NAMES[promotion.rank]}`,
     body: `<p>The Crown recognizes your service to ${town.nation}.</p><dl><dt>New rank</dt><dd>${RANK_NAMES[promotion.rank]}</dd><dt>${town.nation} national favour</dt><dd>${promotion.favour}</dd>${promotion.landUnits > 0 ? `<dt>Land grant</dt><dd>${(promotion.landUnits * 50).toLocaleString()} acres</dd>` : ''}<dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
     actions: [{ label: 'Continue the audience', run: () => announceVillain(town, () => beginGovernorRansoms(town)) }],
   });
@@ -3343,7 +3363,7 @@ function showGovernorRansom(town, offers, index) {
   }
   const description = `${captain.nation ?? 'foreign'} captain captured from a ${captain.ship}`;
   showDialog({
-    vignette: 'governor', kicker: 'A ransom offer', title: `${gold.toLocaleString()} gold for the prisoner`,
+    vignette: governorPortrait(town), kicker: 'A ransom offer', title: `${gold.toLocaleString()} gold for the prisoner`,
     body: `<p>An agent asks you to release the ${description}.</p>`,
     actions: [
       { label: 'Take the gold', run: () => {
@@ -3365,7 +3385,7 @@ function finishGovernorAudience(town) {
   if (terms) {
     const isAmnesty = terms.kind === 'amnesty';
     showDialog({
-      vignette: 'governor', kicker: `${town.nation} governor`, title: isAmnesty ? 'An offer of amnesty' : 'A letter of marque',
+      vignette: governorPortrait(town), kicker: `${town.nation} governor`, title: isAmnesty ? 'An offer of amnesty' : 'A letter of marque',
       body: `<p>${isAmnesty ? `The governor offers to pardon your offenses against ${town.nation}` : `The governor offers you a commission in the service of ${town.nation}`} for ${terms.price.toLocaleString()} gold.</p>${status}${briefing}`,
       actions: [
         { label: isAmnesty ? 'Accept amnesty' : 'Buy the commission', run: () => completeGovernorPurchase(town, terms) },
@@ -3376,7 +3396,7 @@ function finishGovernorAudience(town) {
   }
   if (favour <= -4) {
     showDialog({
-      vignette: 'governor', kicker: `${town.nation} governor`, title: 'A cold audience',
+      vignette: governorPortrait(town), kicker: `${town.nation} governor`, title: 'A cold audience',
       body: `<p>The governor hears you but offers neither pardon nor commission.</p>${status}${briefing}`,
       actions: [{ label: 'Return to town', run: showTownMenu }],
     });
@@ -3387,7 +3407,7 @@ function finishGovernorAudience(town) {
   // daughter or niece (0x128C1) instead of an offer.
   const relativeScene = governorRelativeMet(town.governorRelative) || currentGovernorCharm(town) !== null;
   showDialog({
-    vignette: 'governor', kicker: `${town.nation} governor`, title: `My dear ${rank} ${state.captain}`,
+    vignette: governorPortrait(town), kicker: `${town.nation} governor`, title: `My dear ${rank} ${state.captain}`,
     body: `<p>The governor welcomes a proven friend of ${town.nation}. Your letter of marque remains in good standing.</p>${status}${briefing}`,
     actions: [{ label: relativeScene ? 'Stay for dinner' : 'Return to town', run: () => visitGovernorRelative(town, showTownMenu) }],
   });
@@ -3409,7 +3429,7 @@ function currentGovernorCharm(town) {
 function visitGovernorRelative(town, next) {
   const relative = town.governorRelative ?? 0;
   const word = relativeWord(relative);
-  const portrait = { vignette: 'governor', kicker: `The governor’s ${word} · ${town.name}` };
+  const portrait = { vignette: governorPortrait(town), kicker: `The governor’s ${word} · ${town.name}` };
   if (governorRelativeMet(relative)) {
     const role = governorRelativeRole(relative);
     showDialog({
@@ -3487,7 +3507,7 @@ function duelSuitor(town, suitor, next) {
     state.player.married = married;
     addLog(`Beat ${suitor} and married the governor’s ${word} in ${town.name}.`);
     showDialog({
-      vignette: 'governor', kicker: `${town.name}`, title: 'A wedding',
+      vignette: governorPortrait(town), kicker: `${town.name}`, title: 'A wedding',
       body: '<p>Amid merriment and celebration you and your lovely bride are married.</p>',
       actions: [{ label: 'Return to town', run: next }],
     });
@@ -3497,7 +3517,7 @@ function duelSuitor(town, suitor, next) {
     state.player.reputation = -1;
     addLog(`${suitor} beat me in a duel for the governor’s ${word} in ${town.name}.`);
     showDialog({
-      vignette: 'governor', kicker: suitor, title: 'The suitor wins',
+      vignette: governorPortrait(town), kicker: suitor, title: 'The suitor wins',
       body: `<p>${suitor} disarms you before the whole household, and the governor’s ${word} turns away.</p>`,
       actions: [{ label: 'Return to town', run: next }],
     });
@@ -3515,7 +3535,7 @@ function duelSuitor(town, suitor, next) {
 function completeGovernorPurchase(town, terms) {
   if (state.player.partyGold < terms.price) {
     showDialog({
-      vignette: 'governor', kicker: `${town.nation} governor`, title: 'Insufficient funds',
+      vignette: governorPortrait(town), kicker: `${town.nation} governor`, title: 'Insufficient funds',
       body: `<p>The governor requires ${terms.price.toLocaleString()} gold, but you have ${state.player.partyGold.toLocaleString()}.</p>`,
       actions: [{ label: 'Return to town', run: showTownMenu }],
     });
@@ -3530,7 +3550,7 @@ function completeGovernorPurchase(town, terms) {
     : `${town.nation} granted amnesty and now regards you as ${standing.toLowerCase()}.`;
   addLog(message);
   showDialog({
-    vignette: 'governor', kicker: `${town.nation} governor`, title: terms.grantsCommission ? 'Commission granted' : 'Amnesty recorded',
+    vignette: governorPortrait(town), kicker: `${town.nation} governor`, title: terms.grantsCommission ? 'Commission granted' : 'Amnesty recorded',
     body: `<p>${message}</p><dl><dt>Gold paid</dt><dd>${terms.price.toLocaleString()}</dd><dt>Crown standing</dt><dd>${standing}</dd><dt>${town.nation} national favour</dt><dd>${terms.resultingFavour}</dd><dt>Governor mood (debug)</dt><dd>${town.mood}</dd></dl>`,
     actions: [{ label: 'Return to town', run: showTownMenu }],
   });
@@ -4444,18 +4464,26 @@ function showDialog({ kicker, title, body, actions, vignette }) {
 }
 
 // A landscape sits above the dialog text, a portrait beside it.
+let shownVignette = null;
 function showVignette(vignette) {
   dialogVignette.classList.toggle('hidden', !vignette);
   const { id, ...options } = typeof vignette === 'string' ? { id: vignette } : vignette ?? {};
   dialog.classList.toggle('has-portrait', Boolean(vignette) && vignetteShape(id) === 'portrait');
+  shownVignette = vignette;
   if (!vignette) return;
   const size = vignetteSize(id);
   dialogVignetteCanvas.width = size.width;
   dialogVignetteCanvas.height = size.height;
   dialogVignetteCanvas.style.setProperty('--art-width', size.width);
   dialogVignetteCanvas.style.setProperty('--art-height', size.height);
-  drawVignette(dialogVignetteCanvas.getContext('2d'), id, options);
-  dialogVignetteCanvas.setAttribute('aria-label', vignetteDescription(id));
+  const paint = () => {
+    drawVignette(dialogVignetteCanvas.getContext('2d'), id, options);
+    dialogVignetteCanvas.setAttribute('aria-label', vignetteDescription(id, options));
+  };
+  paint();
+  // Picture art loads in the background; repaint once it arrives if this
+  // vignette is still the one on screen.
+  if (vignetteNeedsArt(id)) loadVignetteArt().then(() => { if (shownVignette === vignette) paint(); });
 }
 
 // Every return to the sailing map starts a new voyage, and each voyage begins
@@ -5459,6 +5487,8 @@ const PREVIEWS = {
       state.towns[state.visit.townIndex].merchantFamily = 0x40;
     },
   }),
+  // Every governor portrait in turn, era by era; Next steps through them.
+  'governor-portraits': () => startPreview(() => showGovernorPortraitGallery(0)),
   'governor-promotion': () => startPreview(() => {
     enterPreviewTown(state.towns.findIndex(({ nation }) => nation === 'France'));
     state.player.favour.France = 6;
