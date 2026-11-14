@@ -100,7 +100,7 @@ make syntax
 ```
 
 Run `make test` for the deterministic mechanics suite and `make test-browser`
-for the browser interaction smoke tests (transfer windows; landing,
+for the browser interaction smoke tests (transfer windows; the shipwright's yard; landing,
 walking, digging and reefs; retirement; the family quest; the scene pictures; sword fights; the sea chart; the fort battle; courtship and marriage; the save slots; and the captain's health, through the local `?preview=` states). `make check` runs the complete
 automated set; `make syntax` checks every `src/`, `tools/` and server file. The
 browser checks share `tools/browser-harness.mjs`, which starts the server and

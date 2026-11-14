@@ -32,6 +32,7 @@ test-browser:
 	node tools/check_romance.mjs
 	node tools/check_saves.mjs
 	node tools/check_health.mjs
+	node tools/check_shipwright.mjs
 
 check: test test-browser
 	git diff --check

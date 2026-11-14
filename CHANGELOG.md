@@ -94,6 +94,14 @@ history.
   of five times, so the ship stays steerable; T still toggles it off, and any
   voyage event still clears it. The speed readout starts with "×2" while it is
   on. Departure from the original, whose fast mode is five times faster.
+- The shipwright works on one screen (#74). It lists every ship with her
+  hold and her guns, and a Repair and a Sell button for each, plus Repair
+  all when several are damaged. Cannon sell one per click, faster while the
+  button is held, or all the spare ones at once. You stay in the yard after
+  each sale or repair. Deliberate departure: the original picks ships from
+  a list in separate menus; prices and cash rules are unchanged. The fleet
+  still shares one cannon count, shown filling each ship in turn.
+
 - The era menu uses the manual's titles: 1560 is "The Silver Empire" (was
   "Early explorers") and 1680 is "Pirates' Sunset".
 
