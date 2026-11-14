@@ -355,6 +355,9 @@ async function startGame(nextState, { startTownIndex = null } = {}) {
   state.player.specialGoods ??= 0;
   // 0x45E90: the practice bonus added to your sword hit rolls (0-30).
   state.player.fencingPractice ??= 0;
+  // The last health level announced (issue #85). An older voyage starts
+  // from its current health, so loading raises no notice.
+  state.player.healthSeen ??= captainHealth();
   state.portTrade ??= { townIndex: null, merchantCash: null, shipwrightCash: null };
   await loadWorldMap(state.era);
   // Loading recomputes morale (0x1D9A2). ASSUMED: a new game does the same;
@@ -946,6 +949,8 @@ const CAPTIVITY_TEXT = [
 const DIFFICULTY_ARTICLES = ['an apprentice', 'a journeyman', 'an adventurer', 'a swashbuckler'];
 
 const careerYears = () => state.calendar.year - Number(state.era);
+// 0xA74A: the Personal Status page shows 25 + years elapsed.
+const captainAge = () => 25 + careerYears();
 
 function captainHealth() {
   return healthLevel({
@@ -953,6 +958,29 @@ function captainHealth() {
     wounds: state.player.wounds ?? 0,
     medicine: state.ability === 'medicine',
   });
+}
+
+// CSTN 36, the Personal Status page's health names (0x1DB64).
+const HEALTH_NAMES = ['Fine', 'Good', 'Fair', 'Poor'];
+// PORT ADDITION (issue #85): the original never announces a change of
+// health; it only shows it on the Personal Status page. The port tells the
+// captain at the next month end once the level worsens (years or wounds).
+const HEALTH_NOTICES = [
+  '',
+  'The years at sea are beginning to tell. Your health is now good rather than fine.',
+  'Old wounds ache and the years weigh on you. Your health is now only fair.',
+  'Your health is now poor. When you next divide the plunder, your officers will sign on with a younger captain and your career will end.',
+];
+
+// The month-end health notice, or null when health has not worsened since
+// the last one.
+function healthNotice() {
+  const health = captainHealth();
+  const seen = state.player.healthSeen ?? 0;
+  if (health <= seen) return null;
+  state.player.healthSeen = health;
+  addLog(`Your health is now ${HEALTH_NAMES[health].toLowerCase()}.`);
+  return HEALTH_NOTICES[health];
 }
 
 // 0x1F1D7 runs first: in poor health (3) the captain retires (CSTR 160).
@@ -1259,6 +1287,19 @@ function monthEndCrewCheck({ monthsCrossed, aboard }, next) {
   if (event === 'mutiny') { showMutiny(() => next(true)); return; }
   if (event === 'restless') addLog('The men grow restless; without plunder soon they may mutiny.');
   if (event === 'divide') addLog('After many months at sea the men are anxious to divide the plunder.');
+  const notice = monthsCrossed > 0 ? healthNotice() : null;
+  if (notice) {
+    // Restore the caller's pause state: some callers (the food warning)
+    // carry on sailing without unpausing.
+    const wasPaused = state.paused;
+    state.paused = true;
+    showDialog({
+      kicker: `Captain ${state.captain} · Age ${captainAge()}`, title: 'Your health',
+      body: `<p>${notice}</p><p>Your age and health are on the Personal status page of the logbook.</p>`,
+      actions: [{ label: 'Continue', run: () => { state.paused = wasPaused; next(false); } }],
+    });
+    return;
+  }
   next(false);
 }
 
@@ -3581,9 +3622,31 @@ function showLogbook(close) {
     kicker: `Captain ${state.captain} · ${formatDate(state.calendar)}`, title: 'The captain’s logbook',
     body: '<p>Your log records the news of the Caribbean as it reaches you, and the gazetteer holds what you know of each city.</p>',
     actions: [
+      { label: 'Personal status', run: () => showPersonalStatus(close) },
       { label: 'Ship’s log', run: () => showShipsLog(close) },
       { label: 'City information', run: () => showCityInformation(close) },
       { label: 'Sea chart', run: () => showSeaChart(() => showLogbook(close)) },
+      { label: 'Close the logbook', secondary: true, run: close },
+    ],
+  });
+}
+
+// The Personal Status page (0xA5A7, CSTR 105): age, health, wealth, land
+// and difficulty, then rank and standing with each nation; married or
+// single (0x45E86, CSTR 91 / 285). Wounds are shown because they weigh on
+// health. ASSUMED: reputation is shown as its stored value; the original's
+// reputation wording (0x1ADBA) is not decoded.
+function showPersonalStatus(close) {
+  const player = state.player;
+  const wounds = player.wounds ?? 0;
+  const health = captainHealth();
+  state.player.healthSeen = Math.max(player.healthSeen ?? 0, health);
+  const nations = NATION_ORDER.map((nation) => `<dt>${nation}</dt><dd>${RANK_NAMES[player.ranks[nation]]} · ${nationalStanding(player.favour[nation])}</dd>`).join('');
+  showDialog({
+    kicker: 'The captain’s logbook', title: 'Personal status',
+    body: `<dl><dt>Captain</dt><dd>${escapeHtml(state.captain)}</dd><dt>Status</dt><dd>${player.married ? 'Married' : 'Single'}</dd><dt>Age</dt><dd>${captainAge()}</dd><dt>Health</dt><dd>${HEALTH_NAMES[health]}${wounds ? ` · wounded ${countOf(wounds, 'time')}` : ''}</dd><dt>Personal wealth</dt><dd>${(player.personalWealth ?? 0).toLocaleString()} gold</dd><dt>Land</dt><dd>${((player.land ?? 0) * 50).toLocaleString()} acres</dd><dt>Reputation</dt><dd>${player.reputation ?? 0}</dd><dt>Difficulty</dt><dd>${DIFFICULTY_NAMES[state.difficulty] ?? ''}</dd>${nations}</dl>${health === 3 ? '<p>Your health is poor: when you next divide the plunder, your career will end.</p>' : ''}`,
+    actions: [
+      { label: 'Back to the logbook', run: () => showLogbook(close) },
       { label: 'Close the logbook', secondary: true, run: close },
     ],
   });
@@ -5454,6 +5517,8 @@ function openPreview(preview) {
       swordView.endPause = 0;
       return true;
     },
+    // Ends the voyage, charging its days and running the month-end checks.
+    endVoyage(next) { endVoyage(next); },
   };
   const digScene = DIG_PREVIEW.exec(preview);
   if (Object.hasOwn(PREVIEWS, preview)) PREVIEWS[preview]();

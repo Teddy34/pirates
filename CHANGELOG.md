@@ -42,6 +42,13 @@ history.
   delete a save. The autosave still follows the voyage and is what "Continue
   saved voyage" resumes; retiring clears only the autosave. The original kept
   a single save.
+- The logbook has a Personal status page, as in the original: married or
+  single, age, health
+  (fine, good, fair or poor) with the wound count, personal wealth, land,
+  reputation, difficulty, and your rank and standing with each nation.
+- When your health worsens, the next month end tells you, and the log
+  records it. At poor health the notice warns that the next division of the
+  plunder ends your career. The original never announced it.
 
 - Fort battles: attacking a fortified town from the sea is now fought with
   the sea-battle controls against its forts, which stand on rocky headlands
