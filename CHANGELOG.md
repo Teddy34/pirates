@@ -101,6 +101,10 @@ history.
 
 ### Fixed
 
+- Ashore, the North and South buttons now light up while held, like West
+  and East, whether you hold the button or the arrow key. Holding them also
+  walks like West and East do, so holding two buttons at once walks
+  diagonally (#78).
 - The start screen's dropdown lists (era, flag, difficulty, ability) are
   readable again: they had cream text on a white list in some browsers and
   now use the game's dark panel colours.

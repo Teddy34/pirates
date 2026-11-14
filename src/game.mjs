@@ -4773,6 +4773,17 @@ for (const [button, name] of [[raiseSailsButton, 'high'], [lowerSailsButton, 'lo
   for (const type of ['pointerup', 'pointercancel', 'pointerleave']) button.addEventListener(type, () => { swordKeys[name] = false; });
 }
 
+// On foot the sail buttons walk north and south, held like the west and east
+// buttons so two held buttons make a diagonal.
+for (const [button, direction] of [[raiseSailsButton, 'north'], [lowerSailsButton, 'south']]) {
+  button.addEventListener('pointerdown', () => {
+    if (!onFootControls()) return;
+    walkKeys[direction] = true;
+    setWalk(walkKeys);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) button.addEventListener(type, () => { walkKeys[direction] = false; });
+}
+
 // Keys during a sword fight: the fencing moves and pause. Nothing else.
 function handleSwordKey(event, key) {
   const name = SWORD_KEYS[key];
@@ -4924,15 +4935,16 @@ function flashControl(button) {
 function syncPressedControls(now) {
   const sword = state?.mode === 'sword';
   const onFoot = !sword && state?.player?.onFoot;
-  // The steering pair: attack and back off, walk west and east, or the helm.
+  // The steering pair: attack and back off, walk west and east, or the helm;
+  // the sail pair fences high and low or walks north and south.
   let [left, right] = [input.left, input.right];
   if (sword) [left, right] = [swordKeys.toward, swordKeys.away];
   else if (onFoot) [left, right] = [walkKeys.west, walkKeys.east];
   const held = new Map([
     [turnLeftButton, left],
     [turnRightButton, right],
-    [raiseSailsButton, sword && swordKeys.high],
-    [lowerSailsButton, sword && swordKeys.low],
+    [raiseSailsButton, sword ? swordKeys.high : onFoot && walkKeys.north],
+    [lowerSailsButton, sword ? swordKeys.low : onFoot && walkKeys.south],
     [dockButton, sword && swordKeys.quick],
   ]);
   for (const [button, isHeld] of held) {

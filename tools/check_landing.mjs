@@ -57,6 +57,25 @@ await withBrowser({ name: 'landing', portOffset: 1, screenshotEnv: 'LANDING_SCRE
     if (ashore.ship.y <= ashore.landing.y) throw new Error(`${viewport.name}: the ship should wait south of the landing spot`);
     await screenshot(`${viewport.name}-ashore`);
 
+    // Every direction button lights while held, by pointer or by its arrow key.
+    const directionButtons = { west: '[data-hold="left"]', east: '[data-hold="right"]', north: '#raise-sails-button', south: '#lower-sails-button' };
+    const arrows = { west: 'ArrowLeft', east: 'ArrowRight', north: 'ArrowUp', south: 'ArrowDown' };
+    // Walking persists after release, so put the party back where it stood.
+    await evaluate(`window.__party = { x: ${S}.player.x, y: ${S}.player.y, walk: { ...${S}.player.walk } }, true`);
+    for (const [direction, selector] of Object.entries(directionButtons)) {
+      const lit = `document.querySelector('${selector}').classList.contains('pressed')`;
+      await evaluate(`document.querySelector('${selector}').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })), true`);
+      await until(`the ${direction} button lit by pointer`, lit);
+      await evaluate(`document.querySelector('${selector}').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })), true`);
+      await until(`the ${direction} button released`, `!${lit}`);
+      await evaluate(`dispatchEvent(new KeyboardEvent('keydown', { key: '${arrows[direction]}' })), true`);
+      await until(`the ${direction} button lit by key`, lit);
+      await evaluate(`dispatchEvent(new KeyboardEvent('keyup', { key: '${arrows[direction]}' })), true`);
+      await until(`the ${direction} button released by key`, `!${lit}`);
+      await evaluate(`Object.assign(${S}.player, window.__party), true`);
+    }
+    if (!await evaluate(`${S}.player.onFoot`)) throw new Error(`${viewport.name}: testing the direction buttons put the party back aboard`);
+
     // Walk west into Panama on foot (pointer on the relabelled control).
     const westButton = await evaluate(`(() => { const r = document.querySelector('[data-hold="left"]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
     await command('Input.dispatchMouseEvent', { type: 'mousePressed', x: westButton.x, y: westButton.y, button: 'left', clickCount: 1 });
