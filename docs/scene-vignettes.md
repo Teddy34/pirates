@@ -476,11 +476,48 @@ map for 500 gold pieces."* (CSTR 153)
 captain's share, a new expedition or retirement (`divide_plunder.asm`) ·
 *"Amid great anticipation, the plunder is counted and divided… The crew
 swaggers off to squander their hard-won gold."* (CSTR 155–159)
-> A colonial counting house: an open iron-bound chest, piles of doubloons
-> and pieces of eight stacked in columns on a long table, a clerk with a
-> quill and abacus, and crewmen lined up for their share. The captain
-> oversees from the head of the table. Shafts of light come through barred
-> windows.
+The art is `assets/vignettes/divide-plunder.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. The first brief's
+abacus is dropped: a bead abacus is not a European tool of the period,
+where clerks reckoned in writing or with counters on a counting board. The
+coins are irregular hand-cut "cobs", as Spanish colonial mints struck them.
+The ship seen through the window flies no flag, so one picture serves
+every era and nation.
+
+> Wide interior view of a whitewashed colonial counting house in a
+> Caribbean port, around 1640, with a heavy beamed ceiling and thick stone
+> walls. Shafts of warm afternoon sunlight fall through two tall windows
+> with wooden bars and open wooden shutters on the left. In the centre, a
+> long, scarred wooden table runs from the foreground into the room. On
+> it: an open iron-bound wooden chest spilling coins; piles of irregular,
+> roughly cut silver coins with uneven edges, stacked in short columns; a
+> smaller heap of irregular gold coins; a few pearl strings and a gold
+> chain; a brass balance scale with two hanging pans; an open leather-
+> bound ledger. A thin, bald clerk in a plain black doublet with a small
+> flat white linen collar, round spectacles on his nose, sits at the table
+> writing in the ledger with a goose quill and an ink pot. At the head of
+> the table, standing, the captain oversees the count: a lean man about
+> thirty, sun-weathered face, dark hair tied back, short beard, faded
+> dark-blue coat with brass buttons, red sash, cutlass at the hip, tall
+> boots, one hand resting on the lid of the chest. On the right, a line of
+> rough buccaneer crewmen waits for their share, eager and grinning: loose
+> off-white linen shirts, wide canvas breeches, knitted woollen caps,
+> broad-brimmed felt hats and kerchiefs, one with a bandaged arm in a
+> sling, one holding out his open palm while the quartermaster, a burly
+> bearded man in a buff leather jerkin, counts coins into it. Dust motes
+> glitter in the light; the back of the room fades into warm shadow with
+> stacked casks and sacks.
+
+Scene negatives: abacus, bead abacus, round machine-struck modern coins, banknotes, paper
+money, tricorne hat, bicorne hat, periwig, naval uniform, epaulettes,
+skull and crossbones, black flag, flags, parrot, eyepatch, striped
+shirt, ship's wheel, glass display cases, electric light. Period sources: shares and
+the oath not to hide plunder in Exquemelin, *The Buccaneers of America*
+(1678; [Project Gutenberg](https://www.gutenberg.org/ebooks/26690)); cob
+coins, [American Numismatic Society, *Europe in Transformation: The 17th
+Century*](https://numismatics.org/europe-in-transformation-the-17th-century/);
+counting boards and jetons, [mernick.org.uk, *Jettons or Reckoning
+Counters*](https://www.mernick.org.uk/jettons.htm).
 
 **happy-crew** · orig. 0x2F `happy` · the crew is happy. No literal call
 site was found, so the moment comes from the user, not the code: likely

@@ -13,6 +13,9 @@ history.
 
 ### Changed
 
+- Dividing the plunder now has real art: in a sunlit counting house the
+  captain stands by an open chest of silver while a clerk keeps the ledger
+  and the quartermaster pays out each buccaneer's share.
 - The vignette-art workflow now always works in its own git worktree
   from an up-to-date `main` and stages files by path, so parallel
   sessions no longer sweep each other's files into their commits.

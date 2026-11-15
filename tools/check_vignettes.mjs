@@ -116,6 +116,11 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await until('the tavern art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('play cards and dice')`);
     await expectPicture(`${viewport.name} tavern`, 'play cards and dice');
     await screenshot(`${viewport.name}-tavern`);
+    // And the plunder division's counting house.
+    await open('retirement');
+    await until('the divide-plunder art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('bald clerk')`);
+    await expectPicture(`${viewport.name} divide-plunder`, 'bald clerk');
+    await screenshot(`${viewport.name}-divide-plunder`);
     // And the shipwright's portrait.
     await open('shipwright');
     await until('the shipwright art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('eyes you suspiciously')`);
