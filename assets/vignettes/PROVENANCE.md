@@ -420,6 +420,38 @@ seen through the open door.
 - **Rebuild:** `python3 tools/build_vignette.py --scene tavern --source <image>`
   (Pillow).
 
+## divide-plunder.png
+
+The plunder-division picture, 224 × 128 (7 : 4), shown when the plunder is
+counted and divided: in a sunlit, whitewashed colonial counting house the
+captain rests a hand on an open iron-bound chest of silver, a bald clerk in
+spectacles writes in a ledger, and a quartermaster counts coins into the
+palm of grinning buccaneers lined up for their share, beside stacks of
+rough silver cobs, gold coins, pearls and a brass balance; a ship rides at
+anchor beyond the barred window.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the divide-plunder prompt
+  in `docs/scene-vignettes.md` with the shared style block and negatives.
+  The user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Fixes:** none. The ledger's writing is illegible scribble and the ship
+  through the window flies no flag; both accepted.
+- **Period choices:** irregular hand-cut silver and gold cobs rather than
+  round milled coins ([American Numismatic Society](https://numismatics.org/europe-in-transformation-the-17th-century/));
+  ledger, quill and balance rather than the first brief's abacus (European
+  reckoning used pen or counters on a board, [mernick.org.uk](https://www.mernick.org.uk/jettons.htm));
+  shares paid out by the quartermaster and a wounded man in the line, after
+  the articles and injury compensation in Exquemelin, *The Buccaneers of
+  America* (1678, [Project Gutenberg](https://www.gutenberg.org/ebooks/26690)).
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to
+  224 × 128 with a box filter, raises contrast (×1.15) and colour (×1.2),
+  and quantises to 256 colours (median cut, no dithering, indexed PNG).
+- **Rebuild:** `python3 tools/build_vignette.py --scene divide-plunder --shape landscape --source <image>`
+  (Pillow).
+
 ## shipwright.png
 
 The shipwright's portrait, 96 × 128 (3 : 4), shown at the shipyard: a

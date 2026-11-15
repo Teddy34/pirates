@@ -133,6 +133,7 @@ const SCENE_ART_URLS = {
   'open-buccaneers': new URL('../assets/vignettes/open-buccaneers.png', import.meta.url).href,
   'open-quarterdeck': new URL('../assets/vignettes/open-quarterdeck.png', import.meta.url).href,
   tavern: new URL('../assets/vignettes/tavern.png', import.meta.url).href,
+  'divide-plunder': new URL('../assets/vignettes/divide-plunder.png', import.meta.url).href,
   shipwright: new URL('../assets/vignettes/shipwright.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
@@ -147,6 +148,7 @@ const ART_DESCRIPTIONS = {
   'open-buccaneers': 'On a Hispaniola beach a grizzled buccaneer teaches a young man to aim a long musket, beside a boucan smoking a wild pig, hides drying under a thatched lean-to and two men on a log, with a boat drawn up and a small ship in the bay, pixelated from a comic-style illustration.',
   'open-quarterdeck': 'On a ship’s quarterdeck the captain in his blue coat and a black-bearded captain in a wide-brimmed hat face each other with drawn curved swords, as the crew watches from the deck below, pixelated from a comic-style illustration.',
   tavern: 'In a smoky, low-beamed waterfront tavern four sailors play cards and dice over pewter tankards while a fiddler plays by the casks, under a parrot, lanterns and a hanging ship model, the open door showing masts at dusk, pixelated from a comic-style illustration.',
+  'divide-plunder': 'In a sunlit colonial counting house the captain rests a hand on an open chest of silver while a bald clerk in spectacles writes in a ledger and a quartermaster counts coins into the palm of grinning buccaneers lined up for their share, beside stacks of rough silver coins, gold, pearls and a brass balance, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
 const sceneArt = {};
@@ -453,7 +455,13 @@ function drawEnemyDestroyed(p, { flag = 'Spain' } = {}) {
   p.rect(0, 122, 224, 6, '#152a33');
 }
 
+// The divide-plunder art (assets/vignettes/divide-plunder.png) once loaded;
+// until then, the placeholder below.
 function drawDividePlunder(p) {
+  if (sceneArt['divide-plunder']) {
+    p.image(sceneArt['divide-plunder'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   // Plastered wall with barred windows and shafts of light.
   p.rect(0, 0, 224, 128, '#a88a62');
   p.rect(0, 74, 224, 54, '#6b4a2e');
