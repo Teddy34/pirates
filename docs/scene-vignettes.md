@@ -814,15 +814,15 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 |---|---|---|
 | open-court | an audience at court for royal approval (CSTR 2, 8) | A gilded throne room: a young captain kneels before a patron noble who holds a royal charter. |
 | open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Cane fields at dusk: a young labourer talks in secret with smugglers at the edge of the field, with a small ship at anchor beyond. |
-| open-quarterdeck | a fight on deck, or a duel for command (CSTR 20, 26, 43) | The crew looks on as the young hero faces a brutal captain on the quarterdeck. |
+| open-quarterdeck | a fight on deck, or a duel for command (CSTR 20, 26, 43) | Real art, `assets/vignettes/open-quarterdeck.png`: see the prompt below the table. |
 | open-boarded | a Spanish ship boards you (CSTR 35, 44) | A Spanish officer draws his sword on the hero's deck. |
 | open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | A ship runs in on a green, palm-fringed West Indian island. |
 | open-prison | a foul prison (CSTR 22, 32) | A prisoner on straw in a stone cell, moonlight through a barred window. |
 | open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Smugglers row toward an anchored ship under the moon. |
-| open-buccaneers | living among the buccaneers (CSTR 38) | A beach camp: lean-to, smoking fire, a boat drawn up on the sand. |
+| open-buccaneers | living among the buccaneers (CSTR 38) | Real art, `assets/vignettes/open-buccaneers.png`: see the prompt below the table. |
 | open-colony | a poor colony, "Turn back" (CSTR 9) | Thatched huts inside a stockade, angry settlers facing their leader. |
 | open-swords | the story's sword fight | Real art, `assets/vignettes/open-swords.png`: see the prompt below the table. |
-| open-chart | the sailing master's closest cities (CSTR 69) | A sea chart with dividers, a dotted course and a compass rose. |
+| open-chart | the sailing master's closest cities (CSTR 69) | Real art, `assets/vignettes/open-chart.png`: see the prompt below the table. |
 
 **open-swords** is real art (provenance and sources in
 `assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
@@ -851,6 +851,99 @@ for all eras.
 Scene negatives: ship's steering wheel, wheel, tricorne hat, bicorne hat,
 katana, rapier with a basket hilt, flintlock pistols, skull and
 crossbones, black flag, flags, eyepatch, parrot, blood.
+
+**open-chart**, **open-buccaneers** and **open-quarterdeck** are real art
+(provenance, sources and review in `assets/vignettes/PROVENANCE.md`; no
+fixes were needed). None shows a flag, so one picture serves every nation.
+
+**open-chart** prompt:
+
+> A close-up still life seen from above at a slight angle, around 1650: a
+> hand-drawn manuscript sea chart of the Caribbean Sea spread across a worn
+> dark wooden table in a ship's stern cabin, lit by warm daylight from a
+> window at the upper left. The chart is on yellowed vellum with curling
+> edges, held flat by a brass candlestick and a small leather-bound book.
+> The chart fills most of the picture and shows the Caribbean in a
+> recognisable outline: the long, narrow island of Cuba lying across the
+> top, the large island of Hispaniola to its right and the small island of
+> Puerto Rico beyond it, the small oval island of Jamaica just south of
+> Cuba, the tip of the Florida peninsula at the top left, the Yucatan
+> peninsula pointing up on the left side, the coast of Central America
+> running down the lower left, the long coast of South America along the
+> bottom, and a curving chain of tiny islands running down the right edge
+> from Puerto Rico to the South American coast. Coastlines are drawn in
+> fine brown ink with a narrow band of green wash along each shore, small
+> red dots for coastal towns, the sea left pale parchment. Thin straight
+> lines in red, green and black radiate across the sea from a large
+> hand-painted compass rose in the open water, its north point marked with
+> a gold fleur-de-lis, and from smaller roses near the edges. A plain ruled
+> latitude scale runs down one side, with marks only and no numbers. A pair
+> of open brass navigator's dividers stands on the chart with its two
+> points on two islands, and a faint dotted course line is inked between
+> them. A brass hourglass and a coil of rope sit at the table's edge. No
+> writing anywhere on the chart: no place names, no titles, no numbers.
+
+Scene negatives: place names, labels, map lettering, numbers, title
+cartouche, grid of latitude and longitude lines, sextant, octant,
+telescope, spyglass, ship's wheel, globe, magnifying glass, modern map,
+satellite view, flags, skull and crossbones, X marks the spot, treasure
+map.
+
+**open-buccaneers** prompt:
+
+> A buccaneer camp on a beach of western Hispaniola around 1660, in warm
+> late-afternoon light. In the foreground on the left, a boucan: a low
+> grill of green wooden sticks lashed on four forked posts over a
+> smouldering fire, strips of meat and half a wild pig smoking on it, thick
+> blue-grey smoke drifting up. Behind it a lean-to roofed with palm thatch,
+> cured cattle hides stretched to dry on square wooden frames, a powder keg
+> and a few barrels, and two lean hunting dogs lying in the shade. In the
+> centre, an older buccaneer teaches a young man to shoot: the young man is
+> lean, about twenty, sun-weathered face, dark hair tied back, a short
+> beard, in a loose linen shirt, kneeling on the sand and aiming a very
+> long-barrelled flintlock musket with a heavy wooden stock at a gourd set
+> on a stump; the older man, grizzled and sunburnt, leans over him
+> pointing. Two more buccaneers watch, sitting on a log. All the buccaneers
+> wear loose linen shirts stained brown with blood and grease, short linen
+> drawers open at the knee, bare legs, crude rawhide shoes, and
+> broad-brimmed hats with the brim turned up or cut short at the front;
+> each has a leather cartridge box on a belt at the front and a short
+> cutlass with a plain brass hilt hanging from a narrow shoulder belt. On
+> the right, a large open wooden boat is drawn up on the pale sand. Beyond,
+> a calm turquoise bay with one small single-masted ship at anchor, palm
+> trees and green wooded hills.
+
+Scene negatives: flags, black flag, skull and crossbones, eyepatch, parrot,
+peg leg, tattoos, earrings, boots, tricorne hat, bicorne hat, bandana,
+ship's steering wheel, rifle with a scope, revolver, tents, women.
+
+**open-quarterdeck** prompt:
+
+> A tense confrontation on the quarterdeck of a 17th-century three-masted
+> sailing ship at sea, around 1640, in bright afternoon light under full
+> grey-white canvas sails. A wide shot from the ship's waist looking aft
+> and up toward the raised quarterdeck, with its carved wooden balustrade,
+> two short wooden ladders leading up to it, and a large ornate brass stern
+> lantern behind. On the quarterdeck two men face each other a few paces
+> apart, swords drawn but not yet crossed, the blades held low and ready.
+> On the left, the captain, a lean man about thirty, sun-weathered face,
+> dark hair tied back, short beard, faded dark-blue long coat with brass
+> buttons, red sash, tall boots, bareheaded, holding a short, slightly
+> curved, broad-bladed seaman's sword with a plain iron shell guard. On the
+> right, a brutal older ship's captain, broad and heavy, black beard, a
+> scar across the cheek, sneering, a wide-brimmed black felt hat, a buff
+> leather coat with a leather baldric across the chest, holding the same
+> kind of short curved iron-hilted sword. In the foreground below, seen
+> from behind and from the side, a crowd of rough sailors in plain linen
+> shirts, knitted caps and wide canvas breeches stands on the main deck and
+> on the ladders, looking up at the two men; one points, one grips a
+> belaying pin. A tarred mast, shrouds with ratlines and coiled ropes frame
+> the scene; a glimpse of blue sea and sky beyond the rail. Keep both
+> duellists and their faces clearly in the upper middle of the picture.
+
+Scene negatives: flags, ensign, pennant, ship's steering wheel, wheel,
+tricorne hat, bicorne hat, katana, rapier with a basket hilt, skull and
+crossbones, black flag, eyepatch, parrot, blood, cannon firing, smoke.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 

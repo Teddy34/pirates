@@ -129,6 +129,9 @@ const SCENE_ART_URLS = {
   'sail-ho': new URL('../assets/vignettes/sail-ho.png', import.meta.url).href,
   'sailing-master': new URL('../assets/vignettes/sailing-master.png', import.meta.url).href,
   'open-swords': new URL('../assets/vignettes/open-swords.png', import.meta.url).href,
+  'open-chart': new URL('../assets/vignettes/open-chart.png', import.meta.url).href,
+  'open-buccaneers': new URL('../assets/vignettes/open-buccaneers.png', import.meta.url).href,
+  'open-quarterdeck': new URL('../assets/vignettes/open-quarterdeck.png', import.meta.url).href,
   tavern: new URL('../assets/vignettes/tavern.png', import.meta.url).href,
   shipwright: new URL('../assets/vignettes/shipwright.png', import.meta.url).href,
 };
@@ -140,6 +143,9 @@ const ART_DESCRIPTIONS = {
   'sailing-master': 'A weather-beaten, grey-bearded sailing master in a knitted cap and brown jacket raises a hand in warning, brass dividers and a rolled sea chart in the other, as sullen sailors idle by the mainmast behind him, pixelated from a comic-style illustration.',
   'open-swords': 'At sunset on a ship’s deck the captain in his blue coat and a black-bearded captain in a wide-brimmed hat cross curved swords, as the crew looks on by lantern light, pixelated from a comic-style illustration.',
   shipwright: 'A burly, bald shipwright with a greying beard and a leather apron eyes you suspiciously, an adze on his shoulder, before a ship on trestles being caulked on the beach, a smoking tar cauldron and a row of old cannon in the sand, pixelated from a comic-style illustration.',
+  'open-chart': 'A hand-drawn chart of the Caribbean on vellum, with Cuba, Hispaniola, Jamaica, the chain of small islands and the Spanish Main, lies on a cabin table under open brass dividers, beside an hourglass, a candlestick and a window on a harbour fort, pixelated from a comic-style illustration.',
+  'open-buccaneers': 'On a Hispaniola beach a grizzled buccaneer teaches a young man to aim a long musket, beside a boucan smoking a wild pig, hides drying under a thatched lean-to and two men on a log, with a boat drawn up and a small ship in the bay, pixelated from a comic-style illustration.',
+  'open-quarterdeck': 'On a ship’s quarterdeck the captain in his blue coat and a black-bearded captain in a wide-brimmed hat face each other with drawn curved swords, as the crew watches from the deck below, pixelated from a comic-style illustration.',
   tavern: 'In a smoky, low-beamed waterfront tavern four sailors play cards and dice over pewter tankards while a fiddler plays by the casks, under a parrot, lanterns and a hanging ship model, the open door showing masts at dusk, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
@@ -1198,8 +1204,14 @@ const blade = (p, x, y, length, direction) => {
   for (let step = 0; step < length; step += 1) p.rect(x + direction * step, y - Math.round(step * 0.4), 1, 1, '#dfe6ea');
 };
 
-// The hero faces a brutal captain while the crew looks on.
+// The quarterdeck art (assets/vignettes/open-quarterdeck.png) once loaded;
+// until then, the placeholder: the hero faces a brutal captain while the crew
+// looks on.
 function drawQuarterdeck(p) {
+  if (sceneArt['open-quarterdeck']) {
+    p.image(sceneArt['open-quarterdeck'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#6a7a90', '#8a98a8', '#b8b8a8'], 60);
   sea(p, 60, '#3a6a7a', '#7aa8a8');
   shipRail(p, 66);
@@ -1287,8 +1299,14 @@ function drawNightRaid(p) {
   for (const x of [42, 58, 74]) { p.outlined([[x, 102, 7, 10, '#3a3a4a'], [x + 1, 96, 5, 6, '#a8826a']]); p.rect(x + 3, 116, 1, 11, WOOD_LIGHT); }
 }
 
-// The buccaneers' camp: a rough lean-to, smoke, a boat drawn up on the sand.
+// The buccaneer camp art (assets/vignettes/open-buccaneers.png) once loaded;
+// until then, the placeholder: a rough lean-to, smoke, a boat drawn up on the
+// sand.
 function drawBuccaneers(p) {
+  if (sceneArt['open-buccaneers']) {
+    p.image(sceneArt['open-buccaneers'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#7ab0c8', '#a0c8d0', '#c8dcc8'], 50);
   sea(p, 50, '#3a8a8a', '#7ab8b0');
   for (let row = 0; row < 62; row += 1) p.rect(0, 66 + row, 224, 1, row < 2 ? '#e8f0ee' : '#e0d09c');
@@ -1344,8 +1362,13 @@ function drawSwords(picture) {
   picture.disc(112, 75, 3, '#f4e8b0');
 }
 
-// A sea chart pinned on the binnacle, with dividers and a compass rose.
+// The sea-chart art (assets/vignettes/open-chart.png) once loaded; until
+// then, the placeholder: a chart with dividers and a compass rose.
 function drawChart(p) {
+  if (sceneArt['open-chart']) {
+    p.image(sceneArt['open-chart'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   p.rect(0, 0, 224, 128, WOOD);
   for (let y = 12; y < 128; y += 16) p.rect(0, y, 224, 1, WOOD_DARK);
   p.outlined([[16, 8, 192, 112, PARCHMENT]]);
