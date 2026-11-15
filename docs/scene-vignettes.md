@@ -37,8 +37,8 @@ Put this block in front of every scene prompt.
 > dark brown ink outlines around figures and objects; flat colour areas
 > with 2–3 tones per material and crisp edges, no airbrushed gradients.
 > Light from the upper left. Drawing and composition in the manner of
-> European historical maritime comics: meticulous, period-accurate costume,
-> ships, rigging and colonial architecture; realistic proportions; expressive, grounded faces; a muted
+> 1980s Franco-Belgian historical maritime comics: meticulous,
+> period-accurate costume, ships, rigging and colonial architecture; realistic proportions; expressive, grounded faces; a muted
 > watercolour palette of ochre, sepia, terracotta, sea green and faded
 > indigo, with warm golden highlights and parchment-coloured lights.
 > Cinematic comic-panel framing, one clear focal point, details large and
