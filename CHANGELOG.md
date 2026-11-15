@@ -13,6 +13,19 @@ history.
 
 ### Added
 
+- The game is now called **RetroPirates!**. The title screen shows "Retro"
+  in pixel letters next to "Pirates!" in a script face, which reflects the
+  game's two styles. Below the title is a framed picture of a sloop under
+  full sail, seen from ahead and to one side. For now it is a code-drawn
+  placeholder until real art is approved. The start screen picks up the
+  arcade look with a chunky pixel border, pixel-edged buttons and fields,
+  and monospace labels. The era description stays in a readable serif. The
+  browser tab, README and server message use the new name. Existing saves
+  are unaffected.
+- The project's art direction is written down: arcade-retro pixel graphics
+  overall, with historically accurate vignettes in the manner of 1980s
+  Franco-Belgian historical comics.
+
 - A default change workflow for maintainers and coding agents: each feature
   or fix is built in its own worktree, opened as a pull request, reviewed
   once independently, and merged automatically once tests pass; very small

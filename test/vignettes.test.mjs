@@ -6,7 +6,7 @@ const SCENES = [
   'sail-ho', 'boarding', 'hostage-talks', 'crew-recruits', 'treasure-fleet',
   'silver-train', 'mutiny', 'prison', 'hall-of-fame', 'alley-duel',
   'retire-1', 'retire-2', 'retire-3', 'retire-4', 'land-attack', 'fort-walls',
-  'sinking', 'outrun', 'nightfall',
+  'sinking', 'outrun', 'nightfall', 'title-sloop',
 ];
 
 // A context that records which art pixels were painted, after the clip the
@@ -61,4 +61,22 @@ test('the governor portrait cell follows the era and the nation', async () => {
   assert.equal(vignetteNeedsArt('governor'), true);
   assert.equal(vignetteNeedsArt('tavern'), false);
   assert.match(vignetteDescription('governor', { era: '1680', nation: 'France' }), /^Placeholder picture/);
+});
+
+test('the title logo spells Retro in outlined pixel letters inside its canvas', async () => {
+  const { RETRO_LOGO_SIZE, drawRetroLogo } = await import('../src/title-logo.mjs');
+  const fills = new Map();
+  let colour = '';
+  drawRetroLogo({
+    clearRect() {},
+    set fillStyle(value) { colour = value; },
+    fillRect(x, y, w, h) {
+      assert.ok(x >= 0 && y >= 0 && x + w <= RETRO_LOGO_SIZE.width && y + h <= RETRO_LOGO_SIZE.height, `(${x}, ${y}) is outside the logo`);
+      fills.set(`${x},${y}`, colour);
+    },
+  });
+  const colours = new Set(fills.values());
+  assert.ok(colours.has('#21180f'), 'the letters have a dark outline');
+  assert.ok(colours.size >= 5, 'the letters are banded, not flat');
+  assert.deepEqual(RETRO_LOGO_SIZE, { width: 40, height: 11 });
 });

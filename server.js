@@ -12,6 +12,8 @@ const MIME_TYPES = {
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.woff2': 'font/woff2',
 };
 
 const server = http.createServer((req, res) => {
@@ -39,5 +41,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, HOST, () => {
   const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
-  console.log(`Pirates' Legacy! is running at http://${displayHost}:${PORT}`);
+  console.log(`RetroPirates! is running at http://${displayHost}:${PORT}`);
 });
