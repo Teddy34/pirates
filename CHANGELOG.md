@@ -110,6 +110,14 @@ history.
 
 ### Changed
 
+- The title screen picture is now real art: a three-masted English warship
+  under full sail off a palm-fringed island with a fort, pixelated from a
+  comic-style illustration. It replaces the code-drawn sloop, which remains
+  only as a fallback while the image loads. The picture keeps the
+  artwork's 3 : 2 shape (240 × 160) instead of being cropped to the dialog
+  format. Its Union flags are drawn as the 1606 flag, without the red
+  saltire of St Patrick that was only added in 1801.
+
 - Fort battles are fought on the real coast round the town, cut from the
   sailing map and painted the same way, north up, so its capes, bays and
   islands look as you know them; the forts stand on the shore beside the

@@ -185,8 +185,8 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 #start-screen .era-brief { border:2px solid rgba(214,164,71,.45); border-left:6px solid var(--brass); box-shadow:4px 4px 0 rgba(0,0,0,.5); }
 #start-screen .era-pips i { transform:none; }
 @media (max-width:760px) { .title-logo { justify-content:flex-start; gap:0 12px; } }
-/* 2× needs 480 px of picture plus 86 px of margin, frame and padding. */
-@media (max-width:580px),(max-height:640px) { .title-vignette canvas { width:calc(var(--art-width) * 1px); height:calc(var(--art-height) * 1px); } }
+/* 2× needs the 512 px framed picture plus 86 px of margin, frame and padding, and room for a scrollbar. */
+@media (max-width:620px),(max-height:640px) { .title-vignette canvas { width:calc(var(--art-width) * 1px); height:calc(var(--art-height) * 1px); } }
 @media (max-width:520px),(max-height:640px) { #title-retro { width:calc(var(--art-width) * 4px); height:calc(var(--art-height) * 4px); } .title-pirates { font-size:56px; } .title-logo { gap:0 10px; } }
 @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
 /* The sea chart: a full-screen old map with a gazetteer beside it (below it on narrow screens). */

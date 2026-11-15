@@ -6,7 +6,7 @@ const SCENES = [
   'sail-ho', 'boarding', 'hostage-talks', 'crew-recruits', 'treasure-fleet',
   'silver-train', 'mutiny', 'prison', 'hall-of-fame', 'alley-duel',
   'retire-1', 'retire-2', 'retire-3', 'retire-4', 'land-attack', 'fort-walls',
-  'sinking', 'outrun', 'nightfall', 'title-sloop',
+  'sinking', 'outrun', 'nightfall', 'title-ship',
 ];
 
 // A context that records which art pixels were painted, after the clip the
@@ -31,7 +31,7 @@ function paintedPixels(id) {
 
 test('each new scene is a described landscape picture', () => {
   for (const id of SCENES) {
-    assert.equal(vignetteShape(id), 'landscape');
+    assert.equal(vignetteShape(id), id === 'title-ship' ? 'title' : 'landscape');
     assert.notEqual(vignetteDescription(id), `Placeholder picture: ${id}.`);
   }
 });
@@ -79,4 +79,8 @@ test('the title logo spells Retro in outlined pixel letters inside its canvas', 
   assert.ok(colours.has('#21180f'), 'the letters have a dark outline');
   assert.ok(colours.size >= 5, 'the letters are banded, not flat');
   assert.deepEqual(RETRO_LOGO_SIZE, { width: 39, height: 11 });
+});
+
+test('the title picture keeps its 3 : 2 artwork inside the frame', () => {
+  assert.deepEqual(vignetteSize('title-ship'), { width: 240 + 2 * VIGNETTE_FRAME_WIDTH, height: 160 + 2 * VIGNETTE_FRAME_WIDTH });
 });

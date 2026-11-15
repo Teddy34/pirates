@@ -11,6 +11,8 @@ export const VIGNETTE_FRAME_WIDTH = 8;
 const PICTURE_SIZES = {
   landscape: { width: 224, height: 128 },
   portrait: { width: 96, height: 128 },
+  // The title screen's picture keeps its 3 : 2 artwork whole.
+  title: { width: 240, height: 160 },
 };
 const VIGNETTE_PICTURE_WIDTH = PICTURE_SIZES.landscape.width;
 const VIGNETTE_PICTURE_HEIGHT = PICTURE_SIZES.landscape.height;
@@ -87,13 +89,14 @@ const DESCRIPTIONS = {
   sinking: 'Your ship settles by the stern as the crew takes to the water',
   outrun: 'A fast ship pulls away while the pursuer’s last shot falls short',
   nightfall: 'Two ships slip apart in the dark as night ends the chase',
-  'title-sloop': 'A sloop under full sail, seen from ahead and to one side, off a green island',
+  'title-ship': 'A sloop under full sail, seen from ahead and to one side, off a green island',
 };
 
 export function vignetteDescription(id, options = {}) {
   if (id === 'governor' && governorSheet && governorCell(options)) {
     return `Portrait of the ${NATION_ADJECTIVES[options.nation]} governor in the dress of the ${options.era}s, pixelated from a period painting.`;
   }
+  if (sceneArt[id]) return ART_DESCRIPTIONS[id];
   return `Placeholder picture: ${DESCRIPTIONS[id] ?? id}.`;
 }
 
@@ -109,6 +112,17 @@ const NATION_ADJECTIVES = { Spain: 'Spanish', England: 'English', France: 'Frenc
 let governorSheet = null;
 let artLoading = null;
 
+// Scenes with finished art (assets/vignettes/PROVENANCE.md), drawn whole
+// into the picture area once loaded; the code-drawn placeholder stands in
+// until then.
+const SCENE_ART_URLS = {
+  'title-ship': new URL('../assets/vignettes/title-ship.png', import.meta.url).href,
+};
+const ART_DESCRIPTIONS = {
+  'title-ship': 'A three-masted English warship under full sail off a palm-fringed island with a stone fort, pixelated from a comic-style illustration.',
+};
+const sceneArt = {};
+
 export function governorCell({ era, nation } = {}) {
   const column = GOVERNOR_NATIONS.indexOf(nation);
   const row = GOVERNOR_ERAS.indexOf(String(era));
@@ -121,18 +135,22 @@ export function governorCell({ era, nation } = {}) {
 export function loadVignetteArt() {
   if (artLoading) return artLoading;
   if (typeof Image === 'undefined') return (artLoading = Promise.resolve());
-  artLoading = new Promise((resolve) => {
+  const load = (url, store) => new Promise((resolve) => {
     const image = new Image();
-    image.onload = () => { governorSheet = image; resolve(); };
+    image.onload = () => { store(image); resolve(); };
     image.onerror = () => resolve();
-    image.src = GOVERNOR_SHEET_URL;
+    image.src = url;
   });
+  artLoading = Promise.all([
+    load(GOVERNOR_SHEET_URL, (image) => { governorSheet = image; }),
+    ...Object.entries(SCENE_ART_URLS).map(([id, url]) => load(url, (image) => { sceneArt[id] = image; })),
+  ]).then(() => {});
   return artLoading;
 }
 
 // True while a vignette would be drawn better once the art has loaded.
 export function vignetteNeedsArt(id) {
-  return id === 'governor' && !governorSheet;
+  return (id === 'governor' && !governorSheet) || (Boolean(SCENE_ART_URLS[id]) && !sceneArt[id]);
 }
 
 export function vignetteShape(id) {
@@ -2033,10 +2051,29 @@ function cumulus(p, puffs, light, shade) {
   for (const [x, y, r] of puffs) p.disc(x, y, r, light);
 }
 
-// The title screen picture: a single-masted, gaff-rigged Caribbean sloop of
-// the later 1600s under full sail, seen from ahead and to one side (bow
-// toward the viewer), with jib, staysail and a long bowsprit, flying the
-// black flag, off a green island on a late-afternoon sea.
+// The title screen picture, 240 x 160: the finished artwork once loaded;
+// until then the code-drawn sloop, centred on a sky-and-sea ground.
+function drawTitleShip(p) {
+  const art = sceneArt['title-ship'];
+  if (art) {
+    p.image(art, 0, 0, PICTURE_SIZES.title.width, PICTURE_SIZES.title.height, 0, 0);
+    return;
+  }
+  const dx = (PICTURE_SIZES.title.width - VIGNETTE_PICTURE_WIDTH) / 2;
+  const dy = (PICTURE_SIZES.title.height - VIGNETTE_PICTURE_HEIGHT) / 2;
+  p.rect(0, 0, PICTURE_SIZES.title.width, 64 + dy, '#4f7f9e');
+  p.rect(0, 64 + dy, PICTURE_SIZES.title.width, PICTURE_SIZES.title.height - 64 - dy, '#2e6a72');
+  drawTitleSloop({
+    rect: (x, y, w, h, color) => p.rect(x + dx, y + dy, w, h, color),
+    disc: (cx, cy, r, color) => p.disc(cx + dx, cy + dy, r, color),
+    outlined: (parts) => p.outlined(parts.map(([x, y, w, h, color]) => [x + dx, y + dy, w, h, color])),
+  });
+}
+
+// The placeholder: a single-masted, gaff-rigged Caribbean sloop of the later
+// 1600s under full sail, seen from ahead and to one side (bow toward the
+// viewer), with jib, staysail and a long bowsprit, flying the black flag, off
+// a green island on a late-afternoon sea.
 function drawTitleSloop(p) {
   sky(p, ['#4f7f9e', '#6390a6', '#82a8ac', '#a8bca6', '#d0c89c', '#e8d29a'], 64);
   cumulus(p, [[14, 30, 7], [24, 26, 9], [36, 29, 7], [46, 32, 5]], '#f4ead0', '#c8b48c');
@@ -2183,7 +2220,7 @@ const SCENES = {
   sinking: { shape: 'landscape', draw: drawSinking },
   outrun: { shape: 'landscape', draw: drawOutrun },
   nightfall: { shape: 'landscape', draw: drawNightfall },
-  'title-sloop': { shape: 'landscape', draw: drawTitleSloop },
+  'title-ship': { shape: 'title', draw: drawTitleShip },
 };
 
 // The shared 8 px carved frame with a brass fillet and corner pieces
