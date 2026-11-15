@@ -382,10 +382,34 @@ mutiny!"* (CSTR 68, 119, 140, 210)
 **sail-ho** · orig. 0x08 `sail-ho` · an encounter is sighted
 (`encounter_generate.asm`) · *"Sail ho! The lookout reports a sail on the
 horizon… Investigate? / Continue our voyage?"* (CSTR 118, 120–122)
-> Seen from up in the rigging: a lookout in the crow's nest points at a
-> tiny sail on a bright horizon. Below, the deck is busy and the captain
-> raises a brass spyglass. There are wind-whipped clouds and a deep blue
-> swell.
+The art is `assets/vignettes/sail-ho.png` (provenance in
+`assets/vignettes/PROVENANCE.md`), cropped from the top of a 3 : 2 source;
+no fixes were needed. The prompt avoids a spyglass (first recorded 1608)
+and a barrel crow's nest (1807), so one picture serves every era and
+nation.
+
+> Wide view along the deck of a 17th-century three-masted sailing ship at
+> sea, bright morning light. On the left, a thick wooden mast rises out of
+> frame, with tarred shrouds and ratlines running down to the ship's side;
+> high on it, an open round wooden platform at the masthead where a
+> barefoot sailor in a loose linen shirt and knee breeches leans out, one
+> arm stretched far forward, pointing to the right. On the right, far away
+> on a bright pale horizon, a single tiny distant ship: a small pale square
+> of sails above a thin dark hull, no flag visible. In the middle ground on
+> the deck, below and to the right of the mast, stands the captain, a lean
+> man about thirty, sun-weathered face, dark hair tied back, short beard,
+> faded dark-blue coat with brass buttons, red sash, cutlass at the hip,
+> tall boots; he shades his eyes with one flat hand and stares toward the
+> distant sail. Behind him, two or three sailors pause at the rail with
+> ropes in their hands and look the same way. A curved wooden bulwark rail
+> with belaying pins along the lower edge of the picture. Deep blue swell
+> with white wave crests, wind-whipped white clouds, billowing off-white
+> square sails at the top edge of the picture.
+>
+> *Scene negatives:* telescope, spyglass, binoculars, barrel crow's nest,
+> ship's steering wheel, tricorne hat, bicorne hat, flag on the distant
+> ship, skull and crossbones, black flag, red and yellow striped flag,
+> tricolour flag, steamship, lighthouse.
 
 **boarding** · orig. 0x11 `boarding` · the two ships meet before the
 boarding fight (`boarding.asm`) · *"The two ships crash together. Through

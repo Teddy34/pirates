@@ -131,3 +131,30 @@ sailors, with barrels and a grey-and-blue stoneware jug behind her.
   barely visible at 1×).
 - **Rebuild:** `python3 tools/build_vignette.py --scene barmaid --source <image>`
   (Pillow).
+
+## sail-ho.png
+
+The sail-sighted picture, 224 × 128 (7 : 4), shown when the lookout reports
+a sail: a barefoot lookout on the open round top of the mast points at a
+tiny two-masted ship on the horizon, while the captain shades his eyes at
+the rail beside three sailors, under a billowing sail and cumulus clouds.
+
+- **Source:** a 1536 × 1024 comic-style illustration generated with ChatGPT
+  (image generation, model not known) from the sail-ho prompt in
+  `docs/scene-vignettes.md`, supplied by the user on 2026-11-15, who holds
+  the rights to it. The source file is not kept in the repository. No
+  material from the original game was used.
+- **Period choices:** the prompt drops the spyglass (telescopes are first
+  recorded in 1608, and the picture serves every era from 1560) and the
+  barrel crow's nest (credited to William Scoresby in 1807) for an open
+  masthead platform. The distant ship flies no visible flag, so one picture
+  serves every nation.
+- **Process:** `tools/build_vignette.py` crops the 3 : 2 source to 7 : 4
+  from the top (box 0, 8, 1536, 886, so the lookout keeps his head),
+  reduces it to 224 × 128 with a box filter, raises contrast (×1.15) and
+  colour (×1.2), and quantises to 256 colours (median cut, no dithering,
+  indexed PNG). No historical fixes were needed; the distant ship's rig
+  (about 6 × 5 art pixels) and the captain's buttoned coat, which suits the
+  later decades best, were accepted.
+- **Rebuild:** `python3 tools/build_vignette.py --scene sail-ho --source <image>`
+  (Pillow).
