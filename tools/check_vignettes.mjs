@@ -111,6 +111,11 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await until('the bartender art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('one-eyed tavernkeeper')`);
     await expectPicture(`${viewport.name} bartender`, 'one-eyed tavernkeeper');
     await screenshot(`${viewport.name}-bartender`);
+    // And the tavern's room.
+    await open('tavern');
+    await until('the tavern art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('play cards and dice')`);
+    await expectPicture(`${viewport.name} tavern`, 'play cards and dice');
+    await screenshot(`${viewport.name}-tavern`);
     // The harbour arrival shows its art, the fort flying the town's flag.
     await open('arrival');
     // The buttons carry icons; Enter's default is leaving, never the attack,

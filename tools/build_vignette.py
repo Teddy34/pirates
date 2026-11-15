@@ -139,6 +139,12 @@ def flag_fix(make_flag, quad, shade=False):
     return lambda image: paste_flag(image, make_flag(), quad, shade)
 
 
+def patch_fix(box, to):
+    """Cover a small blemish (a stray signature) with a nearby patch:
+    copy the source box (left, top, right, bottom) to the point `to`."""
+    return lambda image: image.paste(image.crop(box), to)
+
+
 # One row per town flag, in the order of HARBOUR_FLAGS in src/vignettes.mjs.
 FORT_FLAGS = [('Spain', cross_of_burgundy), ('England', st_george), ('France', plain_white), ('Holland', prince_flag), ('Holland 1660', states_flag)]
 
@@ -196,6 +202,13 @@ SCENES = {
     'open-swords': {
         'shape': 'landscape',
         'source': (1659, 948),
+    },
+    # The generator scrawled a signature on the floor in the bottom right
+    # corner; floor planks from just left of it cover it.
+    'tavern': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+        'fixes': [patch_fix((1520, 900, 1589, 948), (1590, 900))],
     },
 }
 

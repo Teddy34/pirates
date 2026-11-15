@@ -46,6 +46,10 @@ history.
 - The career opening's sword fight and the sailing master's portrait now
   have real comic-style art, generated with Codex and pixelated, with the
   code-drawn pictures as their fallback.
+- The tavern now has real art: sailors at cards and dice, a fiddler, a
+  parrot on a beam and a hanging ship model, with the harbour at dusk
+  through the open door. One picture serves every nation (no flag shows);
+  the code-drawn room stays as the fallback.
 - The town menu of a coastal town now shows real art: stevedores at work
   on a busy stone quay, ships at anchor in the bay, and a distant fort on
   the headland flying the town's period flag (one version per nation, the
