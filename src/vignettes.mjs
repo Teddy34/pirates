@@ -2292,7 +2292,9 @@ function drawFrame(p, w, h) {
 // share of the dialog's inner box (CSS px). On wide screens the picture sits
 // in the page's top left corner with the text beside and below it ('corner');
 // on narrow ones it is a band above the text ('band'), at most `maxScale`.
-export function dialogPictureLayout(id, { width, height, narrow = false, table = false, maxScale = Infinity }) {
+// `room` caps the picture's height: the page left visible above a pinned
+// action bar.
+export function dialogPictureLayout(id, { width, height, room = Infinity, narrow = false, table = false, maxScale = Infinity }) {
   const framed = vignetteSize(id);
   const portrait = vignetteShape(id) === 'portrait';
   // Shares of the box: the picture leaves room for the text beside it and,
@@ -2300,7 +2302,7 @@ export function dialogPictureLayout(id, { width, height, narrow = false, table =
   const share = narrow
     ? { width: 1, height: portrait ? 0.5 : 0.4 }
     : { width: table ? 0.3 : portrait ? 0.4 : 0.55, height: portrait ? 0.85 : 0.6 };
-  const fit = Math.floor(Math.min(width * share.width / framed.width, height * share.height / framed.height));
+  const fit = Math.floor(Math.min(width * share.width / framed.width, Math.min(height * share.height, room) / framed.height));
   const scale = Math.max(1, Math.min(fit, maxScale));
   return { mode: narrow ? 'band' : 'corner', scale, width: framed.width * scale, height: framed.height * scale };
 }

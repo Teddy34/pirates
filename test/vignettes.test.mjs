@@ -113,9 +113,11 @@ test('dialog pictures stay whole and framed at a whole-number scale that fits', 
       }
     }
   }
-  // Laptop 1000×577: the merchant beside his table, the harbour in the corner.
-  assert.equal(dialogPictureLayout('merchant', { width: 976, height: 553, table: true }).scale, 2);
-  assert.equal(dialogPictureLayout('merchant', { width: 976, height: 553 }).scale, 3);
-  assert.equal(dialogPictureLayout('arrival', { width: 976, height: 553 }).scale, 2);
+  // Laptop 1000×577 (inner box 964×541): the merchant beside his table, the
+  // harbour in the corner; a pinned bar's room caps a portrait's height.
+  assert.equal(dialogPictureLayout('merchant', { width: 964, height: 541, table: true }).scale, 2);
+  assert.equal(dialogPictureLayout('merchant', { width: 964, height: 541 }).scale, 3);
+  assert.equal(dialogPictureLayout('merchant', { width: 964, height: 541, room: 390 }).scale, 2);
+  assert.equal(dialogPictureLayout('arrival', { width: 964, height: 541 }).scale, 2);
   assert.equal(dialogPictureLayout('tavern', { width: 382, height: 772, narrow: true, maxScale: 1 }).scale, 1);
 });

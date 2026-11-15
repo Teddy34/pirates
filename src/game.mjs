@@ -4582,10 +4582,15 @@ function fitDialogVignette() {
   if (!dialog.open || !shownVignette) return;
   const id = typeof shownVignette === 'string' ? shownVignette : shownVignette.id;
   const narrow = NARROW_DIALOG.matches;
+  // The page's visible height under its top padding and above a pinned
+  // action bar, less the picture's margin and shadow.
+  const pinned = getComputedStyle(dialogActions).position === 'sticky';
+  const room = dialogText.clientHeight - parseFloat(getComputedStyle(dialogText).paddingTop)
+    - (pinned ? dialogActions.offsetHeight : 0) - 12;
   const place = (maxScale) => {
     const layout = dialogPictureLayout(id, {
       // The narrow page has 16 px of padding each side.
-      width: dialog.clientWidth - (narrow ? 32 : 0), height: dialog.clientHeight, narrow, maxScale,
+      width: dialog.clientWidth - (narrow ? 32 : 0), height: dialog.clientHeight, room: narrow ? Infinity : room, narrow, maxScale,
       table: Boolean(dialogBody.querySelector('table')),
     });
     dialogVignetteCanvas.style.width = `${layout.width}px`;

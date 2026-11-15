@@ -16,7 +16,8 @@ history.
 - Menus and dialogs now fill the screen in an arcade-style frame. The scene
   picture sits whole and framed in the top left corner of the page, at the
   largest whole-number scale that fits, with the text beside and below it
-  (the merchant goes from 1× to 2× on a laptop, beside his table). On phones
+  (the merchant goes from 1× to 2× on a laptop and 3× on a desktop screen,
+  beside his table). On phones
   the picture is a band on top, shrunk or left out when the page would not
   fit on one screen. Text and trading tables are larger, buttons are
   bevelled pixel controls with a pixel icon for their action, the arrow keys

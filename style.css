@@ -232,9 +232,8 @@ form .wide-field { grid-column:span 2; }
   width:calc(100vw - 24px); height:calc(100dvh - 24px); max-width:1680px; max-height:1050px; margin:auto; padding:0; overflow:hidden;
   border:6px solid var(--pixel); border-radius:0; outline:4px solid var(--brass); outline-offset:-10px;
   background:var(--paper); color:var(--paper-ink); box-shadow:0 0 0 3px var(--brass-dark),10px 10px 0 3px rgba(0,0,0,.6); }
-#event-dialog[open] { display:grid; }
 #event-dialog::backdrop { background:repeating-linear-gradient(rgba(0,0,0,.28) 0 2px,transparent 2px 4px),rgba(3,14,18,.82); }
-#event-dialog[open] { grid-template-columns:minmax(0,1fr); }
+#event-dialog[open] { display:grid; grid-template-columns:minmax(0,1fr); }
 /* The picture, whole in its drawn frame, sits in the page's top left corner;
    the kicker, title and text run beside it and below it. */
 #event-dialog .vignette { float:left; width:auto; margin:4px 36px 22px 0; filter:drop-shadow(6px 6px 0 rgba(0,0,0,.45)); }
