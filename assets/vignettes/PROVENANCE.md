@@ -559,6 +559,38 @@ iron-bound door.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-prison --source <image> --shape landscape`
   (Pillow).
 
+## open-night-raid.png
+
+The career opening's night raid, 224 × 128 (7 : 4), for "a sneak attack on a
+small ship riding at anchor" (CSTR 15: every Spanish story and England 1620,
+1640 and 1680): under a full moon a young man in a leather jerkin, cutlass
+in hand, points from the stern of a longboat at a small two-masted ship
+riding at anchor with a lantern lit, as smugglers row with rag-wrapped oars
+across the bay.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-night-raid prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** A ship's longboat was its largest boat, rowed by eight
+  or ten oarsmen ([Wikipedia,
+  "Longboat"](https://en.wikipedia.org/wiki/Longboat), consulted
+  2026-11-15); the picture shows eight. No flag shows on the anchored ship,
+  so one picture serves every nation. The first take gave the young man a
+  third hand and was regenerated with a corrected prompt. In both takes the
+  rowers face the bow, toward the ship, where real rowers face the stern;
+  the generator kept this, and it reads as a comic-panel convention, so it
+  was accepted.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-night-raid --source <image> --shape landscape`
+  (Pillow).
+
 ## tavern.png
 
 The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a

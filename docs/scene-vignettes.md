@@ -855,7 +855,7 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 | open-boarded | a Spanish ship boards you (CSTR 35, 44) | Real art, `assets/vignettes/open-boarded.png`: see the prompt below the table. |
 | open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | Real art, `assets/vignettes/open-landfall.png`: see the prompt below the table. |
 | open-prison | a foul prison (CSTR 22, 32) | Real art, `assets/vignettes/open-prison.png`: see the prompt below the table. |
-| open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Smugglers row toward an anchored ship under the moon. |
+| open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Real art, `assets/vignettes/open-night-raid.png`: see the prompt below the table. |
 | open-buccaneers | living among the buccaneers (CSTR 38) | Real art, `assets/vignettes/open-buccaneers.png`: see the prompt below the table. |
 | open-colony | a poor colony, "Turn back" (CSTR 9) | Thatched huts inside a stockade, angry settlers facing their leader. |
 | open-swords | the story's sword fight | Real art, `assets/vignettes/open-swords.png`: see the prompt below the table. |
@@ -1120,6 +1120,39 @@ Scene negatives: flags, modern prison bars, cell with metal bunks, padlock
 of modern design, handcuffs, orange jumpsuit, electric light, skeleton,
 skull, torture instruments, blood, tricorne hat, bicorne hat, eyepatch,
 parrot.
+
+**open-night-raid** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. The rowers face the bow, toward the ship,
+where real rowers face the stern; accepted. Prompt:
+
+> A sneak attack at night in a quiet Caribbean bay around 1620, under a full
+> moon. A large, low open wooden rowing boat, a ship's longboat, glides
+> across calm black water toward a small two-masted sailing ship riding at
+> anchor in the middle distance on the right: a modest wooden vessel with a
+> high square stern, its sails furled on the yards, a taut anchor cable
+> running down from its bow, a single small lantern glowing warm orange at
+> its stern, no one awake on deck. In the boat, in the foreground on the
+> left, eight rough smugglers sit on the thwarts in pairs facing the stern,
+> backs toward the ship as rowers do, pulling the oars slowly and silently,
+> oar blades wrapped in rags, crouched low; they wear plain linen shirts,
+> knitted caps and broad-brimmed felt hats, with short curved cutlasses and
+> long knives in their belts and a boarding axe at their feet. In the stern
+> of the boat, facing forward toward the ship, a young man, lean, about
+> twenty-five, sun-weathered face, dark hair tied back, a short beard, in a
+> loose linen shirt and a dark sleeveless leather jerkin, crouches by the
+> tiller: his right hand points at the ship, his left hand grips a cutlass
+> at his side; he has exactly two arms and two hands, his face tense and
+> watchful. A wide silver path of moonlight runs across the water from the
+> moon low in the deep indigo sky; dark palm trees and black hills line the
+> shore behind. Cold blue and silver moonlight, with only the lantern warm.
+> Keep the boat, the young man's face and the anchored ship clearly in the
+> middle band of the picture.
+
+Scene negatives: flags, ensign, pennant, ship's steering wheel, wheel,
+outboard motor, oars with metal rowlocks, guns firing, explosions, fire,
+skull and crossbones, black flag, tricorne hat, bicorne hat, eyepatch,
+parrot, daylight, sun, extra hands, extra arms, rowers facing forward.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 

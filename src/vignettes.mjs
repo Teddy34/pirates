@@ -137,6 +137,7 @@ const SCENE_ART_URLS = {
   'open-boarded': new URL('../assets/vignettes/open-boarded.png', import.meta.url).href,
   'open-landfall': new URL('../assets/vignettes/open-landfall.png', import.meta.url).href,
   'open-prison': new URL('../assets/vignettes/open-prison.png', import.meta.url).href,
+  'open-night-raid': new URL('../assets/vignettes/open-night-raid.png', import.meta.url).href,
   tavern: new URL('../assets/vignettes/tavern.png', import.meta.url).href,
   'divide-plunder': new URL('../assets/vignettes/divide-plunder.png', import.meta.url).href,
   shipwright: new URL('../assets/vignettes/shipwright.png', import.meta.url).href,
@@ -157,6 +158,7 @@ const ART_DESCRIPTIONS = {
   'open-boarded': 'A Spanish officer in a steel morion and breastplate leaps onto your deck and points his rapier at the captain in his blue coat, as soldiers with muskets and pikes climb over the rail from a galleon flying the red ragged cross of Burgundy, pixelated from a comic-style illustration.',
   'open-landfall': 'A galleon under full sail runs through the whitecaps toward a green, mountainous island fringed with palms, a lookout pointing from the maintop and sailors crowding the bow, pixelated from a comic-style illustration.',
   'open-prison': 'In a vaulted stone cell a ragged, chained young prisoner sits on straw and stares up at a barred window where the moon shines, beside a bucket, a cracked jug and a crust of bread, a rat in the corner and torchlight behind the iron-bound door, pixelated from a comic-style illustration.',
+  'open-night-raid': 'Under a full moon a young man in a leather jerkin, cutlass in hand, points from the stern of a longboat at a small ship riding at anchor with a lantern lit, as smugglers row with rag-wrapped oars across the moonlit bay, pixelated from a comic-style illustration.',
   tavern: 'In a smoky, low-beamed waterfront tavern four sailors play cards and dice over pewter tankards while a fiddler plays by the casks, under a parrot, lanterns and a hanging ship model, the open door showing masts at dusk, pixelated from a comic-style illustration.',
   'divide-plunder': 'In a sunlit colonial counting house the captain rests a hand on an open chest of silver while a bald clerk in spectacles writes in a ledger and a quartermaster counts coins into the palm of grinning buccaneers lined up for their share, beside stacks of rough silver coins, gold, pearls and a brass balance, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
@@ -1331,8 +1333,14 @@ function drawPrison(p) {
   for (let step = 0; step < 16; step += 2) p.rect(48 - step, 104 - step, 1, 1, '#9a9aa2');
 }
 
-// Moonlit water: a boatload of smugglers creeps up on an anchored ship.
+// The night raid art (assets/vignettes/open-night-raid.png) once loaded;
+// until then, the placeholder: moonlit water: a boatload of smugglers creeps
+// up on an anchored ship.
 function drawNightRaid(p) {
+  if (sceneArt['open-night-raid']) {
+    p.image(sceneArt['open-night-raid'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#0f1a3a', '#16244a', '#1f3058'], 66);
   for (const [x, y] of [[20, 12], [60, 30], [96, 10], [128, 24], [206, 18], [180, 40], [36, 46]]) p.rect(x, y, 1, 1, '#e8ecd8');
   p.disc(170, 22, 10, '#e8ecd8');
