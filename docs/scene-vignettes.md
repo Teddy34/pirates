@@ -167,8 +167,8 @@ The art is `assets/vignettes/port-quay.png` (provenance in
 `assets/vignettes/PROVENANCE.md`), built like harbour-arrival: one
 illustration with a plain white fort flag, five rows, one per period flag,
 picked from the town's nation and the career's era. The ships fly no flags,
-so one picture serves every nation. The career openings show port-quay
-without a town, so they keep the code-drawn picture.
+so one picture serves every nation. The career openings that reuse
+port-quay show it too, with the fort flying the player's nation's flag.
 
 **town-square** · orig. 0x16 `town` · likely the town's backdrop near the
 tavern and barmaid code (`0x11606`); context unconfirmed. Used here for the
