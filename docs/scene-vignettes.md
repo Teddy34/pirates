@@ -857,7 +857,7 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 | open-prison | a foul prison (CSTR 22, 32) | Real art, `assets/vignettes/open-prison.png`: see the prompt below the table. |
 | open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Real art, `assets/vignettes/open-night-raid.png`: see the prompt below the table. |
 | open-buccaneers | living among the buccaneers (CSTR 38) | Real art, `assets/vignettes/open-buccaneers.png`: see the prompt below the table. |
-| open-colony | a poor colony, "Turn back" (CSTR 9) | Thatched huts inside a stockade, angry settlers facing their leader. |
+| open-colony | a poor colony, "Turn back" (CSTR 9) | Real art, `assets/vignettes/open-colony.png`: see the prompt below the table. |
 | open-swords | the story's sword fight | Real art, `assets/vignettes/open-swords.png`: see the prompt below the table. |
 | open-chart | the sailing master's closest cities (CSTR 69) | Real art, `assets/vignettes/open-chart.png`: see the prompt below the table. |
 
@@ -1153,6 +1153,34 @@ Scene negatives: flags, ensign, pennant, ship's steering wheel, wheel,
 outboard motor, oars with metal rowlocks, guns firing, explosions, fire,
 skull and crossbones, black flag, tricorne hat, bicorne hat, eyepatch,
 parrot, daylight, sun, extra hands, extra arms, rowers facing forward.
+
+**open-colony** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> A poor new colony on a tropical coast around 1610, at midday under a hazy,
+> harsh sky. Inside a stockade of rough upright logs with sharpened tops, a
+> few crude, earthfast houses with walls of split timber and mud and steep,
+> ragged palm-thatch roofs; a muddy yard, a well with a wooden bucket, a
+> small field of stunted, yellowing maize behind sandy soil, empty barrels,
+> a broken hoe. In the centre a crowd of angry, ragged, gaunt colonists in
+> worn, patched doublets and breeches, plain linen shirts and broad-brimmed
+> felt hats, some barefoot, brandish pitchforks, a hoe and a spade and
+> shout; at their head stands their leader, a tall, heavy, red-bearded man
+> in a battered steel morion helmet and a buff leather coat, who draws a
+> long straight sword and points at the open gate toward the sea. Facing him
+> on the left, his back half to us, the captain, a lean man about thirty,
+> sun-weathered face, dark hair tied back, short beard, faded dark-blue long
+> coat with brass buttons, red sash, cutlass at the hip, tall boots,
+> bareheaded, his short curved sword drawn and held low and ready. Through
+> the open stockade gate, a strip of blue sea with a single three-masted
+> ship at anchor. Keep the two men facing each other and the leader's face
+> clearly in the middle band of the picture.
+
+Scene negatives: flags, banners, flagpole, log cabins with notched corners,
+stone church, brick houses, glass windows, ship's steering wheel, tricorne
+hat, bicorne hat, pilgrim hats with buckles, native warriors, blood, skull
+and crossbones, black flag, eyepatch, parrot.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 

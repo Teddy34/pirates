@@ -591,6 +591,41 @@ across the bay.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-night-raid --source <image> --shape landscape`
   (Pillow).
 
+## open-colony.png
+
+The career opening's poor colony, 224 × 128 (7 : 4), for "the colonists are
+discouraged. 'Turn back,' they demand" (CSTR 9: England 1600 and France
+1620): inside a stockade of upright logs, among thatched huts, a dry well
+and a field of stunted maize, a red-bearded settler leader in a battered
+morion, sword drawn, points at the gate and the ship beyond while ragged
+colonists with pitchforks and spades shout behind him, facing the captain,
+sword in hand.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-colony prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** Early English colonies were walled with upright logs
+  set in a trench, and their first buildings were earthfast, built on posts
+  in the ground (Historic Jamestowne, ["Finding the Walls of the
+  Fort"](https://historicjamestowne.org/archaeology/map-of-discoveries/palisades/)
+  and ["Reconstructing James
+  Fort"](https://historicjamestowne.org/archaeology/projects/reconstructing-james-fort/),
+  both consulted 2026-11-15). Thatched roofs: je ne sais pas, the sources
+  found do not say what the roofs were. The settlers' worn doublets,
+  breeches and broad felt hats suit about 1610, and the leader's morion is
+  an old soldier's helmet. No flag shows, so one picture serves both
+  stories.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-colony --source <image> --shape landscape`
+  (Pillow).
+
 ## tavern.png
 
 The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a
