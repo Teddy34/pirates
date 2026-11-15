@@ -301,10 +301,42 @@ pay 50 gold pieces per cannon"* (CSTR 277–284, 313)
 
 **tavern** · orig. 0x07 `tavern` · the tavern visit (`tavern_recruit.asm`)
 · *"Nothing happens at the tavern."* (CSTR 150)
-> A smoky, low-beamed waterfront tavern: rough tables, sailors playing
-> cards and dice, a fiddler, a parrot on a beam, lanterns, a ship model
-> hanging from the ceiling, and the open door with a glimpse of masts at
-> dusk.
+The art is `assets/vignettes/tavern.png` (provenance in
+`assets/vignettes/PROVENANCE.md`). One fix: a scrawled signature on the
+floor in the bottom right corner is covered with nearby floor planks
+(`patch_fix` in `tools/build_vignette.py`). The ships through the door fly
+no flag, so one picture serves every nation. The cask spigots look like
+brass taps and the playing cards have modern-looking pips; both are
+accepted, too small to read at 1×.
+
+> Wide interior view of a smoky, low-beamed waterfront tavern in a
+> Caribbean port, around 1640, at dusk. Heavy dark ceiling beams, rough
+> whitewashed walls stained with smoke, a floor of worn wooden planks. On
+> the left, a heavy wooden counter with casks stacked on their sides on a
+> rack with wooden spigots, grey-and-blue salt-glazed stoneware jugs and
+> dark leather drinking jacks on a shelf. In the middle, the focal point:
+> four rough sailors around a scarred wooden table playing cards and
+> throwing dice, lidded pewter tankards, a few silver coins, one sailor
+> smoking a long white clay pipe; they wear loose linen shirts, short
+> jackets, wide knee-length sailor's breeches, knitted caps, kerchiefs and
+> broad-brimmed felt hats, some barefoot. Beside them a fiddler in a
+> stained doublet plays a violin. A green parrot sits on a ceiling beam. A
+> carved wooden model of a three-masted galleon with furled sails hangs
+> from the ceiling on cords. Horn-paned iron lanterns and tallow candles
+> give warm golden light; pipe smoke hangs under the beams. On the right,
+> the open wooden door frames a glimpse of the harbour at dusk: an orange
+> and violet sky, calm water and the bare masts and yards of two moored
+> ships, with no flags. Lively, warm, candlelit.
+
+Scene negatives: glass beer mugs, beer taps, bar stools, labelled glass
+bottles, rum bottles, oil lamps, electric light, saloon, tricorne hats,
+bicorne hats, ship's steering wheel, skull and crossbones, flags,
+signboards with lettering. Period sources: cards, dice, clay pipes and a
+violin in a 17th-century tavern, [National Gallery of Art, Van Ostade,
+*Tavern Scene*, early 1660s](https://www.nga.gov/artworks/56291-tavern-scene)
+and [Royal Collection Trust, Jan Steen, *Interior of a Tavern, with
+Cardplayers and a Violin Player*, c. 1665](https://www.rct.uk/collection/405825/interior-of-a-tavern-with-cardplayers-and-a-violin-player);
+vessels as for the bartender and barmaid below.
 
 **bartender** · orig. 0x5C `bartenda` · news and gossip about the villain
 or your relative (`0x10B19`, `0x1E7F4`, `person_inquiry.asm`) · *"The

@@ -129,6 +129,7 @@ const SCENE_ART_URLS = {
   'sail-ho': new URL('../assets/vignettes/sail-ho.png', import.meta.url).href,
   'sailing-master': new URL('../assets/vignettes/sailing-master.png', import.meta.url).href,
   'open-swords': new URL('../assets/vignettes/open-swords.png', import.meta.url).href,
+  tavern: new URL('../assets/vignettes/tavern.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
   bartender: 'A burly, one-eyed tavernkeeper with a black eyepatch and a big grey moustache, in a leather jerkin and stained apron, dries a lidded pewter tankard behind a wooden counter, before casks, stoneware jugs and a chalked tally slate, pixelated from a comic-style illustration.',
@@ -137,6 +138,7 @@ const ART_DESCRIPTIONS = {
   'sail-ho': 'At the ship’s rail the captain shades his eyes beside three sailors, staring at a tiny sail on the horizon across a deep blue swell, pixelated from a comic-style illustration.',
   'sailing-master': 'A weather-beaten, grey-bearded sailing master in a knitted cap and brown jacket raises a hand in warning, brass dividers and a rolled sea chart in the other, as sullen sailors idle by the mainmast behind him, pixelated from a comic-style illustration.',
   'open-swords': 'At sunset on a ship’s deck the captain in his blue coat and a black-bearded captain in a wide-brimmed hat cross curved swords, as the crew looks on by lantern light, pixelated from a comic-style illustration.',
+  tavern: 'In a smoky, low-beamed waterfront tavern four sailors play cards and dice over pewter tankards while a fiddler plays by the casks, under a parrot, lanterns and a hanging ship model, the open door showing masts at dusk, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
 const sceneArt = {};
@@ -481,10 +483,15 @@ function drawDividePlunder(p) {
   crew.forEach((coat, index) => figure(p, 150 + index * 18, 110 + (index % 2) * 4, { coat, legs: PARCHMENT, hat: index === 2 ? '#a8331f' : undefined, skin: index === 1 ? '#8a5a3a' : SKIN }));
 }
 
-// A low-beamed waterfront tavern at dusk: the bar and casks on the left,
-// card players and a fiddler, lanterns, a parrot on a beam, a hanging ship
-// model, and the open door on the masts in the harbour.
+// The tavern art (assets/vignettes/tavern.png) once loaded; until then, the
+// placeholder: a low-beamed waterfront tavern at dusk, the bar and casks on
+// the left, card players and a fiddler, lanterns, a parrot on a beam, a
+// hanging ship model, and the open door on the masts in the harbour.
 function drawTavern(p) {
+  if (sceneArt.tavern) {
+    p.image(sceneArt.tavern, 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   p.rect(0, 0, 224, 128, '#4a3424');
   p.rect(0, 0, 224, 14, '#2c1e14');
   for (const x of [0, 56, 112, 168]) p.rect(x, 0, 6, 92, '#2c1e14');

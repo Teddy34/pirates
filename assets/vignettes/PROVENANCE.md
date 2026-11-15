@@ -283,3 +283,33 @@ lantern.
   historical fixes were needed.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-swords --source <image>`
   (Pillow).
+
+## tavern.png
+
+The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a
+smoky, low-beamed waterfront tavern at dusk, four sailors play cards and
+dice over pewter tankards while a fiddler plays by the casks, with a parrot
+on a beam, horn-paned lanterns, a hanging galleon model, and the harbour
+seen through the open door.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the tavern prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Fix:** the generator scrawled a small signature on the floor in the
+  bottom right corner; `patch_fix` covers it with the floor planks just to
+  its left (source box 1520–1589 × 900–948 copied to x 1590), since the
+  picture must carry no lettering.
+- **Period choices:** cards, dice, clay pipes, pewter tankards, stoneware
+  jugs, leather jacks, tallow candles and horn-paned lanterns; no glass
+  bottles or modern taps asked for. The ships through the door fly no
+  flag, so one picture serves every nation.
+- **Process:** `tools/build_vignette.py` applies the fix, reduces the 7 : 4
+  source to 224 × 128 with a box filter, raises contrast (×1.15) and colour
+  (×1.2), and quantises to 256 colours (median cut, no dithering, indexed
+  PNG).
+- **Rebuild:** `python3 tools/build_vignette.py --scene tavern --source <image>`
+  (Pillow).
