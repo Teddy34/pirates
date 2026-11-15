@@ -5,8 +5,8 @@
 // `assets/vignettes/<id>.png` into the picture area instead.
 
 // Two picture shapes, both 128 art px tall: a 224 px landscape for places
-// and events, shown above the dialog text, and a 96 px portrait (3 : 4) for
-// people, shown beside it.
+// and events and a 96 px portrait (3 : 4) for people, both shown beside the
+// dialog text on wide screens and above it on narrow ones.
 export const VIGNETTE_FRAME_WIDTH = 8;
 const PICTURE_SIZES = {
   landscape: { width: 224, height: 128 },

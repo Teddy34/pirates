@@ -17,8 +17,9 @@ history.
   brass-and-black pixel border, the scene picture on a dark panel beside the
   text (on top on phones) at the largest whole-number pixel scale that fits,
   larger text and trading tables, and bevelled pixel buttons that show their
-  keyboard shortcut. The action buttons stay pinned at the bottom while long
-  text scrolls. The merchant's portrait is now 2× to 4× instead of 1×.
+  keyboard shortcut. On wide screens the action buttons stay pinned at the
+  bottom while long text scrolls. On laptop and desktop screens the
+  merchant's portrait is now 2× to 4× instead of 1×.
 - The shared image-generation prompt for vignettes now asks for a normal
   inked and coloured comic panel instead of pixel art: the build tool does
   the pixelation, and generated fake pixels blur after reduction.

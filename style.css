@@ -241,19 +241,23 @@ form .wide-field { grid-column:span 2; }
 #event-dialog:not(:has(.vignette:not(.hidden)))[open] { grid-template-columns:minmax(0,1fr); }
 .dialog-text { --page-pad:clamp(24px,4vw,64px); display:flex; flex-direction:column; min-width:0; min-height:0; padding:40px var(--page-pad) 28px; overflow:auto;
   background:repeating-conic-gradient(rgba(46,35,25,.035) 0 25%,transparent 0 50%) 0 0/6px 6px,var(--paper); }
-#event-dialog:not(:has(.vignette:not(.hidden))) .dialog-text > * { width:100%; max-width:980px; margin-left:auto; margin-right:auto; }
+#event-dialog:not(:has(.vignette:not(.hidden))) .dialog-text > :not(#dialog-actions) { width:100%; max-width:980px; margin-left:auto; margin-right:auto; }
 #event-dialog .eyebrow { margin:0 0 10px; color:#7b5420; font-family:var(--mono); font-size:14px; letter-spacing:.2em; }
 #event-dialog .eyebrow::before { content:"\25B6\FE0E  " / ""; color:var(--brass-dark); }
 #event-dialog h2 { font-size:clamp(34px,3.6vw,56px); line-height:1.05; text-shadow:2px 2px 0 rgba(168,116,46,.35); }
 #dialog-body { flex:1 0 auto; margin:18px 0 26px; font-family:"IM Fell English",Georgia,serif; font-size:clamp(19px,1.5vw,23px); line-height:1.45; }
 #dialog-body dl { max-width:420px; font-size:clamp(15px,1.1vw,18px); }
-/* The action bar stays pinned under the page while a long body scrolls. */
-#dialog-actions { position:sticky; bottom:-28px; z-index:1; display:flex; flex-wrap:wrap; gap:12px; margin:0 calc(-1 * var(--page-pad)) -28px; padding:18px var(--page-pad) 28px; border-top:4px solid var(--pixel); background:var(--paper); }
+/* The action bar ends the page; on wide screens tall enough it stays pinned
+   under the page while a long body scrolls (fitDialogVignette keeps focused
+   controls clear of it with scroll-padding). */
+#dialog-actions { z-index:1; display:flex; flex-wrap:wrap; gap:12px; margin:0 calc(-1 * var(--page-pad)) -28px; padding:18px var(--page-pad) 28px; border-top:4px solid var(--pixel); background:var(--paper); }
 #event-dialog #dialog-actions button { position:relative; flex:1 1 180px; min-height:56px; padding:12px 20px; border:3px solid var(--pixel); border-radius:0;
   background:var(--brass); color:#1d1710; font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
   box-shadow:inset -4px -4px 0 var(--brass-dark),inset 4px 4px 0 var(--brass-light),5px 5px 0 #000; cursor:pointer; }
 #event-dialog #dialog-actions button.secondary { background:#d9c393; box-shadow:inset -4px -4px 0 #b39a68,inset 4px 4px 0 #f4e6c4,5px 5px 0 #000; }
-#event-dialog #dialog-actions button:is(:hover,:focus-visible) { background:var(--brass-light); outline:none; }
+#event-dialog #dialog-actions button:hover { background:var(--brass-light); }
+#event-dialog #dialog-actions button:focus-visible { background:var(--brass-light); outline:4px solid var(--pixel); outline-offset:3px; }
+@media (min-width:761px) and (min-height:520px) { #dialog-actions { position:sticky; bottom:-28px; } }
 #event-dialog #dialog-actions button:focus-visible::before { content:"\25B6\FE0E" / ""; position:absolute; left:8px; top:50%; transform:translateY(-50%); animation:arcade-blink 1s steps(2,start) infinite; }
 #event-dialog #dialog-actions button:active { transform:translate(3px,3px); box-shadow:inset -4px -4px 0 var(--brass-dark),inset 4px 4px 0 var(--brass-light),2px 2px 0 #000; }
 #event-dialog #dialog-actions button[data-key]::after { content:attr(data-key); margin-left:10px; padding:1px 6px; border:2px solid var(--pixel); background:var(--paper); font-size:12px; }
@@ -276,7 +280,7 @@ form .wide-field { grid-column:span 2; }
   #event-dialog[open] { display:flex; flex-direction:column; }
   #event-dialog .vignette { flex:none; padding:16px; border-right:0; border-bottom:4px solid var(--pixel); }
   .dialog-text { --page-pad:16px; flex:1 0 auto; padding:22px 16px 18px; overflow:visible; }
-  #dialog-actions { bottom:0; margin-bottom:-18px; padding-top:14px; padding-bottom:18px; }
+  #dialog-actions { margin-bottom:-18px; padding-top:14px; padding-bottom:18px; }
   #event-dialog h2 { font-size:30px; }
   #dialog-body { font-size:18px; }
   #event-dialog #dialog-actions button { flex-basis:140px; min-height:50px; padding:10px 12px; font-size:13px; letter-spacing:.06em; }

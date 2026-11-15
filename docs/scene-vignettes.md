@@ -1,7 +1,6 @@
 # Scene vignettes: picture brief and image-generation prompts
 
-A catalogue of the story moments that get a framed picture above the dialog
-text, with one image-generation prompt for each. The list follows the
+A catalogue of the story moments that get a framed picture in the dialog, with one image-generation prompt for each. The list follows the
 original game's scene table, so every moment that had a picture there gets
 one here. The **context** for each moment (when it is shown, what the text
 says) comes from the research archive: `../piratesgold` code, strings and
@@ -27,7 +26,7 @@ original game, or describe its pictures, in a prompt.
 
 Why this size: 224 × 128 keeps a figure's face about 12–16 art px tall in a
 mid shot. That is the detail level of the town and ship sprites. The full-screen
-dialog shows it at 2× to 4× on common screens.
+dialog shows it at 1× on phones and 2× or more on laptop and desktop screens.
 
 ## 2. Shared style block
 

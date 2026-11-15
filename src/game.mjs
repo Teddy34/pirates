@@ -4486,13 +4486,14 @@ function showDialog({ kicker, title, body, actions, vignette }) {
   });
   dialog.showModal();
   fitDialogVignette();
+  padDialogScroll();
   // Long dialogs (the ship's log, the gazetteer) open at the top.
   dialogActions.querySelector('button')?.focus({ preventScroll: true });
   dialog.scrollTop = 0;
   dialogText.scrollTop = 0;
 }
 
-// A landscape sits above the dialog text, a portrait beside it.
+// The picture sits beside the dialog text on wide screens, above it on narrow ones.
 let shownVignette = null;
 function showVignette(vignette) {
   dialogVignette.classList.toggle('hidden', !vignette);
@@ -4531,6 +4532,12 @@ function fitDialogVignette() {
     : { width: inner.width * (table ? 0.32 : portrait ? 0.4 : 0.56) - 48, height: inner.height - 48 };
   const scale = clamp(Math.floor(Math.min(room.width / width, room.height / height)), 1, 8);
   dialogVignetteCanvas.style.setProperty('--pixel-scale', scale);
+}
+
+// Focus scrolls a control into view; keep it clear of the pinned action bar.
+function padDialogScroll() {
+  const pinned = getComputedStyle(dialogActions).position === 'sticky';
+  dialogText.style.scrollPaddingBottom = pinned ? `${dialogActions.offsetHeight + 8}px` : '';
 }
 
 // Every return to the sailing map starts a new voyage, and each voyage begins
@@ -5194,7 +5201,7 @@ addEventListener('blur', () => {
   Object.keys(walkKeys).forEach((direction) => { walkKeys[direction] = false; });
 });
 addEventListener('resize', resize);
-addEventListener('resize', fitDialogVignette);
+addEventListener('resize', () => { fitDialogVignette(); if (dialog.open) padDialogScroll(); });
 canvas.addEventListener('wheel', (event) => {
   if (event.deltaY === 0) return;
   event.preventDefault();
