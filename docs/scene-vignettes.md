@@ -853,7 +853,7 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 | open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Real art, `assets/vignettes/open-plantation.png`: see the prompt below the table. |
 | open-quarterdeck | a fight on deck, or a duel for command (CSTR 20, 26, 43) | Real art, `assets/vignettes/open-quarterdeck.png`: see the prompt below the table. |
 | open-boarded | a Spanish ship boards you (CSTR 35, 44) | Real art, `assets/vignettes/open-boarded.png`: see the prompt below the table. |
-| open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | A ship runs in on a green, palm-fringed West Indian island. |
+| open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | Real art, `assets/vignettes/open-landfall.png`: see the prompt below the table. |
 | open-prison | a foul prison (CSTR 22, 32) | A prisoner on straw in a stone cell, moonlight through a barred window. |
 | open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Smugglers row toward an anchored ship under the moon. |
 | open-buccaneers | living among the buccaneers (CSTR 38) | Real art, `assets/vignettes/open-buccaneers.png`: see the prompt below the table. |
@@ -1069,6 +1069,31 @@ coat of arms on a flag, any second flag, pennant, ensign on our ship, ship's
 steering wheel, wheel, tricorne hat, bicorne hat, conquistador armour plates
 on legs, full plate armour, skull and crossbones, black flag, eyepatch,
 parrot, blood, cannon firing, smoke.
+
+**open-landfall** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> Landfall in the West Indies around 1620: a powerful three-masted sailing
+> warship of the period, a galleon with a high, carved, painted stern
+> castle, a lower forecastle, a beakhead at the bow, a row of closed
+> gunports along a dark tarred hull with ochre wales, square sails on the
+> fore and main masts and a triangular lateen sail on the mizzen mast, all
+> sails full and pale cream, runs before the trade wind across a deep blue
+> sea flecked with whitecaps. It is seen from behind and to one side,
+> heeling slightly, its bow wave white. Ahead, filling the right part of the
+> picture, a green, mountainous West Indian island: a white sand beach
+> fringed with tall coconut palms, dense green forest climbing steep hills,
+> a line of surf on an outer reef, a few white clouds over the peaks. A tiny
+> lookout stands in the round top of the mainmast, one arm stretched out
+> toward the island; small sailors crowd the forecastle rail, looking ahead.
+> Seabirds wheel in the bright blue sky. Keep the ship's hull and sails and
+> the island clearly in the middle band of the picture.
+
+Scene negatives: flags, ensign, pennants, streamers, banners, ship's
+steering wheel, jib sails, staysails, spanker, steamship, modern yacht,
+lighthouse, buildings, town, fort, skull and crossbones, black flag, people
+on the beach.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 

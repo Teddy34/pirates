@@ -500,6 +500,36 @@ the Cross of Burgundy.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-boarded --source <image> --shape landscape`
   (Pillow).
 
+## open-landfall.png
+
+The career opening's landfall, 224 × 128 (7 : 4), for "Land ho!" and setting
+course for the Main (CSTR 3 and 10: England, France and Holland from 1560 to
+1660): a galleon under full sail runs through the whitecaps toward a green,
+mountainous island fringed with palms, a lookout pointing from the maintop
+and sailors crowding the bow.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-landfall prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** The ship is a three-masted galleon with square sails
+  on the fore and main masts and a lateen sail on the mizzen, a high carved
+  stern and a beakhead, the usual galleon rig of the period ([The Mariners'
+  Museum,
+  "Galleon"](https://exploration.marinersmuseum.org/watercraft/galleon/),
+  consulted 2026-11-15). No flag, ensign or pennant shows, so one picture
+  serves every nation, and no ship's wheel shows. The island has no
+  buildings, as a first landfall should.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-landfall --source <image> --shape landscape`
+  (Pillow).
+
 ## tavern.png
 
 The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a
