@@ -16,6 +16,7 @@ serve-test:
 
 syntax:
 	@for file in src/*.mjs tools/*.mjs server.js; do echo "node --check $$file"; node --check "$$file" || exit 1; done
+	@for file in tools/*.py; do echo "python3 ast.parse $$file"; python3 -c "import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])" "$$file" || exit 1; done
 
 test: syntax
 	node --test

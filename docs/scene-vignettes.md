@@ -22,7 +22,7 @@ original game, or describe its pictures, in a prompt.
 | Framed vignette | **240 × 144** art px |
 | Display | 2 screen px per art pixel → **480 × 288 CSS px**, like the clouds (`CLOUD_ART_PIXEL = 2`). It fits the 486 px content width of `#event-dialog` (540 px − 2 × 27 px padding). Below about 520 px of viewport, draw 1 px per art pixel (240 × 144). Always whole-number scale, `image-rendering: pixelated`. |
 | Generate at | **1792 × 1024** (exactly 8 × the picture; most generators accept 7 : 4 or 16 : 9) |
-| Reduce | Downscale ×8 with a box or nearest filter to 224 × 128, quantise to ≤ 256 colours (indexed PNG), clean the 1 px outlines by hand |
+| Reduce | `tools/build_vignette.py`: historical fixes on the source, crop to shape, box downscale to 224 × 128, quantise to 256 colours (indexed PNG). Workflow: `.claude/skills/vignette-art/SKILL.md` |
 | File | `assets/vignettes/<id>.png`, 224 × 128, indexed PNG, no frame baked in |
 
 Why this size: 224 × 128 keeps a figure's face about 12–16 art px tall in a
@@ -59,9 +59,13 @@ Notes:
   hair tied back, short beard, faded dark-blue coat with brass buttons, red
   sash, cutlass at the hip, tall boots.* Make him grey and older in the
   retirement scenes.
-- **Nation colours** for flags and uniforms: Spain yellow/red, England red
-  with a white field, France blue with white, Holland orange/blue, pirates
-  black. These match `FLAG_DARK` and the map colours.
+- **Flags in pictures** follow the period, not the game's map colours
+  (`FLAG_DARK`): Spain the Cross of Burgundy (red ragged saltire on white),
+  England St George's cross (and the 1606 Union Flag as a jack), France
+  white, Holland the Prince's flag or the later red-white-blue, buccaneers their
+  commission's colours or a plain red flag. Describe
+  the flag's look in the prompt rather than naming it. The checklist of
+  period traps is in `.claude/skills/vignette-art/SKILL.md`.
 
 ## 3. The shared frame
 
@@ -532,7 +536,7 @@ screen, under the RetroPirates! logo. The original's cover is a full screen;
 ours is a framed vignette with its own 3 : 2 shape, **240 × 160**, so the
 artwork stays whole. It is shown at 2× (1× below 620 px wide or 640 px tall).
 The art is `assets/vignettes/title-ship.png`, built by
-`tools/build_title_vignette.py` (provenance in
+`tools/build_vignette.py` (provenance in
 `assets/vignettes/PROVENANCE.md`): a three-masted English warship under full
 sail flying St George's cross, seen from ahead and to one side, off a
 palm-fringed island with a Spanish stone fort flying the Cross of

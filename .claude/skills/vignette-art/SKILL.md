@@ -1,0 +1,144 @@
+---
+name: vignette-art
+description: Produce or replace a scene vignette's art for RetroPirates!. Use when the user wants real art for a vignette (title-ship, harbour-arrival, tavern, governor, ...), asks for a diffusion/image-generation prompt for a scene, or sends back a generated image to review, fix and pixelate. Two rounds - a research brief plus a diffusion prompt, then a historical-accuracy review and the 256-colour pixelation build.
+---
+
+# Vignette art
+
+Real vignette art comes from the user's diffusion provider. Claude does not
+draw it. Claude writes the brief, reviews the returned image for historical
+accuracy, makes small fixes on the source, pixelates it, and wires it into
+the game. Code-drawn vignettes stay as placeholders until then (AGENTS.md,
+"Art direction"). Each picture lands in its own commit or PR.
+
+The work takes two rounds with the user.
+
+## Round 1: brief
+
+Input: a scene id from `docs/scene-vignettes.md` §4 (or a new scene the
+user describes).
+
+1. Read the scene's entry: when it is shown, the text cue, and the existing
+   prompt. Read its shape in `src/vignettes.mjs` (`PICTURE_SIZES` and the
+   `SCENES` entry). Note the era (1560–1680) and the nations it can show:
+   one variant per nation if a flag or uniform is visible.
+2. Do the period research before writing the prompt. Use the repo docs
+   first (`docs/governor-dress-1560-1680.md`, §2 of
+   `docs/scene-vignettes.md`, and the checklist below), then a web search
+   for anything they do not cover: ship types and rig, flags, dress, arms,
+   and colonial architecture for the exact era and nation. Cite each source
+   (author or site, date, link). Write "Je ne sais pas" rather than guess,
+   and leave the point to the user.
+3. Give the user, in their language, with the prompts themselves in
+   English:
+   - **Research notes**: the period facts the picture must get right, with
+     sources. Keep them short; they go to the user, not to the generator.
+   - **Diffusion prompt**: the shared style block from §2 of
+     `docs/scene-vignettes.md`, then the scene part with the period facts
+     written in as concrete visual details. Name things to draw, not rules:
+     "a white flag with a red ragged saltire", not "the 1600 Spanish flag".
+     Generators draw modern versions of named flags. Add the recurring
+     captain's description if he appears.
+   - **Negative prompt**: the §2 list plus this scene's anachronism traps,
+     e.g. "red and yellow striped flag, ship's steering wheel, tricorne
+     hats".
+   - **Format**: aspect ratio and generation size. Ask for a clean 8× block
+     if the provider allows it: landscape 1792 × 1024 (7 : 4), portrait
+     768 × 1024 (3 : 4), title 1920 × 1280 (3 : 2). A provider's own size
+     of the same aspect also works (the title was built from 1536 × 1024,
+     ×6.4), because the build crops and box-reduces.
+   - **Reply checklist**: when the user sends the image back, they should
+     confirm they hold its rights, and give the tool, model and final
+     prompt for the provenance record.
+4. Stop. Wait for the image. Do not draw or fetch art yourself.
+
+## Round 2: review and build
+
+Input: the user's image (a pasted image or a file path; ask for the path if
+the pasted image cannot be found on disk).
+
+1. **Rights**: if the user has not confirmed they hold the rights, ask
+   before committing anything (AGENTS.md "Non-negotiable asset rule").
+   Never accept material from the original game, or traced from it.
+2. **Copy** the source into the scratchpad (`title-art/`-style folder). It
+   is not committed. Check its size and aspect.
+3. **Review for historical accuracy.** Crop and enlarge each detail with
+   Pillow and look at it: flags, ensigns and jacks, rig and hull, dress,
+   arms, buildings, and text or watermarks. Report findings to the user as
+   a short list: what is right, what is anachronistic or wrong, and the fix
+   for each:
+   - **Regenerate**: the error is large (wrong ship type, wrong century of
+     dress, modern objects). Give a corrected prompt.
+   - **Fix in the build**: the error is small and local (a flag, a
+     pennant). Add a fix to the scene's `SCENES` entry in
+     `tools/build_vignette.py`. Prefer warping a flat, correct flag onto
+     the flag's four corners (`flag_fix`, `paste_flag`) over repainting
+     pixels by hand. Measure the corners on the full-size source, and widen
+     the quad by a pixel or two if the old colours bleed at the edge.
+   - **Accept**: the detail is invisible at 1× or 2×. Say so.
+
+   Ask the user which way to go when it is not obvious. The user often
+   corrects the source themselves; a corrected source replaces the old one,
+   so re-measure any fix coordinates.
+4. **Build**:
+   `python3 tools/build_vignette.py --scene <id> --source <image>`
+   (`--shape` the first time, before the scene has a `SCENES` entry). Add
+   the entry with the `source` size pinned whenever there are fixes. The
+   pipeline is fixed: optional fixes, centred crop to the shape (or a
+   `crop` box), box reduction, contrast ×1.15, colour ×1.2, 256-colour
+   median cut without dithering, indexed PNG. Do not lower the colour
+   count: the retro look comes from the pixel size.
+5. **Check the output**: enlarge the PNG ×4 (nearest neighbour) and look
+   again at each fixed detail. Small flags survive at about 6 × 5 art
+   pixels; if a colour folds into its neighbour, fix the source, not the
+   palette.
+6. **Wire it in** (`src/vignettes.mjs`):
+   - Add the file to `SCENE_ART_URLS`.
+   - Write an accessible description in `ART_DESCRIPTIONS`: what is shown,
+     plus "pixelated from a comic-style illustration".
+   - Make the scene's draw function draw the art. `drawVignette` always
+     calls `SCENES[id].draw` and never blits loaded art by itself, so add
+     an `if (sceneArt[id]) { p.image(...); return; }` branch at the top of
+     the draw function and keep the code-drawn placeholder below it as the
+     fallback until the image loads (see `drawTitleShip`). Without it the
+     placeholder stays on screen while its label claims the art.
+   - Per-nation variants (one PNG per flag) need their own keys and a draw
+     function that picks the key from its options.
+   - `tools/check_vignettes.mjs` finds each picture by a substring of its
+     aria-label. The new `ART_DESCRIPTIONS` text replaces the placeholder
+     label, so keep the substring or update the check. Update
+     `test/vignettes.test.mjs` too.
+7. **Record**:
+   - `assets/vignettes/PROVENANCE.md`: a section with the source (diffusion
+     model, tool and prompt, or "not recorded"), the user's rights, the
+     date, the fixes and why, the process and the rebuild command.
+   - `docs/scene-vignettes.md`: the scene entry points to the art and its
+     fixes.
+   - `CHANGELOG.md` under Unreleased.
+8. **Verify** with `make syntax` (it also compiles `tools/*.py`), `make test` and
+   `node tools/check_vignettes.mjs`. Then use the AGENTS.md change workflow:
+   a PR with an independent review, unless the user says to push a small
+   change directly.
+
+## Period checklist (1560–1680)
+
+These are traps found so far. Several rows were written from memory, not
+from a cited source: check each against a source (FOTW, Wikipedia with its
+references, a museum or heritage page) for the exact year and scene, cite
+it in the brief, and extend or correct the list when a review finds
+something new.
+
+| Subject | Right for the period | Anachronisms to catch |
+|---|---|---|
+| Spain | Cross of Burgundy: red ragged saltire on white; naval ensign to about the 1670s, then jack to 1785 ([FOTW](https://fotw.info/FLAGS/es_brgdy.html)) | Red-yellow-red stripes (1785) |
+| England | St George's cross, red on white; red ensign with a St George canton from about the 1620s. The 1606 Union Flag (St George over St Andrew's white saltire on blue) at the maintop; royal ships only from 1634; not used 1649–1660 (Commonwealth flags with the Irish harp) | St Patrick's red saltire in the Union Flag (1801) |
+| France | Royal ships and forts: white, made official in 1661 (plain or with gold fleurs-de-lis: sources differ). 1560s ships flew various flags, often a white cross | Tricolour (1790s) |
+| Holland | From the Revolt (about 1570): Prince's flag, orange-white-blue, to about 1630; both versions 1630–1662; red-white-blue from 1663 ([Wikipedia](https://en.wikipedia.org/wiki/Prince%27s_Flag)). Before the Revolt, Habsburg colours | — |
+| Pirates | Buccaneers mostly sailed under their commission's colours; a plain red flag meant no quarter | Plain black flags mainly from the 1690s; skull and crossbones about 1700–1725 |
+| Ships | Galleons, carracks, pinnaces; fluyts from about 1595; steered by tiller and whipstaff | Ship's wheel (about 1700 onward); a fluyt before 1595 |
+| Optics | Telescopes after 1608 | A spyglass in a 1560–1600 scene |
+| Dress | Ruffs and morions early; broad-brimmed hats; periwigs from the 1660s | Tricornes (about 1690 onward); bicornes; Napoleonic uniforms |
+| Picture | Comic panel, no lettering | Text, signatures, watermarks, a baked-in frame |
+
+The map and `FLAG_DARK` colours (Spain yellow/red, and so on) are game UI
+and stay as they are. Flags drawn inside a vignette follow the table above.
