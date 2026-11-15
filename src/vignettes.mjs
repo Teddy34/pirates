@@ -124,10 +124,12 @@ const SCENE_ART_URLS = {
   'harbour-arrival': new URL('../assets/vignettes/harbour-arrival.png', import.meta.url).href,
   merchant: new URL('../assets/vignettes/merchant.png', import.meta.url).href,
   barmaid: new URL('../assets/vignettes/barmaid.png', import.meta.url).href,
+  'sail-ho': new URL('../assets/vignettes/sail-ho.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
   barmaid: 'A smiling, winking barmaid with chestnut curls under a linen coif, in a red laced bodice and apron, holds up three lidded pewter tankards in a candlelit tavern full of sailors, pixelated from a comic-style illustration.',
   merchant: 'A plump, beaming merchant in a linen apron and a dark doublet spreads his arms in welcome among sugar barrels, hides, cacao sacks and a brass balance, pixelated from a comic-style illustration.',
+  'sail-ho': 'At the ship’s rail the captain shades his eyes beside three sailors, staring at a tiny sail on the horizon across a deep blue swell, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
 const sceneArt = {};
@@ -1560,6 +1562,10 @@ function drawVillain(picture) {
 // The lookout points from the crow's nest; the captain raises his spyglass
 // toward a tiny sail on the horizon.
 function drawSailHo(p) {
+  if (sceneArt['sail-ho']) {
+    p.image(sceneArt['sail-ho'], 0, 0, VIGNETTE_PICTURE_WIDTH, VIGNETTE_PICTURE_HEIGHT, 0, 0);
+    return;
+  }
   sky(p, ['#4f9ac8', '#7ab8d8', '#a8d4e0', '#d4e8e0'], 66);
   for (const [x, y, w] of [[92, 14, 46], [160, 28, 38]]) { p.rect(x, y, w, 4, '#f4f4ec'); p.rect(x + 8, y - 3, w - 18, 3, '#f4f4ec'); }
   sea(p, 66, '#1f6a8a', '#6ab0c0');

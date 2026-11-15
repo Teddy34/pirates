@@ -169,6 +169,10 @@ SCENES = {
             for name, make in [('Spain', cross_of_burgundy), ('England', st_george), ('France', plain_white), ('Holland', prince_flag), ('Holland 1660', states_flag)]
         ],
     },
+    'sail-ho': {
+        'shape': 'landscape',
+        'source': (1536, 1024),
+    },
 }
 
 
