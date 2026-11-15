@@ -44,7 +44,7 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     // The title screen: the pixel "Retro" and the sloop picture are painted,
     // the heading reads the whole name, and nothing overflows sideways.
     await navigate('/');
-    await until('the title screen', `document.querySelector('#title-vignette').getAttribute('aria-label')?.includes('sloop')`);
+    await until('the title screen', `!document.querySelector('#start-screen')?.classList.contains('hidden') && document.querySelector('#start-screen').clientWidth > 0 && document.querySelector('#title-vignette').getAttribute('aria-label')?.includes('seen from ahead')`);
     const title = await evaluate(`(() => {
       const colours = (canvas) => {
         const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -54,13 +54,15 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
       };
       const panel = document.querySelector('#start-screen');
       return {
-        heading: document.querySelector('#start-screen h1').textContent,
+        heading: [...document.querySelector('#start-screen h1').childNodes].filter((node) => node.getAttribute?.('aria-hidden') !== 'true').map((node) => node.textContent).join(''),
+        visible: !panel.classList.contains('hidden') && panel.clientWidth > 0,
         logo: colours(document.querySelector('#title-retro')),
         picture: colours(document.querySelector('#title-vignette')),
         inside: panel.scrollWidth <= panel.clientWidth,
       };
     })()`);
-    if (!title.heading.startsWith('RetroPirates!')) throw new Error(`${viewport.name}: the title reads "${title.heading}"`);
+    if (!title.visible) throw new Error(`${viewport.name}: the title screen is not shown`);
+    if (title.heading !== 'RetroPirates!') throw new Error(`${viewport.name}: the title reads "${title.heading}"`);
     if (title.logo < 5 || title.picture < 20) throw new Error(`${viewport.name}: the title art looks blank (${title.logo} and ${title.picture} colours)`);
     if (!title.inside) throw new Error(`${viewport.name}: the title screen overflows sideways`);
     await screenshot(`${viewport.name}-title`);

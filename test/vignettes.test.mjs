@@ -78,5 +78,5 @@ test('the title logo spells Retro in outlined pixel letters inside its canvas', 
   const colours = new Set(fills.values());
   assert.ok(colours.has('#21180f'), 'the letters have a dark outline');
   assert.ok(colours.size >= 5, 'the letters are banded, not flat');
-  assert.deepEqual(RETRO_LOGO_SIZE, { width: 40, height: 11 });
+  assert.deepEqual(RETRO_LOGO_SIZE, { width: 39, height: 11 });
 });

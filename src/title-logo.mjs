@@ -18,9 +18,10 @@ const GLYPHS = {
 const WORD = 'RETRO';
 const GLYPH_HEIGHT = 8;
 const LETTER_GAP = 1;
-// One pixel of outline all round, plus a one-pixel drop shadow down-right.
+// One pixel of outline all round (and one more down-right); the drop
+// shadow sits one pixel below that outline.
 const MARGIN = 1;
-const SHADOW_OFFSET = 1;
+const SHADOW_DROP = 1;
 
 function glyphCells(word = WORD) {
   const cells = [];
@@ -35,7 +36,7 @@ function glyphCells(word = WORD) {
 
 export const RETRO_LOGO_SIZE = (() => {
   const { width } = glyphCells();
-  return { width: width + 2 * MARGIN + SHADOW_OFFSET, height: GLYPH_HEIGHT + 2 * MARGIN + SHADOW_OFFSET };
+  return { width: width + 2 * MARGIN, height: GLYPH_HEIGHT + 2 * MARGIN + SHADOW_DROP };
 })();
 
 // Draws the word into a context of RETRO_LOGO_SIZE: shadow, then outline,
@@ -44,7 +45,7 @@ export function drawRetroLogo(ctx) {
   const { cells } = glyphCells();
   const at = (x, y, dx, dy, color) => { ctx.fillStyle = color; ctx.fillRect(x + MARGIN + dx, y + MARGIN + dy, 1, 1); };
   ctx.clearRect(0, 0, RETRO_LOGO_SIZE.width, RETRO_LOGO_SIZE.height);
-  for (const [x, y] of cells) at(x, y, SHADOW_OFFSET, SHADOW_OFFSET + 1, SHADOW);
+  for (const [x, y] of cells) at(x, y, 0, 1 + SHADOW_DROP, SHADOW);
   for (const [x, y] of cells) for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) at(x, y, dx, dy, OUTLINE);
   for (const [x, y] of cells) at(x, y, 0, 0, BANDS[y]);
 }

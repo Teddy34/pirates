@@ -2017,11 +2017,13 @@ function outlinedPolygon(p, points, color) {
   polygon(p, points, color);
 }
 
-// A one-pixel line (spars, stays and shrouds).
+// A line (spars, stays and shrouds) drawn with a square brush `width` art
+// pixels across, centred on the path.
 function line(p, x0, y0, x1, y1, color, width = 1) {
+  const half = Math.floor(width / 2);
   const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
   for (let step = 0; step <= steps; step += 1) {
-    p.rect(Math.round(x0 + ((x1 - x0) * step) / steps), Math.round(y0 + ((y1 - y0) * step) / steps), width, 1, color);
+    p.rect(Math.round(x0 + ((x1 - x0) * step) / steps) - half, Math.round(y0 + ((y1 - y0) * step) / steps) - half, width, width, color);
   }
 }
 
