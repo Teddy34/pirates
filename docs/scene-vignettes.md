@@ -383,17 +383,24 @@ mutiny!"* (CSTR 68, 119, 140, 210)
 (`encounter_generate.asm`) · *"Sail ho! The lookout reports a sail on the
 horizon… Investigate? / Continue our voyage?"* (CSTR 118, 120–122)
 The art is `assets/vignettes/sail-ho.png` (provenance in
-`assets/vignettes/PROVENANCE.md`), cropped from the top of a 3 : 2 source;
-no fixes were needed. The prompt avoids a spyglass (first recorded 1608)
+`assets/vignettes/PROVENANCE.md`), centre-cropped from a 3 : 2 source; no
+fixes were needed. The generated picture leaves the lookout out of frame
+(accepted). The prompt avoids a spyglass (first recorded 1608)
 and a barrel crow's nest (1807), so one picture serves every era and
 nation.
 
 > Wide view along the deck of a 17th-century three-masted sailing ship at
-> sea, bright morning light. On the left, a thick wooden mast rises out of
-> frame, with tarred shrouds and ratlines running down to the ship's side;
-> high on it, an open round wooden platform at the masthead where a
-> barefoot sailor in a loose linen shirt and knee breeches leans out, one
-> arm stretched far forward, pointing to the right. On the right, far away
+> sea, bright morning light, seen from deck level. On the left, the lower
+> mast rises from the deck, tall and plain, and goes out of the top of the
+> picture; tarred shrouds with rope ratlines run from the ship's side up
+> along it, converging high above. At the very top-left corner of the
+> picture, far above the deck, where the lower mast ends and a thinner
+> topmast continues upward, a small open wooden platform rests on
+> crosstrees, with short ropes running from its rim down to the shrouds; on
+> it, small with distance, a barefoot sailor in a loose linen shirt and knee
+> breeches leans out against the sky, one arm stretched far forward,
+> pointing to the right. The platform is high up, about two thirds of the
+> way up the mast, much higher than the sails' lower edges. On the right, far away
 > on a bright pale horizon, a single tiny distant ship: a small pale square
 > of sails above a thin dark hull, no flag visible. In the middle ground on
 > the deck, below and to the right of the mast, stands the captain, a lean
@@ -403,13 +410,15 @@ nation.
 > distant sail. Behind him, two or three sailors pause at the rail with
 > ropes in their hands and look the same way. A curved wooden bulwark rail
 > with belaying pins along the lower edge of the picture. Deep blue swell
-> with white wave crests, wind-whipped white clouds, billowing off-white
-> square sails at the top edge of the picture.
+> with white wave crests, wind-whipped white clouds, the foot of a
+> billowing off-white square sail at the top edge of the picture.
 >
 > *Scene negatives:* telescope, spyglass, binoculars, barrel crow's nest,
 > ship's steering wheel, tricorne hat, bicorne hat, flag on the distant
 > ship, skull and crossbones, black flag, red and yellow striped flag,
-> tricolour flag, steamship, lighthouse.
+> tricolour flag, steamship, lighthouse, low platform near the deck,
+> balcony railing, balustrade, turned wooden column, platform at head
+> height.
 
 **boarding** · orig. 0x11 `boarding` · the two ships meet before the
 boarding fight (`boarding.asm`) · *"The two ships crash together. Through

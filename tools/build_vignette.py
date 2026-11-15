@@ -169,11 +169,9 @@ SCENES = {
             for name, make in [('Spain', cross_of_burgundy), ('England', st_george), ('France', plain_white), ('Holland', prince_flag), ('Holland 1660', states_flag)]
         ],
     },
-    # A 3 : 2 source cut to 7 : 4 from the top, so the lookout keeps his head.
     'sail-ho': {
         'shape': 'landscape',
         'source': (1536, 1024),
-        'crop': (0, 8, 1536, 886),
     },
 }
 
