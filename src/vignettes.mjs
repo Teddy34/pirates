@@ -159,7 +159,7 @@ export function harbourRow({ flag, era } = {}) {
 // The scenes drawn from a fort-flag sheet, and their description given the flag.
 const FORT_FLAG_SCENES = {
   'harbour-arrival': (flag) => `Sailing into a colonial harbour town past a stone fort flying ${flag}, the captain at the rail, pixelated from a comic-style illustration.`,
-  'port-quay': (flag) => `On a busy stone quay stevedores roll barrels and hoist bales while the captain looks over his ships at anchor, below a headland fort flying ${flag}, pixelated from a comic-style illustration.`,
+  'port-quay': (flag) => `On a busy stone quay stevedores roll barrels and hoist bales beside a warehouse, with two ships at anchor in the bay below a distant headland fort flying ${flag}, pixelated from a comic-style illustration.`,
 };
 
 // Draws the town's row of a fort-flag sheet; false when there is none yet.
@@ -680,6 +680,7 @@ function drawShoreArrival(p, { flag = 'Spain' } = {}) {
 
 // The town's waterfront from the quay: a warehouse and its hoist, stevedores
 // among the cargo, and the ships lying at anchor in the bay under the fort.
+// The art leaves the captain out (he already stands at the rail in sail-ho).
 function drawPortQuay(p, { flag = 'Spain', era } = {}) {
   if (drawFortFlagArt(p, 'port-quay', { flag, era })) return;
   sky(p, ['#8fc0d0', '#a4cdd6', '#bcd9d6', '#d4e4d0'], 50);

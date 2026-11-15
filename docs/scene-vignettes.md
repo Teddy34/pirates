@@ -142,33 +142,40 @@ town, while you are in port · *"Your ships lie safely at anchor."*
 > bale. On the quay, four stevedores in loose linen shirts, knee-length
 > baggy canvas breeches, knitted wool caps and bare feet roll wooden
 > barrels, carry cloth-wrapped bales and sacks; a stack of barrels, a few
-> hemp sacks and coiled ropes, a wooden bollard. In the centre foreground,
-> standing at the quay edge seen from behind and slightly to one side, the
-> captain looks out over the bay (recurring description, bareheaded, long
-> coat). Beyond him, on calm turquoise water, his ships lie at anchor: a
-> three-masted ship with a high stern castle and a smaller two-masted ship,
-> their square sails furled on the yards, no flags flying from the ships. A
-> rowing boat with two oarsmen comes in to the quay steps. On the far
-> headland on the right, a small low stone fort with angled bastions; on
-> it, one tall flagpole with a single large plain white flag, flying flat
-> and fully spread towards the viewer, clearly visible against the blue
-> sky, with no emblem, cross or pattern on it. Green hills and palms
-> behind, a few cumulus clouds.
+> hemp sacks and coiled ropes, a wooden bollard. The quay runs from the
+> lower left towards the centre and ends in stone steps down to the water;
+> no single figure stands in the foreground, the eye goes along the busy
+> quay to the ships. Out on the calm turquoise water, two ships lie at
+> anchor: a three-masted ship with a high stern castle and a smaller
+> two-masted ship, their square sails furled on the yards, no flags flying
+> from the ships. A rowing boat with two oarsmen comes in to the quay
+> steps. On the far headland on the right, a small low stone fort with
+> angled bastions; on it, a flagpole on its tower with one modest-sized
+> plain white flag in proportion to the fort (the flag no wider than the
+> fort's watchtower is tall), flying flat and spread towards the viewer
+> against the blue sky, with no emblem, cross or pattern on it. Green
+> hills and palms behind, a few cumulus clouds.
 >
-> *Scene negatives:* emblem on the fort flag, flags on the ships, red and
-> yellow striped flag, tricolour flag, union jack, skull and crossbones,
-> tricorne hat, bicorne hat, telescope, spyglass, ship's steering wheel,
-> iron crane, metal crane, lighthouse, steamship, shipping containers,
-> wooden pallets, forklift, stencilled crates, concrete, cars, power lines,
-> modern harbour. *One image for every nation: the build paints the town's
-> flag over the plain white one.*
+> *Scene negatives:* captain in the foreground, man in a dark-blue long
+> coat with a red sash, figure seen from behind in the centre, oversized
+> flag, emblem on the fort flag, flags on the ships, red and yellow
+> striped flag, tricolour flag, union jack, skull and crossbones, tricorne
+> hat, bicorne hat, telescope, spyglass, ship's steering wheel, iron crane,
+> metal crane, lighthouse, steamship, shipping containers, wooden pallets,
+> forklift, stencilled crates, concrete, cars, power lines, modern harbour.
+> *One image for every nation: the build paints the town's flag over the
+> plain white one.*
 
 The art is `assets/vignettes/port-quay.png` (provenance in
 `assets/vignettes/PROVENANCE.md`), built like harbour-arrival: one
 illustration with a plain white fort flag, five rows, one per period flag,
 picked from the town's nation and the career's era. The ships fly no flags,
-so one picture serves every nation. The career openings that reuse
-port-quay show it too, with the fort flying the player's nation's flag.
+so one picture serves every nation. The captain is left out on purpose: he
+already stands at the rail in sail-ho. The flag keeps its true size for a
+fort across the bay, about 4 × 3 art pixels, so its colours only hint at
+the nation (the menu names it); a first version with a flag taller than the
+fort was rejected. The career openings that reuse port-quay show it too,
+with the fort flying the player's nation's flag.
 
 **town-square** · orig. 0x16 `town` · likely the town's backdrop near the
 tavern and barmaid code (`0x11606`); context unconfirmed. Used here for the
