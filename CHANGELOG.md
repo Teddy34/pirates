@@ -17,6 +17,8 @@ history.
   or fix is built in its own worktree, opened as a pull request, reviewed
   once independently, and merged automatically once tests pass; very small
   details may go straight to `main` after the unit tests.
+- Reviews are now done by a separate Claude agent; cross-review with Codex
+  is paused while Codex is unavailable.
 
 - Courtship and marriage. At favour 2 or more with a town's nation, an
   audience ends with dinner and the governor's daughter or niece, courted by

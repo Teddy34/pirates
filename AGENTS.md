@@ -165,7 +165,7 @@ Default for every feature and fix:
 2. Make the change, its tests, its `CHANGELOG.md` entry and any plan update,
    and run `make check` (at minimum `make syntax` and `make test`).
 3. Push the branch and open a pull request against `main`.
-4. Get one independent, read-only review of the diff (see *Reciprocal
+4. Get one independent, read-only review of the diff (see *Independent
    review*), verify each finding against the code, fix what holds, and rerun
    the tests.
 5. Once tests pass and review findings are resolved, merge the pull request
@@ -177,6 +177,6 @@ change to this workflow itself) may skip the worktree, pull request and review
 and be committed directly to `main`, but `make syntax` and `make test` must
 still pass first.
 
-## Reciprocal review
+## Independent review
 
-Before handing off substantial implementation changes, ask the other coding agent for one independent, read-only review: Codex asks Claude Code, and Claude Code asks Codex. Verify each finding against the code before acting on it. One reciprocal pass is enough unless the resulting fixes materially change the implementation.
+Before handing off substantial implementation changes, get one independent, read-only review from a fresh agent that did not write the change. Codex is currently unavailable, so Claude Code reviews Claude Code's work with a separate Claude subagent given the diff, not the author's conclusions. (Cross-agent review, Codex and Claude Code reviewing each other, is paused until the user re-enables it.) Verify each finding against the code before acting on it. One reciprocal pass is enough unless the resulting fixes materially change the implementation.
