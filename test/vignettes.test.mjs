@@ -99,3 +99,27 @@ test('the title logo spells Retro in outlined pixel letters inside its canvas', 
 test('the title picture keeps its 3 : 2 artwork inside the frame', () => {
   assert.deepEqual(vignetteSize('title-ship'), { width: 240 + 2 * VIGNETTE_FRAME_WIDTH, height: 160 + 2 * VIGNETTE_FRAME_WIDTH });
 });
+
+test('dialog pictures stay whole and framed at a whole-number scale that fits', async () => {
+  const { dialogPictureLayout, vignetteSize } = await import('../src/vignettes.mjs');
+  const boxes = [[976, 553], [1416, 876], [749, 548], [1656, 676], [788, 1038], [382, 772]];
+  for (const id of ['merchant', 'tavern', 'arrival']) {
+    const framed = vignetteSize(id);
+    for (const [width, height] of boxes) {
+      for (const table of [false, true]) {
+        const narrow = width < 761;
+        const layout = dialogPictureLayout(id, { width, height, narrow, table });
+        assert.ok(Number.isInteger(layout.scale) && layout.scale >= 1);
+        assert.deepEqual([layout.width, layout.height], [framed.width * layout.scale, framed.height * layout.scale]);
+        if (layout.scale > 1) assert.ok(layout.width <= width && layout.height <= height, `${id} ${width}×${height}`);
+      }
+    }
+  }
+  // Laptop 1000×577 (inner box 964×541): the merchant beside his table, the
+  // harbour in the corner; a pinned bar's room caps a portrait's height.
+  assert.equal(dialogPictureLayout('merchant', { width: 964, height: 541, table: true }).scale, 2);
+  assert.equal(dialogPictureLayout('merchant', { width: 964, height: 541 }).scale, 3);
+  assert.equal(dialogPictureLayout('merchant', { width: 964, height: 541, room: 390 }).scale, 2);
+  assert.equal(dialogPictureLayout('arrival', { width: 964, height: 541 }).scale, 2);
+  assert.equal(dialogPictureLayout('tavern', { width: 382, height: 772, narrow: true, maxScale: 1 }).scale, 1);
+});

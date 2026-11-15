@@ -3,7 +3,7 @@
 // and a narrow size (local ?preview= states).
 import { S, VIEWPORTS, dialogTitle, withBrowser } from './browser-harness.mjs';
 
-await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_SCREENSHOTS' }, async ({ evaluate, until, clickButton, screenshot, navigate, open, setViewport }) => {
+await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_SCREENSHOTS' }, async ({ evaluate, until, clickButton, screenshot, navigate, open, setViewport, press }) => {
 
   const expectPicture = async (where, description) => {
     const shown = await evaluate(`({
@@ -108,6 +108,15 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await screenshot(`${viewport.name}-barmaid`);
     // The harbour arrival shows its art, the fort flying the town's flag.
     await open('arrival');
+    // The buttons carry icons; Enter's default is leaving, never the attack,
+    // and the arrows move the focus between the buttons.
+    const focused = "document.activeElement?.textContent";
+    if (await evaluate(focused) !== 'Leave town') throw new Error(`${viewport.name}: the arrival opens on ${await evaluate(focused)}, not Leave town`);
+    if (!await evaluate(`[...document.querySelectorAll('#dialog-actions button')].every((b) => b.querySelector('.action-icon'))`)) throw new Error(`${viewport.name}: an arrival button has no icon`);
+    await press('ArrowUp');
+    await press('ArrowLeft');
+    const moved = await evaluate(focused);
+    if (moved === 'Leave town' || !await evaluate(`document.querySelector('#dialog-actions').contains(document.activeElement)`)) throw new Error(`${viewport.name}: the arrows did not move the focus (${moved})`);
     await until('the harbour art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('stone fort flying')`);
     await expectPicture(`${viewport.name} harbour`, 'stone fort flying');
     await screenshot(`${viewport.name}-harbour-arrival`);

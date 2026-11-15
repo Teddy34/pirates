@@ -5,8 +5,8 @@
 // `assets/vignettes/<id>.png` into the picture area instead.
 
 // Two picture shapes, both 128 art px tall: a 224 px landscape for places
-// and events, shown above the dialog text, and a 96 px portrait (3 : 4) for
-// people, shown beside it.
+// and events and a 96 px portrait (3 : 4) for people, both shown beside the
+// dialog text on wide screens and above it on narrow ones.
 export const VIGNETTE_FRAME_WIDTH = 8;
 const PICTURE_SIZES = {
   landscape: { width: 224, height: 128 },
@@ -2299,4 +2299,24 @@ function drawFrame(p, w, h) {
     p.rect(x + 1, y + 1, 4, 4, BRASS);
     p.rect(x + 2, y + 2, 2, 2, GOLD);
   }
+}
+
+// How large a full-screen dialog draws its picture (style.css, "Dialogs"),
+// always whole and framed, at the largest whole-number scale that fits its
+// share of the dialog's inner box (CSS px). On wide screens the picture sits
+// in the page's top left corner with the text beside and below it ('corner');
+// on narrow ones it is a band above the text ('band'), at most `maxScale`.
+// `room` caps the picture's height: the page left visible above a pinned
+// action bar.
+export function dialogPictureLayout(id, { width, height, room = Infinity, narrow = false, table = false, maxScale = Infinity }) {
+  const framed = vignetteSize(id);
+  const portrait = vignetteShape(id) === 'portrait';
+  // Shares of the box: the picture leaves room for the text beside it and,
+  // for a landscape, below it; a trading table needs more of the width.
+  const share = narrow
+    ? { width: 1, height: portrait ? 0.5 : 0.4 }
+    : { width: table ? 0.3 : portrait ? 0.4 : 0.55, height: portrait ? 0.85 : 0.6 };
+  const fit = Math.floor(Math.min(width * share.width / framed.width, Math.min(height * share.height, room) / framed.height));
+  const scale = Math.max(1, Math.min(fit, maxScale));
+  return { mode: narrow ? 'band' : 'corner', scale, width: framed.width * scale, height: framed.height * scale };
 }

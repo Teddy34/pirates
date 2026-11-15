@@ -13,12 +13,30 @@ history.
 
 ### Changed
 
+- Menus and dialogs now fill the screen in an arcade-style frame. The scene
+  picture sits whole and framed in the top left corner of the page, at the
+  largest whole-number scale that fits, with the text beside and below it
+  (the merchant goes from 1× to 2× on a laptop and 3× on a desktop screen,
+  beside his table). On phones
+  the picture is a band on top, shrunk or left out when the page would not
+  fit on one screen. Text and trading tables are larger, buttons are
+  bevelled pixel controls with a pixel icon for their action, the arrow keys
+  move between them, and the action bar sits at the bottom of the screen.
+- Arriving at a town, Enter now picks "Leave town": attacking a town,
+  storming its walls, closing for battle, fighting a suitor's duel, selling a
+  ship with cargo overboard, and overwriting or deleting a save are never the
+  default button.
 - The shared image-generation prompt for vignettes now asks for a normal
   inked and coloured comic panel instead of pixel art: the build tool does
   the pixelation, and generated fake pixels blur after reduction.
 - The shared vignette prompt no longer names an artist: generators refuse
   or distort prompts that do, so the comic style is described in plain
   words.
+
+### Removed
+
+- The town menu no longer shows the governor line ("Audience available"): the
+  Governor button appears only when you can see him.
 
 ### Added
 

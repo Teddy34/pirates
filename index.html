@@ -95,11 +95,15 @@
       </aside>
     </section>
     <dialog id="event-dialog">
-      <figure id="dialog-vignette" class="vignette hidden"><canvas width="240" height="144" role="img" style="--art-width:240;--art-height:144"></canvas></figure>
-      <p id="dialog-kicker" class="eyebrow"></p>
-      <h2 id="dialog-title"></h2>
-      <div id="dialog-body"></div>
-      <div id="dialog-actions"></div>
+      <div class="dialog-text">
+        <div class="dialog-page">
+          <figure id="dialog-vignette" class="vignette hidden"><canvas width="240" height="144" role="img"></canvas></figure>
+          <p id="dialog-kicker" class="eyebrow"></p>
+          <h2 id="dialog-title"></h2>
+          <div id="dialog-body"></div>
+        </div>
+        <div id="dialog-actions"></div>
+      </div>
     </dialog>
   </main>
   <script type="module" src="src/game.mjs"></script>

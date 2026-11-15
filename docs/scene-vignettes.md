@@ -1,7 +1,6 @@
 # Scene vignettes: picture brief and image-generation prompts
 
-A catalogue of the story moments that get a framed picture above the dialog
-text, with one image-generation prompt for each. The list follows the
+A catalogue of the story moments that get a framed picture in the dialog, with one image-generation prompt for each. The list follows the
 original game's scene table, so every moment that had a picture there gets
 one here. The **context** for each moment (when it is shown, what the text
 says) comes from the research archive: `../piratesgold` code, strings and
@@ -20,14 +19,14 @@ original game, or describe its pictures, in a prompt.
 | Picture (art pixels) | **224 × 128** (7 : 4) |
 | Frame | 8 art px on every side, one shared frame (§3) |
 | Framed vignette | **240 × 144** art px |
-| Display | 2 screen px per art pixel → **480 × 288 CSS px**, like the clouds (`CLOUD_ART_PIXEL = 2`). It fits the 486 px content width of `#event-dialog` (540 px − 2 × 27 px padding). Below about 520 px of viewport, draw 1 px per art pixel (240 × 144). Always whole-number scale, `image-rendering: pixelated`. |
+| Display | The dialog fills the screen (`dialogPictureLayout` in `src/vignettes.mjs`). The picture is always whole, in its drawn frame, at the largest whole-number scale that fits its share, with `image-rendering: pixelated`. It sits in the page's top left corner with the text beside and below it: a landscape takes at most 55 % of the width and 60 % of the height, a portrait 40 % and 85 %, and 30 % of the width beside a trading table; neither runs under the pinned action bar. At 760 px wide or less the picture is a band above the text, shrunk and then left out when the page would not fit on one screen. |
 | Generate at | **1792 × 1024** (exactly 8 × the picture; most generators accept 7 : 4 or 16 : 9) |
 | Reduce | `tools/build_vignette.py`: historical fixes on the source, crop to shape, box downscale to 224 × 128, quantise to 256 colours (indexed PNG). Workflow: `.claude/skills/vignette-art/SKILL.md` |
 | File | `assets/vignettes/<id>.png`, 224 × 128, indexed PNG, no frame baked in |
 
 Why this size: 224 × 128 keeps a figure's face about 12–16 art px tall in a
-mid shot. That is the detail level of the town and ship sprites. It is also
-the largest 2× picture that fits the existing dialog without changing it.
+mid shot. That is the detail level of the town and ship sprites. The full-screen
+dialog shows it at 2× on a laptop and 3× on a desktop screen (1× in windows narrower than about 900 px, and on phones).
 
 ## 2. Shared style block
 
