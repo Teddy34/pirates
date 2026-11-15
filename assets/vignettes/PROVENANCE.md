@@ -110,3 +110,24 @@ balance, with a ledger, a quill and coins on his desk.
   needed.
 - **Rebuild:** `python3 tools/build_vignette.py --scene merchant --source <image>`
   (Pillow).
+
+## barmaid.png
+
+The barmaid's portrait, 96 × 128 (3 : 4), shown in the tavern when the
+captain talks to her: a smiling, winking barmaid of about 1640 with chestnut
+curls under a linen coif, in a red laced bodice, linen shift and apron,
+holding up three lidded pewter tankards in a candlelit tavern full of
+sailors, with barrels and a grey-and-blue stoneware jug behind her.
+
+- **Source:** a 1086 × 1448 comic-style illustration generated with ChatGPT
+  (model not known) from the barmaid prompt in `docs/scene-vignettes.md`,
+  supplied by the user on 2026-11-15, who holds the rights to it. The
+  source file is not kept in the repository. No material from the original
+  game was used.
+- **Process:** `tools/build_vignette.py` reduces it to 96 × 128 with a box
+  filter, raises contrast (×1.15) and colour (×1.2), and quantises to 256
+  colours (median cut, no dithering, indexed PNG). No historical fixes were
+  needed; the missing neckline kerchief was accepted (not an anachronism,
+  barely visible at 1×).
+- **Rebuild:** `python3 tools/build_vignette.py --scene barmaid --source <image>`
+  (Pillow).

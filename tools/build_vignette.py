@@ -155,6 +155,10 @@ SCENES = {
         'shape': 'portrait',
         'source': (1086, 1448),
     },
+    'barmaid': {
+        'shape': 'portrait',
+        'source': (1086, 1448),
+    },
     # The source flies a plain white flag on the fort, painted over with the
     # town's flag; rows follow HARBOUR_FLAGS in src/vignettes.mjs.
     'harbour-arrival': {

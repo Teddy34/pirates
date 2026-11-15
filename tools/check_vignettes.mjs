@@ -101,6 +101,11 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await until('the merchant art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('beaming merchant')`);
     await expectPicture(`${viewport.name} merchant`, 'beaming merchant');
     await screenshot(`${viewport.name}-merchant`);
+    // So is the barmaid's.
+    await open('barmaid');
+    await until('the barmaid art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('winking barmaid')`);
+    await expectPicture(`${viewport.name} barmaid`, 'winking barmaid');
+    await screenshot(`${viewport.name}-barmaid`);
     // The harbour arrival shows its art, the fort flying the town's flag.
     await open('arrival');
     await until('the harbour art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('stone fort flying')`);
