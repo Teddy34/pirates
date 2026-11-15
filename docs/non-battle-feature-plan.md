@@ -118,8 +118,8 @@ evidence for each item. This list collects them in one place.
   dialog for their picture; where the original shows these lines is untraced.
   With the last ship sunk, the island or prison dialog follows without
   repeating the sinking line.
-- All art is original, and the pictures are placeholders. No original artwork is
-  used.
+- All art is original: the scene pictures are code-drawn placeholders except
+  the real art listed in row 12. No original artwork is used.
 - Your ship stops head to wind (porting-guide quirk 18 is not reproduced).
 - The informant's message names a niece as a niece; the original's CSTR 146
   always says "daughter". A failed conversation with the governor's relative
