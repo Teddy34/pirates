@@ -26,12 +26,14 @@ await withBrowser({ name: 'landing', portOffset: 1, screenshotEnv: 'LANDING_SCRE
     // The first button is Continue, then the practice bout is fought by
     // attacking until it ends.
     await until('the sword fight', `${dialogTitle} === 'Sword fight' || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
+    const vignetteLabel = "document.querySelector('#dialog-vignette canvas')?.getAttribute('aria-label') ?? ''";
     await screenshot(`${viewport.name}-opening-duel`);
     await clickButton('Draw your sword');
     await evaluate(`dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })), true`);
     await until('the end of the bout', `Boolean(document.querySelector('#event-dialog[open]'))`, 90000);
     await evaluate(`dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowLeft' })), true`);
     await until('the briefing', `${dialogTitle} === 'The sailing master' || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
+    await until('the sailing master art', `${vignetteLabel}.includes('grey-bearded sailing master')`);
     await screenshot(`${viewport.name}-briefing`);
     await until('the starting town', `${dialogKicker}?.endsWith(' port') || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
     const startTown = await evaluate(dialogTitle);

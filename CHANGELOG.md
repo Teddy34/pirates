@@ -43,6 +43,8 @@ history.
 
 ### Added
 
+- The sailing master's portrait now has real comic-style art, generated
+  with Codex and pixelated, with the code-drawn portrait as its fallback.
 - The town menu of a coastal town now shows real art: stevedores at work
   on a busy stone quay, ships at anchor in the bay, and a distant fort on
   the headland flying the town's period flag (one version per nation, the

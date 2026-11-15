@@ -216,3 +216,34 @@ the left, a billowing sail above and cumulus clouds.
   accepted.
 - **Rebuild:** `python3 tools/build_vignette.py --scene sail-ho --source <image>`
   (Pillow).
+
+## sailing-master.png
+
+The sailing master's portrait, 96 × 128 (3 : 4), shown at the end of the
+career opening when he gives his first briefing: a stocky, weather-beaten
+seaman of about 1640 with a grizzled grey beard and long grey hair under a
+knitted wool cap, in a linen shirt, a short brown wool jacket with pewter
+buttons and wide canvas breeches, raising a hand in warning with brass
+dividers and a rolled sea chart in the other, before the rail, shrouds,
+a square sail and three sullen sailors by the mainmast.
+
+- **Source:** a 1086 × 1448 comic-style illustration generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the sailing-master prompt
+  in `docs/scene-vignettes.md` with the shared style block and negatives.
+  The user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** the prompt drops the old brief's ship's wheel (wheel
+  steering dates from the early 1700s; ships of the period were steered by
+  tiller and whipstaff), its grey queue (a later seaman's fashion) and its
+  clay pipe (the picture serves the 1560 era too, before pipe smoking was
+  common among English seamen), and gives him a knitted wool cap of the
+  kind worn by 16th- and 17th-century seamen.
+- **Process:** `tools/build_vignette.py` reduces it to 96 × 128 with a box
+  filter, raises contrast (×1.15) and colour (×1.2), and quantises to 256
+  colours (median cut, no dithering, indexed PNG). No historical fixes
+  were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene sailing-master --source <image>`
+  (Pillow).
+
