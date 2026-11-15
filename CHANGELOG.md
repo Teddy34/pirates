@@ -152,6 +152,9 @@ history.
 
 ### Fixed
 
+- The title screen now scrolls inside its pixel frame. Before, the page
+  slid over and under the frame's edges.
+
 - The local `?preview=` states now start from a fixed random seed, so each
   one opens the same way every time. Before, the governor sometimes offered
   a mission ahead of the promotion that `?preview=governor-promotion` exists
