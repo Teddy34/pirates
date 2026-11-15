@@ -463,6 +463,43 @@ smoking in the distance.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-plantation --source <image> --shape landscape`
   (Pillow).
 
+## open-boarded.png
+
+The career opening's Spanish boarding, 224 × 128 (7 : 4), for "You encounter
+a Spanish ship … only to find yourself boarded!" (CSTR 35 and 44: France
+1560 and Holland 1600, 1640 and 1680): a Spanish officer in a steel morion
+and breastplate leaps onto your deck and points his rapier at the captain,
+as soldiers with muskets and pikes climb over the rail from a galleon flying
+the Cross of Burgundy.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-boarded prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** The galleon flies the Cross of Burgundy, a red ragged
+  saltire on white, Spain's naval ensign in the period ([FOTW, "Cross of
+  Burgundy flag"](https://fotw.info/FLAGS/es_brgdy.html), consulted
+  2026-11-15); it survives the reduction at about 12 × 9 art pixels. The
+  officer's morion, half armour, red sash and rapier, and the soldiers'
+  morions, buff coats, muskets and pikes, follow late 16th and early 17th
+  century Spanish soldiers (George Gush, ["Renaissance Armies: The
+  Spanish"](https://myarmoury.com/feature_armies_spanish.php), myArmoury;
+  Àlex Claramunt Soto, ["Tercios clothing. Spanish military fashion in the
+  17th century (1600-1650)"](https://www.1898miniaturas.com/en/?p=3164);
+  both consulted 2026-11-15). His small ruff and slashed sleeves suit 1560
+  to about 1640; the Dutch 1680 story would show later dress, accepted. The
+  muskets' locks are too small to read at 1×. Your own ship shows no flag,
+  so one picture serves the French and Dutch stories.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-boarded --source <image> --shape landscape`
+  (Pillow).
+
 ## tavern.png
 
 The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a

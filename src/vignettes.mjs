@@ -134,6 +134,7 @@ const SCENE_ART_URLS = {
   'open-quarterdeck': new URL('../assets/vignettes/open-quarterdeck.png', import.meta.url).href,
   'open-court': new URL('../assets/vignettes/open-court.png', import.meta.url).href,
   'open-plantation': new URL('../assets/vignettes/open-plantation.png', import.meta.url).href,
+  'open-boarded': new URL('../assets/vignettes/open-boarded.png', import.meta.url).href,
   tavern: new URL('../assets/vignettes/tavern.png', import.meta.url).href,
   'divide-plunder': new URL('../assets/vignettes/divide-plunder.png', import.meta.url).href,
   shipwright: new URL('../assets/vignettes/shipwright.png', import.meta.url).href,
@@ -151,6 +152,7 @@ const ART_DESCRIPTIONS = {
   'open-quarterdeck': 'On a ship’s quarterdeck the captain in his blue coat and a black-bearded captain in a wide-brimmed hat face each other with drawn curved swords, as the crew watches from the deck below, pixelated from a comic-style illustration.',
   'open-court': 'In a gilded hall hung with tapestries of ships, the captain kneels in his blue coat before a grey-bearded noble patron in black silk and a lace collar, who hands him a sealed charter from a red velvet chair, as courtiers whisper and a halberdier stands guard, pixelated from a comic-style illustration.',
   'open-plantation': 'At dusk at the edge of a sugar-cane field a young labourer in a torn shirt and straw hat, cane knife in hand, talks in secret with two crouching smugglers, one with a finger to his lips, above a cove where a small ship lies at anchor, with a boiling house smoking in the distance, pixelated from a comic-style illustration.',
+  'open-boarded': 'A Spanish officer in a steel morion and breastplate leaps onto your deck and points his rapier at the captain in his blue coat, as soldiers with muskets and pikes climb over the rail from a galleon flying the red ragged cross of Burgundy, pixelated from a comic-style illustration.',
   tavern: 'In a smoky, low-beamed waterfront tavern four sailors play cards and dice over pewter tankards while a fiddler plays by the casks, under a parrot, lanterns and a hanging ship model, the open door showing masts at dusk, pixelated from a comic-style illustration.',
   'divide-plunder': 'In a sunlit colonial counting house the captain rests a hand on an open chest of silver while a bald clerk in spectacles writes in a ledger and a quartermaster counts coins into the palm of grinning buccaneers lined up for their share, beside stacks of rough silver coins, gold, pearls and a brass balance, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
@@ -1248,8 +1250,14 @@ function drawQuarterdeck(p) {
   blade(p, 128, 108, 16, -1);
 }
 
-// A Spanish officer draws his sword on your deck, his ship alongside.
+// The Spanish boarding art (assets/vignettes/open-boarded.png) once loaded;
+// until then, the placeholder: a Spanish officer draws his sword on your
+// deck, his ship alongside.
 function drawBoarded(p, { flag = 'pirate' } = {}) {
+  if (sceneArt['open-boarded']) {
+    p.image(sceneArt['open-boarded'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#8fc0d8', '#b0d4e0', '#d4e4dc'], 52);
   sea(p, 52, '#2f7a8a', '#6ab0b0');
   ship(p, 158, 74, { facing: -1, flag: 'Spain', scale: 1.1 });

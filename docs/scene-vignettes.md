@@ -852,7 +852,7 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 | open-court | an audience at court for royal approval (CSTR 2, 8) | Real art, `assets/vignettes/open-court.png`: see the prompt below the table. |
 | open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Real art, `assets/vignettes/open-plantation.png`: see the prompt below the table. |
 | open-quarterdeck | a fight on deck, or a duel for command (CSTR 20, 26, 43) | Real art, `assets/vignettes/open-quarterdeck.png`: see the prompt below the table. |
-| open-boarded | a Spanish ship boards you (CSTR 35, 44) | A Spanish officer draws his sword on the hero's deck. |
+| open-boarded | a Spanish ship boards you (CSTR 35, 44) | Real art, `assets/vignettes/open-boarded.png`: see the prompt below the table. |
 | open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | A ship runs in on a green, palm-fringed West Indian island. |
 | open-prison | a foul prison (CSTR 22, 32) | A prisoner on straw in a stone cell, moonlight through a barred window. |
 | open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Smugglers row toward an anchored ship under the moon. |
@@ -1035,6 +1035,40 @@ Scene negatives: flags, whips, chains, overseer on a horse, windmill, steam
 engine, factory, tractor, ship's steering wheel, tricorne hat, bicorne hat,
 eyepatch, parrot, skull and crossbones, black flag, banana plantation, palm
 oil plantation.
+
+**open-boarded** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). The Spanish galleon
+flies the Cross of Burgundy; your own ship shows no flag, so one picture
+serves the French and Dutch stories. Prompt:
+
+> A Spanish boarding on the open main deck of a 17th-century merchant
+> sailing ship at sea, around 1620, in hard midday light. On the right, the
+> high side of a Spanish galleon lies alongside, its dark wooden hull with
+> open gunports and carved, painted upper works towering over the deck;
+> grappling hooks on ropes bite into our rail, and Spanish soldiers are
+> climbing over it. High on its stern a large white flag flies with a red
+> ragged diagonal saltire cross made of two knotted, rough-cut branches, the
+> only flag in the picture. In the centre, the Spanish boarding officer has
+> just jumped down on our deck: a proud, dark-moustached man with a pointed
+> beard, wearing a polished steel morion helmet with a high comb and a
+> curved brim, a steel breastplate over a dark red doublet with slashed
+> sleeves, a red silk sash, wide dark breeches and boots; he draws a long
+> straight rapier with a swept iron hilt and points it, sneering. Facing him
+> on the left, the captain, a lean man about thirty, sun-weathered face,
+> dark hair tied back, short beard, faded dark-blue long coat with brass
+> buttons, red sash, cutlass at the hip, tall boots, bareheaded, his hand
+> going to his own short curved sword. Behind the officer, Spanish soldiers
+> in morion helmets and plain buff coats with long matchlock muskets and
+> pikes; behind the captain, his own sailors in plain linen shirts, knitted
+> caps and canvas breeches, falling back. Tarred mast, shrouds with ratlines
+> and coiled ropes frame the scene; a strip of blue sea. Keep the officer's
+> face, the rapier and the captain in the middle band of the picture.
+
+Scene negatives: red and yellow striped flag, Spanish flag with stripes,
+coat of arms on a flag, any second flag, pennant, ensign on our ship, ship's
+steering wheel, wheel, tricorne hat, bicorne hat, conquistador armour plates
+on legs, full plate armour, skull and crossbones, black flag, eyepatch,
+parrot, blood, cannon firing, smoke.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 
