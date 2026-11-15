@@ -189,6 +189,10 @@ SCENES = {
         'shape': 'landscape',
         'source': (1536, 1024),
     },
+    'sailing-master': {
+        'shape': 'portrait',
+        'source': (1086, 1448),
+    },
 }
 
 

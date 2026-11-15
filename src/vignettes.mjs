@@ -127,12 +127,14 @@ const SCENE_ART_URLS = {
   barmaid: new URL('../assets/vignettes/barmaid.png', import.meta.url).href,
   bartender: new URL('../assets/vignettes/bartender.png', import.meta.url).href,
   'sail-ho': new URL('../assets/vignettes/sail-ho.png', import.meta.url).href,
+  'sailing-master': new URL('../assets/vignettes/sailing-master.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
   bartender: 'A burly, one-eyed tavernkeeper with a black eyepatch and a big grey moustache, in a leather jerkin and stained apron, dries a lidded pewter tankard behind a wooden counter, before casks, stoneware jugs and a chalked tally slate, pixelated from a comic-style illustration.',
   barmaid: 'A smiling, winking barmaid with chestnut curls under a linen coif, in a red laced bodice and apron, holds up three lidded pewter tankards in a candlelit tavern full of sailors, pixelated from a comic-style illustration.',
   merchant: 'A plump, beaming merchant in a linen apron and a dark doublet spreads his arms in welcome among sugar barrels, hides, cacao sacks and a brass balance, pixelated from a comic-style illustration.',
   'sail-ho': 'At the ship’s rail the captain shades his eyes beside three sailors, staring at a tiny sail on the horizon across a deep blue swell, pixelated from a comic-style illustration.',
+  'sailing-master': 'A weather-beaten, grey-bearded sailing master in a knitted cap and brown jacket raises a hand in warning, brass dividers and a rolled sea chart in the other, as sullen sailors idle by the mainmast behind him, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
 const sceneArt = {};
@@ -1341,7 +1343,13 @@ function drawChart(p) {
 
 // A stocky, weather-beaten sailing master with a grey queue and a pipe, on
 // the quarterdeck by the wheel.
+// The sailing master's portrait art (assets/vignettes/sailing-master.png)
+// once loaded; until then, the placeholder: a grey-haired master with a pipe.
 function drawSailingMaster(picture) {
+  if (sceneArt['sailing-master']) {
+    picture.image(sceneArt['sailing-master'], 0, 0, PICTURE_SIZES.portrait.width, PICTURE_SIZES.portrait.height, 0, 0);
+    return;
+  }
   sky(picture, ['#8fb8d0', '#b0d0dc', '#d4e4e0'], 56);
   picture.rect(0, 56, 96, 18, '#3a7a8a');
   picture.rect(0, 74, 96, 54, WOOD);

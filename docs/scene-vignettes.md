@@ -434,10 +434,34 @@ and warnings: his first briefing, restless men, months at sea, "we're in
 %s waters" (`0x1DEB2`, `0x28523`, `0x14361`) · *"The men be growin'
 restless, Cap'n. If ye don't find us plunder soon, methinks they'll
 mutiny!"* (CSTR 68, 119, 140, 210)
-> On the quarterdeck by the wheel, a stocky, weather-beaten sailing master
-> with a grey queue and a pipe takes the captain aside and nods toward the
-> sullen crew at the waist. A chart and dividers are on the binnacle, with
-> billowing sails and the open sea behind them.
+In the game this is a 96 × 128 portrait (3 : 4, generate at 768 × 1024),
+one picture for every era and nation. The art is
+`assets/vignettes/sailing-master.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. The prompt drops
+the first brief's wheel (steering wheels date from the early 1700s), grey
+queue and clay pipe (too late for the 1560 era).
+
+> Vertical half-length portrait of a ship's sailing master on the open
+> upper deck of a 17th-century sailing ship at sea, around 1640. A stocky,
+> weather-beaten seaman in his fifties, deeply tanned and lined face,
+> shrewd narrowed eyes, a short grizzled grey beard, long grey hair falling
+> to his collar from under a knitted brown woollen sailor's cap rolled at
+> the brim. He wears a coarse off-white linen shirt open at the neck, a
+> short, close-fitting dark brown wool jacket with a row of small pewter
+> buttons, and wide, loose canvas breeches; a plain leather belt with a
+> sheathed knife. His head sits in the upper third of the picture and his
+> face is large and clearly lit. He turns towards the viewer as if taking
+> the captain aside with a word of warning, one hand raised half-way, the
+> other holding a pair of brass navigator's dividers over a rolled
+> parchment sea chart tucked under his arm. Behind him, simplified and
+> slightly hazy: the ship's wooden rail and tarred shrouds with ratlines, a
+> billowing off-white square sail, a few sullen sailors in plain shirts and
+> knitted caps idling by the mainmast at the waist of the ship, and the
+> open blue-green sea under a pale sky with cumulus clouds.
+
+Scene negatives: ship's steering wheel, wheel, tricorne hat, bicorne hat,
+pigtail, queue, telescope, spyglass, epaulettes, naval uniform, striped
+shirt, eyepatch, parrot, skull and crossbones, flags.
 
 ### 4.6 At sea
 
