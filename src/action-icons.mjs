@@ -79,6 +79,10 @@ const ICONS = {
     '............', '............', '..kk...kk...', '.krrk.krrk..', '.krrrkrrrk..', '.krrrrrrrk..',
     '..krrrrrk...', '...krrrk....', '....krk.....', '.....k......', '............', '............',
   ],
+  cross: [
+    '............', '.kk......kk.', 'krrk....krrk', '.krrk..krrk.', '..krrkkrrk..', '...krrrrk...',
+    '...krrrrk...', '..krrkkrrk..', '.krrk..krrk.', 'krrk....krrk', '.kk......kk.', '............',
+  ],
   back: [
     '............', '............', '....k.......', '...kk.......', '..kgkkkkkk..', '.kggggggggk.',
     '..kgkkkkkk..', '...kk.......', '....k.......', '............', '............', '............',
@@ -92,13 +96,16 @@ const ICONS = {
 // First match wins, so the specific actions come before the generic ones.
 const LABEL_ICONS = [
   [/attack|prepare for battle|close for battle|plunder and sink/i, 'cannon'],
+  [/^delete|^overwrite/i, 'cross'],
+  [/^(return|back|close|decline|no\b|nothing|withdraw|part company|remain)/i, 'back'],
+  [/^wait/i, 'next'],
   [/sword|duel|fencing|storm/i, 'swords'],
   [/governor|audience|mission/i, 'crown'],
   [/propose|conversation|marriage|retract/i, 'heart'],
   [/sneak/i, 'mask'],
   [/map|chart|dig/i, 'map'],
   [/logbook|log\b|personal status|city information/i, 'book'],
-  [/save|overwrite/i, 'quill'],
+  [/save/i, 'quill'],
   [/shipwright|repair/i, 'hammer'],
   [/plunder|looting/i, 'chest'],
   [/merchant|gold|ransom|offer|^food$|^goods$|jettison/i, 'coins'],
@@ -106,7 +113,7 @@ const LABEL_ICONS = [
   [/investigate|hail|follow|traveller/i, 'spyglass'],
   [/sail into|march into|harbor/i, 'anchor'],
   [/put to sea|sail away|leave town|voyage|keep sailing|prize crew|keep her|pirating/i, 'ship'],
-  [/^(return|back|close|decline|no\b|nothing|withdraw|leave|part company|remain|delete)/i, 'back'],
+  [/^leave/i, 'back'],
   [/^(continue|next|yes|done|welcome|take|keep walking|wait|finish)/i, 'next'],
 ];
 

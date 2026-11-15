@@ -15,15 +15,18 @@ history.
 
 - Menus and dialogs now fill the screen in an arcade-style frame. A place or
   event picture is the backdrop of the whole dialog, with the text in a card
-  in its corner; a portrait is a full-height column beside the text (the
-  merchant goes from 1× to 3× on a laptop). On phones the picture is a band on
+  in its corner (in a column beside the text when the window's shape would
+  crop it too much); a portrait is a column beside the text, filling its
+  height where the width allows (the merchant goes from 1× to 3× on a
+  laptop). On phones the picture is a band on
   top, shrunk or left out when the page would not fit on one screen. Text and
   trading tables are larger, buttons are bevelled pixel controls with a pixel
   icon for their action, the arrow keys move between them, and on wide
   screens they stay pinned while long text scrolls.
-- Arriving at a town, Enter now picks "Leave town": attacking a town (and
-  storming its walls, overwriting or deleting a save) is never the default
-  button.
+- Arriving at a town, Enter now picks "Leave town": attacking a town,
+  storming its walls, closing for battle, fighting a suitor's duel, selling a
+  ship with cargo overboard, and overwriting or deleting a save are never the
+  default button.
 - The shared image-generation prompt for vignettes now asks for a normal
   inked and coloured comic panel instead of pixel art: the build tool does
   the pixelation, and generated fake pixels blur after reduction.

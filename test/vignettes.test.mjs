@@ -116,6 +116,12 @@ test('dialog pictures keep whole-number scales and crop only the frame or a litt
   assert.ok(scene.offset.x + f * scene.scale <= 0 && scene.offset.y + f * scene.scale <= 0);
   assert.ok(scene.offset.x + (size.width - f) * scene.scale >= 976);
   assert.ok(scene.offset.y + (size.height - f) * scene.scale >= 553);
+  // A window far from the picture's shape gets a column instead of a heavy crop.
+  for (const [width, height] of [[749, 548], [1656, 676], [788, 1038]]) {
+    const column = dialogPictureLayout('tavern', { width, height });
+    assert.equal(column.mode, 'column', `${width}×${height}`);
+    assert.ok(column.box.width <= width * 0.56 && column.box.height <= height);
+  }
   // Phones: a band no wider than the screen.
   const band = dialogPictureLayout('tavern', { width: 382, height: 772, narrow: true });
   assert.deepEqual([band.mode, band.scale, band.box.width], ['band', 1, 224]);

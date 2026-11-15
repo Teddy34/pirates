@@ -243,7 +243,10 @@ form .wide-field { grid-column:span 2; }
 /* A landscape is the backdrop; the page is a framed card in its lower right corner. */
 #event-dialog.has-scene[open] { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
 #event-dialog.has-scene .vignette { grid-area:1/1; border:0; }
-#event-dialog.has-scene .dialog-text { --page-pad:28px; position:relative; z-index:2; grid-area:1/1; align-self:end; justify-self:end; width:min(640px,46%); max-height:calc(100% - 48px); margin:24px; padding-top:28px;
+/* The card's buttons scroll with its text: pinned, they could fill the card. */
+#event-dialog.has-scene #dialog-actions { position:static; }
+#event-dialog.has-scene #dialog-actions button { flex-basis:150px; }
+#event-dialog.has-scene .dialog-text { --page-pad:28px; position:relative; z-index:2; grid-area:1/1; align-self:end; justify-self:end; width:min(680px,56%); max-height:calc(100% - 48px); margin:24px; padding-top:28px;
   border:5px solid var(--pixel); box-shadow:0 0 0 3px var(--brass),8px 8px 0 3px rgba(0,0,0,.55); }
 #event-dialog:not(:has(.vignette:not(.hidden)))[open] { grid-template-columns:minmax(0,1fr); }
 .dialog-text { --page-pad:clamp(24px,4vw,64px); display:flex; flex-direction:column; min-width:0; min-height:0; padding:40px var(--page-pad) 28px; overflow:auto;

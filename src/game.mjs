@@ -1645,7 +1645,7 @@ function identifyEncounter(enemy) {
     kicker: `${enemy.flag === 'pirate' ? 'Pirate' : enemy.flag} colors`, title: enemy.captainName ? `${enemy.captainName}’s ${enemy.ship}` : `The ${enemy.ship}`,
     body: `${hunterLine}<p>She carries about ${enemy.crew * 4} hands and ${enemy.guns} guns. ${enemy.hostile ? 'She alters course and gives chase.' : 'Her crew watches your approach.'}</p>`,
     actions: [
-      { label: 'Close for battle', run: () => closeForBattle(enemy) },
+      { label: 'Close for battle', risky: true, run: () => closeForBattle(enemy) },
       { label: 'Hail for news', run: () => evadeHunter(enemy, () => hailForNews(enemy)) },
       { label: 'Sail away', secondary: true, run: () => evadeHunter(enemy, () => escapeEncounter(enemy)) },
     ],
@@ -2366,7 +2366,7 @@ function approachTown({ overland = Boolean(state.player.onFoot) } = {}) {
       { label: overland ? 'March into town' : 'Sail into the harbor', run: () => tryHarbor(town) },
       { label: 'Sneak into town', run: () => trySneak(town) },
       { label: 'Attack the town', risky: true, run: () => attackTown(town) },
-      { label: 'Leave town', focus: true, secondary: true, run: () => { departFromApproach(); resumeSailing(); } },
+      { label: 'Leave town', icon: overland ? 'back' : 'ship', focus: true, secondary: true, run: () => { departFromApproach(); resumeSailing(); } },
     ],
   });
 }
@@ -3506,7 +3506,7 @@ function visitGovernorRelative(town, next) {
       ...portrait, title: 'A jealous suitor',
       body: `<p>“You have captured my heart, ${RANK_NAMES[state.player.ranks[town.nation]]} ${state.captain}. Would that I could be your bride. My suitor, however, is a very jealous man. He will likely challenge you to a duel!”</p><p>Will you...</p>`,
       actions: [
-        { label: 'Fight the duel', run: () => duelSuitor(town, suitor, next) },
+        { label: 'Fight the duel', risky: true, run: () => duelSuitor(town, suitor, next) },
         { label: 'Retract proposal', secondary: true, run: next },
       ],
     });
@@ -4170,7 +4170,7 @@ function confirmShipSale(index) {
     vignette: 'shipwright', kicker: 'The shipwright', title: 'Not enough hold',
     body: `<p>Without the ${describeShip(ship)}, your fleet holds ${capacityAfter} tons but carries ${cargoUsed()} tons of food, goods and cannon. You would have to throw ${excess} tons overboard.</p>`,
     actions: [
-      { label: `Sell her and lose ${excess} tons`, run: () => sellShip(index) },
+      { label: `Sell her and lose ${excess} tons`, risky: true, run: () => sellShip(index) },
       { label: 'Keep her', secondary: true, run: () => showShipwright('sell-ship', String(index)) },
     ],
   });
@@ -4532,7 +4532,10 @@ function moveDialogFocus(key) {
   };
   const buttons = [...dialog.querySelectorAll('button:not(:disabled)')].filter((button) => button.offsetParent);
   const current = buttons.includes(document.activeElement) ? document.activeElement : null;
-  if (!current) return buttons[0]?.focus();
+  if (!current) {
+    buttons[0]?.focus();
+    return Boolean(buttons[0]);
+  }
   const from = centre(current);
   let best = null;
   let bestScore = Infinity;
@@ -4546,6 +4549,7 @@ function moveDialogFocus(key) {
     if (score < bestScore) { best = button; bestScore = score; }
   }
   best?.focus();
+  return Boolean(best);
 }
 
 // The picture sits beside the dialog text on wide screens, above it on narrow ones.
@@ -4553,7 +4557,6 @@ let shownVignette = null;
 function showVignette(vignette) {
   dialogVignette.classList.toggle('hidden', !vignette);
   const { id, ...options } = typeof vignette === 'string' ? { id: vignette } : vignette ?? {};
-  dialog.classList.toggle('has-portrait', Boolean(vignette) && vignetteShape(id) === 'portrait');
   shownVignette = vignette;
   if (!vignette) return;
   const size = vignetteSize(id);
@@ -5073,9 +5076,9 @@ dialog.addEventListener('cancel', (event) => event.preventDefault());
 dialog.addEventListener('keydown', (event) => { if (event.key === 'Escape') event.preventDefault(); });
 dialog.addEventListener('keydown', (event) => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+  // With no button that way, the key keeps its default and scrolls the page.
   if (ARROW_STEPS[event.key] && !event.target.closest?.('input, select, textarea')) {
-    event.preventDefault();
-    moveDialogFocus(event.key);
+    if (moveDialogFocus(event.key)) event.preventDefault();
     return;
   }
   const button = dialogShortcuts.get(event.key.toLowerCase());
@@ -5270,6 +5273,8 @@ addEventListener('blur', () => {
 });
 addEventListener('resize', resize);
 addEventListener('resize', () => { fitDialogVignette(); if (dialog.open) padDialogScroll(); });
+// Late web fonts change the text's height, which the narrow fit measures.
+document.fonts?.ready.then(() => { fitDialogVignette(); if (dialog.open) padDialogScroll(); });
 canvas.addEventListener('wheel', (event) => {
   if (event.deltaY === 0) return;
   event.preventDefault();

@@ -2290,14 +2290,18 @@ function drawFrame(p, w, h) {
 // Where a full-screen dialog shows its picture (style.css, "Dialogs"), in CSS
 // px of the dialog's inner box, always at a whole-number scale. The frame
 // drawn round the picture is cropped away: the dialog's own frame replaces it.
-// - 'portrait' (wide screens): a column the picture's width, as tall as the
-//   dialog; the picture is enlarged to fill the height when that crops no
-//   more than a fifth of it, and the column takes at most `share` of the width.
+// - 'portrait' (wide screens): a column the picture's width; the picture is
+//   enlarged to fill the dialog's height when that crops no more than a fifth
+//   of it and the column stays within `share` of the width, else it sits
+//   whole in the column with wood above and below.
 // - 'scene' (a landscape on wide screens): the picture covers the whole
-//   dialog behind the text, cropped at the edges.
+//   dialog behind the text, cropped at the edges, when that crops at most
+//   SCENE_CROP of it along either side; otherwise
+// - 'column': the landscape sits whole in a column beside the text.
 // - 'band' (narrow screens): the whole picture above the text, at most
 //   `maxScale`.
 // Returns the visible box, the scale and the canvas offset inside that box.
+export const SCENE_CROP = 0.3;
 export function dialogPictureLayout(id, { width, height, narrow = false, table = false, maxScale = Infinity }) {
   const shape = vignetteShape(id);
   const picture = PICTURE_SIZES[shape];
@@ -2322,6 +2326,9 @@ export function dialogPictureLayout(id, { width, height, narrow = false, table =
     scale = Math.max(1, scale);
     return place('portrait', scale, { width: picture.width * scale, height: Math.min(height, picture.height * scale) });
   }
-  const scale = Math.max(1, Math.ceil(Math.max(width / picture.width, height / picture.height)));
-  return place('scene', scale, { width, height });
+  const cover = Math.max(1, Math.ceil(Math.max(width / picture.width, height / picture.height)));
+  const crop = Math.max(1 - width / (picture.width * cover), 1 - height / (picture.height * cover));
+  if (crop <= SCENE_CROP) return place('scene', cover, { width, height });
+  const scale = Math.max(1, Math.floor(Math.min(width * 0.56 / picture.width, height / picture.height)));
+  return place('column', scale, { width: picture.width * scale, height: picture.height * scale });
 }

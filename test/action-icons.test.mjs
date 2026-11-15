@@ -18,6 +18,8 @@ test('labels pick the icon of their action', () => {
     Shipwright: 'hammer', 'Divide the plunder': 'chest', 'Practice fencing': 'swords', Logbook: 'book', 'Save voyage': 'quill',
     'Put to sea': 'ship', 'Leave town': 'ship', 'Sail into the harbor': 'anchor', 'Sneak into town': 'mask',
     Investigate: 'spyglass', 'Return to town': 'back', Continue: 'next', 'Study the treasure maps (M)': 'map',
+    'Continue the voyage': 'ship', 'Close for battle': 'cannon', Delete: 'cross', 'Delete slot 2': 'cross', Back: 'back',
+    'Withdraw your offer': 'back', 'Wait for a better offer': 'next', 'Decline the mission': 'back', 'Leave them drinking': 'back',
   };
   for (const [label, icon] of Object.entries(cases)) assert.equal(actionIconName(label), icon, label);
   assert.equal(actionIconName('Something unheard of'), null);
