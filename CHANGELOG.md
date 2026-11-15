@@ -22,6 +22,9 @@ history.
 
 ### Added
 
+- Sighting a sail now shows a real picture: the captain shades his eyes at
+  the rail beside his men, staring at a distant ship on the horizon. No
+  spyglass, since telescopes only appear in 1608.
 - The barmaid now has a real portrait: a winking, curly-haired barmaid in a
   red laced bodice holding up three pewter tankards in a crowded,
   candlelit tavern.
