@@ -128,6 +128,7 @@ const SCENE_ART_URLS = {
   bartender: new URL('../assets/vignettes/bartender.png', import.meta.url).href,
   'sail-ho': new URL('../assets/vignettes/sail-ho.png', import.meta.url).href,
   'sailing-master': new URL('../assets/vignettes/sailing-master.png', import.meta.url).href,
+  'open-swords': new URL('../assets/vignettes/open-swords.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
   bartender: 'A burly, one-eyed tavernkeeper with a black eyepatch and a big grey moustache, in a leather jerkin and stained apron, dries a lidded pewter tankard behind a wooden counter, before casks, stoneware jugs and a chalked tally slate, pixelated from a comic-style illustration.',
@@ -135,6 +136,7 @@ const ART_DESCRIPTIONS = {
   merchant: 'A plump, beaming merchant in a linen apron and a dark doublet spreads his arms in welcome among sugar barrels, hides, cacao sacks and a brass balance, pixelated from a comic-style illustration.',
   'sail-ho': 'At the ship’s rail the captain shades his eyes beside three sailors, staring at a tiny sail on the horizon across a deep blue swell, pixelated from a comic-style illustration.',
   'sailing-master': 'A weather-beaten, grey-bearded sailing master in a knitted cap and brown jacket raises a hand in warning, brass dividers and a rolled sea chart in the other, as sullen sailors idle by the mainmast behind him, pixelated from a comic-style illustration.',
+  'open-swords': 'At sunset on a ship’s deck the captain in his blue coat and a black-bearded captain in a wide-brimmed hat cross curved swords, as the crew looks on by lantern light, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
 const sceneArt = {};
@@ -1308,8 +1310,13 @@ function drawColony(p) {
   blade(p, 78, 106, 14, 1);
 }
 
-// Blades crossed, seen close.
+// The opening's sword-fight art (assets/vignettes/open-swords.png) once
+// loaded; until then, the placeholder: two blades crossed on deck at dusk.
 function drawSwords(picture) {
+  if (sceneArt['open-swords']) {
+    picture.image(sceneArt['open-swords'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(picture, ['#3a2f45', '#6a4040', '#a8603a'], 76);
   shipRail(picture, 68);
   shipDeck(picture, 84);
@@ -1341,10 +1348,9 @@ function drawChart(p) {
   p.disc(96, 40, 2, BRASS);
 }
 
-// A stocky, weather-beaten sailing master with a grey queue and a pipe, on
-// the quarterdeck by the wheel.
 // The sailing master's portrait art (assets/vignettes/sailing-master.png)
-// once loaded; until then, the placeholder: a grey-haired master with a pipe.
+// once loaded; until then, the placeholder: a stocky, weather-beaten master
+// with a grey queue and a pipe, on the quarterdeck.
 function drawSailingMaster(picture) {
   if (sceneArt['sailing-master']) {
     picture.image(sceneArt['sailing-master'], 0, 0, PICTURE_SIZES.portrait.width, PICTURE_SIZES.portrait.height, 0, 0);

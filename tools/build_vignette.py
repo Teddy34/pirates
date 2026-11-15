@@ -193,6 +193,10 @@ SCENES = {
         'shape': 'portrait',
         'source': (1086, 1448),
     },
+    'open-swords': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+    },
 }
 
 

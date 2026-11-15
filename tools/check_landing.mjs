@@ -27,6 +27,7 @@ await withBrowser({ name: 'landing', portOffset: 1, screenshotEnv: 'LANDING_SCRE
     // attacking until it ends.
     await until('the sword fight', `${dialogTitle} === 'Sword fight' || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
     const vignetteLabel = "document.querySelector('#dialog-vignette canvas')?.getAttribute('aria-label') ?? ''";
+    await until('the sword-fight art', `${vignetteLabel}.includes('cross curved swords')`);
     await screenshot(`${viewport.name}-opening-duel`);
     await clickButton('Draw your sword');
     await evaluate(`dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })), true`);

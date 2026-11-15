@@ -247,3 +247,28 @@ a square sail and three sullen sailors by the mainmast.
 - **Rebuild:** `python3 tools/build_vignette.py --scene sailing-master --source <image>`
   (Pillow).
 
+## open-swords.png
+
+The career opening's sword-fight picture, 224 × 128 (7 : 4), shown before
+the opening's practice bout: at sunset on a ship's deck the captain, in his
+faded blue coat and red sash, crosses short curved swords with a
+black-bearded, scarred ship's captain in a wide-brimmed black hat and buff
+leather coat, while the crew watches by the rail and a sailor holds up a
+lantern.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the open-swords prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** both men hold short, curved, shell-guarded seamen's
+  swords (the hanger or cutlass of the 17th century) rather than rapiers;
+  no flag is shown, so one picture serves every nation.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to
+  224 × 128 with a box filter, raises contrast (×1.15) and colour (×1.2),
+  and quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-swords --source <image>`
+  (Pillow).
