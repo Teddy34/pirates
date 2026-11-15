@@ -2286,3 +2286,42 @@ function drawFrame(p, w, h) {
     p.rect(x + 2, y + 2, 2, 2, GOLD);
   }
 }
+
+// Where a full-screen dialog shows its picture (style.css, "Dialogs"), in CSS
+// px of the dialog's inner box, always at a whole-number scale. The frame
+// drawn round the picture is cropped away: the dialog's own frame replaces it.
+// - 'portrait' (wide screens): a column the picture's width, as tall as the
+//   dialog; the picture is enlarged to fill the height when that crops no
+//   more than a fifth of it, and the column takes at most `share` of the width.
+// - 'scene' (a landscape on wide screens): the picture covers the whole
+//   dialog behind the text, cropped at the edges.
+// - 'band' (narrow screens): the whole picture above the text, at most
+//   `maxScale`.
+// Returns the visible box, the scale and the canvas offset inside that box.
+export function dialogPictureLayout(id, { width, height, narrow = false, table = false, maxScale = Infinity }) {
+  const shape = vignetteShape(id);
+  const picture = PICTURE_SIZES[shape];
+  const frame = VIGNETTE_FRAME_WIDTH;
+  const place = (mode, scale, box) => ({
+    mode, scale, box,
+    offset: {
+      x: Math.round((box.width - (picture.width + 2 * frame) * scale) / 2),
+      y: Math.round((box.height - (picture.height + 2 * frame) * scale) / 2),
+    },
+  });
+  if (narrow) {
+    const tallest = Math.floor(height * (shape === 'portrait' ? 0.5 : 0.4) / picture.height);
+    const scale = Math.max(1, Math.min(Math.floor(width / picture.width), tallest, maxScale));
+    return place('band', scale, { width: picture.width * scale, height: picture.height * scale });
+  }
+  if (shape === 'portrait') {
+    const share = table ? 0.36 : 0.48;
+    const widest = Math.max(1, Math.floor(width * share / picture.width));
+    let scale = Math.min(Math.ceil(height / picture.height), widest);
+    if (picture.height * scale - height > picture.height * scale * 0.2) scale -= 1;
+    scale = Math.max(1, scale);
+    return place('portrait', scale, { width: picture.width * scale, height: Math.min(height, picture.height * scale) });
+  }
+  const scale = Math.max(1, Math.ceil(Math.max(width / picture.width, height / picture.height)));
+  return place('scene', scale, { width, height });
+}

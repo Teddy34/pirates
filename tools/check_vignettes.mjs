@@ -3,15 +3,16 @@
 // and a narrow size (local ?preview= states).
 import { S, VIEWPORTS, dialogTitle, withBrowser } from './browser-harness.mjs';
 
-await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_SCREENSHOTS' }, async ({ evaluate, until, clickButton, screenshot, navigate, open, setViewport }) => {
+await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_SCREENSHOTS' }, async ({ evaluate, until, clickButton, screenshot, navigate, open, setViewport, press }) => {
 
   const expectPicture = async (where, description) => {
     const shown = await evaluate(`({
       label: document.querySelector('#dialog-vignette canvas').getAttribute('aria-label'),
       hidden: document.querySelector('#dialog-vignette').classList.contains('hidden'),
       // The dialog scrolls vertically by design, so check what must not: the
-      // picture inside its width, and no sideways overflow.
-      fits: document.querySelector('#dialog-vignette canvas').getBoundingClientRect().right <= document.querySelector('#event-dialog').getBoundingClientRect().right,
+      // picture's visible box inside its width, and no sideways overflow. (The
+      // canvas itself overhangs the box: its drawn frame is cropped away.)
+      fits: document.querySelector('#dialog-vignette .vignette-clip').getBoundingClientRect().right <= document.querySelector('#event-dialog').getBoundingClientRect().right,
       inside: document.querySelector('#event-dialog').scrollWidth <= document.querySelector('#event-dialog').clientWidth,
     })`);
     if (shown.hidden || !shown.label.includes(description)) throw new Error(`${where}: picture "${description}" not shown: ${shown.label}`);
@@ -103,6 +104,15 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await screenshot(`${viewport.name}-merchant`);
     // The harbour arrival shows its art, the fort flying the town's flag.
     await open('arrival');
+    // The buttons carry icons; Enter's default is leaving, never the attack,
+    // and the arrows move the focus between the buttons.
+    const focused = "document.activeElement?.textContent";
+    if (await evaluate(focused) !== 'Leave town') throw new Error(`${viewport.name}: the arrival opens on ${await evaluate(focused)}, not Leave town`);
+    if (!await evaluate(`[...document.querySelectorAll('#dialog-actions button')].every((b) => b.querySelector('.action-icon'))`)) throw new Error(`${viewport.name}: an arrival button has no icon`);
+    await press('ArrowUp');
+    await press('ArrowLeft');
+    const moved = await evaluate(focused);
+    if (moved === 'Leave town' || !await evaluate(`document.querySelector('#dialog-actions').contains(document.activeElement)`)) throw new Error(`${viewport.name}: the arrows did not move the focus (${moved})`);
     await until('the harbour art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('stone fort flying')`);
     await expectPicture(`${viewport.name} harbour`, 'stone fort flying');
     await screenshot(`${viewport.name}-harbour-arrival`);

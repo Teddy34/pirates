@@ -13,16 +13,25 @@ history.
 
 ### Changed
 
-- Menus and dialogs now fill the screen in an arcade-style frame: a chunky
-  brass-and-black pixel border, the scene picture on a dark panel beside the
-  text (on top on phones) at the largest whole-number pixel scale that fits,
-  larger text and trading tables, and bevelled pixel buttons that show their
-  keyboard shortcut. On wide screens the action buttons stay pinned at the
-  bottom while long text scrolls. On laptop and desktop screens the
-  merchant's portrait is now 2× to 4× instead of 1×.
+- Menus and dialogs now fill the screen in an arcade-style frame. A place or
+  event picture is the backdrop of the whole dialog, with the text in a card
+  in its corner; a portrait is a full-height column beside the text (the
+  merchant goes from 1× to 3× on a laptop). On phones the picture is a band on
+  top, shrunk or left out when the page would not fit on one screen. Text and
+  trading tables are larger, buttons are bevelled pixel controls with a pixel
+  icon for their action, the arrow keys move between them, and on wide
+  screens they stay pinned while long text scrolls.
+- Arriving at a town, Enter now picks "Leave town": attacking a town (and
+  storming its walls, overwriting or deleting a save) is never the default
+  button.
 - The shared image-generation prompt for vignettes now asks for a normal
   inked and coloured comic panel instead of pixel art: the build tool does
   the pixelation, and generated fake pixels blur after reduction.
+
+### Removed
+
+- The town menu no longer shows the governor line ("Audience available"): the
+  Governor button appears only when you can see him.
 
 ### Added
 

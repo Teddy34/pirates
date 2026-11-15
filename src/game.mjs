@@ -1,3 +1,4 @@
+import { actionIconName, paintActionIcon } from './action-icons.mjs';
 import {
   WORLD, NATIONS, SHIPS, LAND_SHAPES, MONTHS,
 } from './data.mjs';
@@ -62,7 +63,7 @@ import {
 } from './romance.mjs';
 import { ERA_DIFFICULTIES, careerBrief, eraBrief } from './eras.mjs';
 import { RETRO_LOGO_SIZE, drawRetroLogo } from './title-logo.mjs';
-import { GOVERNOR_ERAS, GOVERNOR_NATIONS, drawVignette, loadVignetteArt, vignetteDescription, vignetteNeedsArt, vignetteShape, vignetteSize } from './vignettes.mjs';
+import { GOVERNOR_ERAS, GOVERNOR_NATIONS, dialogPictureLayout, drawVignette, loadVignetteArt, vignetteDescription, vignetteNeedsArt, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
 import { paintPartySprite } from './party-sprites.mjs';
@@ -526,7 +527,7 @@ function showSaveSlots(back) {
           kicker: 'Save voyage', title: `Overwrite slot ${slot + 1}?`,
           body: `<p>${escapeHtml(slotLabel(slot, summary))}</p><p>${escapeHtml(slotDetails(summary))}</p>`,
           actions: [
-            { label: 'Overwrite', run: () => finishSlotSave(slot, back) },
+            { label: 'Overwrite', risky: true, run: () => finishSlotSave(slot, back) },
             { label: 'Back', secondary: true, run: () => showSaveSlots(back) },
           ],
         });
@@ -572,7 +573,7 @@ function showDeleteSlots() {
         kicker: 'Saved voyages', title: `Delete slot ${slot + 1}?`,
         body: `<p>${escapeHtml(slotLabel(slot, summary))}</p><p>${escapeHtml(slotDetails(summary))}</p>`,
         actions: [
-          { label: 'Delete', run: () => { localStorage.removeItem(slotKey(slot)); refreshSaveButtons(); if (savedSlots().some(Boolean)) showDeleteSlots(); } },
+          { label: 'Delete', risky: true, run: () => { localStorage.removeItem(slotKey(slot)); refreshSaveButtons(); if (savedSlots().some(Boolean)) showDeleteSlots(); } },
           { label: 'Back', secondary: true, run: showDeleteSlots },
         ],
       }) }] : [])),
@@ -2364,8 +2365,8 @@ function approachTown({ overland = Boolean(state.player.onFoot) } = {}) {
     actions: [
       { label: overland ? 'March into town' : 'Sail into the harbor', run: () => tryHarbor(town) },
       { label: 'Sneak into town', run: () => trySneak(town) },
-      { label: 'Attack the town', run: () => attackTown(town) },
-      { label: 'Leave town', secondary: true, run: () => { departFromApproach(); resumeSailing(); } },
+      { label: 'Attack the town', risky: true, run: () => attackTown(town) },
+      { label: 'Leave town', focus: true, secondary: true, run: () => { departFromApproach(); resumeSailing(); } },
     ],
   });
 }
@@ -2589,7 +2590,7 @@ function attackTown(town) {
     vignette: { id: overland ? 'land-attack' : 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
     body: approachText,
     actions: [
-      { label: 'Storm the walls', run: () => stormTheWalls(town, { yourMen: state.player.crew, soldiers: before.soldiers }) },
+      { label: 'Storm the walls', risky: true, run: () => stormTheWalls(town, { yourMen: state.player.crew, soldiers: before.soldiers }) },
       withdrawFromAssault(town),
     ],
   });
@@ -2694,7 +2695,7 @@ function landBelowTheFort(town, { yourMen, fortMenLeft }) {
     vignette: { id: 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
     body: `<p>Your flagship runs ashore by the town under the fort’s guns, and her ${yourMen} men swarm onto the beach. The fort lies before them.</p>`,
     actions: [
-      { label: 'Storm the walls', run: () => stormTheWalls(town, { yourMen, soldiers }) },
+      { label: 'Storm the walls', risky: true, run: () => stormTheWalls(town, { yourMen, soldiers }) },
       withdrawFromAssault(town, { alert: 0 }),
     ],
   });
@@ -3046,7 +3047,6 @@ function showTownMenu() {
   // 0x18734: a town under 600 citizens (population < 6) has no governor; it
   // gains one once it grows (town_economy.md).
   const governorAvailable = town.population >= 6 && !state.visit.governorSeen;
-  const governorState = governorStatus(town);
   const actions = [];
   if (governorAvailable) actions.push({ label: 'Governor', run: showGovernor });
   actions.push(
@@ -3070,7 +3070,6 @@ function showTownMenu() {
       + `<dt>Flag</dt><dd>${town.nation}</dd><dt>Prosperity</dt><dd>${prosperity(town.growth)}</dd>`
       + `<dt>Citizens</dt><dd>${(town.population * 100).toLocaleString()}</dd><dt>Soldiers</dt><dd>${(town.soldiers * 5).toLocaleString()}</dd>`
       + `<dt>Forts</dt><dd>${town.forts === 0 ? 'None' : town.forts}</dd><dt>Treasury</dt><dd>${(town.gold * 1000).toLocaleString()} gold</dd>`
-      + `<dt>Governor</dt><dd>${governorState}</dd>`
       + `${state.visit.sneaking ? '<dt>Merchant</dt><dd>Closed to you: you came in under a borrowed name</dd>' : ''}`
       + `<dt>Your title from ${town.nation}</dt><dd>${rank}</dd><dt>${town.nation}'s view of you</dt><dd>${STANDING_TEXT[standing]}</dd></dl>`,
     actions,
@@ -4464,6 +4463,9 @@ let dialogShortcuts = new Map();
 
 // `vignette` names a scene picture (scene-vignettes.md), as an id or as
 // { id, ...options } for scenes that vary, such as by the enemy's flag.
+// An action with `risky` (attacking a town, deleting a save) never takes the
+// opening focus, so a stray Enter cannot start it; `focus` picks the action
+// that does.
 function showDialog({ kicker, title, body, actions, vignette }) {
   if (dialog.open) dialog.close();
   dialogShortcuts = new Map();
@@ -4476,6 +4478,14 @@ function showDialog({ kicker, title, body, actions, vignette }) {
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = action.label;
+    const icon = actionIconUrl(action.icon ?? actionIconName(action.label));
+    if (icon) {
+      const image = document.createElement('img');
+      image.className = 'action-icon';
+      image.src = icon;
+      image.alt = '';
+      button.prepend(image);
+    }
     if (action.secondary) button.classList.add('secondary');
     button.addEventListener('click', () => { dialog.close(); action.run(); }, { once: true });
     if (action.key) {
@@ -4488,9 +4498,54 @@ function showDialog({ kicker, title, body, actions, vignette }) {
   fitDialogVignette();
   padDialogScroll();
   // Long dialogs (the ship's log, the gazetteer) open at the top.
-  dialogActions.querySelector('button')?.focus({ preventScroll: true });
+  const buttons = [...dialogActions.children];
+  const opening = actions.findIndex((action) => action.focus);
+  const safe = actions.findIndex((action) => !action.risky);
+  buttons[opening >= 0 ? opening : safe >= 0 ? safe : 0]?.focus({ preventScroll: true });
   dialog.scrollTop = 0;
   dialogText.scrollTop = 0;
+}
+
+// The action icons, painted once into image URLs.
+const actionIconUrls = new Map();
+function actionIconUrl(name) {
+  if (!name) return null;
+  if (!actionIconUrls.has(name)) {
+    const { width, height, pixels } = paintActionIcon(name);
+    const iconCanvas = document.createElement('canvas');
+    iconCanvas.width = width;
+    iconCanvas.height = height;
+    iconCanvas.getContext('2d').putImageData(new ImageData(pixels, width, height), 0, 0);
+    actionIconUrls.set(name, iconCanvas.toDataURL());
+  }
+  return actionIconUrls.get(name);
+}
+
+// The arrow keys move the focus between the dialog's buttons by screen
+// position, so a two-column menu goes up, down, left and right as it looks.
+const ARROW_STEPS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+function moveDialogFocus(key) {
+  const [dx, dy] = ARROW_STEPS[key];
+  const centre = (element) => {
+    const r = element.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  };
+  const buttons = [...dialog.querySelectorAll('button:not(:disabled)')].filter((button) => button.offsetParent);
+  const current = buttons.includes(document.activeElement) ? document.activeElement : null;
+  if (!current) return buttons[0]?.focus();
+  const from = centre(current);
+  let best = null;
+  let bestScore = Infinity;
+  for (const button of buttons) {
+    if (button === current) continue;
+    const to = centre(button);
+    const along = (to.x - from.x) * dx + (to.y - from.y) * dy;
+    if (along <= 1) continue;
+    const across = Math.abs((to.x - from.x) * dy) + Math.abs((to.y - from.y) * dx);
+    const score = along + across * 3;
+    if (score < bestScore) { best = button; bestScore = score; }
+  }
+  best?.focus();
 }
 
 // The picture sits beside the dialog text on wide screens, above it on narrow ones.
@@ -4504,8 +4559,6 @@ function showVignette(vignette) {
   const size = vignetteSize(id);
   dialogVignetteCanvas.width = size.width;
   dialogVignetteCanvas.height = size.height;
-  dialogVignetteCanvas.style.setProperty('--art-width', size.width);
-  dialogVignetteCanvas.style.setProperty('--art-height', size.height);
   const paint = () => {
     drawVignette(dialogVignetteCanvas.getContext('2d'), id, options);
     dialogVignetteCanvas.setAttribute('aria-label', vignetteDescription(id, options));
@@ -4516,22 +4569,38 @@ function showVignette(vignette) {
   if (vignetteNeedsArt(id)) loadVignetteArt().then(() => { if (shownVignette === vignette) paint(); });
 }
 
-// The dialog fills the screen, and its picture takes the largest whole-number
-// pixel scale that fits its share: a column beside the text on wide screens, a
-// band above it on narrow ones (style.css, "Dialogs").
+// The dialog fills the screen (style.css, "Dialogs"). Its picture is a column
+// beside the text for a portrait, the backdrop behind the text for a
+// landscape, and a band above the text on narrow screens, where it is left
+// out when the page would not fit on one screen with it.
 const NARROW_DIALOG = matchMedia('(max-width:760px)');
+const dialogVignetteClip = dialogVignette.querySelector('.vignette-clip');
 function fitDialogVignette() {
-  if (!dialog.open || dialogVignette.classList.contains('hidden')) return;
-  const { width, height } = dialogVignetteCanvas;
-  const portrait = dialog.classList.contains('has-portrait');
-  // A trading table needs the room more than the picture does.
-  const table = Boolean(dialogBody.querySelector('table'));
-  const inner = { width: dialog.clientWidth, height: dialog.clientHeight };
-  const room = NARROW_DIALOG.matches
-    ? { width: inner.width - 32, height: inner.height * (table ? 0.26 : portrait ? 0.46 : 0.38) - 24 }
-    : { width: inner.width * (table ? 0.32 : portrait ? 0.4 : 0.56) - 48, height: inner.height - 48 };
-  const scale = clamp(Math.floor(Math.min(room.width / width, room.height / height)), 1, 8);
-  dialogVignetteCanvas.style.setProperty('--pixel-scale', scale);
+  dialog.classList.remove('has-scene', 'picture-dropped');
+  if (!dialog.open || !shownVignette) return;
+  const id = typeof shownVignette === 'string' ? shownVignette : shownVignette.id;
+  const narrow = NARROW_DIALOG.matches;
+  const place = (maxScale) => {
+    const layout = dialogPictureLayout(id, {
+      width: dialog.clientWidth, height: dialog.clientHeight, narrow, maxScale,
+      // A trading table needs the room more than the picture does.
+      table: Boolean(dialogBody.querySelector('table')),
+    });
+    dialog.classList.toggle('has-scene', layout.mode === 'scene');
+    dialogVignetteClip.style.width = `${layout.box.width}px`;
+    dialogVignetteClip.style.height = `${layout.box.height}px`;
+    Object.assign(dialogVignetteCanvas.style, {
+      width: `${dialogVignetteCanvas.width * layout.scale}px`, height: `${dialogVignetteCanvas.height * layout.scale}px`,
+      left: `${layout.offset.x}px`, top: `${layout.offset.y}px`,
+    });
+    return layout.scale;
+  };
+  let scale = place();
+  if (!narrow) return;
+  // Shrink the band until the page fits on one screen, else leave it out.
+  const overflows = () => dialog.scrollHeight > dialog.clientHeight + 1;
+  while (overflows() && scale > 1) scale = place(scale - 1);
+  if (overflows()) dialog.classList.add('picture-dropped');
 }
 
 // Focus scrolls a control into view; keep it clear of the pinned action bar.
@@ -4596,12 +4665,6 @@ function harborFortsText(forts) {
   if (forts === 0) return 'No fort guards the harbor.';
   if (forts === 1) return 'One fort guards the harbor.';
   return `${forts} forts guard the harbor.`;
-}
-
-// Whether the town has a governor and whether you have seen him this visit.
-function governorStatus(town) {
-  if (town.population < 6) return 'None: under 600 citizens, too small for a governor';
-  return state.visit.governorSeen ? 'Audience completed' : 'Audience available';
 }
 
 function townWelcome(landlocked) {
@@ -5010,6 +5073,11 @@ dialog.addEventListener('cancel', (event) => event.preventDefault());
 dialog.addEventListener('keydown', (event) => { if (event.key === 'Escape') event.preventDefault(); });
 dialog.addEventListener('keydown', (event) => {
   if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (ARROW_STEPS[event.key] && !event.target.closest?.('input, select, textarea')) {
+    event.preventDefault();
+    moveDialogFocus(event.key);
+    return;
+  }
   const button = dialogShortcuts.get(event.key.toLowerCase());
   if (!button) return;
   event.preventDefault();
