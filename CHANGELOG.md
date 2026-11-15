@@ -43,6 +43,11 @@ history.
 
 ### Added
 
+- Real art for three career-opening pictures: the sailing master's sea
+  chart of the Caribbean, the buccaneer camp on a Hispaniola beach (the
+  French 1660 and 1680 stories) and the quarterdeck confrontation before
+  the opening duel. Each keeps its code-drawn picture as the fallback
+  until the image loads.
 - The career opening's sword fight and the sailing master's portrait now
   have real comic-style art, generated with Codex and pixelated, with the
   code-drawn pictures as their fallback.

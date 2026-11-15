@@ -284,6 +284,112 @@ lantern.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-swords --source <image>`
   (Pillow).
 
+## open-chart.png
+
+The sailing master's chart, 224 × 128 (7 : 4), shown with his list of the
+closest cities as a career starts: a hand-drawn chart of the Caribbean on
+yellowed vellum, with rhumb lines and compass roses, lies on a cabin table
+under open brass dividers, beside an hourglass, a coil of rope, a book and
+a candlestick, with a harbour fort seen through the stern window.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the open-chart prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** working charts of the period were hand-drawn,
+  often on vellum, with rhumb lines radiating from compass roses and a
+  latitude scale (Utrecht University, ["VOC-chart of the Atlantic Ocean by
+  Isaak de Graaf"](https://www.uu.nl/en/special-collections/collections/maps-and-atlases/regional-maps/voc-chart-of-the-atlantic-ocean-by-isaak-de-graaf);
+  Royal Museums Greenwich, [Caribbean and coasts of America, manuscript on
+  vellum](https://www.rmg.co.uk/collections/objects/rmgc-object-541167);
+  both consulted 2026-11-15). The chart carries no lettering, by the
+  vignette rule against text. The coastline is a generator's sketch:
+  Cuba, Hispaniola, Puerto Rico, Jamaica, Florida, Yucatán, Central
+  America, the Main and the Lesser Antilles are in the right places, but
+  their shapes are approximate, as on many period charts. No sextant,
+  octant or spyglass (the review checked for them). The ship seen through
+  the window flies a small pennant a few source pixels wide, invisible at
+  1×; accepted.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to
+  224 × 128 with a box filter, raises contrast (×1.15) and colour (×1.2),
+  and quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-chart --source <image> --shape landscape`
+  (Pillow).
+
+## open-buccaneers.png
+
+The career opening's buccaneer camp, 224 × 128 (7 : 4), for "You live
+among the buccaneers of the coast" (CSTR 38, the French 1660 and 1680
+stories): on a Hispaniola beach a grizzled buccaneer teaches a young man to
+aim a long musket, beside a boucan smoking a wild pig, hides drying under a
+thatched lean-to, hunting dogs and two men on a log, with a boat drawn up
+and a small ship in the bay.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the open-buccaneers prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** the boucaniers of western Hispaniola hunted wild
+  cattle for hides and wild pigs for meat, with packs of dogs, and smoked
+  the meat on a wooden frame, the boucan
+  ([Britannica, "buccaneer"](https://www.britannica.com/topic/buccaneer);
+  Benerson Little, ["The Authentic Eyewitness Image of the Real
+  Buccaneer"](https://benersonlittle.com/2015/10/06/the-authentic-image-of-the-real-buccaneers-of-captain-blood-his-odyssey-by-rafael-sabatini/),
+  2015, from Exquemelin 1678 and later French charts; both consulted
+  2026-11-15). Dress and arms follow Little's reading of the period
+  sources: loose linen shirts, linen drawers open at the knee, rawhide
+  shoes, broad hats turned up in front, a cartridge box at the front of
+  the belt, a brass-hilted cutlass and the long buccaneer musket. No
+  boots, eyepatch, parrot or flag. The musket's lock and fittings are
+  closer to the 18th century than to a 1660 fusil boucanier; accepted,
+  because they are a few pixels at 1×.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to
+  224 × 128 with a box filter, raises contrast (×1.15) and colour (×1.2),
+  and quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-buccaneers --source <image> --shape landscape`
+  (Pillow).
+
+## open-quarterdeck.png
+
+The career opening's quarterdeck confrontation, 224 × 128 (7 : 4), for a
+fight or a duel for command on deck (CSTR 20, 26, 43), shown before the
+practice bout: on a ship's quarterdeck the captain in his blue coat and the
+black-bearded captain of `open-swords` face each other with drawn curved
+swords, as the crew watches from the deck below.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the open-quarterdeck prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** one picture serves every era from 1560 to 1680; the
+  prompt says "around 1640", like `open-swords`, and reuses its two men
+  and swords. No ship's wheel shows: wheels came in only in the early
+  18th century (the French navy adopted it in 1709, after Harland and
+  Myers, *The Mariner's Mirror*, 1972, cited by
+  [Wikipedia, "Ship's wheel"](https://en.wikipedia.org/wiki/Ship%27s_wheel),
+  consulted 2026-11-15). No flag or ensign shows, so it serves every
+  nation. The mainsail's light and shadow bands make a faint diagonal
+  pattern; at 1× it reads as folds, not as a saltire, so it was accepted.
+  Two sailors wear head kerchiefs, a later pirate cliché that is rare in
+  17th-century imagery; accepted as minor.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to
+  224 × 128 with a box filter, raises contrast (×1.15) and colour (×1.2),
+  and quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-quarterdeck --source <image> --shape landscape`
+  (Pillow).
+
 ## tavern.png
 
 The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a
