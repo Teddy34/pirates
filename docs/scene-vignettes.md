@@ -37,9 +37,8 @@ Put this block in front of every scene prompt.
 > dark brown ink outlines around figures and objects; flat colour areas
 > with 2–3 tones per material and crisp edges, no airbrushed gradients.
 > Light from the upper left. Drawing and composition in the manner of
-> François Bourgeon's historical maritime comics (*Les Passagers du vent*):
-> meticulous, period-accurate costume, ships, rigging and colonial
-> architecture; realistic proportions; expressive, grounded faces; a muted
+> European historical maritime comics: meticulous, period-accurate costume,
+> ships, rigging and colonial architecture; realistic proportions; expressive, grounded faces; a muted
 > watercolour palette of ochre, sepia, terracotta, sea green and faded
 > indigo, with warm golden highlights and parchment-coloured lights.
 > Cinematic comic-panel framing, one clear focal point, details large and
@@ -56,9 +55,8 @@ Notes:
   reduction and 256-colour quantisation), so fake pixels or dithering from
   the generator would only blur after reduction. The flat colours, firm
   outlines and large details above are what survive the reduction well.
-- The reference is **François Bourgeon**'s *Les Passagers du vent*.
-  Some generators refuse a living artist's name. The rest of the block
-  describes the style without the name, so drop the name when that happens.
+- The block names no artist: generators refuse or distort prompts that name
+  a living artist, so the style is described in plain words instead.
 - **Recurring captain** (keep the same description in every prompt where he
   appears): *the captain, a lean man about thirty, sun-weathered face, dark
   hair tied back, short beard, faded dark-blue coat with brass buttons, red
@@ -284,9 +282,36 @@ tells you that…"* (CSTR 125, 154; CSTN 18)
 (`0x11503`) · *"And what would ye be lookin' for, handsome?"*, *"You've
 won the barmaid's heart! She agrees to gather information for you."* (CSTR
 301–306)
-> A cheerful barmaid with rolled sleeves, a red skirt and loose curls
-> carries three tankards between crowded tables. She winks at the captain,
-> who is seated with his hat pushed back. Candlelight, warm and lively.
+In the game this is a 96 × 128 portrait (3 : 4, generate at 768 × 1024),
+one picture for every era and nation. The art is
+`assets/vignettes/barmaid.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. The source shows
+an open shift neckline without the kerchief the prompt asks for, which is
+accepted: it is not an anachronism and is barely visible at 1×.
+
+> Vertical half-length portrait of a tavern barmaid in a Caribbean port,
+> around 1640. A cheerful young woman in her twenties, sun-warmed face,
+> freckles, a broad knowing smile, winking at the viewer. Thick chestnut
+> curls escape from a small white linen coif pushed back on her head. She
+> wears a white linen shift with full sleeves rolled above the elbow, a
+> closely laced bodice of faded terracotta wool sitting at the natural
+> waist, a white linen kerchief tucked into the neckline, a red wool skirt
+> and a stained linen apron. Her head sits in the upper third of the
+> picture and her face is large and clearly lit. In one hand she holds up
+> three lidded pewter tankards by their handles, foam spilling over one
+> lid; her other hand rests on her hip. Behind her, simplified and slightly
+> darker: a smoky, low-beamed tavern room with crowded wooden tables, rough
+> sailors drinking, a row of barrels on a rack, a grey-and-blue salt-glazed
+> stoneware jug on a shelf, and tallow candles in iron holders giving a
+> warm golden glow. Warm, lively, candlelit.
+
+Scene negatives: glass beer mugs, beer taps, bar stools, Bavarian dirndl,
+Oktoberfest, corset worn as outerwear, Victorian dress, saloon, oil lamps,
+tricorne hats, ship's steering wheel, pinup pose. Period sources: dress,
+[Wikipedia, 1600–1650 in Western fashion](https://en.wikipedia.org/wiki/1600%E2%80%931650_in_Western_fashion)
+and [FIT Fashion History](https://fashionhistory.fitnyc.edu/?p=6379);
+vessels, [London Museum, black jack](https://www.londonmuseum.org.uk/collections/v/object-440161/black-jack/)
+and [Pewter Society](https://pewtersociety.org/node/48).
 
 **crew-recruits** · orig. 0x0C `crew` · sailors join your crew in a
 tavern, or survivors after a sea battle (`0x10F0C`, `0xE1E2`) · *"Look!

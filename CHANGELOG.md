@@ -16,9 +16,15 @@ history.
 - The shared image-generation prompt for vignettes now asks for a normal
   inked and coloured comic panel instead of pixel art: the build tool does
   the pixelation, and generated fake pixels blur after reduction.
+- The shared vignette prompt no longer names an artist: generators refuse
+  or distort prompts that do, so the comic style is described in plain
+  words.
 
 ### Added
 
+- The barmaid now has a real portrait: a winking, curly-haired barmaid in a
+  red laced bodice holding up three pewter tankards in a crowded,
+  candlelit tavern.
 - The merchant now has a real portrait: a plump, beaming trader in his
   apron, arms spread in welcome among sugar barrels, hides and cacao sacks.
 
