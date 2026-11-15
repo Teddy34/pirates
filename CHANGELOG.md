@@ -19,6 +19,13 @@ history.
 
 ### Added
 
+- Sailing into a coastal town now shows a real picture: the captain at the
+  rail, looking across the harbour at a stone fort and a colonial town. The
+  fort flies the town's flag as it looked at the time: the Cross of
+  Burgundy for Spain, St George's cross for England, the royal white for
+  France, and for Holland the orange Prince's flag before 1660 and the red,
+  white and blue flag from 1660.
+
 - A vignette art workflow for maintainers (`vignette-art` skill). It covers
   a research brief and diffusion prompt for each scene, a historical-accuracy
   review of the returned image with a checklist of period traps (flags,
