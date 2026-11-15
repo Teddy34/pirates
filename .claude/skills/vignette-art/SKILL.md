@@ -37,7 +37,9 @@ user describes).
      `docs/scene-vignettes.md`, then the scene part with the period facts
      written in as concrete visual details. Name things to draw, not rules:
      "a white flag with a red ragged saltire", not "the 1600 Spanish flag".
-     Generators draw modern versions of named flags. Add the recurring
+     Generators draw modern versions of named flags. Never ask the
+     generator for pixel art, pixels, a palette size or dithering: it draws
+     a normal comic illustration, and the build does the pixelation. Add the recurring
      captain's description if he appears.
    - **Negative prompt**: the §2 list plus this scene's anachronism traps,
      e.g. "red and yellow striped flag, ship's steering wheel, tricorne

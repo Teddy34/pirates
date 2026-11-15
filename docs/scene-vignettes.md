@@ -33,24 +33,29 @@ the largest 2× picture that fits the existing dialog without changing it.
 
 Put this block in front of every scene prompt.
 
-> Pixel-art illustration, 224×128 native pixels rendered at 1792×1024 (every
-> art pixel a clean 8×8 block), a rich palette, no anti-aliasing, no
-> smooth gradients, at most light ordered dithering. A one-pixel very dark
-> brown outline (#21180f) around figures and objects. Flat cel shading with
-> 2–3 tones per material. Light from the upper left. Drawing and composition
-> in the manner of François Bourgeon's historical maritime comics (*Les
-> Passagers du vent*): meticulous, period-accurate costume, ships, rigging
-> and colonial architecture; realistic proportions; expressive, grounded
-> faces; a muted watercolour palette of ochre, sepia, terracotta, sea green
-> and faded indigo, with warm highlights (#f2c55c) and parchment lights
-> (#ead8ad). Cinematic comic-panel framing, one clear focal point. The
-> Caribbean between 1560 and 1680.
+> A finished comic-book panel, hand-inked and coloured. Clean, confident
+> dark brown ink outlines around figures and objects; flat colour areas
+> with 2–3 tones per material and crisp edges, no airbrushed gradients.
+> Light from the upper left. Drawing and composition in the manner of
+> François Bourgeon's historical maritime comics (*Les Passagers du vent*):
+> meticulous, period-accurate costume, ships, rigging and colonial
+> architecture; realistic proportions; expressive, grounded faces; a muted
+> watercolour palette of ochre, sepia, terracotta, sea green and faded
+> indigo, with warm golden highlights and parchment-coloured lights.
+> Cinematic comic-panel framing, one clear focal point, details large and
+> readable from a distance. The Caribbean between 1560 and 1680.
 
-**Negative prompt:** text, letters, captions, speech balloons, logos,
-signature, watermark, border or frame, modern objects, photorealism, 3D
-render, blur, depth-of-field bokeh, anime style, fantasy armour.
+**Negative prompt:** pixel art, pixelated, dithering, text, letters,
+captions, speech balloons, logos, signature, watermark, border or frame,
+modern objects, photorealism, 3D render, blur, depth-of-field bokeh, anime
+style, fantasy armour.
 
 Notes:
+- The generator draws a normal, full-resolution illustration; it is never
+  asked for pixel art. `tools/build_vignette.py` does the pixelation (box
+  reduction and 256-colour quantisation), so fake pixels or dithering from
+  the generator would only blur after reduction. The flat colours, firm
+  outlines and large details above are what survive the reduction well.
 - The reference is **François Bourgeon**'s *Les Passagers du vent*.
   Some generators refuse a living artist's name. The rest of the block
   describes the style without the name, so drop the name when that happens.
@@ -61,7 +66,7 @@ Notes:
   retirement scenes.
 - **Flags in pictures** follow the period, not the game's map colours
   (`FLAG_DARK`): Spain the Cross of Burgundy (red ragged saltire on white),
-  England St George's cross (and the 1606 Union Flag as a jack), France
+  England St George's cross (and the 1606 Union Flag, on royal ships from 1634), France
   white, Holland the Prince's flag or the later red-white-blue, buccaneers their
   commission's colours or a plain red flag. Describe
   the flag's look in the prompt rather than naming it. The checklist of

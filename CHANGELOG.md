@@ -11,6 +11,12 @@ history.
 
 ## Unreleased
 
+### Changed
+
+- The shared image-generation prompt for vignettes now asks for a normal
+  inked and coloured comic panel instead of pixel art: the build tool does
+  the pixelation, and generated fake pixels blur after reduction.
+
 ### Added
 
 - A vignette art workflow for maintainers (`vignette-art` skill). It covers
