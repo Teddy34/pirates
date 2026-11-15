@@ -390,6 +390,41 @@ swords, as the crew watches from the deck below.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-quarterdeck --source <image> --shape landscape`
   (Pillow).
 
+## open-court.png
+
+The career opening's audience at court, 224 × 128 (7 : 4), for "an audience
+at court for royal approval" and the aristocratic friends' support (CSTR 2
+and 8: the England, France and Holland stories from 1560 to 1680): in a
+gilded hall hung with tapestries of ships, the captain kneels before a
+grey-bearded noble patron in black silk who hands him a parchment charter
+with a red wax seal, as courtiers whisper and a halberdier stands guard.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-court prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** Dress around 1620: the patron's black silk doublet and
+  breeches, lace-edged falling collar and gold chain, and the courtiers'
+  falling collars and broad plumed hats, follow
+  `docs/governor-dress-1560-1680.md` (the soft falling band had largely
+  displaced the standing collar by the mid-1620s). One picture serves every
+  era, as for `open-swords`; a 1560 audience would show ruffs instead,
+  accepted. The story is told for three nations, and Holland had no king, so
+  the hall shows no crown, coat of arms or flag, and the patron is a noble,
+  not a king ("your patron" in the text). The charter carries only illegible
+  scribble, no lettering. The tapestries' ships fly pennants a few source
+  pixels wide, invisible at 1×; accepted. The captain's long coat with brass
+  buttons is the recurring captain's dress, kept the same in every scene.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-court --source <image> --shape landscape`
+  (Pillow).
+
 ## tavern.png
 
 The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a

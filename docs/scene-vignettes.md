@@ -849,7 +849,7 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 
 | id | text cue | prompt |
 |---|---|---|
-| open-court | an audience at court for royal approval (CSTR 2, 8) | A gilded throne room: a young captain kneels before a patron noble who holds a royal charter. |
+| open-court | an audience at court for royal approval (CSTR 2, 8) | Real art, `assets/vignettes/open-court.png`: see the prompt below the table. |
 | open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Cane fields at dusk: a young labourer talks in secret with smugglers at the edge of the field, with a small ship at anchor beyond. |
 | open-quarterdeck | a fight on deck, or a duel for command (CSTR 20, 26, 43) | Real art, `assets/vignettes/open-quarterdeck.png`: see the prompt below the table. |
 | open-boarded | a Spanish ship boards you (CSTR 35, 44) | A Spanish officer draws his sword on the hero's deck. |
@@ -981,6 +981,34 @@ ship's steering wheel, rifle with a scope, revolver, tents, women.
 Scene negatives: flags, ensign, pennant, ship's steering wheel, wheel,
 tricorne hat, bicorne hat, katana, rapier with a basket hilt, skull and
 crossbones, black flag, eyepatch, parrot, blood, cannon firing, smoke.
+
+**open-court** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> An audience at a European royal court around 1620, in a tall, gilded hall
+> lit by warm daylight from high leaded windows on the left. On the right, a
+> wealthy noble patron sits in a high-backed carved and gilded armchair on a
+> low dais under a dark red velvet canopy: a grey-bearded man about sixty in
+> a black silk doublet and breeches, a wide white lace falling collar, a
+> heavy gold chain across his chest, black stockings and shoes with
+> rosettes. He leans forward and holds out a large parchment charter with a
+> red wax seal hanging from it on a ribbon. In the centre left, the captain,
+> a lean man about thirty, sun-weathered face, dark hair tied back, short
+> beard, faded dark-blue long coat with brass buttons, red sash, cutlass at
+> the hip, tall boots, bareheaded, kneels on one knee on the polished stone
+> floor, one hand on his heart, reaching up for the charter. Behind them,
+> simplified: courtiers in black and dark-coloured doublets with lace
+> collars, broad-brimmed plumed felt hats in hand, whispering; a guard
+> holding a tall halberd; large faded tapestries of ships and sea on the
+> walls, gilded panelling, a long table with an inkstand and quills. Keep
+> the patron's face, the charter and the kneeling captain clearly in the
+> middle band of the picture.
+
+Scene negatives: crown, king on a throne, coat of arms, heraldry, flags,
+banners, ship's steering wheel, tricorne hat, bicorne hat, periwig, powdered
+wig, ruffled lace jabot, military uniforms, globe, chandelier with candles
+lit by electricity.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 

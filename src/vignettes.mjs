@@ -132,6 +132,7 @@ const SCENE_ART_URLS = {
   'open-chart': new URL('../assets/vignettes/open-chart.png', import.meta.url).href,
   'open-buccaneers': new URL('../assets/vignettes/open-buccaneers.png', import.meta.url).href,
   'open-quarterdeck': new URL('../assets/vignettes/open-quarterdeck.png', import.meta.url).href,
+  'open-court': new URL('../assets/vignettes/open-court.png', import.meta.url).href,
   tavern: new URL('../assets/vignettes/tavern.png', import.meta.url).href,
   'divide-plunder': new URL('../assets/vignettes/divide-plunder.png', import.meta.url).href,
   shipwright: new URL('../assets/vignettes/shipwright.png', import.meta.url).href,
@@ -147,6 +148,7 @@ const ART_DESCRIPTIONS = {
   'open-chart': 'A hand-drawn chart of the Caribbean on vellum, with Cuba, Hispaniola, Jamaica, the chain of small islands and the Spanish Main, lies on a cabin table under open brass dividers, beside an hourglass, a candlestick and a window on a harbour fort, pixelated from a comic-style illustration.',
   'open-buccaneers': 'On a Hispaniola beach a grizzled buccaneer teaches a young man to aim a long musket, beside a boucan smoking a wild pig, hides drying under a thatched lean-to and two men on a log, with a boat drawn up and a small ship in the bay, pixelated from a comic-style illustration.',
   'open-quarterdeck': 'On a ship’s quarterdeck the captain in his blue coat and a black-bearded captain in a wide-brimmed hat face each other with drawn curved swords, as the crew watches from the deck below, pixelated from a comic-style illustration.',
+  'open-court': 'In a gilded hall hung with tapestries of ships, the captain kneels in his blue coat before a grey-bearded noble patron in black silk and a lace collar, who hands him a sealed charter from a red velvet chair, as courtiers whisper and a halberdier stands guard, pixelated from a comic-style illustration.',
   tavern: 'In a smoky, low-beamed waterfront tavern four sailors play cards and dice over pewter tankards while a fiddler plays by the casks, under a parrot, lanterns and a hanging ship model, the open door showing masts at dusk, pixelated from a comic-style illustration.',
   'divide-plunder': 'In a sunlit colonial counting house the captain rests a hand on an open chest of silver while a bald clerk in spectacles writes in a ledger and a quartermaster counts coins into the palm of grinning buccaneers lined up for their share, beside stacks of rough silver coins, gold, pearls and a brass balance, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
@@ -1153,8 +1155,14 @@ function drawMissing(p) {
 
 // The career opening's scenes (src/opening.mjs).
 
-// A patron on a dais hears a young captain who kneels, hat in hand.
+// The court audience art (assets/vignettes/open-court.png) once loaded;
+// until then, the placeholder: a patron on a dais hears a young captain who
+// kneels, hat in hand.
 function drawCourt(p) {
+  if (sceneArt['open-court']) {
+    p.image(sceneArt['open-court'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   p.rect(0, 0, 224, 128, '#6a2a2a');
   for (let x = 6; x < 224; x += 18) p.rect(x, 0, 2, 96, '#7a3a30');
   p.rect(0, 0, 224, 8, BRASS);
