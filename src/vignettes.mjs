@@ -123,8 +123,10 @@ const SCENE_ART_URLS = {
   'title-ship': new URL('../assets/vignettes/title-ship.png', import.meta.url).href,
   'harbour-arrival': new URL('../assets/vignettes/harbour-arrival.png', import.meta.url).href,
   merchant: new URL('../assets/vignettes/merchant.png', import.meta.url).href,
+  barmaid: new URL('../assets/vignettes/barmaid.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
+  barmaid: 'A smiling, winking barmaid with chestnut curls under a linen coif, in a red laced bodice and apron, holds up three lidded pewter tankards in a candlelit tavern full of sailors, pixelated from a comic-style illustration.',
   merchant: 'A plump, beaming merchant in a linen apron and a dark doublet spreads his arms in welcome among sugar barrels, hides, cacao sacks and a brass balance, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
@@ -870,9 +872,15 @@ function drawShipwright(picture) {
   p.rect(37, 49, 22, 1, '#4a3526');
 }
 
-// A cheerful, winking barmaid with loose curls and a ribbon, in a linen
-// blouse and laced bodice, raising a tankard, before a candlelit bar shelf.
+// The barmaid's portrait art (assets/vignettes/barmaid.png) once loaded;
+// until then, the placeholder: a cheerful, winking barmaid with loose curls
+// and a ribbon, in a linen blouse and laced bodice, raising a tankard,
+// before a candlelit bar shelf.
 function drawBarmaid(picture) {
+  if (sceneArt.barmaid) {
+    picture.image(sceneArt.barmaid, 0, 0, PICTURE_SIZES.portrait.width, PICTURE_SIZES.portrait.height, 0, 0);
+    return;
+  }
   picture.rect(0, 0, 96, 128, '#4a3424');
   picture.rect(0, 0, 96, 10, '#2c1e14');
   picture.rect(0, 10, 96, 3, WOOD_DARK);
