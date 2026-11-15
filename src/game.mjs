@@ -5643,12 +5643,16 @@ function paintTitleScreen() {
   logo.style.setProperty('--art-height', RETRO_LOGO_SIZE.height);
   drawRetroLogo(logo.getContext('2d'));
   const picture = document.querySelector('#title-vignette');
-  const size = vignetteSize('title-sloop');
+  const size = vignetteSize('title-ship');
   Object.assign(picture, size);
   picture.style.setProperty('--art-width', size.width);
   picture.style.setProperty('--art-height', size.height);
-  drawVignette(picture.getContext('2d'), 'title-sloop');
-  picture.setAttribute('aria-label', vignetteDescription('title-sloop'));
+  const paint = () => {
+    drawVignette(picture.getContext('2d'), 'title-ship');
+    picture.setAttribute('aria-label', vignetteDescription('title-ship'));
+  };
+  paint();
+  if (vignetteNeedsArt('title-ship')) loadVignetteArt().then(paint);
 }
 
 resize();

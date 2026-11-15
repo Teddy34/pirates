@@ -44,7 +44,7 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     // The title screen: the pixel "Retro" and the sloop picture are painted,
     // the heading reads the whole name, and nothing overflows sideways.
     await navigate('/');
-    await until('the title screen', `!document.querySelector('#start-screen')?.classList.contains('hidden') && document.querySelector('#start-screen').clientWidth > 0 && document.querySelector('#title-vignette').getAttribute('aria-label')?.includes('seen from ahead')`);
+    await until('the title screen', `!document.querySelector('#start-screen')?.classList.contains('hidden') && document.querySelector('#start-screen').clientWidth > 0 && document.querySelector('#title-vignette').getAttribute('aria-label')?.includes('three-masted')`);
     const title = await evaluate(`(() => {
       const colours = (canvas) => {
         const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;

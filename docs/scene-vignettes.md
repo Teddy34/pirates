@@ -527,20 +527,17 @@ exploits recorded in the Pirate Hall of Fame?"* (CSTR 73)
 
 ### 4.11 Title and career openings
 
-**title-sloop** · orig. 0x26 `moon03` (the cover picture) · the title
+**title-ship** · orig. 0x26 `moon03` (the cover picture) · the title
 screen, under the RetroPirates! logo. The original's cover is a full screen;
-ours is an ordinary 224 × 128 vignette in the shared frame, shown at 2× (1×
-below 520 px wide or 640 px tall). `src/vignettes.mjs` draws a placeholder
-in code until real art is approved.
-> A single-masted, gaff-rigged Caribbean sloop of the later 17th century
-> under full sail, seen from a front three-quarter view: bow toward the
-> viewer and a little to the left, long bowsprit, jib and staysail drawing,
-> the big gaff mainsail and boom swung out behind the mast, a red pennant at
-> the masthead and a black flag at the gaff peak, a bow wave curling white.
-> A hand at the bow, the helmsman at the tiller. Late-afternoon light from
-> the upper left; a green palm-topped island and cumulus clouds on the
-> horizon. Clear, heroic cover composition with the ship as the one focal
-> point.
+ours is a framed vignette with its own 3 : 2 shape, **240 × 160**, so the
+artwork stays whole. It is shown at 2× (1× below 620 px wide or 640 px tall).
+The art is `assets/vignettes/title-ship.png`, built by
+`tools/build_title_vignette.py` (provenance in
+`assets/vignettes/PROVENANCE.md`): a three-masted English warship under full
+sail, seen from ahead and to one side, off a palm-fringed island with a
+stone fort. The build repaints its Union flags as the 1606 flag, without St
+Patrick's saltire (added in 1801). Until the image loads, the code-drawn
+sloop placeholder stands in.
 
 Picked by a script for each era and nationality, and shown before play
 begins (CSTR 1–44, `src/opening.mjs`). These strings have no pictures in the
