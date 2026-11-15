@@ -132,6 +132,30 @@ sailors, with barrels and a grey-and-blue stoneware jug behind her.
 - **Rebuild:** `python3 tools/build_vignette.py --scene barmaid --source <image>`
   (Pillow).
 
+## bartender.png
+
+The bartender's portrait, 96 × 128 (3 : 4), shown in the tavern when the
+captain asks for news: a burly, one-eyed tavernkeeper of about 1640 with a
+black eyepatch and a big grey moustache, in a linen shirt, leather jerkin
+and stained apron, drying a lidded pewter tankard behind a wooden counter,
+with casks, grey-and-blue stoneware jugs, leather bottles, a chalked tally
+slate and tallow candles behind him.
+
+- **Source:** a 1086 × 1448 comic-style illustration generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the bartender prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Process:** `tools/build_vignette.py` reduces it to 96 × 128 with a box
+  filter, raises contrast (×1.15) and colour (×1.2), and quantises to 256
+  colours (median cut, no dithering, indexed PNG). No historical fixes were
+  needed; the brass cask taps were accepted (plausible for the period,
+  unreadable at 1×).
+- **Rebuild:** `python3 tools/build_vignette.py --scene bartender --source <image>`
+  (Pillow).
+
 ## sail-ho.png
 
 The sail-sighted picture, 224 × 128 (7 : 4), shown when the lookout reports

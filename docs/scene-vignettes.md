@@ -273,9 +273,35 @@ pay 50 gold pieces per cannon"* (CSTR 277–284, 313)
 or your relative (`0x10B19`, `0x1E7F4`, `person_inquiry.asm`) · *"The
 tavernkeeper listens with interest as you describe %s."*, *"The Bartender
 tells you that…"* (CSTR 125, 154; CSTN 18)
-> Behind a heavy wooden bar, a one-eyed bartender with a big moustache dries
-> a pewter mug, leans in and talks quietly to the captain. Rum bottles and
-> casks are behind him, and there is a tally chalked on a slate.
+In the game this is a 96 × 128 portrait (3 : 4, generate at 768 × 1024),
+one picture for every era and nation. The art is
+`assets/vignettes/bartender.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. The brass cask taps
+are accepted: brass spigots are plausible for the period and too small to
+read at 1×.
+
+> Vertical half-length portrait of a tavernkeeper in a Caribbean port,
+> around 1640, standing behind a heavy, scarred wooden counter. A burly
+> man in his fifties, weathered ruddy face, a black leather patch over his
+> left eye, a big drooping grey-brown moustache, thinning hair, rough
+> stubble. He leans forward over the counter towards the viewer with a
+> sly, confiding look, as if sharing a secret. He wears a coarse off-white
+> linen shirt with full sleeves rolled above the elbow, an open brown
+> leather jerkin, and a long stained linen apron tied at the waist. His
+> head sits in the upper third of the picture and his face is large and
+> clearly lit. With a linen cloth he dries a lidded pewter tankard. Behind
+> him, simplified and slightly darker: wooden casks stacked on their sides
+> on a rack with wooden spigots, a shelf of round-bellied grey-and-blue
+> salt-glazed stoneware jugs and dark leather drinking jacks, a small
+> slate on the wall with a chalked tally of strokes, and tallow candles in
+> iron holders giving a warm golden glow. Smoky, low-beamed, candlelit.
+
+Scene negatives: glass beer mugs, beer taps, bar stools, labelled glass
+bottles, wine racks of modern bottles, saloon, oil lamps, tricorne hats,
+ship's steering wheel, skull and crossbones. The prompt avoids rum bottles:
+glass wine bottles of the period are rare in a 1640 tavern picture and
+generators draw modern ones, so the drink sits in casks, stoneware jugs and
+leather jacks.
 
 **barmaid** · orig. 0x2D `barmaid` · drinks, company, then an informant
 (`0x11503`) · *"And what would ye be lookin' for, handsome?"*, *"You've

@@ -40,6 +40,9 @@ history.
 
 ### Added
 
+- The bartender now has a real portrait: a burly, one-eyed tavernkeeper
+  with a big grey moustache drying a pewter tankard behind his counter,
+  among casks, stoneware jugs and a chalked tally slate.
 - Sighting a sail now shows a real picture: the captain shades his eyes at
   the rail beside his men, staring at a distant ship on the horizon. No
   spyglass, since telescopes only appear in 1608.

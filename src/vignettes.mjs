@@ -124,9 +124,11 @@ const SCENE_ART_URLS = {
   'harbour-arrival': new URL('../assets/vignettes/harbour-arrival.png', import.meta.url).href,
   merchant: new URL('../assets/vignettes/merchant.png', import.meta.url).href,
   barmaid: new URL('../assets/vignettes/barmaid.png', import.meta.url).href,
+  bartender: new URL('../assets/vignettes/bartender.png', import.meta.url).href,
   'sail-ho': new URL('../assets/vignettes/sail-ho.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
+  bartender: 'A burly, one-eyed tavernkeeper with a black eyepatch and a big grey moustache, in a leather jerkin and stained apron, dries a lidded pewter tankard behind a wooden counter, before casks, stoneware jugs and a chalked tally slate, pixelated from a comic-style illustration.',
   barmaid: 'A smiling, winking barmaid with chestnut curls under a linen coif, in a red laced bodice and apron, holds up three lidded pewter tankards in a candlelit tavern full of sailors, pixelated from a comic-style illustration.',
   merchant: 'A plump, beaming merchant in a linen apron and a dark doublet spreads his arms in welcome among sugar barrels, hides, cacao sacks and a brass balance, pixelated from a comic-style illustration.',
   'sail-ho': 'At the ship’s rail the captain shades his eyes beside three sailors, staring at a tiny sail on the horizon across a deep blue swell, pixelated from a comic-style illustration.',
@@ -947,9 +949,15 @@ function drawBarmaid(picture) {
   p.outlined([[71, 56, 12, 9, SKIN]]);
 }
 
-// A one-eyed bartender with a big moustache, drying a pewter mug, before
-// shelves of rum bottles, stacked casks and a slate with a chalked tally.
+// The bartender's portrait art (assets/vignettes/bartender.png) once loaded;
+// until then, the placeholder: a one-eyed bartender with a big moustache,
+// drying a pewter mug, before shelves of rum bottles, stacked casks and a
+// slate with a chalked tally.
 function drawBartender(picture) {
+  if (sceneArt.bartender) {
+    picture.image(sceneArt.bartender, 0, 0, PICTURE_SIZES.portrait.width, PICTURE_SIZES.portrait.height, 0, 0);
+    return;
+  }
   picture.rect(0, 0, 96, 128, '#4a3424');
   picture.rect(0, 0, 96, 8, '#2c1e14');
   // Rum bottles on two shelves.
