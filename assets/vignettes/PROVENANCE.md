@@ -95,25 +95,29 @@ fort, a colonial town on a hill and a moored merchant ship.
 The town menu of a coastal town, from the quay: a sheet of five 224 × 128
 pictures, one per fort flag, in the same rows as harbour-arrival.png (Spain,
 England, France, Holland to the 1640s, Holland from 1660). Stevedores roll
-barrels and carry bales under a warehouse hoist beam while the captain, seen
-from behind, looks over a galleon and a smaller two-master at anchor, a
-rowing boat coming in, and a stone fort on the far headland.
+barrels and carry bales under a warehouse hoist beam, an arcaded street and
+a church run along the waterfront, a galleon and a smaller two-master lie at
+anchor, a rowing boat comes in, and a small stone fort stands on the far
+headland. The captain is not shown.
 
 - **Source:** a 1659 × 948 (7 : 4) comic-style illustration generated on
   2026-11-15 with the built-in image generation tool of the OpenAI Codex
   CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
   user's own account at the user's request, from the port-quay prompt in
   `docs/scene-vignettes.md` with the shared style block and negatives (it
-  asks for a plain white fort flag and no flags on the ships). The user
-  holds the rights to it. The source file is not kept in the repository. No
-  material from the original game was used.
+  asks for a plain white fort flag in proportion to the fort and no flags
+  on the ships). The user holds the rights to it. It replaces a first
+  generation the user rejected (the flag stood taller than the fort, and
+  the recurring captain repeated the sail-ho picture). The source file is
+  not kept in the repository. No material from the original game was used.
 - **Process:** `tools/build_vignette.py` warps each period flag onto the
   plain white fort flag, keeping the source's folds as shading (the same
   five flags as harbour-arrival.png). Each version is reduced to 224 × 128
   with a box filter, contrast ×1.15 and colour ×1.2; the five rows are
   quantised together to 256 colours (median cut, no dithering, indexed
-  PNG). Accepted: the mushroom-shaped mooring bollard, whose period form we
-  could not confirm and which reads only as a post at 1×.
+  PNG). The flag is about 4 × 3 art pixels, true to the fort's distance:
+  the user chose that over a larger or pixel-drawn flag, so the crosses do
+  not read and only the colours hint at the nation.
 - **Rebuild:** `python3 tools/build_vignette.py --scene port-quay --source <image>`
   (Pillow).
 

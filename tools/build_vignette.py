@@ -183,7 +183,7 @@ SCENES = {
     'port-quay': {
         'shape': 'landscape',
         'source': (1659, 948),
-        'variants': fort_flag_variants([(1478, 198), (1593, 215), (1592, 289), (1478, 277)]),
+        'variants': fort_flag_variants([(1565, 237), (1595, 242), (1595, 262), (1565, 259)]),
     },
     'sail-ho': {
         'shape': 'landscape',
