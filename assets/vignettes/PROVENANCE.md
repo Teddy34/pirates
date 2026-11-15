@@ -92,9 +92,9 @@ fort, a colonial town on a hill and a moored merchant ship.
 
 ## merchant.png
 
-The merchant's portrait, 96 × 128 (3 : 4), shown at the trading post, when
-he refuses a pirate, at supper with a wife who is his daughter, and when he
-introduces his daughter: a plump, beaming merchant of about 1640 in a linen
+The merchant's portrait, 96 × 128 (3 : 4), shown wherever the game shows the
+merchant (the trading post, his refusal of pirates, his daughter's courtship
+and wedding, supper with your wife, and a career-opening story screen): a plump, beaming merchant of about 1640 in a linen
 apron over a dark doublet with a flat white collar, arms spread in welcome,
 among sugar barrels, hides, cacao sacks, cloth-wrapped bales and a brass
 balance, with a ledger, a quill and coins on his desk.
