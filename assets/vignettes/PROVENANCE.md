@@ -425,6 +425,44 @@ with a red wax seal, as courtiers whisper and a halberdier stands guard.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-court --source <image> --shape landscape`
   (Pillow).
 
+## open-plantation.png
+
+The career opening's sugar plantation, 224 × 128 (7 : 4), for the indentured
+labourer's stories (CSTR 14 and 18: France 1600 and England 1620 to 1680):
+at dusk at the edge of the cane a young labourer in a torn shirt and straw
+hat, cane knife in hand, talks in secret with two crouching smugglers above
+a cove where a small single-masted ship lies at anchor, with a boiling house
+smoking in the distance.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-plantation prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** English sugar planting in Barbados took off in the
+  1640s, worked at first largely by European indentured servants beside a
+  smaller number of enslaved Africans ([King's College London, "The
+  introduction of sugar
+  cane"](https://kingscollections.org/exhibitions/specialcollections/caribbean/sugar);
+  Hilary McD. Beckles, ["Plantation Production and White 'Proto-Slavery':
+  White Indentured Servants and the Colonisation of the English West Indies,
+  1624–1645"](https://resolve.cambridge.org/core/journals/americas/article/plantation-production-and-white-protoslavery-white-indentured-servants-and-the-colonisation-of-the-english-west-indies-16241645/86B4E777C5FE054DF931B07AF0E99BD8),
+  *The Americas*; both consulted 2026-11-15). A plantation's works included
+  a mill and a boiling house (Cryssa Bazos, ["Sugar Production in 17th
+  century Colonial
+  Barbados"](https://cryssabazos.com/2018/11/14/sugar-production-in-17th-century-colonial-barbados/),
+  2018, a secondary blog source; consulted 2026-11-15). The prompt leaves
+  out a windmill, whose date in the Caribbean was not checked. No flag
+  shows: the small ship has none, so one picture serves both nations.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-plantation --source <image> --shape landscape`
+  (Pillow).
+
 ## tavern.png
 
 The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a

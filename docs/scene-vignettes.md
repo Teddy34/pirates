@@ -850,7 +850,7 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 | id | text cue | prompt |
 |---|---|---|
 | open-court | an audience at court for royal approval (CSTR 2, 8) | Real art, `assets/vignettes/open-court.png`: see the prompt below the table. |
-| open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Cane fields at dusk: a young labourer talks in secret with smugglers at the edge of the field, with a small ship at anchor beyond. |
+| open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Real art, `assets/vignettes/open-plantation.png`: see the prompt below the table. |
 | open-quarterdeck | a fight on deck, or a duel for command (CSTR 20, 26, 43) | Real art, `assets/vignettes/open-quarterdeck.png`: see the prompt below the table. |
 | open-boarded | a Spanish ship boards you (CSTR 35, 44) | A Spanish officer draws his sword on the hero's deck. |
 | open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | A ship runs in on a green, palm-fringed West Indian island. |
@@ -1009,6 +1009,32 @@ Scene negatives: crown, king on a throne, coat of arms, heraldry, flags,
 banners, ship's steering wheel, tricorne hat, bicorne hat, periwig, powdered
 wig, ruffled lace jabot, military uniforms, globe, chandelier with candles
 lit by electricity.
+
+**open-plantation** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> The edge of a sugar-cane plantation on a Caribbean island around 1640, at
+> dusk, under an orange and violet sky. Tall, dense green sugar cane with
+> long ragged leaves fills the left half of the picture. At the edge of the
+> field, a young indentured labourer, lean, about twenty, sun-weathered
+> face, dark hair tied back, a short beard, in a torn, sweat-stained loose
+> linen shirt, rough canvas breeches and bare feet, a broad-brimmed battered
+> straw hat, a long-bladed cane knife hanging from his hand, crouches and
+> talks in secret with two rough smugglers who kneel half-hidden in the
+> cane: one grizzled with a grey beard and a knitted cap, one younger with a
+> broad felt hat and a short cutlass, both in faded linen shirts and short
+> canvas breeches, leaning in, one with a finger to his lips. On the right,
+> the field gives way to a rocky slope down to a small, hidden cove, where a
+> small single-masted ship with a furled sail rides at anchor on calm dark
+> water, and a small rowing boat is pulled up on the beach. Far off in the
+> background, a low stone boiling house with a tall chimney trailing grey
+> smoke. Keep the three faces clearly in the middle band of the picture.
+
+Scene negatives: flags, whips, chains, overseer on a horse, windmill, steam
+engine, factory, tractor, ship's steering wheel, tricorne hat, bicorne hat,
+eyepatch, parrot, skull and crossbones, black flag, banana plantation, palm
+oil plantation.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 
