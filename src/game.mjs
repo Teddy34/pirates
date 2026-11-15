@@ -220,7 +220,7 @@ function newState(options) {
   const requestedNationality = options.nationality || 'France';
   const nationality = scenario.starts[requestedNationality] ? requestedNationality : 'France';
   const start = scenario.starts[nationality];
-  const seed = (Date.now() ^ Math.floor(performance.now() * 1000)) >>> 0;
+  const seed = options.seed ?? (Date.now() ^ Math.floor(performance.now() * 1000)) >>> 0;
   const startRng = createRng(seed);
   const { point: [startX, startY], favour: startFavour } = startFromRecord(start, startRng);
   const favour = Object.fromEntries([...NATION_ORDER, 'pirate'].map((nation, index) => [nation, startFavour[index]]));
@@ -5292,8 +5292,13 @@ function frame(now) {
 const PREVIEW_HOSTS = ['localhost', '127.0.0.1'];
 const PREVIEW_ENEMY = { ship: 'Merchantman', flag: 'Spain', crew: 12, guns: 12, kind: 5, gold: 10, cargo: 10 };
 
+// Previews start from a fixed seed so each one opens the same way every time
+// (a clock seed let the governor sometimes offer a mission before the
+// promotion the preview exists to show).
+const PREVIEW_SEED = 1680;
+
 function previewState(overrides = {}) {
-  return newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation', ...overrides });
+  return newState({ era: '1680', captain: 'Preview', nationality: 'France', difficulty: 1, ability: 'navigation', seed: PREVIEW_SEED, ...overrides });
 }
 
 // Starts a 1680 French preview career, then runs `then` once it is under way.

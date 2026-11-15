@@ -152,6 +152,11 @@ history.
 
 ### Fixed
 
+- The local `?preview=` states now start from a fixed random seed, so each
+  one opens the same way every time. Before, the governor sometimes offered
+  a mission ahead of the promotion that `?preview=governor-promotion` exists
+  to show, and the villain browser check failed about one run in three.
+
 - A fort battle now puts the town on alert like any sea battle fought near
   it (24 − 2 per cell away, about +24 at the town), whether you land, run
   aground, are driven off or fight until nightfall, as in the original. A
