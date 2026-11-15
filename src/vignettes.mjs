@@ -96,8 +96,8 @@ export function vignetteDescription(id, options = {}) {
   if (id === 'governor' && governorSheet && governorCell(options)) {
     return `Portrait of the ${NATION_ADJECTIVES[options.nation]} governor in the dress of the ${options.era}s, pixelated from a period painting.`;
   }
-  if (id === 'harbour-arrival') {
-    if (sceneArt[id] && harbourRow(options) !== null) return harbourDescription(options);
+  if (FORT_FLAG_SCENES[id]) {
+    if (sceneArt[id] && harbourRow(options) !== null) return FORT_FLAG_SCENES[id](HARBOUR_FLAGS[harbourRow(options)][1]);
     return `Placeholder picture: ${DESCRIPTIONS[id]}.`;
   }
   if (sceneArt[id]) return ART_DESCRIPTIONS[id];
@@ -122,6 +122,7 @@ let artLoading = null;
 const SCENE_ART_URLS = {
   'title-ship': new URL('../assets/vignettes/title-ship.png', import.meta.url).href,
   'harbour-arrival': new URL('../assets/vignettes/harbour-arrival.png', import.meta.url).href,
+  'port-quay': new URL('../assets/vignettes/port-quay.png', import.meta.url).href,
   merchant: new URL('../assets/vignettes/merchant.png', import.meta.url).href,
   barmaid: new URL('../assets/vignettes/barmaid.png', import.meta.url).href,
   bartender: new URL('../assets/vignettes/bartender.png', import.meta.url).href,
@@ -136,10 +137,11 @@ const ART_DESCRIPTIONS = {
 };
 const sceneArt = {};
 
-// harbour-arrival.png is a sheet of one 224 x 128 picture per fort flag,
-// built by tools/build_vignette.py from one illustration (rows in its
-// order). The Dutch flag follows the era: the orange Prince's flag to the
-// 1640s, the red States flag from 1660 (both flew 1630-1662).
+// harbour-arrival.png and port-quay.png are sheets of one 224 x 128 picture
+// per fort flag, each built by tools/build_vignette.py from one illustration
+// (rows in this order, its FORT_FLAGS). The Dutch flag follows the era: the
+// orange Prince's flag to the 1640s, the red States flag from 1660 (both
+// flew 1630-1662).
 const HARBOUR_FLAGS = [
   ['Spain', 'the Cross of Burgundy, a red ragged saltire on white'],
   ['England', 'St George’s red cross on white'],
@@ -154,8 +156,18 @@ export function harbourRow({ flag, era } = {}) {
   return row < 0 ? null : row;
 }
 
-function harbourDescription(options) {
-  return `Sailing into a colonial harbour town past a stone fort flying ${HARBOUR_FLAGS[harbourRow(options)][1]}, the captain at the rail, pixelated from a comic-style illustration.`;
+// The scenes drawn from a fort-flag sheet, and their description given the flag.
+const FORT_FLAG_SCENES = {
+  'harbour-arrival': (flag) => `Sailing into a colonial harbour town past a stone fort flying ${flag}, the captain at the rail, pixelated from a comic-style illustration.`,
+  'port-quay': (flag) => `On a busy stone quay stevedores roll barrels and hoist bales while the captain looks over his ships at anchor, below a headland fort flying ${flag}, pixelated from a comic-style illustration.`,
+};
+
+// Draws the town's row of a fort-flag sheet; false when there is none yet.
+function drawFortFlagArt(p, id, options) {
+  const row = harbourRow(options);
+  if (!sceneArt[id] || row === null) return false;
+  p.image(sceneArt[id], 0, row * VIGNETTE_PICTURE_HEIGHT, VIGNETTE_PICTURE_WIDTH, VIGNETTE_PICTURE_HEIGHT, 0, 0);
+  return true;
 }
 
 export function governorCell({ era, nation } = {}) {
@@ -605,11 +617,7 @@ function palm(p, x, y, height = 20) {
 // the harbour, a fort at the harbour mouth flying the town's flag, a
 // moored merchantman and fishing boats.
 function drawHarbourArrival(p, { flag, era } = {}) {
-  const row = harbourRow({ flag, era });
-  if (sceneArt['harbour-arrival'] && row !== null) {
-    p.image(sceneArt['harbour-arrival'], 0, row * VIGNETTE_PICTURE_HEIGHT, VIGNETTE_PICTURE_WIDTH, VIGNETTE_PICTURE_HEIGHT, 0, 0);
-    return;
-  }
+  if (drawFortFlagArt(p, 'harbour-arrival', { flag, era })) return;
   sky(p, ['#8fc0d0', '#a4cdd6', '#bcd9d6', '#d4e4d0'], 60);
   for (const [cx, cy, w] of [[20, 10, 30], [120, 16, 40]]) { p.rect(cx, cy, w, 4, '#eef3ee'); p.rect(cx + 5, cy - 3, w - 12, 3, '#eef3ee'); }
   // The hill.
@@ -672,7 +680,8 @@ function drawShoreArrival(p, { flag = 'Spain' } = {}) {
 
 // The town's waterfront from the quay: a warehouse and its hoist, stevedores
 // among the cargo, and the ships lying at anchor in the bay under the fort.
-function drawPortQuay(p, { flag = 'Spain' } = {}) {
+function drawPortQuay(p, { flag = 'Spain', era } = {}) {
+  if (drawFortFlagArt(p, 'port-quay', { flag, era })) return;
   sky(p, ['#8fc0d0', '#a4cdd6', '#bcd9d6', '#d4e4d0'], 50);
   for (const [cx, cy, w] of [[92, 12, 34], [176, 20, 28]]) { p.rect(cx, cy, w, 4, '#eef3ee'); p.rect(cx + 5, cy - 3, w - 12, 3, '#eef3ee'); }
   // The far headland and its fort across the bay.

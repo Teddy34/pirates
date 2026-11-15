@@ -43,6 +43,10 @@ history.
 
 ### Added
 
+- The town menu of a coastal town now shows real art: a busy stone quay
+  with the captain looking over his ships at anchor, and the fort on the
+  headland flying the town's period flag (one version per nation, the
+  Dutch flag following the era, as on the harbour approach).
 - The bartender now has a real portrait: a burly, one-eyed tavernkeeper
   with a big grey moustache drying a pewter tankard behind his counter,
   among casks, stoneware jugs and a chalked tally slate.

@@ -125,6 +125,11 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await until('the harbour art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('stone fort flying')`);
     await expectPicture(`${viewport.name} harbour`, 'stone fort flying');
     await screenshot(`${viewport.name}-harbour-arrival`);
+    // So does the town menu of a coastal town, from the quay.
+    await open('in-port');
+    await until('the quay art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('headland fort flying')`);
+    await expectPicture(`${viewport.name} quay`, 'headland fort flying');
+    await screenshot(`${viewport.name}-port-quay`);
     // The governor's portrait follows the era and the town's nation: the
     // 1680 French preview career's governor, then the gallery of all 24.
     await open('governor-promotion');

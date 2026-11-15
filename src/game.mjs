@@ -3064,7 +3064,7 @@ function showTownMenu() {
   const landlocked = townLandlocked(town);
   const welcome = townWelcome(landlocked);
   showDialog({
-    vignette: { id: landlocked ? 'town-square' : 'port-quay', flag: town.nation },
+    vignette: { id: landlocked ? 'town-square' : 'port-quay', flag: town.nation, era: state.era },
     kicker: landlocked ? 'Inland town' : 'In port', title: town.name,
     body: `<p>${welcome}</p><dl>`
       + `<dt>Flag</dt><dd>${town.nation}</dd><dt>Prosperity</dt><dd>${prosperity(town.growth)}</dd>`
