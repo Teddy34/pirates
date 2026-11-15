@@ -13,6 +13,15 @@ history.
 
 ### Added
 
+- A vignette art workflow for maintainers (`vignette-art` skill). It covers
+  a research brief and diffusion prompt for each scene, a historical-accuracy
+  review of the returned image with a checklist of period traps (flags,
+  ship's wheel, telescopes, hats), and one build tool,
+  `tools/build_vignette.py`, for every vignette. That tool replaces the
+  title-only one and rebuilds the title picture pixel for pixel. The
+  vignette brief now gives period flags in pictures instead of the map
+  colours.
+
 - The game is now called **RetroPirates!**. The title screen shows "Retro"
   in pixel letters next to "Pirates!" in a script face, which reflects the
   game's two styles. Below the title is a framed picture of a sloop under
