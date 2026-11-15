@@ -754,8 +754,34 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 | open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Smugglers row toward an anchored ship under the moon. |
 | open-buccaneers | living among the buccaneers (CSTR 38) | A beach camp: lean-to, smoking fire, a boat drawn up on the sand. |
 | open-colony | a poor colony, "Turn back" (CSTR 9) | Thatched huts inside a stockade, angry settlers facing their leader. |
-| open-swords | the story's sword fight | Two blades crossed close up on a ship's deck at dusk. |
+| open-swords | the story's sword fight | Real art, `assets/vignettes/open-swords.png`: see the prompt below the table. |
 | open-chart | the sailing master's closest cities (CSTR 69) | A sea chart with dividers, a dotted course and a compass rose. |
+
+**open-swords** is real art (provenance in `assets/vignettes/PROVENANCE.md`;
+no fixes were needed). No flag shows, so one picture serves every nation.
+
+> A close-up sword fight on the open deck of a 17th-century sailing ship at
+> dusk, around 1640. Two men lock blades face to face, seen from the waist
+> up, their two swords crossed high in the centre of the picture so the
+> blades form a clear X against a glowing orange and violet sunset sky. On
+> the left, the captain, a lean man about thirty, sun-weathered face, dark
+> hair tied back, short beard, faded dark-blue long coat with brass
+> buttons, red sash, tall boots, bareheaded, jaw set, gripping a short,
+> slightly curved, broad-bladed seaman's sword with a plain iron
+> shell-shaped guard. On the right, a brutal older ship's captain, broad
+> and heavy, black beard, a scar across the cheek, snarling, a
+> wide-brimmed black felt hat, a buff leather coat with a leather baldric
+> across the chest, holding the same kind of short curved iron-hilted
+> sword. Behind them, simplified and darker: the mainmast, tarred shrouds
+> with ratlines, a coiled rope and the wooden rail, and a ring of rough
+> sailors in plain linen shirts, knitted caps and canvas breeches watching
+> tensely, one holding up a lit iron lantern. Calm dark sea at the
+> horizon. Keep both faces and the crossed blades in the middle band of
+> the picture, with some sky above and deck below.
+
+Scene negatives: ship's steering wheel, wheel, tricorne hat, bicorne hat,
+katana, rapier with a basket hilt, flintlock pistols, skull and
+crossbones, black flag, flags, eyepatch, parrot, blood.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 
