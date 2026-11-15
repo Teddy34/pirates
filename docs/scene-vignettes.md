@@ -96,12 +96,29 @@ only).
 town (`0x19CA7`, `entering_towns.md`) · *"You have arrived at the lovely
 town of %s… The %s flag flies over the town. What will you do? Enter /
 Attack / Sneak in / Leave"* (CSTR 114–115)
-> Seen from the deck of an arriving ship: a Caribbean colonial harbour
-> town in the afternoon, with whitewashed walls and terracotta roofs going up
-> a green hill, a stone fort with cannon at the harbour mouth, a national
-> flag on the fort, fishing boats and a moored merchant ship, palms, calm
-> turquoise water. The captain stands in the foreground at the rail, seen
-> from behind. *Variants: one per nation flag.*
+> Seen from the deck of an arriving 17th-century sailing ship, entering a
+> small Caribbean colonial harbour town in warm afternoon light. In the
+> foreground, at the ship's wooden bulwark rail with a coiled rope and a
+> belaying pin rack, stands the captain seen from behind and slightly to
+> one side: a lean man about thirty, dark hair tied back, bareheaded, faded
+> dark-blue long coat with brass buttons, red sash, cutlass at the hip, tall
+> boots, one hand on the rail. Beyond, across calm turquoise water: a low,
+> thick-walled stone fort with angled bastions and a few cannon in
+> embrasures guards the harbour mouth on the left; on its tallest bastion a
+> single large plain white flag on a tall pole, flying flat and fully spread
+> towards the viewer, clearly visible against the sky, with no emblem on it.
+> Behind the fort the town climbs a green hill: plain whitewashed and ochre
+> two-storey houses with small barred windows and wooden balconies, a few
+> terracotta tile roofs, a modest church with a bell gable, palms and
+> tropical trees. In the harbour: a moored three-masted merchant ship with
+> furled square sails, two small fishing boats with single masts and a
+> rowing boat. A few cumulus clouds, high blue sky.
+>
+> *Scene negatives:* emblem on the fort flag, red and yellow striped flag,
+> tricolour flag, skull and crossbones, tricorne hat, bicorne hat,
+> telescope, spyglass, ship's steering wheel, lighthouse, steamship,
+> concrete, modern harbour, cars, power lines. *One image for every nation:
+> the build paints the town's flag over the plain white one.*
 
 The art is `assets/vignettes/harbour-arrival.png` (provenance in
 `assets/vignettes/PROVENANCE.md`): one illustration with a plain white flag

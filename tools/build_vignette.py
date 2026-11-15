@@ -120,7 +120,9 @@ def paste_flag(image, flag, quad, shade=False):
     warped = flag.transform(image.size, Image.Transform.PERSPECTIVE, perspective_coefficients(quad, corners), Image.Resampling.BICUBIC)
     if shade:
         light = image.convert('L')
-        brightest = light.crop(polygon_box(quad)).getextrema()[1]
+        flag_area = Image.new('L', image.size)
+        ImageDraw.Draw(flag_area).polygon(quad, fill=255)
+        brightest = max(1, ImageChops.multiply(light, flag_area).getextrema()[1])
         light = light.point(lambda value: min(255, round(value * 255 / brightest)))
         warped = ImageChops.multiply(warped, Image.merge('RGB', [light] * 3))
     mask = Image.new('L', image.size)
@@ -150,7 +152,7 @@ SCENES = {
         'fixes': [flag_fix(cross_of_burgundy, [(1252, 551), (1306, 563), (1309, 605), (1252, 596)])],
     },
     # The source flies a plain white flag on the fort, painted over with the
-    # town's flag; rows follow HARBOUR_ROWS in src/vignettes.mjs.
+    # town's flag; rows follow HARBOUR_FLAGS in src/vignettes.mjs.
     'harbour-arrival': {
         'shape': 'landscape',
         'source': (1659, 948),

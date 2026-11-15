@@ -591,7 +591,7 @@ function palm(p, x, y, height = 20) {
 // Seen over the bow rail: a whitewashed town climbing a green hill above
 // the harbour, a fort at the harbour mouth flying the town's flag, a
 // moored merchantman and fishing boats.
-function drawHarbourArrival(p, { flag = 'Spain', era } = {}) {
+function drawHarbourArrival(p, { flag, era } = {}) {
   const row = harbourRow({ flag, era });
   if (sceneArt['harbour-arrival'] && row !== null) {
     p.image(sceneArt['harbour-arrival'], 0, row * VIGNETTE_PICTURE_HEIGHT, VIGNETTE_PICTURE_WIDTH, VIGNETTE_PICTURE_HEIGHT, 0, 0);
