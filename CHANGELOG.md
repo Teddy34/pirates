@@ -13,6 +13,12 @@ history.
 
 ### Changed
 
+- The career opening now has real art for every picture: the audience at
+  court, the sugar plantation, the Spanish boarding (the galleon flies the
+  Cross of Burgundy), the landfall in the West Indies, the prison cell, the
+  night raid on a ship at anchor and the poor colony join the sword fight,
+  sea chart, buccaneer camp and quarterdeck. Each keeps its code-drawn
+  picture as the fallback until the image loads.
 - Dividing the plunder now has real art: in a sunlit counting house the
   captain stands by an open chest of silver while a clerk keeps the ledger
   and the quartermaster pays out each buccaneer's share.

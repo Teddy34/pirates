@@ -1336,8 +1336,8 @@ function drawPrison(p) {
 }
 
 // The night raid art (assets/vignettes/open-night-raid.png) once loaded;
-// until then, the placeholder: moonlit water: a boatload of smugglers creeps
-// up on an anchored ship.
+// until then, the placeholder: on moonlit water a boatload of smugglers
+// creeps up on an anchored ship.
 function drawNightRaid(p) {
   if (sceneArt['open-night-raid']) {
     p.image(sceneArt['open-night-raid'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
@@ -1383,8 +1383,8 @@ function drawBuccaneers(p) {
 }
 
 // The colony art (assets/vignettes/open-colony.png) once loaded; until then,
-// the placeholder: a poor new colony: stakes, thatch, thin fields, angry
-// settlers.
+// the placeholder: a poor new colony of stakes, thatch and thin fields, with
+// angry settlers.
 function drawColony(p) {
   if (sceneArt['open-colony']) {
     p.image(sceneArt['open-colony'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);

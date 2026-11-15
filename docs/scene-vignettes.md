@@ -845,7 +845,8 @@ begins (CSTR 1–44, `src/opening.mjs`). These strings have no pictures in the
 original, so these vignettes are additions. `STORY_VIGNETTES` gives each
 string one picture, reusing a scene where it fits (tavern, shipwreck,
 governor, merchant, bartender, port-quay, town-square, harbour-arrival), and a
-story never repeats a picture on consecutive screens. The placeholders in code:
+story never repeats a picture on consecutive screens. Every opening picture is
+real art; each keeps its code-drawn placeholder as the fallback:
 
 | id | text cue | prompt |
 |---|---|---|
