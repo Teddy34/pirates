@@ -67,11 +67,6 @@ form .wide-field { grid-column:span 2; }
 #controls button:active,#controls button.pressed { background:#153e46; transform:translateY(1px); }
 #controls button.pressed { border-color:#e2b866; box-shadow:inset 0 0 0 1px #e2b866; }
 #controls button:disabled { cursor:default; opacity:.4; }
-dialog { width:min(540px,calc(100% - 28px)); max-height:calc(100dvh - 28px); overflow:auto; padding:27px; border:1px solid #8f713e; border-radius:3px; background:var(--paper); color:var(--paper-ink); box-shadow:0 30px 90px #000; }
-dialog::backdrop { background:rgba(3,14,18,.76); backdrop-filter:blur(4px); }
-dialog .eyebrow { color:#7b5420; }
-dialog h2 { font-size:34px; }
-#dialog-body { margin:14px 0 22px; font-family:"IM Fell English",Georgia,serif; font-size:18px; line-height:1.45; }
 #dialog-body p { margin:8px 0; }
 #dialog-body dl { display:grid; grid-template-columns:1fr auto; gap:5px 20px; margin:16px 0 0; font-family:"Source Sans 3",sans-serif; font-size:14px; }
 #dialog-body dt { color:#725f43; }
@@ -88,16 +83,6 @@ dialog h2 { font-size:34px; }
 .city-info small { display:block; color:#725f43; font-family:"Source Sans 3",sans-serif; font-size:14px; }
 .vignette { margin:0 auto 18px; width:max-content; line-height:0; }
 .vignette canvas { display:block; width:calc(var(--art-width) * 2px); height:calc(var(--art-height) * 2px); image-rendering:pixelated; }
-/* A portrait floats left of the kicker, title and text; text wraps beneath it, while wide tables and the actions clear it. */
-dialog.has-portrait { width:min(760px,calc(100% - 28px)); }
-dialog.has-portrait .vignette { float:left; margin:0 26px 14px 0; }
-dialog.has-portrait #dialog-body ul { display:flow-root; }
-dialog.has-portrait .plunder-manifest,dialog.has-portrait #dialog-actions { clear:both; }
-dialog.has-portrait #dialog-actions { padding-top:6px; }
-#dialog-actions { display:flex; flex-wrap:wrap; gap:8px; }
-#dialog-actions button { flex:1 1 140px; }
-#dialog-actions button.secondary { border-color:#8f713e; color:var(--paper-ink); }
-dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 .plunder-summary { max-width:280px; }
 .plunder-manifest { width:100%; margin:20px 0 14px; border-collapse:collapse; table-layout:fixed; font-family:"Source Sans 3",sans-serif; font-size:15px; line-height:1.2; }
 .plunder-manifest th,.plunder-manifest td { padding:10px 8px; border-bottom:1px solid rgba(114,95,67,.3); text-align:left; }
@@ -129,18 +114,7 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 .plunder-take-all { min-width:84px; padding:7px 12px; }
 .plunder-take-everything { width:100%; min-height:46px; padding:9px 16px; }
 .plunder-arrow:disabled,.plunder-take-all:disabled,.plunder-take-everything:disabled { cursor:default; opacity:.38; }
-/* Whole-number scales only: 1 screen px per art pixel on narrow or short viewports. */
-/* A landscape drops to 1× on short screens too; a portrait beside the text does not add height. */
-@media (max-width:520px),(max-height:820px) { dialog:not(.has-portrait) .vignette canvas { width:calc(var(--art-width) * 1px); height:calc(var(--art-height) * 1px); } .vignette { margin-bottom:12px; } }
-@media (max-width:640px) {
-  dialog.has-portrait .vignette { float:none; margin:0 auto 14px; }
-  dialog.has-portrait .vignette canvas { width:calc(var(--art-width) * 1px); height:calc(var(--art-height) * 1px); }
-}
-/* A portrait over a trading table would push the table off a short screen. */
-@media (max-height:820px) { dialog.has-portrait:has(.plunder-manifest) .vignette canvas { width:calc(var(--art-width) * 1px); height:calc(var(--art-height) * 1px); } }
 @media (max-width:520px) {
-  dialog:has(.vignette:not(.hidden)) { padding:20px 16px; }
-  dialog:has(.plunder-manifest) { padding:20px 14px; }
   .plunder-manifest { font-size:13px; }
   .plunder-manifest th,.plunder-manifest td { padding:8px 4px; }
   .plunder-manifest th:first-child { width:20%; }
@@ -249,3 +223,63 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 }
 .save-slots { margin:8px 0 0; padding:0; list-style:none; font-size:14px; }
 .save-slots li { margin:4px 0; }
+/* Dialogs: one full-screen arcade cabinet. A chunky brass-and-black pixel
+   frame holds the scene picture on a dark panel (left on wide screens, a band
+   on top on narrow ones) and the paper text page; the picture is drawn at the
+   largest whole-number scale that fits (fitDialogVignette in game.mjs). */
+#event-dialog { --pixel:#21180f; --brass-light:#f2c55c; --brass-dark:#a8742e; --stage:#1d140c; --mono:ui-monospace,"DejaVu Sans Mono","Cascadia Mono",Menlo,monospace;
+  width:calc(100vw - 24px); height:calc(100dvh - 24px); max-width:1680px; max-height:1050px; margin:auto; padding:0; overflow:hidden;
+  border:6px solid var(--pixel); border-radius:0; outline:4px solid var(--brass); outline-offset:-10px;
+  background:var(--paper); color:var(--paper-ink); box-shadow:0 0 0 3px var(--brass-dark),10px 10px 0 3px rgba(0,0,0,.6); }
+#event-dialog[open] { display:grid; grid-template-columns:auto minmax(0,1fr); }
+#event-dialog::backdrop { background:repeating-linear-gradient(rgba(0,0,0,.28) 0 2px,transparent 2px 4px),rgba(3,14,18,.82); }
+#event-dialog .vignette { display:grid; place-items:center; margin:0; width:auto; min-width:0; padding:24px; overflow:hidden;
+  border-right:6px solid var(--pixel); box-shadow:inset 0 0 0 4px var(--brass-dark);
+  background:repeating-conic-gradient(rgba(234,216,173,.05) 0 25%,transparent 0 50%) 0 0/8px 8px,radial-gradient(circle at 50% 45%,#3a2a19,var(--stage) 70%); }
+#event-dialog .vignette.hidden { display:none; }
+#event-dialog .vignette canvas { width:calc(var(--art-width) * var(--pixel-scale,2) * 1px); height:calc(var(--art-height) * var(--pixel-scale,2) * 1px); filter:drop-shadow(8px 8px 0 rgba(0,0,0,.55)); }
+#event-dialog:not(:has(.vignette:not(.hidden)))[open] { grid-template-columns:minmax(0,1fr); }
+.dialog-text { --page-pad:clamp(24px,4vw,64px); display:flex; flex-direction:column; min-width:0; min-height:0; padding:40px var(--page-pad) 28px; overflow:auto;
+  background:repeating-conic-gradient(rgba(46,35,25,.035) 0 25%,transparent 0 50%) 0 0/6px 6px,var(--paper); }
+#event-dialog:not(:has(.vignette:not(.hidden))) .dialog-text > * { width:100%; max-width:980px; margin-left:auto; margin-right:auto; }
+#event-dialog .eyebrow { margin:0 0 10px; color:#7b5420; font-family:var(--mono); font-size:14px; letter-spacing:.2em; }
+#event-dialog .eyebrow::before { content:"\25B6\FE0E  " / ""; color:var(--brass-dark); }
+#event-dialog h2 { font-size:clamp(34px,3.6vw,56px); line-height:1.05; text-shadow:2px 2px 0 rgba(168,116,46,.35); }
+#dialog-body { flex:1 0 auto; margin:18px 0 26px; font-family:"IM Fell English",Georgia,serif; font-size:clamp(19px,1.5vw,23px); line-height:1.45; }
+#dialog-body dl { max-width:420px; font-size:clamp(15px,1.1vw,18px); }
+/* The action bar stays pinned under the page while a long body scrolls. */
+#dialog-actions { position:sticky; bottom:-28px; z-index:1; display:flex; flex-wrap:wrap; gap:12px; margin:0 calc(-1 * var(--page-pad)) -28px; padding:18px var(--page-pad) 28px; border-top:4px solid var(--pixel); background:var(--paper); }
+#event-dialog #dialog-actions button { position:relative; flex:1 1 180px; min-height:56px; padding:12px 20px; border:3px solid var(--pixel); border-radius:0;
+  background:var(--brass); color:#1d1710; font-family:var(--mono); font-size:15px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  box-shadow:inset -4px -4px 0 var(--brass-dark),inset 4px 4px 0 var(--brass-light),5px 5px 0 #000; cursor:pointer; }
+#event-dialog #dialog-actions button.secondary { background:#d9c393; box-shadow:inset -4px -4px 0 #b39a68,inset 4px 4px 0 #f4e6c4,5px 5px 0 #000; }
+#event-dialog #dialog-actions button:is(:hover,:focus-visible) { background:var(--brass-light); outline:none; }
+#event-dialog #dialog-actions button:focus-visible::before { content:"\25B6\FE0E" / ""; position:absolute; left:8px; top:50%; transform:translateY(-50%); animation:arcade-blink 1s steps(2,start) infinite; }
+#event-dialog #dialog-actions button:active { transform:translate(3px,3px); box-shadow:inset -4px -4px 0 var(--brass-dark),inset 4px 4px 0 var(--brass-light),2px 2px 0 #000; }
+#event-dialog #dialog-actions button[data-key]::after { content:attr(data-key); margin-left:10px; padding:1px 6px; border:2px solid var(--pixel); background:var(--paper); font-size:12px; }
+@keyframes arcade-blink { to { visibility:hidden; } }
+@media (prefers-reduced-motion:reduce) { #event-dialog #dialog-actions button:focus-visible::before { animation:none; } }
+/* Trading tables: bigger rows and pixel controls in the wide text page. */
+/* Short screens: tighter buttons so the bar leaves room for the page. */
+@media (min-width:761px) and (max-height:700px) { .dialog-text { padding-top:26px; } #dialog-body { margin:12px 0 18px; } #dialog-actions { gap:8px; padding-top:12px; } #event-dialog #dialog-actions button { flex-basis:150px; min-height:44px; padding:8px 14px; font-size:13px; } #event-dialog .plunder-manifest :is(th,td) { padding:6px 8px; } #event-dialog :is(.plunder-arrow,.plunder-take-all) { min-height:38px; } #event-dialog .plunder-manifest { margin:12px 0 8px; } }
+#event-dialog .plunder-manifest { font-size:clamp(15px,1.15vw,19px); }
+#event-dialog .plunder-manifest th,#event-dialog .plunder-manifest td { padding:12px 8px; }
+#event-dialog .plunder-manifest thead th { font-family:var(--mono); font-size:12px; letter-spacing:.14em; }
+#event-dialog :is(.plunder-arrow,.plunder-take-all,.plunder-take-everything) { min-height:46px; border:3px solid var(--pixel); border-radius:0; box-shadow:inset -3px -3px 0 var(--brass-dark),inset 3px 3px 0 var(--brass-light),3px 3px 0 #000; font-family:var(--mono); }
+#event-dialog :is(.plunder-arrow,.plunder-take-all,.plunder-take-everything):disabled { box-shadow:none; }
+#event-dialog :is(.plunder-arrow,.plunder-take-all,.plunder-take-everything):not(:disabled):active { transform:translate(2px,2px); box-shadow:inset -3px -3px 0 var(--brass-dark),inset 3px 3px 0 var(--brass-light),1px 1px 0 #000; }
+@media (min-width:761px) { #event-dialog :is(.plunder-take-all,.plunder-take-everything) { white-space:nowrap; letter-spacing:-.02em; } }
+#event-dialog .plunder-cell strong,#event-dialog .merchant-price { font-size:clamp(18px,1.4vw,24px); }
+/* Narrow screens: the whole screen, picture band on top, and the page scrolls as one. */
+@media (max-width:760px) {
+  #event-dialog { width:100vw; height:100dvh; max-width:none; max-height:none; border-width:4px; outline-width:3px; outline-offset:-7px; box-shadow:none; overflow:auto; }
+  #event-dialog[open] { display:flex; flex-direction:column; }
+  #event-dialog .vignette { flex:none; padding:16px; border-right:0; border-bottom:4px solid var(--pixel); }
+  .dialog-text { --page-pad:16px; flex:1 0 auto; padding:22px 16px 18px; overflow:visible; }
+  #dialog-actions { bottom:0; margin-bottom:-18px; padding-top:14px; padding-bottom:18px; }
+  #event-dialog h2 { font-size:30px; }
+  #dialog-body { font-size:18px; }
+  #event-dialog #dialog-actions button { flex-basis:140px; min-height:50px; padding:10px 12px; font-size:13px; letter-spacing:.06em; }
+  #event-dialog .plunder-manifest th,#event-dialog .plunder-manifest td { padding:8px 4px; }
+  #event-dialog :is(.plunder-arrow,.plunder-take-all) { min-height:38px; }
+}

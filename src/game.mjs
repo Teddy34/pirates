@@ -104,6 +104,7 @@ const dialogBody = document.querySelector('#dialog-body');
 const dialogActions = document.querySelector('#dialog-actions');
 const dialogVignette = document.querySelector('#dialog-vignette');
 const dialogVignetteCanvas = dialogVignette.querySelector('canvas');
+const dialogText = dialog.querySelector('.dialog-text');
 const hud = document.querySelector('#hud');
 const controls = document.querySelector('#controls');
 const logElement = document.querySelector('#log');
@@ -4477,13 +4478,18 @@ function showDialog({ kicker, title, body, actions, vignette }) {
     button.textContent = action.label;
     if (action.secondary) button.classList.add('secondary');
     button.addEventListener('click', () => { dialog.close(); action.run(); }, { once: true });
-    if (action.key) dialogShortcuts.set(action.key, button);
+    if (action.key) {
+      dialogShortcuts.set(action.key, button);
+      button.dataset.key = action.key.toUpperCase();
+    }
     dialogActions.append(button);
   });
   dialog.showModal();
+  fitDialogVignette();
   // Long dialogs (the ship's log, the gazetteer) open at the top.
   dialogActions.querySelector('button')?.focus({ preventScroll: true });
   dialog.scrollTop = 0;
+  dialogText.scrollTop = 0;
 }
 
 // A landscape sits above the dialog text, a portrait beside it.
@@ -4507,6 +4513,24 @@ function showVignette(vignette) {
   // Picture art loads in the background; repaint once it arrives if this
   // vignette is still the one on screen.
   if (vignetteNeedsArt(id)) loadVignetteArt().then(() => { if (shownVignette === vignette) paint(); });
+}
+
+// The dialog fills the screen, and its picture takes the largest whole-number
+// pixel scale that fits its share: a column beside the text on wide screens, a
+// band above it on narrow ones (style.css, "Dialogs").
+const NARROW_DIALOG = matchMedia('(max-width:760px)');
+function fitDialogVignette() {
+  if (!dialog.open || dialogVignette.classList.contains('hidden')) return;
+  const { width, height } = dialogVignetteCanvas;
+  const portrait = dialog.classList.contains('has-portrait');
+  // A trading table needs the room more than the picture does.
+  const table = Boolean(dialogBody.querySelector('table'));
+  const inner = { width: dialog.clientWidth, height: dialog.clientHeight };
+  const room = NARROW_DIALOG.matches
+    ? { width: inner.width - 32, height: inner.height * (table ? 0.26 : portrait ? 0.46 : 0.38) - 24 }
+    : { width: inner.width * (table ? 0.32 : portrait ? 0.4 : 0.56) - 48, height: inner.height - 48 };
+  const scale = clamp(Math.floor(Math.min(room.width / width, room.height / height)), 1, 8);
+  dialogVignetteCanvas.style.setProperty('--pixel-scale', scale);
 }
 
 // Every return to the sailing map starts a new voyage, and each voyage begins
@@ -5170,6 +5194,7 @@ addEventListener('blur', () => {
   Object.keys(walkKeys).forEach((direction) => { walkKeys[direction] = false; });
 });
 addEventListener('resize', resize);
+addEventListener('resize', fitDialogVignette);
 canvas.addEventListener('wheel', (event) => {
   if (event.deltaY === 0) return;
   event.preventDefault();
