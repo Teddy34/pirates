@@ -1,8 +1,8 @@
-// Browser smoke check for the fort battle: the briefing names the harbor
-// quay as the landing place, the battle draws its field with one battery per
-// fort (the preview town has several), landing at the quay
-// leads to storming the walls, and running aground or being driven off ends
-// the attack. Runs at a desktop and a narrow size (?preview=fort-battle). Set
+// Browser smoke check for the fort battle: the briefing names the shore by
+// the town as the landing place, the battle draws the coast round the town
+// with one battery per fort (the preview town has several), landing by the
+// town leads to storming the walls, and running aground under a fort or
+// being driven off ends the attack. Runs at a desktop and a narrow size (?preview=fort-battle). Set
 // FORT_SCREENSHOTS to a directory to keep screenshots.
 import { S, VIEWPORTS, delay, dialogTitle, withBrowser } from './browser-harness.mjs';
 
@@ -11,13 +11,14 @@ await withBrowser({ name: 'fort', portOffset: 8, screenshotEnv: 'FORT_SCREENSHOT
   const startBattle = async (where) => {
     await open('fort-battle');
     const body = await evaluate("document.querySelector('#event-dialog[open] #dialog-body').textContent");
-    if (!/town quay/.test(body) || !/fort’s rocks/.test(body)) throw new Error(`${where}: the briefing does not point to the quay instead of the fort`);
+    if (!/ashore by the town/.test(body) || !/fort’s walls/.test(body)) throw new Error(`${where}: the briefing does not point to the town instead of the forts`);
     await screenshot(`${where}-briefing`);
     await clickButton('Command');
     await until(`${where}: the fort battle`, inBattle);
   };
   // Puts your ship on a point of the field; the next frame decides.
   const placeShip = (x, y) => evaluate(`Object.assign(${S}.battle.player, { x: ${x}, y: ${y} }), true`);
+  const placeShipAt = (point) => evaluate(`Object.assign(${S}.battle.player, { x: ${S}.battle.${point}.x, y: ${S}.battle.${point}.y }), true`);
 
   for (const viewport of VIEWPORTS) {
     await setViewport(viewport);
@@ -38,16 +39,16 @@ await withBrowser({ name: 'fort', portOffset: 8, screenshotEnv: 'FORT_SCREENSHOT
       throw new Error(`${where}: the town's forts are not each a battery`);
     }
 
-    // The quay lands the crew, and storming the walls follows.
-    await placeShip(340, 40);
+    // The shore by the town lands the crew, and storming the walls follows.
+    await placeShipAt('field.landing');
     await until(`${where}: the landing`, `${dialogTitle}?.startsWith('Attack ') && document.querySelector('#dialog-actions').textContent.includes('Storm the walls')`);
     await screenshot(`${where}-landed`);
     await clickButton('Storm the walls');
     await until(`${where}: the weapon choice`, `document.querySelector('#event-dialog[open] #dialog-actions')?.textContent.includes('Cutlass')`);
 
-    // The fort's rocks are not a landing place.
+    // A fort's shore is not a landing place.
     await startBattle(`${where}-aground`);
-    await placeShip(220, 90);
+    await placeShipAt('forts[0]');
     await until(`${where}: aground`, `${dialogTitle} === 'Aground'`);
     await clickButton('Continue');
     await until(`${where}: back at sea`, `${S}.mode === 'sailing' && !document.querySelector('#event-dialog[open]')`);
@@ -56,11 +57,11 @@ await withBrowser({ name: 'fort', portOffset: 8, screenshotEnv: 'FORT_SCREENSHOT
     // alerts the town.
     await startBattle(`${where}-driven-off`);
     const alertBefore = await evaluate(`${S}.alert`);
-    await placeShip(240, 236);
+    await placeShip(3, 3);
     await until(`${where}: driven off`, `${dialogTitle} === 'Driven off'`);
     if (await evaluate(`${S}.alert`) <= alertBefore) throw new Error(`${where}: being driven off by the fort does not alert the town`);
     await clickButton('Continue');
     await until(`${where}: back at sea`, `${S}.mode === 'sailing' && !document.querySelector('#event-dialog[open]')`);
-    console.log(`${where}: the fort battle briefs, draws, lands at the quay, runs aground and is driven off.`);
+    console.log(`${where}: the fort battle briefs, draws, lands by the town, runs aground and is driven off.`);
   }
 });

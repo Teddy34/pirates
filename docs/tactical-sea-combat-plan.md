@@ -119,22 +119,37 @@ named captain (`0xF207`). Fort battles reuse the naval engine (§7).
   unconfirmed at runtime and would be an exploit, so the port reads the table
   signed for both ships: your ship stops head to wind, as the enemy's does.
 
-- **You land at the town quay, not at the fort.** The original carries the
-  attack on when your ship touches the fort's 32 × 32 box or runs ashore
-  next to it (`0x8269`, event 5); any other shore is event 13. The port's
-  field (`FORT_FIELD`) puts the fort on a rocky headland with the town's
-  harbor in a cove beside it: the flagship's centre reaching the water along
-  the quay lands the crew, and any other land, the fort's rocks included,
-  is running aground. The field's layout (`FORT_FIELD.forts` places up to
-  four forts) and its 480 × 240 size are the
-  port's own; the original's start and backdrop for forts are not traced,
-  and its field spans 10–430 px.
-- **The attacker starts from a favourable position.** The field turns by
-  quarter turns so the harbor lies within 45° of downwind
-  (`fortOrientation`), and you start 110 px out on a broad reach pointed at
-  it (`fortStart`). The picture is drawn turned to the compass, so the wind
-  is the one you sailed in, and the wind dial moves to a corner over open
-  water.
+- **The field is the real coast round the town.** The original fights each
+  town's fort battle on the town's own hand-made harbor map: the town record
+  holds the map number (`+0x1C`, put in the backdrop table at `0x18CC9`),
+  the fort's tile (`+0x22`/`+0x24`) and your start tile and heading
+  (`+0x26` to `+0x2A`, all read at `0xD16C`), on a field bounded at 5–470 px
+  (`0x9A14`). That art isn't the port's to use. The port cuts a 60 × 40 cell
+  window of the navigation map round the town instead (`buildFortField`),
+  north up, 10 battle pixels to a cell, with the town toward the landward
+  side, and paints it with the sailing map's terrain chunks, so the capes,
+  bays and islands are the ones you sail past. The forts stand on the shore
+  of the town's own landmass beside the town (`fortPlaces`; on an island too
+  small for them outside the landing zone, on its shore at least 18 px from
+  the town, with their ground taken out of the zone by `settleForts`; on
+  other land only when the town's has no room, as at Nevis), drawn as small
+  pixel-art forts in the style of the town markers (`src/fort-sprites.mjs`).
+- **You land on the shore by the town, not at the fort.** The original
+  carries the attack on when your ship touches the fort's box or runs
+  ashore next to it (`0x8269`, event 5); any other shore is event 13. In the
+  port the flagship's centre reaching the town's own landmass near the town
+  (within its nearest water plus two cells, at least three cells) lands the
+  crew; any other land, a fort's shore or a neighbouring island included, is
+  running aground. Nothing on the
+  field marks the landing: the town itself is the goal.
+- **The attacker starts from a favourable position.** You start in open
+  water as near straight upwind of the town as the coast allows, 230 px out
+  or closer, preferring a start with a clear run to the landing, pointed at
+  it (`fortStart`). The original's start is the town record's tile.
+- **You sail at ship-battle speed.** The original halves your movement
+  against a fort (`sar` at `0x809D` and `0x80D9`; the `0x85EC` this plan
+  once cited halves hit damage against battle sails). The port keeps
+  ship-battle speed so the forts' broadsides can be dodged.
 - **Each fort is its own battery.** The original fights all of a town's forts
   as one enemy: one firing point and one 32 × 32 box with 12 guns a fort, so
   four forts fire one 48-gun broadside. The port makes each fort a type-8
@@ -144,12 +159,12 @@ named captain (`0xF207`). Fort battles reuse the naval engine (§7).
   and tested against that fort's box; a fort with no guns is silenced. The
   status line, HUD and garrison use the totals (`fortSummary`). A battery's
   scatter of a few degrees makes a distant fort miss more often, which is
-  what makes several forts beatable. Seeded runs (200 each) that sail
-  straight in without firing give the balance: a sloop gets through one fort
-  almost always and two about one time in five; a frigate two about 95% of
-  the time, three about 85% and four about 73%; a galleon three about 58%
-  and four about half the time. With the old single 48-gun fort nothing got
-  through four.
+  what makes several forts beatable. Runs over every fortified town of 1660
+  (six each, random winds) that sail straight for the landing without firing
+  back get through one fort about 80% of the time and two about 70%;
+  against three or four, a sloop gets through about a third of the time and
+  a galleon about half. Some of the failures are the autopilot running
+  aground, which a player steering would avoid.
 - **The log is hidden during sea battles**, as in sword fights, so it can't
   cover the field.
 
@@ -402,7 +417,8 @@ Attacking a fortified town by sea fights its fort with the ship engine
 - it can't be sunk: your hits raise its damage, shown as `min(3, n/20)`
   ("Walls intact" to "Walls crumbling"), skip the skill-0 bonus, and still
   kill gunners and dismount guns;
-- your movement is halved; the wind strength is `rnd(3)` and the gunnery
+- your movement is halved in the original (the port keeps ship-battle
+  speed, see above); the wind strength is `rnd(3)` and the gunnery
   extra 0; the sun still sets after 4,500 frames without a hit (CSTR 317);
 - the field is fixed: leaving it is CSTR 196 ("driven back to the open
   sea"), running aground is CSTR 173, and your flagship sinking takes the
@@ -417,8 +433,8 @@ Attacking a fortified town by sea fights its fort with the ship engine
   `(soldiers + 1)/2 + fort men left/10`, and lands only the flagship's men
   aboard to storm the walls.
 
-The briefing (`briefFortBattle` in `src/game.mjs`) tells the player to land
-at the town quay beside the fort, not under the fort, and with several forts
+The briefing (`briefFortBattle` in `src/game.mjs`) tells the player to run
+ashore by the town itself, not under a fort, and with several forts
 that each fires on its own and the nearest one still firing draws your
 broadside. Check it with
 `?preview=fort-battle`; `?preview=fort-walls` skips to the landing.

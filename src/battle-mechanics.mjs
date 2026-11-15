@@ -1,5 +1,6 @@
 import { SHIPS } from './data.mjs';
 import { clamp, relativeHeadingSector } from './mechanics.mjs';
+import { PIXEL, pixelClassAt } from './world-map.mjs';
 
 export const BATTLE_FRAME_SECONDS = 1 / 30; // ASSUMED: original wall-clock frame duration is untraced.
 export const BATTLE_SAIL_TRANSITION_FRAMES = 160;
@@ -102,7 +103,7 @@ export function battleDistance(dx, dy) {
 // DELIBERATE DEVIATION (quirk 18): the original reads your ship's table value
 // unsigned (0x7FBB), so a square-rigger's −1 dead upwind becomes 255 and top
 // speed 40. The port reads it signed for both ships, so you stop there too.
-export function battleSpeed({ heading, wind, speedRow, type, damage = 0, sails = 'battle', windStrength = 0, fort = false, enemySkill = null }) {
+export function battleSpeed({ heading, wind, speedRow, type, damage = 0, sails = 'battle', windStrength = 0, enemySkill = null }) {
   let tableValue = speedRow[relativeHeadingSector(heading, wind)];
   if (enemySkill !== null && tableValue === enemySkill) tableValue -= 1;
   let speed = 4 * tableValue - Math.floor(damage / 4);
@@ -111,8 +112,7 @@ export function battleSpeed({ heading, wind, speedRow, type, damage = 0, sails =
   // 0x9C5E returns 0 below 1, so a ship into the wind or badly damaged stops;
   // the original's downwind-drift branch (0x8045) and −12 clamp never run.
   const divisor = 8 - windClass * windStrength;
-  speed = 8 * speed < divisor ? 0 : Math.min(40, Math.floor((8 * speed) / divisor));
-  return fort ? Math.trunc(speed / 2) : speed;
+  return 8 * speed < divisor ? 0 : Math.min(40, Math.floor((8 * speed) / divisor));
 }
 
 export function bearingByte(dx, dy) {
@@ -402,12 +402,12 @@ function steerEnemy(enemy) {
 // Movement (0x8077 you, the same for him): the 24.8 position moves by
 // 4·sin(heading, s) and −4·cos(heading, s) per frame, about s/64 pixels. The
 // steps are multiples of 1/256, so plain numbers hold the 24.8 value exactly.
-export function moveShip(ship, battle, { enemySkill = null, fort = false } = {}) {
+export function moveShip(ship, battle, { enemySkill = null } = {}) {
   const speed = battleSpeed({
     heading: ship.heading, wind: battle.wind.direction,
     speedRow: battle.speedRows[ship.name], type: ship.type,
     damage: ship.damage, sails: ship.sails, windStrength: battle.wind.strength,
-    enemySkill, fort,
+    enemySkill,
   });
   return {
     ...ship,
@@ -666,8 +666,10 @@ export function stepBattle(original, input, rng) {
 }
 
 // The frame's start and your half of it, the same in both kinds of battle:
-// the sunset count, your rudder, sails and reload, movement (halved against
-// a fort, 0x85EC) and shot.
+// the sunset count, your rudder, sails and reload, movement and shot.
+// DELIBERATE DEVIATION: the original halves your movement against a fort
+// (`sar` at 0x809D and 0x80D9); the port keeps ship-battle speed so the
+// forts' broadsides can be dodged.
 function stepPlayerHalf(original, input, rng) {
   let battle = {
     ...original,
@@ -689,12 +691,12 @@ function stepPlayerHalf(original, input, rng) {
   battle.player = stepPlayerSailsAndReload(battle.player, requestedSails(input));
   const sailsEvent = playerSailsEvent(before, battle.player);
   if (sailsEvent) setEvent(sailsEvent);
-  battle.player = moveShip(battle.player, battle, { fort: Boolean(battle.fort) });
+  battle.player = moveShip(battle.player, battle);
   if (battle.fort) {
-    // 0x81B6-0x8269: the map pixel under you. The port's quay replaces the
-    // original's "touching the fort" test; see FORT_FIELD.
-    const ground = fortFieldGround(battle.player);
-    if (ground === 'quay') setEvent(BATTLE_EVENT.contact);
+    // 0x81B6-0x8269: the map pixel under you. The port's landing zone
+    // replaces the original's "touching the fort" test; see FORT_FIELD.
+    const ground = fortFieldGround(battle.field, battle.player);
+    if (ground === 'landing') setEvent(BATTLE_EVENT.contact);
     else if (ground === 'land') setEvent(BATTLE_EVENT.beached);
   }
   return stepShot(battle, 'player', Boolean(input.firePressed), rng);
@@ -706,52 +708,215 @@ function stepBattleWind(battle, rng) {
   return { ...battle, wind: shifted.wind, frameEvent: shifted.changed ? BATTLE_EVENT.wind : battle.frameEvent };
 }
 
-// Attacking a fort from the sea (sea_battles.md §8, 0x18D67). The fort is
+// Attacking a fort from the sea (sea_battles.md §8, 0x18D67). Each fort is
 // an enemy "ship" of type 8 that never moves, never strikes and runs no AI
-// (0x891C). Its men are 4·((soldiers + 1) / 2), its guns 12 per fort, and
-// its kind 0 gives a 144-frame reload.
+// (0x891C). Its kind 0 gives a 144-frame reload.
 //
-// DELIBERATE DEVIATION: in the original you get through by touching the
-// fort's box or running ashore next to it (0x8269, event 5), and running
-// ashore anywhere else is event 13 (CSTR 173). The port's field draws the
-// fort on a rocky headland with the town's harbor in a cove beside it: you
-// land by bringing the flagship up to the quay, and any other land, the
-// fort's rocks included, is running ashore. The field is fixed; leaving it
-// is event 6 (CSTR 196). The original's field spans 10–430 px; the port keeps
-// a 10 px margin on its own arena. Battle pixels; rectangles are x, y, w, h.
-export const FORT_FIELD = Object.freeze({
-  width: 480,
-  height: 240,
-  margin: 10,
-  land: Object.freeze([
-    Object.freeze({ x: 0, y: 0, w: 296, h: 64 }), // the coast west of the harbor
-    Object.freeze({ x: 392, y: 0, w: 88, h: 64 }), // the coast east of it
-    Object.freeze({ x: 296, y: 0, w: 96, h: 30 }), // the town behind the quay
-    Object.freeze({ x: 168, y: 0, w: 104, h: 108 }), // the first fort's headland
-    Object.freeze({ x: 412, y: 0, w: 56, h: 88 }), // the second fort's headland
-    Object.freeze({ x: 56, y: 0, w: 72, h: 84 }), // the third fort's headland
-  ]),
-  // The water along the quay: your ship's centre here lands the crew.
-  quay: Object.freeze({ x: 300, y: 30, w: 88, h: 18 }),
-  // Where the town's forts stand, in order: west of the harbor mouth, east
-  // of it, further west, and on the coast at the field's western end.
-  forts: Object.freeze([
-    Object.freeze({ x: 220, y: 76 }),
-    Object.freeze({ x: 440, y: 62 }),
-    Object.freeze({ x: 92, y: 58 }),
-    Object.freeze({ x: 36, y: 32 }),
-  ]),
-});
+// DELIBERATE DEVIATION: the original draws each town's fort battle on the
+// town's own hand-made harbor map (map number at town record +0x1C, set at
+// 0x18CC9), with the fort and your start tile and heading stored in the
+// record (+0x22 to +0x2A, read at 0xD16C), on a field bounded at 5–470 px
+// (0x9A14). That art is not the port's to use. The port cuts the field from
+// the navigation map around the town instead, north up, `cellPixels` battle
+// pixels to a map cell, and paints it like the sailing map; the forts stand
+// on the shore beside the town. In the original you get through by touching
+// the fort or running ashore next to it (event 5); here you land by bringing
+// the flagship's centre onto the shore near the town (the landing zone). Any
+// other shore, the forts' included, is running aground (event 13, CSTR 173),
+// and leaving the field is being driven off (event 6, CSTR 196).
+export const FORT_FIELD = Object.freeze({ width: 600, height: 400, margin: 10, cellPixels: 10 });
+// `home` is land joined to the town's own; it reads as 'land'.
+const GROUND = Object.freeze({ water: 0, land: 1, landing: 2, home: 3 });
+const GROUND_NAMES = Object.freeze(['water', 'land', 'landing', 'land']);
 
-const inRect = (rect, x, y) => x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
+// Unit vector from the town toward the open sea: the mean direction of the
+// water cells within 20 cells.
+function seaDirection(map, town) {
+  let dx = 0;
+  let dy = 0;
+  for (let y = -20; y <= 20; y += 1) {
+    for (let x = -20; x <= 20; x += 1) {
+      const distance = Math.hypot(x, y);
+      if (distance === 0 || distance > 20) continue;
+      if (pixelClassAt(map, town.x + x + .5, town.y + y + .5) === PIXEL.LAND) continue;
+      dx += x / distance;
+      dy += y / distance;
+    }
+  }
+  const length = Math.hypot(dx, dy);
+  return length ? { x: dx / length, y: dy / length } : { x: 0, y: 1 };
+}
 
-// 'quay', 'land' or 'water' under a point (the whole-pixel ship centre, as
-// the original reads one map pixel, 0x81B6).
-export function fortFieldGround({ x, y }) {
+// The field's top-left map cell: the town sits toward the landward side, so
+// most of the field is the sea it is approached from.
+export function fortFieldWindow(map, town) {
+  const { width, height, cellPixels } = FORT_FIELD;
+  const cellsWide = width / cellPixels;
+  const cellsHigh = height / cellPixels;
+  const sea = seaDirection(map, town);
+  const centreX = town.x + .5 + sea.x * (cellsWide / 2 - 14);
+  const centreY = town.y + .5 + sea.y * (cellsHigh / 2 - 11);
+  return {
+    left: clamp(Math.round(centreX - cellsWide / 2), 0, map.width - cellsWide),
+    top: clamp(Math.round(centreY - cellsHigh / 2), 0, map.height - cellsHigh),
+  };
+}
+
+// The field's ground at battle-pixel resolution, read from the navigation
+// map: water (shallows included), land, the town's own landmass, and the
+// landing zone (the town's landmass within reach of the town: its nearest
+// water plus two cells, at least three cells). `landing` is the zone's shore
+// point nearest the town.
+export function buildFortField(map, town) {
+  const { width, height, cellPixels } = FORT_FIELD;
+  const { left, top } = fortFieldWindow(map, town);
+  const cells = new Uint8Array(width * height);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const land = pixelClassAt(map, left + (x + .5) / cellPixels, top + (y + .5) / cellPixels) === PIXEL.LAND;
+      cells[y * width + x] = land ? GROUND.land : GROUND.water;
+    }
+  }
+  const centre = { x: (town.x + .5 - left) * cellPixels, y: (town.y + .5 - top) * cellPixels };
+  markHomeLand(cells, width, height, centre);
+  const at = (x, y) => (x < 0 || y < 0 || x >= width || y >= height ? GROUND.water : cells[y * width + x]);
+  const reach = 10 * cellPixels;
+  const box = (radius, visit) => {
+    for (let y = Math.max(0, Math.floor(centre.y - radius)); y < Math.min(height, centre.y + radius); y += 1) {
+      for (let x = Math.max(0, Math.floor(centre.x - radius)); x < Math.min(width, centre.x + radius); x += 1) visit(x, y);
+    }
+  };
+  let nearestWater = Infinity;
+  box(reach, (x, y) => {
+    if (at(x, y) === GROUND.water) nearestWater = Math.min(nearestWater, Math.hypot(x - centre.x, y - centre.y));
+  });
+  const landingRadius = Math.max(3 * cellPixels, Math.min(reach, nearestWater) + 2 * cellPixels);
+  let landing = null;
+  let landingDistance = Infinity;
+  box(landingRadius, (x, y) => {
+    const distance = Math.hypot(x - centre.x, y - centre.y);
+    if (distance > landingRadius || at(x, y) !== GROUND.home) return;
+    cells[y * width + x] = GROUND.landing;
+    const shore = [[2, 0], [-2, 0], [0, 2], [0, -2]].some(([dx, dy]) => at(x + dx, y + dy) === GROUND.water);
+    if (shore && distance < landingDistance) { landing = { x, y }; landingDistance = distance; }
+  });
+  return {
+    left, top, cellPixels, width, height, town: centre, landingRadius,
+    landing: landing ?? { x: Math.round(centre.x), y: Math.round(centre.y) }, cells,
+  };
+}
+
+// Marks the land joined to the town's pixel (4-connected) as home. A town
+// pixel that is not land (never on the real maps) makes all land home.
+function markHomeLand(cells, width, height, centre) {
+  const start = Math.floor(centre.y) * width + Math.floor(centre.x);
+  if (cells[start] !== GROUND.land) {
+    cells.forEach((cell, index) => { if (cell === GROUND.land) cells[index] = GROUND.home; });
+    return;
+  }
+  const stack = [start];
+  cells[start] = GROUND.home;
+  while (stack.length) {
+    const index = stack.pop();
+    const x = index % width;
+    for (const next of [x > 0 ? index - 1 : -1, x < width - 1 ? index + 1 : -1, index - width, index + width]) {
+      if (next < 0 || next >= cells.length || cells[next] !== GROUND.land) continue;
+      cells[next] = GROUND.home;
+      stack.push(next);
+    }
+  }
+}
+
+// 'water', 'land' or 'landing' under a point: the whole-pixel ship centre,
+// as the original reads one map pixel (0x81B6). Outside the field is water;
+// leaving the field is tested on its own.
+export function fortFieldGround(field, { x, y }) {
   const px = pixel(x);
   const py = pixel(y);
-  if (inRect(FORT_FIELD.quay, px, py)) return 'quay';
-  return FORT_FIELD.land.some((rect) => inRect(rect, px, py)) ? 'land' : 'water';
+  if (px < 0 || py < 0 || px >= field.width || py >= field.height) return 'water';
+  return GROUND_NAMES[field.cells[py * field.width + px]];
+}
+
+// Water all round a point, `radius` px out in eight directions.
+function openWater(field, x, y, radius) {
+  return [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [.7, .7], [.7, -.7], [-.7, .7], [-.7, -.7]]
+    .every(([dx, dy]) => fortFieldGround(field, { x: x + dx * radius, y: y + dy * radius }) === 'water');
+}
+
+// Where the forts stand: shore points of the town's own landmass beside the
+// town, outside the landing zone, the first the nearest to the town and
+// each next one well apart from the others while staying close to the town.
+// A short coast packs them closer; on an island too small to hold them
+// outside the landing zone they stand on its shore within the zone, at least
+// 18 px from the town (settleForts then takes their ground out of the zone).
+// Only when the town's land has no room at all do they stand on other land.
+export function fortPlaces(field, count) {
+  const { width, height, town, landingRadius, cells } = field;
+  const home = [];
+  const near = [];
+  const other = [];
+  for (let y = 24; y < height - 24; y += 4) {
+    for (let x = 24; x < width - 24; x += 4) {
+      const cell = cells[y * width + x];
+      if (cell === GROUND.water) continue;
+      const distance = Math.hypot(x - town.x, y - town.y);
+      const shore = () => [[6, 0], [-6, 0], [0, 6], [0, -6]].some(([dx, dy]) => fortFieldGround(field, { x: x + dx, y: y + dy }) === 'water');
+      if (cell === GROUND.landing) {
+        if (distance >= 18 && shore()) near.push({ x, y, distance });
+        continue;
+      }
+      if (distance < landingRadius + 12 || distance > landingRadius + (cell === GROUND.home ? 200 : 120) || !shore()) continue;
+      (cell === GROUND.home ? home : other).push({ x, y, distance });
+    }
+  }
+  const places = [];
+  const pick = (candidates, spacing) => {
+    let best = null;
+    let bestScore = -Infinity;
+    for (const candidate of candidates) {
+      const apart = places.length ? Math.min(...places.map((place) => Math.hypot(place.x - candidate.x, place.y - candidate.y))) : Infinity;
+      if (apart < spacing) continue;
+      const score = places.length ? Math.min(apart, 160) - candidate.distance : -candidate.distance;
+      if (score > bestScore) { best = candidate; bestScore = score; }
+    }
+    return best;
+  };
+  const tiers = [[home, 60], [home, 30], [near, 24], [near, 12], [other, 60], [home, 1], [near, 1], [other, 1]];
+  for (const [candidates, spacing] of tiers) {
+    while (places.length < count) {
+      const best = pick(candidates, spacing);
+      if (!best) break;
+      places.push({ x: best.x, y: best.y });
+    }
+  }
+  // No shore left at all (never on the real maps): the rest stand at the town.
+  while (places.length < count) places.push({ x: Math.round(town.x), y: Math.round(town.y) });
+  return places;
+}
+
+// Takes the ground within 14 px of each fort out of the landing zone, so
+// running onto a fort is running aground, and moves `landing` to the
+// remaining zone's shore point nearest the town. Mutates `field`.
+export function settleForts(field, places) {
+  const { width, height, town, landingRadius, cells } = field;
+  for (const place of places) {
+    for (let y = Math.max(0, place.y - 14); y <= Math.min(height - 1, place.y + 14); y += 1) {
+      for (let x = Math.max(0, place.x - 14); x <= Math.min(width - 1, place.x + 14); x += 1) {
+        if (cells[y * width + x] === GROUND.landing && Math.hypot(x - place.x, y - place.y) <= 14) cells[y * width + x] = GROUND.home;
+      }
+    }
+  }
+  const at = (x, y) => (x < 0 || y < 0 || x >= width || y >= height ? GROUND.water : cells[y * width + x]);
+  let best = Infinity;
+  for (let y = Math.max(0, Math.floor(town.y - landingRadius)); y < Math.min(height, town.y + landingRadius); y += 1) {
+    for (let x = Math.max(0, Math.floor(town.x - landingRadius)); x < Math.min(width, town.x + landingRadius); x += 1) {
+      if (at(x, y) !== GROUND.landing) continue;
+      const distance = Math.hypot(x - town.x, y - town.y);
+      const shore = [[2, 0], [-2, 0], [0, 2], [0, -2]].some(([dx, dy]) => at(x + dx, y + dy) === GROUND.water);
+      if (shore && distance < best) { field.landing = { x, y }; best = distance; }
+    }
+  }
+  return field;
 }
 
 // The fort's damage display: min(3, hits/20) (0xECF0).
@@ -765,36 +930,46 @@ export function garrisonAfterFortBattle({ soldiers, fortMenLeft }) {
   return ((soldiers + 1) >> 1) + Math.trunc(fortMenLeft / 10);
 }
 
-// ASSUMED: the original's start against a fort is not traced. The port gives
-// the attacker a favourable one. The field is laid out with the coast to the
-// north, and each battle turns it by quarter turns so that the harbor lies
-// within 45° of downwind: `orientation` k means the field's north is the
-// compass heading 64·k. The engine runs in the field's own frame, so the
-// battle wind is the campaign wind − 64·k; the renderer turns the picture
-// back to the compass. (Wind bytes are the heading the wind blows toward.)
-export function fortOrientation(wind) {
-  return (((wind + 32) & 0xff) >> 6) & 3;
-}
-
-// A field heading or wind as a compass heading.
-export function fieldToCompass(angle, orientation = 0) {
-  return (angle + 64 * orientation) & 0xff;
-}
-
-// Where you start in the field's frame: 110 px out from the harbor mouth on
-// a broad reach (24 units, about 34°, off the wind, the side nearer north),
-// pointed at the harbor. The wind is within 32 units of north here, so the
-// course is within 56 units of north and the start lies in open water.
-const HARBOR_MOUTH = Object.freeze({ x: 344, y: 56 });
-export function fortStart(fieldWind) {
-  const wind = signedAngleDifference(fieldWind, 0);
-  const heading = (wind >= 0 ? wind - 24 : wind + 24) & 0xff;
-  const radians = heading * Math.PI * 2 / 256;
-  return {
-    x: clamp(Math.round(HARBOR_MOUTH.x - 110 * Math.sin(radians)), 40, FORT_FIELD.width - 40),
-    y: Math.round(HARBOR_MOUTH.y + 110 * Math.cos(radians)),
-    heading,
+// ASSUMED: the original's start is the town record's tile and heading, on
+// its own map. The port starts you favourably: in open water upwind of the
+// town (the wind byte is where the wind blows toward), as near straight
+// upwind as the coast allows, 230 px out or closer, with a clear run to the
+// landing where there is one, pointed at it.
+export function fortStart(field, wind) {
+  const { width, height, town, landing } = field;
+  const upwind = (wind + 128) & 0xff;
+  const pointed = (x, y) => ({ x, y, heading: bearingByte(landing.x - x, landing.y - y) });
+  // Sailing straight for the landing stays in water until the landing zone.
+  const clearRun = (x, y) => {
+    const length = Math.hypot(landing.x - x, landing.y - y);
+    for (let travelled = 0; travelled < length; travelled += 4) {
+      const ground = fortFieldGround(field, { x: x + (landing.x - x) * travelled / length, y: y + (landing.y - y) * travelled / length });
+      if (ground === 'landing') return true;
+      if (ground === 'land') return false;
+    }
+    return true;
   };
+  for (const needClearRun of [true, false]) {
+    for (const distance of [230, 190, 150, 110]) {
+      for (let step = 0; step <= 16; step += 1) {
+        for (const sign of step ? [1, -1] : [1]) {
+          const radians = ((upwind + sign * step * 8) & 0xff) * Math.PI * 2 / 256;
+          const x = Math.round(town.x + Math.sin(radians) * distance);
+          const y = Math.round(town.y - Math.cos(radians) * distance);
+          if (x < 40 || y < 40 || x > width - 40 || y > height - 40 || !openWater(field, x, y, 28)) continue;
+          if (needClearRun && !clearRun(x, y)) continue;
+          return pointed(x, y);
+        }
+      }
+    }
+  }
+  // No open water near the town: the first clear water in the field.
+  for (let y = 40; y < height - 40; y += 8) {
+    for (let x = 40; x < width - 40; x += 8) {
+      if (openWater(field, x, y, 28)) return pointed(x, y);
+    }
+  }
+  return pointed(width / 2, height / 2);
 }
 
 // DELIBERATE DEVIATION: the original fights all of a town's forts as one
@@ -803,9 +978,10 @@ export function fortStart(fieldWind) {
 // an equal share of the gunners, so you can silence them one at a time and a
 // distant battery's scatter makes it miss more often. Each battery is a
 // type-8 "ship" with the fort's rules.
-export function createFortBatteries({ forts, men, flag }) {
-  const count = Math.min(forts & 7, FORT_FIELD.forts.length);
-  return FORT_FIELD.forts.slice(0, count).map((place, index) => {
+export const MAX_FORT_BATTERIES = 4;
+export function createFortBatteries({ forts, men, flag, places }) {
+  const count = Math.min(forts & 7, MAX_FORT_BATTERIES, places.length);
+  return places.slice(0, count).map((place, index) => {
     const share = Math.floor(men / count) + (index < men % count ? 1 : 0);
     return {
       name: 'Fort', type: 8, fort: true, x: place.x, y: place.y, heading: 0,
@@ -823,7 +999,7 @@ export function fortSummary(forts, startMen, flag) {
   const total = (key) => forts.reduce((sum, fort) => sum + fort[key], 0);
   return {
     name: 'Fort', type: 8, fort: true,
-    x: forts[0]?.x ?? FORT_FIELD.forts[0].x, y: forts[0]?.y ?? FORT_FIELD.forts[0].y, heading: 0,
+    x: forts[0]?.x ?? 0, y: forts[0]?.y ?? 0, heading: 0,
     damage: total('damage'), men: total('men'), startMen, guns: total('guns'),
     firing: forts.filter((fort) => fort.guns > 0).length,
     reload: 0, reloadTime: enemyReloadTime(0), sails: 'none', targetSails: 'none', sailTransition: 0,
@@ -841,25 +1017,27 @@ export function fortTargetIndex(player, forts) {
   return pick(armed.length ? armed : forts.map((_, index) => index));
 }
 
-export function createFortBattle({ player, town, flagshipIndex = 0, speedRows, difficulty, ability, crewMorale, playerFlag = 'pirate', rng }) {
+export function createFortBattle({ player, town, map, flagshipIndex = 0, speedRows, difficulty, ability, crewMorale, playerFlag = 'pirate', rng }) {
   const embarked = embarkedForBattle({ ...player, flagshipIndex });
   const fleet = player.ships.map(shipRecord);
   const [selected] = fleet.splice(flagshipIndex, 1);
   fleet.unshift(selected);
   const windStrength = rng.int(3); // sea_battles.md §1: rnd(3) for a fort.
-  const orientation = fortOrientation(player.wind);
-  const fieldWind = (player.wind - 64 * orientation) & 0xff;
-  const start = fortStart(fieldWind);
+  const field = buildFortField(map, town);
   const fortMen = 4 * ((town.soldiers + 1) >> 1);
-  const forts = createFortBatteries({ forts: town.forts, men: fortMen, flag: town.nation });
+  const count = Math.min(town.forts & 7, MAX_FORT_BATTERIES);
+  const places = fortPlaces(field, count);
+  settleForts(field, places);
+  const start = fortStart(field, player.wind);
+  const forts = createFortBatteries({ forts: town.forts, men: fortMen, flag: town.nation, places });
   return {
     frame: 0,
     noHitFrames: 0,
     fort: true,
-    orientation,
-    wind: { direction: fieldWind, strength: windStrength },
+    field,
+    wind: { direction: player.wind & 0xff, strength: windStrength },
     terrain: 'fort',
-    arena: { width: FORT_FIELD.width, height: FORT_FIELD.height },
+    arena: { width: field.width, height: field.height },
     skill: gunnerySkill(difficulty, ability === 'gunnery', 0), // extra is 0 for a fort.
     speedRows,
     fleet,
@@ -879,7 +1057,7 @@ export function createFortBattle({ player, town, flagshipIndex = 0, speedRows, d
     projectiles: [], effects: [], event: null, frameEvent: 0,
     assumptions: [
       'Wall-clock battle frame duration is assumed.',
-      'The start position and the harbor quay are the port\'s own field.',
+      'The field is cut from the navigation map; the start and the landing zone are the port\'s own.',
       'Each of the town\'s forts is its own battery of 12 guns.',
     ],
   };
@@ -901,7 +1079,8 @@ function stepFortBattle(original, input, rng) {
     shot.owner === 'player' && shot.target === undefined ? { ...shot, target } : shot));
   forts.forEach((fort, index) => { forts[index] = stepEnemyReload(fort); });
   battle = stepBattleWind(battle, rng);
-  const { margin, width, height } = FORT_FIELD;
+  const { margin } = FORT_FIELD;
+  const { width, height } = battle.field;
   const { x, y } = battle.player;
   if (x < margin || x > width - margin || y < margin || y > height - margin) {
     battle = { ...battle, frameEvent: BATTLE_EVENT.outOfRange };

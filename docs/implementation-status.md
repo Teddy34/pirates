@@ -259,7 +259,8 @@ for future work.
   men a soldier; a win captures it with the decoded treasury and town damage
   formulas, possible governor installation, and transferable plunder. By sea,
   a fortified town is first fought as a fort battle against each of its forts
-  (12 guns apiece, silenced one by one): get the flagship to the town quay
+  (12 guns apiece, silenced one by one) on the real coast round the town:
+  run the flagship ashore by the town
   to land. The land battle before the walls
   overland counts as won for now.
 - See "The treasure fleet is in the harbor!" / "The silver train is in
