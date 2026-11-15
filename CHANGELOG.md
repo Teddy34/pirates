@@ -115,8 +115,10 @@ history.
   comic-style illustration. It replaces the code-drawn sloop, which remains
   only as a fallback while the image loads. The picture keeps the
   artwork's 3 : 2 shape (240 × 160) instead of being cropped to the dialog
-  format. Its Union flags are drawn as the 1606 flag, without the red
-  saltire of St Patrick that was only added in 1801.
+  format. The ship flies St George's cross, as English ships of the period
+  did, and the island's fort is Spanish. The picture uses up to 256 colours:
+  vignettes are no longer held to a 32-colour palette, since the retro look
+  comes from the pixel size.
 
 - Fort battles are fought on the real coast round the town, cut from the
   sailing map and painted the same way, north up, so its capes, bays and

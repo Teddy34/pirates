@@ -22,7 +22,7 @@ original game, or describe its pictures, in a prompt.
 | Framed vignette | **240 × 144** art px |
 | Display | 2 screen px per art pixel → **480 × 288 CSS px**, like the clouds (`CLOUD_ART_PIXEL = 2`). It fits the 486 px content width of `#event-dialog` (540 px − 2 × 27 px padding). Below about 520 px of viewport, draw 1 px per art pixel (240 × 144). Always whole-number scale, `image-rendering: pixelated`. |
 | Generate at | **1792 × 1024** (exactly 8 × the picture; most generators accept 7 : 4 or 16 : 9) |
-| Reduce | Downscale ×8 with a box or nearest filter to 224 × 128, quantise to ≤ 32 colours, clean the 1 px outlines by hand |
+| Reduce | Downscale ×8 with a box or nearest filter to 224 × 128, quantise to ≤ 256 colours (indexed PNG), clean the 1 px outlines by hand |
 | File | `assets/vignettes/<id>.png`, 224 × 128, indexed PNG, no frame baked in |
 
 Why this size: 224 × 128 keeps a figure's face about 12–16 art px tall in a
@@ -34,7 +34,7 @@ the largest 2× picture that fits the existing dialog without changing it.
 Put this block in front of every scene prompt.
 
 > Pixel-art illustration, 224×128 native pixels rendered at 1792×1024 (every
-> art pixel a clean 8×8 block), about 32 colours, no anti-aliasing, no
+> art pixel a clean 8×8 block), a rich palette, no anti-aliasing, no
 > smooth gradients, at most light ordered dithering. A one-pixel very dark
 > brown outline (#21180f) around figures and objects. Flat cel shading with
 > 2–3 tones per material. Light from the upper left. Drawing and composition
@@ -534,10 +534,9 @@ artwork stays whole. It is shown at 2× (1× below 620 px wide or 640 px tall).
 The art is `assets/vignettes/title-ship.png`, built by
 `tools/build_title_vignette.py` (provenance in
 `assets/vignettes/PROVENANCE.md`): a three-masted English warship under full
-sail, seen from ahead and to one side, off a palm-fringed island with a
-stone fort. The build repaints its Union flags as the 1606 flag, without St
-Patrick's saltire (added in 1801). Until the image loads, the code-drawn
-sloop placeholder stands in.
+sail flying St George's cross, seen from ahead and to one side, off a
+palm-fringed island with a Spanish stone fort. Until the image loads, the
+code-drawn sloop placeholder stands in.
 
 Picked by a script for each era and nationality, and shown before play
 begins (CSTR 1–44, `src/opening.mjs`). These strings have no pictures in the
@@ -609,7 +608,7 @@ exist.
 ## 6. Checklist per picture
 
 1. Shared style block + scene prompt + negative prompt, at 1792 × 1024.
-2. Downscale ×8 to 224 × 128, quantise to ≤ 32 colours, fix the outlines.
+2. Downscale ×8 to 224 × 128, quantise to ≤ 256 colours, fix the outlines.
 3. Check it at 1× and 2× inside the frame, in the dialog, at a desktop size
    and a narrow viewport.
 4. Add tool, model, seed and prompt to `assets/vignettes/PROVENANCE.md`,

@@ -119,7 +119,7 @@ const SCENE_ART_URLS = {
   'title-ship': new URL('../assets/vignettes/title-ship.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
-  'title-ship': 'A three-masted English warship under full sail off a palm-fringed island with a stone fort, pixelated from a comic-style illustration.',
+  'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
 const sceneArt = {};
 
