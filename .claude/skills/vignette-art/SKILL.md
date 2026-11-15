@@ -18,6 +18,29 @@ The user's own provider (ChatGPT, a diffusion tool) stays available: if the
 user sends an image or asks for a prompt to run themselves, skip the
 generation step and continue with their image.
 
+## Before anything: your own worktree
+
+Several sessions often make vignettes at the same time, and a shared
+checkout lets one session's commit sweep up another's files. So, before
+editing any repository file, even for research notes:
+
+1. `git fetch origin`, then
+   `git worktree add .claude/worktrees/<id>-art -b vignette-<id>-art origin/main`
+   (one worktree per PR; `<id>` names the scene or the batch).
+2. Do every edit, build, test and commit inside that worktree. Never edit,
+   switch branches, stash, reset or commit in the main checkout or in
+   another session's worktree, even when its state looks wrong: tell that
+   session or the user instead.
+3. Stage only your own files, by path (`git add <paths>`), never
+   `git add -A` or `git commit -a`, and check `git diff --cached --stat`
+   before each commit.
+4. Before pushing, `git fetch` and rebase on `origin/main` if it moved;
+   resolve the usual conflicts (CHANGELOG, the AGENTS.md vignette bullet,
+   row 12 of the plan, the PROVENANCE sections) by keeping both sides.
+5. After the merge, remove the worktree and delete the branch.
+
+Generated images and crops stay in the scratchpad, outside the repository.
+
 ## Round 1: brief and generation
 
 Input: a scene id from `docs/scene-vignettes.md` §4 (or a new scene the
@@ -157,10 +180,12 @@ file path; ask for the path if the pasted image cannot be found on disk).
    - The `src/vignettes.mjs` bullet in AGENTS.md "Current repository"
      (move the scene out of the placeholder list) and row 12 of
      `docs/non-battle-feature-plan.md`.
-8. **Verify** with `make syntax` (it also compiles `tools/*.py`), `make test` and
-   `node tools/check_vignettes.mjs`. Then use the AGENTS.md change workflow:
-   a PR with an independent review, unless the user says to push a small
-   change directly.
+8. **Verify** in your worktree with `make syntax` (it also compiles
+   `tools/*.py`), `make test` and `node tools/check_vignettes.mjs`. Then use
+   the AGENTS.md change workflow from that worktree: a PR with an
+   independent review, unless the user says to push a small change
+   directly. Even then, push from the worktree, never from the main
+   checkout.
 
 ## Period checklist (1560–1680)
 
