@@ -530,6 +530,35 @@ and sailors crowding the bow.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-landfall --source <image> --shape landscape`
   (Pillow).
 
+## open-prison.png
+
+The career opening's prison, 224 × 128 (7 : 4), for "a foul prison" (CSTR 22
+and 32: France 1600, England 1680 and every Spanish story): in a vaulted
+stone cell a ragged young prisoner, his ankle chained to the wall, sits on
+straw and stares up at a barred window where the moon shines, beside a
+bucket, a cracked jug and a crust of bread, with torchlight behind the
+iron-bound door.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-prison prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** A plain stone cell with an iron-bound oak door, straw,
+  a shackle and chain, a wooden bucket and an earthenware jug: nothing in it
+  is tied to one nation or decade. Two small palm trees show through the
+  window; they place the cell in the colonies, which fits the Spanish story
+  (CSTR 32) but not quite the European prison before transportation (CSTR
+  22). They are a few art pixels at 1×; accepted.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-prison --source <image> --shape landscape`
+  (Pillow).
+
 ## tavern.png
 
 The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a

@@ -136,6 +136,7 @@ const SCENE_ART_URLS = {
   'open-plantation': new URL('../assets/vignettes/open-plantation.png', import.meta.url).href,
   'open-boarded': new URL('../assets/vignettes/open-boarded.png', import.meta.url).href,
   'open-landfall': new URL('../assets/vignettes/open-landfall.png', import.meta.url).href,
+  'open-prison': new URL('../assets/vignettes/open-prison.png', import.meta.url).href,
   tavern: new URL('../assets/vignettes/tavern.png', import.meta.url).href,
   'divide-plunder': new URL('../assets/vignettes/divide-plunder.png', import.meta.url).href,
   shipwright: new URL('../assets/vignettes/shipwright.png', import.meta.url).href,
@@ -155,6 +156,7 @@ const ART_DESCRIPTIONS = {
   'open-plantation': 'At dusk at the edge of a sugar-cane field a young labourer in a torn shirt and straw hat, cane knife in hand, talks in secret with two crouching smugglers, one with a finger to his lips, above a cove where a small ship lies at anchor, with a boiling house smoking in the distance, pixelated from a comic-style illustration.',
   'open-boarded': 'A Spanish officer in a steel morion and breastplate leaps onto your deck and points his rapier at the captain in his blue coat, as soldiers with muskets and pikes climb over the rail from a galleon flying the red ragged cross of Burgundy, pixelated from a comic-style illustration.',
   'open-landfall': 'A galleon under full sail runs through the whitecaps toward a green, mountainous island fringed with palms, a lookout pointing from the maintop and sailors crowding the bow, pixelated from a comic-style illustration.',
+  'open-prison': 'In a vaulted stone cell a ragged, chained young prisoner sits on straw and stares up at a barred window where the moon shines, beside a bucket, a cracked jug and a crust of bread, a rat in the corner and torchlight behind the iron-bound door, pixelated from a comic-style illustration.',
   tavern: 'In a smoky, low-beamed waterfront tavern four sailors play cards and dice over pewter tankards while a fiddler plays by the casks, under a parrot, lanterns and a hanging ship model, the open door showing masts at dusk, pixelated from a comic-style illustration.',
   'divide-plunder': 'In a sunlit colonial counting house the captain rests a hand on an open chest of silver while a bald clerk in spectacles writes in a ledger and a quartermaster counts coins into the palm of grinning buccaneers lined up for their share, beside stacks of rough silver coins, gold, pearls and a brass balance, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
@@ -1307,8 +1309,14 @@ function stoneCell(p) {
   for (const x of [189, 193]) p.rect(x, 54, 1, 8, '#6a6a70');
 }
 
-// A stone cell, moonlight through the bars, a prisoner on the straw.
+// The prison cell art (assets/vignettes/open-prison.png) once loaded; until
+// then, the placeholder: a stone cell, moonlight through the bars, a
+// prisoner on the straw.
 function drawPrison(p) {
+  if (sceneArt['open-prison']) {
+    p.image(sceneArt['open-prison'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   stoneCell(p);
   // Barred window and the shaft of light under it.
   p.rect(82, 14, 44, 30, OUTLINE);

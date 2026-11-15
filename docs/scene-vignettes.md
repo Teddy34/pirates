@@ -854,7 +854,7 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 | open-quarterdeck | a fight on deck, or a duel for command (CSTR 20, 26, 43) | Real art, `assets/vignettes/open-quarterdeck.png`: see the prompt below the table. |
 | open-boarded | a Spanish ship boards you (CSTR 35, 44) | Real art, `assets/vignettes/open-boarded.png`: see the prompt below the table. |
 | open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | Real art, `assets/vignettes/open-landfall.png`: see the prompt below the table. |
-| open-prison | a foul prison (CSTR 22, 32) | A prisoner on straw in a stone cell, moonlight through a barred window. |
+| open-prison | a foul prison (CSTR 22, 32) | Real art, `assets/vignettes/open-prison.png`: see the prompt below the table. |
 | open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Smugglers row toward an anchored ship under the moon. |
 | open-buccaneers | living among the buccaneers (CSTR 38) | Real art, `assets/vignettes/open-buccaneers.png`: see the prompt below the table. |
 | open-colony | a poor colony, "Turn back" (CSTR 9) | Thatched huts inside a stockade, angry settlers facing their leader. |
@@ -1094,6 +1094,32 @@ Scene negatives: flags, ensign, pennants, streamers, banners, ship's
 steering wheel, jib sails, staysails, spanker, steamship, modern yacht,
 lighthouse, buildings, town, fort, skull and crossbones, black flag, people
 on the beach.
+
+**open-prison** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> A foul prison cell in a 17th-century stone fortress at night, around 1620.
+> A low, vaulted cell of rough, damp grey stone blocks streaked with mould
+> and water stains. High on the back wall, a small window with thick crossed
+> iron bars lets in a single cold blue beam of moonlight that falls across
+> the floor. In the beam, a young prisoner, lean, about twenty-five,
+> sun-weathered, gaunt face, dark hair untied and matted, a short ragged
+> beard, in a torn, dirty linen shirt and ragged breeches, barefoot, sits on
+> a heap of filthy straw with his back against the wall and his arms on his
+> knees, staring up at the window with a hard, determined look; a heavy iron
+> shackle on one ankle is chained to a ring in the wall. Around him: a
+> wooden bucket, a cracked earthenware water jug, a crust of bread, a rat in
+> the corner. On the left, a heavy oak door banded with iron and studded
+> with nails, with a small barred grille through which a faint warm orange
+> glow of a torch shows. Deep shadows, cold blue and grey moonlight against
+> small warm torchlight. Keep the prisoner's face and the moonlit window
+> clearly in the picture.
+
+Scene negatives: flags, modern prison bars, cell with metal bunks, padlock
+of modern design, handcuffs, orange jumpsuit, electric light, skeleton,
+skull, torture instruments, blood, tricorne hat, bicorne hat, eyepatch,
+parrot.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 
