@@ -44,8 +44,9 @@ user describes).
      hats".
    - **Format**: aspect ratio and generation size. Ask for a clean 8× block
      if the provider allows it: landscape 1792 × 1024 (7 : 4), portrait
-     768 × 1024 (3 : 4), title 1536 × 1024 (3 : 2). Any larger size of the
-     same aspect works too, because the build crops and box-reduces.
+     768 × 1024 (3 : 4), title 1920 × 1280 (3 : 2). A provider's own size
+     of the same aspect also works (the title was built from 1536 × 1024,
+     ×6.4), because the build crops and box-reduces.
    - **Reply checklist**: when the user sends the image back, they should
      confirm they hold its rights, and give the tool, model and final
      prompt for the provenance record.
@@ -53,8 +54,8 @@ user describes).
 
 ## Round 2: review and build
 
-Input: the user's image (often a pasted `[Image #n]`, saved under
-`~/.claude/image-cache/` or given as a path).
+Input: the user's image (a pasted image or a file path; ask for the path if
+the pasted image cannot be found on disk).
 
 1. **Rights**: if the user has not confirmed they hold the rights, ask
    before committing anything (AGENTS.md "Non-negotiable asset rule").
@@ -95,10 +96,18 @@ Input: the user's image (often a pasted `[Image #n]`, saved under
    - Add the file to `SCENE_ART_URLS`.
    - Write an accessible description in `ART_DESCRIPTIONS`: what is shown,
      plus "pixelated from a comic-style illustration".
-   - Keep the code-drawn placeholder as the fallback until the image loads
-     (see `drawTitleShip`).
-   - Update the unit test in `test/vignettes.test.mjs` and the browser
-     check in `tools/check_vignettes.mjs` if they name the scene.
+   - Make the scene's draw function draw the art. `drawVignette` always
+     calls `SCENES[id].draw` and never blits loaded art by itself, so add
+     an `if (sceneArt[id]) { p.image(...); return; }` branch at the top of
+     the draw function and keep the code-drawn placeholder below it as the
+     fallback until the image loads (see `drawTitleShip`). Without it the
+     placeholder stays on screen while its label claims the art.
+   - Per-nation variants (one PNG per flag) need their own keys and a draw
+     function that picks the key from its options.
+   - `tools/check_vignettes.mjs` finds each picture by a substring of its
+     aria-label. The new `ART_DESCRIPTIONS` text replaces the placeholder
+     label, so keep the substring or update the check. Update
+     `test/vignettes.test.mjs` too.
 7. **Record**:
    - `assets/vignettes/PROVENANCE.md`: a section with the source (diffusion
      model, tool and prompt, or "not recorded"), the user's rights, the
@@ -106,27 +115,29 @@ Input: the user's image (often a pasted `[Image #n]`, saved under
    - `docs/scene-vignettes.md`: the scene entry points to the art and its
      fixes.
    - `CHANGELOG.md` under Unreleased.
-8. **Verify** with `make syntax`, `make test` and
+8. **Verify** with `make syntax` (it also compiles `tools/*.py`), `make test` and
    `node tools/check_vignettes.mjs`. Then use the AGENTS.md change workflow:
    a PR with an independent review, unless the user says to push a small
    change directly.
 
 ## Period checklist (1560–1680)
 
-These are traps found so far. Each still needs checking against a source
-for the exact year and scene; extend the list when a review finds a new
-one.
+These are traps found so far. Several rows were written from memory, not
+from a cited source: check each against a source (FOTW, Wikipedia with its
+references, a museum or heritage page) for the exact year and scene, cite
+it in the brief, and extend or correct the list when a review finds
+something new.
 
 | Subject | Right for the period | Anachronisms to catch |
 |---|---|---|
-| Spain | Cross of Burgundy: red ragged saltire on white | Red-yellow-red stripes (1785) |
-| England | St George's cross, red on white. From 1606, the Union Flag (St George over St Andrew's white saltire on blue) as jack on royal ships | St Patrick's red saltire in the Union Flag (1801) |
-| France | Royal ships: white, or white with gold fleurs-de-lis | Tricolour (1790s) |
-| Holland | Prince's flag, orange-white-blue; red-white-blue spreads during the 17th century | — |
-| Pirates | Plain black or red flags | Skull and crossbones designs belong mostly to about 1700–1725; check the scene's year |
-| Ships | Galleons, carracks, pinnaces, fluyts; steered by tiller and whipstaff | Ship's wheel (about 1700 onward) |
+| Spain | Cross of Burgundy: red ragged saltire on white; naval ensign to about the 1670s, then jack to 1785 ([FOTW](https://fotw.info/FLAGS/es_brgdy.html)) | Red-yellow-red stripes (1785) |
+| England | St George's cross, red on white; red ensign with a St George canton from about the 1620s. The 1606 Union Flag (St George over St Andrew's white saltire on blue) at the maintop; royal ships only from 1634; not used 1649–1660 (Commonwealth flags with the Irish harp) | St Patrick's red saltire in the Union Flag (1801) |
+| France | Royal ships and forts: white, made official in 1661 (plain or with gold fleurs-de-lis: sources differ). 1560s ships flew various flags, often a white cross | Tricolour (1790s) |
+| Holland | From the Revolt (about 1570): Prince's flag, orange-white-blue, to about 1630; both versions 1630–1662; red-white-blue from 1663 ([Wikipedia](https://en.wikipedia.org/wiki/Prince%27s_Flag)). Before the Revolt, Habsburg colours | — |
+| Pirates | Buccaneers mostly sailed under their commission's colours; a plain red flag meant no quarter | Plain black flags mainly from the 1690s; skull and crossbones about 1700–1725 |
+| Ships | Galleons, carracks, pinnaces; fluyts from about 1595; steered by tiller and whipstaff | Ship's wheel (about 1700 onward); a fluyt before 1595 |
 | Optics | Telescopes after 1608 | A spyglass in a 1560–1600 scene |
-| Dress | Ruffs and morions early; broad-brimmed hats; periwigs from the 1660s | Tricornes before about 1680; bicornes; Napoleonic uniforms |
+| Dress | Ruffs and morions early; broad-brimmed hats; periwigs from the 1660s | Tricornes (about 1690 onward); bicornes; Napoleonic uniforms |
 | Picture | Comic panel, no lettering | Text, signatures, watermarks, a baked-in frame |
 
 The map and `FLAG_DARK` colours (Spain yellow/red, and so on) are game UI

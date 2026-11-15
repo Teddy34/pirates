@@ -62,7 +62,8 @@ Notes:
 - **Flags in pictures** follow the period, not the game's map colours
   (`FLAG_DARK`): Spain the Cross of Burgundy (red ragged saltire on white),
   England St George's cross (and the 1606 Union Flag as a jack), France
-  white, Holland the orange-white-blue Prince's flag, pirates black. Describe
+  white, Holland the Prince's flag or the later red-white-blue, buccaneers their
+  commission's colours or a plain red flag. Describe
   the flag's look in the prompt rather than naming it. The checklist of
   period traps is in `.claude/skills/vignette-art/SKILL.md`.
 

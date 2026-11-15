@@ -118,6 +118,8 @@ def pixelate(image, size, colours=COLOURS):
 
 def build(scene, source_path, out_path, shape=None):
     entry = SCENES.get(scene, {})
+    if shape and entry.get('shape') and shape != entry['shape']:
+        raise SystemExit(f'{scene} is a {entry["shape"]} vignette in SCENES; drop --shape or change the entry')
     shape = shape or entry.get('shape')
     if shape not in SHAPES:
         raise SystemExit(f'unknown shape {shape!r} for {scene}; pass --shape {"|".join(SHAPES)}')
@@ -128,6 +130,11 @@ def build(scene, source_path, out_path, shape=None):
     for fix in entry.get('fixes', []):
         fix(image)
     box = entry.get('crop') or centred_crop(image.size, size[0] / size[1])
+    box_width, box_height = box[2] - box[0], box[3] - box[1]
+    if abs(box_width / box_height - size[0] / size[1]) > 0.01:
+        raise SystemExit(f'crop box {box} is not the {shape} aspect {size[0]} : {size[1]}')
+    if box_width < size[0] or box_height < size[1]:
+        raise SystemExit(f'source crop {box_width} x {box_height} is smaller than the {size[0]} x {size[1]} picture')
     if box != (0, 0, *image.size):
         image = image.crop(box)
     pixelate(image, size).save(out_path, optimize=True)
