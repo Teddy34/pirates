@@ -535,7 +535,8 @@ The art is `assets/vignettes/title-ship.png`, built by
 `tools/build_title_vignette.py` (provenance in
 `assets/vignettes/PROVENANCE.md`): a three-masted English warship under full
 sail flying St George's cross, seen from ahead and to one side, off a
-palm-fringed island with a Spanish stone fort. Until the image loads, the
+palm-fringed island with a Spanish stone fort flying the Cross of
+Burgundy (the build repaints the source's anachronistic 1785 flag). Until the image loads, the
 code-drawn sloop placeholder stands in.
 
 Picked by a script for each era and nationality, and shown before play

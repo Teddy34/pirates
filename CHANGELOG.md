@@ -116,7 +116,8 @@ history.
   only as a fallback while the image loads. The picture keeps the
   artwork's 3 : 2 shape (240 × 160) instead of being cropped to the dialog
   format. The ship flies St George's cross, as English ships of the period
-  did, and the island's fort is Spanish. The picture uses up to 256 colours:
+  did, and the island's Spanish fort flies the Cross of Burgundy, the
+  Spanish flag of the period, rather than the red-yellow-red flag of 1785. The picture uses up to 256 colours:
   vignettes are no longer held to a 32-colour palette, since the retro look
   comes from the pixel size.
 

@@ -57,8 +57,10 @@ Spanish stone fort.
   a corrected one with period flags and a better framing. The tool, model
   and prompt were not recorded. The source file is not kept in the
   repository. No material from the original game was used.
-- **Process:** `tools/build_title_vignette.py` reduces the picture to
-  240 × 160 with a box filter, raises contrast (×1.15) and colour (×1.2),
+- **Process:** `tools/build_title_vignette.py` first repaints the fort's
+  flag as the Cross of Burgundy, the Spanish flag of 1560–1680 (the source
+  drew the red-yellow-red flag of 1785), by warping a flat flag onto its
+  corners. It then reduces the picture to 240 × 160 with a box filter, raises contrast (×1.15) and colour (×1.2),
   and quantises to 256 colours (median cut) without dithering (indexed
   PNG).
 - **Rebuild:** `python3 tools/build_title_vignette.py --source <image>`
