@@ -205,6 +205,10 @@ SCENES = {
     },
     # The generator scrawled a signature on the floor in the bottom right
     # corner; floor planks from just left of it cover it.
+    'shipwright': {
+        'shape': 'portrait',
+        'source': (1086, 1448),
+    },
     'tavern': {
         'shape': 'landscape',
         'source': (1659, 948),
