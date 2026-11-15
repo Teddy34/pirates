@@ -97,6 +97,16 @@ history.
 
 ### Changed
 
+- Fort battles are fought on the real coast round the town, cut from the
+  sailing map and painted the same way, north up, so its capes, bays and
+  islands look as you know them; the forts stand on the shore beside the
+  town as small pixel-art forts in the style of the town markers. The view
+  is zoomed out, and you sail at full battle speed (the original halves it)
+  so the forts' broadsides can be dodged. Land by running your flagship
+  ashore by the town itself: no landing place is marked, and running onto any
+  other shore, a fort's included, is running aground. You start in open water
+  upwind of the town wherever the coast allows. Departure from the original,
+  which draws each town's fort battle on its own hand-made harbor map.
 - Fast travel (T, at sea or on foot) now runs time twice as fast instead
   of five times, so the ship stays steerable; T still toggles it off, and any
   voyage event still clears it. The speed readout starts with "×2" while it is

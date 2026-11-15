@@ -31,7 +31,7 @@ import {
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
-  FORT_FIELD, broadsideState, createBattle, createFortBattle, damageLevel, embarkedForBattle, fieldToCompass, garrisonAfterFortBattle, playerOpenedRange, shipName, shipRecord, stepBattle,
+  MAX_FORT_BATTERIES, broadsideState, createBattle, createFortBattle, damageLevel, embarkedForBattle, garrisonAfterFortBattle, playerOpenedRange, shipName, shipRecord, stepBattle,
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
 import {
@@ -762,6 +762,28 @@ function drawTerrainChunks(camera, visibleWidth, visibleHeight) {
       requestTerrainChunk(chunkX, chunkY);
     }
   }
+}
+
+// A fort field's terrain (battle.field): the sailing map's painted chunks
+// under the field's window, scaled to the field's pixels per map cell.
+// Chunks still being painted are requested and left to the flat colours.
+function drawFortTerrain(context, battle) {
+  if (!terrain) return;
+  const { left, top, cellPixels, width, height } = battle.field;
+  const lastX = Math.floor((left + width / cellPixels - 1) / TERRAIN_CHUNK_CELLS);
+  const lastY = Math.floor((top + height / cellPixels - 1) / TERRAIN_CHUNK_CELLS);
+  const size = TERRAIN_CHUNK_CELLS * cellPixels;
+  context.save();
+  context.beginPath(); context.rect(0, 0, width, height); context.clip();
+  context.imageSmoothingEnabled = false;
+  for (let chunkY = Math.floor(top / TERRAIN_CHUNK_CELLS); chunkY <= lastY; chunkY += 1) {
+    for (let chunkX = Math.floor(left / TERRAIN_CHUNK_CELLS); chunkX <= lastX; chunkX += 1) {
+      const chunk = terrain.chunks.get(`${chunkX},${chunkY}`);
+      if (!chunk) { requestTerrainChunk(chunkX, chunkY); continue; }
+      context.drawImage(chunk, (chunkX * TERRAIN_CHUNK_CELLS - left) * cellPixels, (chunkY * TERRAIN_CHUNK_CELLS - top) * cellPixels, size, size);
+    }
+  }
+  context.restore();
 }
 
 function isNavigable(x, y) {
@@ -2571,21 +2593,21 @@ function attackTown(town) {
   });
 }
 
-// Withdrawing alerts the town (+16). After landing at the quay the landing
+// Withdrawing alerts the town (+16). After landing by the town the landing
 // has already raised it, so withdrawing then adds nothing more (ASSUMED).
 function withdrawFromAssault(town, { alert = 16 } = {}) {
   return { label: 'Withdraw from the assault', secondary: true, run: () => { state.alert += alert; addLog(`Withdrew from the assault on ${town.name}.`); departFromApproach(); resumeSailing(); } };
 }
 
 // sea_battles.md §8: by sea, a fortified town is attacked through a battle
-// against its fort. The briefing names the goal: the port's field puts the
-// landing at the town's quay beside the fort, not under the fort itself
-// (FORT_FIELD in battle-mechanics.mjs).
+// against its forts. The briefing names the goal: the port's field puts the
+// landing on the shore by the town itself, not under a fort (FORT_FIELD in
+// battle-mechanics.mjs).
 function briefFortBattle(town) {
-  const forts = Math.min(town.forts & 7, FORT_FIELD.forts.length);
+  const forts = Math.min(town.forts & 7, MAX_FORT_BATTERIES);
   const fortLine = forts === 1
-    ? `One fort guards the harbor of ${town.name} with 12 guns. It stands on a rocky headland: there is nowhere to land beneath its walls.`
-    : `${forts} forts guard the harbor of ${town.name}, with 12 guns each. They stand on rocky headlands along the coast: there is nowhere to land beneath their walls.`;
+    ? `One fort guards the harbor of ${town.name} with 12 guns. It stands on the shore beside the town: there is nowhere to land beneath its walls.`
+    : `${forts} forts guard the harbor of ${town.name}, with 12 guns each. They stand on the shore around the town: there is nowhere to land beneath their walls.`;
   const fire = forts === 1
     ? 'the fort fires whenever its guns bear'
     : 'each fort fires whenever its guns bear. Your broadside bears on the nearest fort still firing, and a fort whose guns are all dismounted falls silent';
@@ -2596,8 +2618,8 @@ function briefFortBattle(town) {
   showDialog({
     vignette: { id: 'fort-walls', flag: town.nation }, kicker: 'Assault from the sea', title: `Attack ${town.name}`,
     body: `<p>${fortLine}</p>`
-      + `<p><strong>Steer past the ${forts === 1 ? 'fort' : 'forts'} into the harbor and bring your flagship alongside the town quay.</strong> Your men will land there and take the fort from the town side. Run aground anywhere else, on a fort’s rocks included, and they will refuse to march; stand too far out to sea and the guns drive you off.</p>`
-      + `<p>In these narrow waters you sail at half speed, and ${fire}. Only the flagship’s crew goes ashore. Steer with Left/Right or A/D, fire with Space, and change sail with Up/Down.</p>`
+      + `<p><strong>Steer past the ${forts === 1 ? 'fort' : 'forts'} and run your flagship ashore by the town itself.</strong> Your men will land there and take the fort from the town side. Run aground anywhere else, under a fort’s walls included, and they will refuse to march; stand too far out to sea and the guns drive you off.</p>`
+      + `<p>You start upwind of the town, and ${fire}. Only the flagship’s crew goes ashore. Steer with Left/Right or A/D, fire with Space, and change sail with Up/Down.</p>`
       + `<p>Choose the ship you will command. Eight hands remain aboard every reserve ship.</p>`,
     actions: [...choices, withdrawFromAssault(town)],
   });
@@ -2606,7 +2628,7 @@ function briefFortBattle(town) {
 function beginFortBattle(town, flagshipIndex) {
   state.battle = {
     ...createFortBattle({
-      player: state.player, town, flagshipIndex,
+      player: state.player, town, map: worldMap, flagshipIndex,
       speedRows: scenarios[state.era].speeds, difficulty: state.difficulty, ability: state.ability,
       playerFlag: state.nationality, crewMorale: state.player.crewMorale, rng,
     }),
@@ -2616,7 +2638,7 @@ function beginFortBattle(town, flagshipIndex) {
   enterBattleMode(`Sea battle against the fort of ${town.name}`);
 }
 
-// The end of a fort battle (sea_battles.md §8): only landing at the quay
+// The end of a fort battle (sea_battles.md §8): only landing by the town
 // carries the attack on; every other ending sends you back to sea.
 function finishFortBattle(battle) {
   const town = state.towns[battle.townIndex];
@@ -2665,10 +2687,10 @@ function landBelowTheFort(town, { yourMen, fortMenLeft }) {
   state.alert += 16;
   state.player.reputation -= 2;
   const soldiers = garrisonAfterFortBattle({ soldiers: town.soldiers, fortMenLeft });
-  addLog(`Landed ${yourMen} men at the quay of ${town.name}.`);
+  addLog(`Landed ${yourMen} men on the shore of ${town.name}.`);
   showDialog({
     vignette: { id: 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
-    body: `<p>Your flagship comes alongside the town quay under the fort’s guns, and her ${yourMen} men swarm ashore. The fort lies before them.</p>`,
+    body: `<p>Your flagship runs ashore by the town under the fort’s guns, and her ${yourMen} men swarm onto the beach. The fort lies before them.</p>`,
     actions: [
       { label: 'Storm the walls', run: () => stormTheWalls(town, { yourMen, soldiers }) },
       withdrawFromAssault(town, { alert: 0 }),
@@ -4617,7 +4639,7 @@ function updateBattleInterface(battle) {
   labels.captain.textContent = `Captain ${state.captain} · Battle`;
   labels.date.textContent = battle.fort ? `Attacking the fort of ${battle.encounter.town}` : `Engaging ${battle.encounter.flag} ${battle.enemy.name}`;
   labels.speed.textContent = `${Math.abs(battle.player.speed ?? 0)} battle speed`;
-  labels.wind.textContent = `${windFrom(fieldToCompass(battle.wind.direction, battle.orientation))} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
+  labels.wind.textContent = `${windFrom(battle.wind.direction)} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
   labels.sails.textContent = battleSailsLabel(battle.player);
   labels.food.textContent = 'Clock stopped';
   labels.crew.textContent = `${battle.player.men} aboard`;
@@ -4700,7 +4722,7 @@ function render() {
     return;
   }
   if (state.mode === 'battle' && state.battle) {
-    renderBattle(ctx, state.battle, width, height);
+    renderBattle(ctx, state.battle, width, height, { backdrop: drawFortTerrain });
     if (state.paused && !dialog.open) drawPaused(width, height, 'Battle paused');
     return;
   }

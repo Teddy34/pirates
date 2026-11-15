@@ -205,7 +205,7 @@ evidence for each item. This list collects them in one place.
   reports the loss.
 - Storming the walls (`0x18EFD`) is played after every assault. By sea, a
   town with forts is first fought as a fort battle (see
-  `tactical-sea-combat-plan.md` §7); landing at its quay leads to the walls.
+  `tactical-sea-combat-plan.md` §7); landing on the shore by the town leads to the walls.
   The land battle that comes first overland (soldiers × 15 ≥ crew, a fort
   and 10+ soldiers) still counts as won without losses: it leaves the
   garrison as it was and adds no march alert. You may still withdraw before
