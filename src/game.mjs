@@ -61,6 +61,7 @@ import {
   isMerchantFamily, makeInformant, marryGovernorRelative, merchantFarewell, merchantSuitAccepted, proposalAnswer, relativeWord, suitorId,
 } from './romance.mjs';
 import { ERA_DIFFICULTIES, careerBrief, eraBrief } from './eras.mjs';
+import { RETRO_LOGO_SIZE, drawRetroLogo } from './title-logo.mjs';
 import { GOVERNOR_ERAS, GOVERNOR_NATIONS, drawVignette, loadVignetteArt, vignetteDescription, vignetteNeedsArt, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
@@ -5628,7 +5629,25 @@ function openPreview(preview) {
   return true;
 }
 
+// The title: "Retro" in pixel letters beside the script "Pirates!", over the
+// sloop vignette.
+function paintTitleScreen() {
+  const logo = document.querySelector('#title-retro');
+  Object.assign(logo, RETRO_LOGO_SIZE);
+  logo.style.setProperty('--art-width', RETRO_LOGO_SIZE.width);
+  logo.style.setProperty('--art-height', RETRO_LOGO_SIZE.height);
+  drawRetroLogo(logo.getContext('2d'));
+  const picture = document.querySelector('#title-vignette');
+  const size = vignetteSize('title-sloop');
+  Object.assign(picture, size);
+  picture.style.setProperty('--art-width', size.width);
+  picture.style.setProperty('--art-height', size.height);
+  drawVignette(picture.getContext('2d'), 'title-sloop');
+  picture.setAttribute('aria-label', vignetteDescription('title-sloop'));
+}
+
 resize();
+paintTitleScreen();
 // The era half of the start panel needs no scenario data; the career half
 // fills in once the scenarios load.
 updateEraBrief();

@@ -1,6 +1,6 @@
 # Pirates! web port
 
-This repository is a browser port inspired by *Pirates! Gold*. Build a playable single-player game that preserves the documented systems and feel while using web-native code and original presentation assets.
+This repository, **RetroPirates!**, is a browser port inspired by *Pirates! Gold*. Build a playable single-player game that preserves the documented systems and feel while using web-native code and original presentation assets.
 
 ## Start here
 
@@ -38,6 +38,18 @@ repeat reverse engineering that the archive has already documented.
 
 Treat confirmed formulas and decoded data as the authority for mechanics. Preserve qualifications such as “likely,” “guess,” and “unconfirmed”; do not silently promote them to facts. When the documentation leaves a gap, choose the smallest playable interpretation and record the assumption near the implementation.
 
+## Art direction
+
+The game is called **RetroPirates!**. Its global style is arcade retro:
+pixelated graphics, sprites, whole-number pixel scales and chunky pixel
+frames and controls. The scene vignettes are pixelated too, but they follow
+historical accuracy (period ships, rigging, costume and architecture) and the
+drawing and colouring of 1980s Franco-Belgian historical comics (see the
+shared style block in `docs/scene-vignettes.md`). Until a picture has its own
+approved art, it is a temporary code-drawn vignette, and each real picture
+replaces its placeholder in its own commit. The title logo shows both sides:
+"Retro" in pixel letters, "Pirates!" in a script typeface.
+
 ## Non-negotiable asset rule
 
 Never commit proprietary game binaries or proprietary artwork. This ban also
@@ -74,6 +86,7 @@ The project has no build step or third-party dependency:
 - `src/eras.mjs` contains the DOM-free era briefs for the start screen: each era's manual title and difficulty rating, a description and highlights written from `eras.md`, and each career's advice (by era and nation) written from `careers.md` with its starting force read from the start record.
 - `src/opening.mjs` contains the DOM-free career opening: each era and nation's story, its picture per screen, and the sailing master's first briefing. Its `open-*` and `sailing-master` vignettes appear when starting a new career.
 - `src/vignettes.mjs` draws the framed scene pictures above dialog text (`docs/scene-vignettes.md`). Places and events are 224×128 landscapes above the text (coastal towns use the harbour-arrival and port-quay scenes whichever way you came; only landlocked towns use shore-arrival and town-square); people are 96×128 portraits beside it (stacked on narrow screens). The governor's portrait follows the career's era and the town's nation: `assets/vignettes/governors.png` holds 24 public-domain period paintings pixelated by `tools/build_governor_portraits.py` (`docs/governor-dress-1560-1680.md`, sources in `assets/vignettes/PROVENANCE.md`); check them all with `?preview=governor-portraits`. The merchant, shipwright, barmaid, bartender, traveller and map-seller portraits and the harbour-arrival, shore-arrival, port-quay, town-square, prize, enemy-destroyed, shipwreck, marooned, divide-plunder, tavern, dig-found, dig-nothing, reunion (female and male), villain, four lost-city, sail-ho, boarding, hostage-talks, crew-recruits, treasure-fleet, silver-train, mutiny, prison, hall-of-fame, alley-duel, four retirement (retire-1 to retire-4), land-attack, fort-walls, sinking, outrun and nightfall pictures are simple code-drawn placeholders until real art is approved; check them with `?preview=governor-promotion`, `merchant`, `shipwright`, `barmaid`, `news` (the bartender), `traveller`, `map-seller`, `tavern`, `arrival`, `arrival-land`, `in-port`, `in-town`, `prize`, `enemy-destroyed`, `reef-loss`, `marooned`, `retirement`, `dig-found`, `dig-nothing`, `reunion-<sister|father|niece|uncle>`, `villain-tavern`, `villain-rumour`, `lost-city-<incan|aztec|olmec|mayan>`, `sail-ho`, `boarding`, `hostage-talks`, `crew-recruits`, `treasure-fleet-capture`, `silver-train-capture`, `mutiny`, `prison`, `hall-of-fame`, `alley-duel`, `retire-<1|2|3|4>`, `land-attack`, `fort-walls`, `sinking`, `outrun` and `nightfall`.
+- `src/title-logo.mjs` draws the pixel "Retro" of the title logo; "Pirates!" beside it is set in Pinyon Script (SIL OFL, `assets/fonts/`, provenance in `assets/fonts/PROVENANCE.md`). The sloop under the logo is the `title-sloop` vignette.
 - `src/shot-sprites.mjs` paints the sea battle's cannonballs: one, two or three balls by the shooter's gun count.
 - `src/sword-mechanics.mjs` contains the DOM-free sword-fight engine (`sword_fights.md`): fight records, frame tables, the opponent AI and outcomes. `src/fencer-sprites.mjs` paints the pixel-art fencers and backdrops, and `src/sword-renderer.mjs` draws the fight; check it with `?preview=sword-duel`, `sword-boarding` and `sword-practice`, and storming the walls with `?preview=fort-walls` (a fortified town, by sea, after the fort battle) or `land-attack` (overland) and "Storm the walls". `?preview=fort-battle` opens the attack from the sea on the town with the most forts: the briefing, then the fort battle, one battery per fort on the coast cut from the navigation map round the town (`createFortBattle` in `src/battle-mechanics.mjs`, forts painted by `src/fort-sprites.mjs`), where running ashore by the town leads to the walls.
 - `src/sea-chart.mjs` paints the full-screen sea chart (DOM-free): the old-map base image from the navigation map, town and ship markers, the gazetteer filter and the label layout. `src/chart-view.mjs` draws it, pans and zooms it, and runs the gazetteer and the town panel; open it with C or the Chart control at sea, or from the logbook, and check it with `?preview=chart`.

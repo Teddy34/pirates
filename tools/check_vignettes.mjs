@@ -1,9 +1,9 @@
-// Browser smoke check for the sea, capture, captivity, assault, battle-end,
+// Browser smoke check for the title screen picture and logo, and for the sea, capture, captivity, assault, battle-end,
 // retirement and hall-of-fame scene pictures: each dialog shows its picture and fits the viewport, at a desktop
 // and a narrow size (local ?preview= states).
 import { S, VIEWPORTS, dialogTitle, withBrowser } from './browser-harness.mjs';
 
-await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_SCREENSHOTS' }, async ({ evaluate, until, clickButton, screenshot, open, setViewport }) => {
+await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_SCREENSHOTS' }, async ({ evaluate, until, clickButton, screenshot, navigate, open, setViewport }) => {
 
   const expectPicture = async (where, description) => {
     const shown = await evaluate(`({
@@ -41,6 +41,31 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
   ];
   for (const viewport of VIEWPORTS) {
     await setViewport(viewport);
+    // The title screen: the pixel "Retro" and the sloop picture are painted,
+    // the heading reads the whole name, and nothing overflows sideways.
+    await navigate('/');
+    await until('the title screen', `!document.querySelector('#start-screen')?.classList.contains('hidden') && document.querySelector('#start-screen').clientWidth > 0 && document.querySelector('#title-vignette').getAttribute('aria-label')?.includes('seen from ahead')`);
+    const title = await evaluate(`(() => {
+      const colours = (canvas) => {
+        const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+        const set = new Set();
+        for (let i = 0; i < data.length; i += 4) if (data[i + 3]) set.add((data[i] << 16) | (data[i + 1] << 8) | data[i + 2]);
+        return set.size;
+      };
+      const panel = document.querySelector('#start-screen');
+      return {
+        heading: [...document.querySelector('#start-screen h1').childNodes].filter((node) => node.getAttribute?.('aria-hidden') !== 'true').map((node) => node.textContent).join(''),
+        visible: !panel.classList.contains('hidden') && panel.clientWidth > 0,
+        logo: colours(document.querySelector('#title-retro')),
+        picture: colours(document.querySelector('#title-vignette')),
+        inside: panel.scrollWidth <= panel.clientWidth,
+      };
+    })()`);
+    if (!title.visible) throw new Error(`${viewport.name}: the title screen is not shown`);
+    if (title.heading !== 'RetroPirates!') throw new Error(`${viewport.name}: the title reads "${title.heading}"`);
+    if (title.logo < 5 || title.picture < 20) throw new Error(`${viewport.name}: the title art looks blank (${title.logo} and ${title.picture} colours)`);
+    if (!title.inside) throw new Error(`${viewport.name}: the title screen overflows sideways`);
+    await screenshot(`${viewport.name}-title`);
     for (const [preview, description] of scenes) {
       await open(preview);
       await expectPicture(`${viewport.name} ${preview}`, description);

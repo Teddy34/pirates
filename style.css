@@ -1,3 +1,5 @@
+/* The script half of the RetroPirates! title (SIL OFL; assets/fonts/PROVENANCE.md). */
+@font-face { font-family:"Pinyon Script"; src:url("assets/fonts/PinyonScript-Regular.woff2") format("woff2"); font-display:swap; }
 :root { color-scheme:dark; --ink:#f3e5c5; --muted:#c7b897; --paper:#ead8ad; --paper-ink:#2e2319; --brass:#d6a447; --deep:#071a21; --panel:rgba(8,27,34,.88); --line:rgba(235,211,161,.28); }
 * { box-sizing:border-box; }
 html,body,#app { width:100%; height:100%; margin:0; overflow:hidden; }
@@ -8,7 +10,6 @@ button { touch-action:manipulation; }
 .hidden { display:none !important; }
 .screen-panel { position:fixed; inset:0; display:grid; align-content:safe center; justify-items:center; padding:32px 20px; overflow:auto; text-align:center; background:radial-gradient(circle at 50% 36%,rgba(41,96,103,.35),transparent 38%),linear-gradient(rgba(4,20,27,.9),rgba(4,20,27,.97)); }
 .screen-panel::before { content:""; position:fixed; inset:18px; border:1px solid var(--line); pointer-events:none; }
-.crest { display:grid; place-items:center; width:72px; height:72px; margin-bottom:18px; border:1px solid var(--brass); border-radius:50%; color:var(--brass); font-size:32px; }
 .eyebrow { margin:0 0 7px; color:var(--brass); font-size:12px; font-weight:700; letter-spacing:.19em; text-transform:uppercase; }
 h1,h2 { margin:0; font-family:"IM Fell English",Georgia,serif; font-weight:400; }
 h1 { font-size:clamp(45px,8vw,82px); line-height:.95; letter-spacing:-.025em; }
@@ -161,7 +162,30 @@ dialog:has(.plunder-manifest) { width:min(720px,calc(100% - 28px)); }
 }
 @media (min-width:761px) and (max-width:1100px) { #controls{display:grid;grid-template-columns:repeat(5,1fr);width:min(620px,calc(100% - 20px))}#controls button{min-width:0}#log{bottom:126px} }
 @media (min-width:761px) and (max-width:900px) { form{grid-template-columns:repeat(3,1fr)} }
-@media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}form .wide-field{grid-column:auto}.era-brief{grid-template-columns:1fr;padding:14px}.era-brief header{grid-row:auto}.career-brief{grid-template-columns:1fr}.screen-panel{justify-items:stretch;text-align:left}.crest{margin-left:0}.lede{margin-left:0}#hud{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}.hud-block{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;min-width:0;min-height:auto;padding:6px 10px}.hud-block b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.identity{grid-auto-flow:row;min-height:auto}.identity strong,.identity span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(5,1fr);width:calc(100% - 20px)}#controls button{min-width:0;justify-content:center}#controls button span{display:none}#log{bottom:126px;width:calc(100% - 172px)} }
+@media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}form .wide-field{grid-column:auto}.era-brief{grid-template-columns:1fr;padding:14px}.era-brief header{grid-row:auto}.career-brief{grid-template-columns:1fr}.screen-panel{justify-items:stretch;text-align:left}.lede{margin-left:0}#hud{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}.hud-block{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;min-width:0;min-height:auto;padding:6px 10px}.hud-block b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.identity{grid-auto-flow:row;min-height:auto}.identity strong,.identity span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(5,1fr);width:calc(100% - 20px)}#controls button{min-width:0;justify-content:center}#controls button span{display:none}#log{bottom:126px;width:calc(100% - 172px)} }
+/* The title screen: arcade-retro frame and controls around the pixel logo and the
+   sloop vignette; the era brief keeps its readable serif text. */
+.visually-hidden { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+#start-screen { --pixel:#21180f; padding:40px 34px; background:repeating-conic-gradient(rgba(234,216,173,.035) 0 25%,transparent 0 50%) 0 0/4px 4px,radial-gradient(circle at 50% 30%,rgba(41,96,103,.4),transparent 42%),linear-gradient(rgba(4,20,27,.92),rgba(4,20,27,.98)); }
+#start-screen::before { inset:14px; border:4px solid var(--brass); box-shadow:0 0 0 4px var(--pixel),inset 0 0 0 4px var(--pixel),inset 0 0 0 6px rgba(214,164,71,.35); }
+#start-screen .eyebrow,#start-screen label,#start-screen .era-suggested,#start-screen .primary,#start-screen .secondary { font-family:ui-monospace,"DejaVu Sans Mono","Cascadia Mono",Menlo,monospace; letter-spacing:.14em; text-transform:uppercase; }
+#start-screen label { font-size:11px; }
+.title-logo { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:0 18px; margin:2px 0 14px; line-height:1; }
+#title-retro { display:block; width:calc(var(--art-width) * 6px); height:calc(var(--art-height) * 6px); image-rendering:pixelated; }
+.title-pirates { padding:0 .12em .1em 0; color:var(--paper); font-family:"Pinyon Script","Apple Chancery","URW Chancery L",cursive; font-size:96px; text-shadow:3px 3px 0 var(--pixel),0 0 18px rgba(214,164,71,.35); }
+.title-vignette { margin:0 auto 6px; filter:drop-shadow(6px 6px 0 rgba(0,0,0,.55)); }
+#start-screen .lede { margin-top:14px; }
+#start-screen input,#start-screen select { font:12px/normal "Source Sans 3",system-ui,sans-serif; letter-spacing:normal; text-transform:none; border:2px solid rgba(214,164,71,.55); border-radius:0; box-shadow:inset 2px 2px 0 rgba(0,0,0,.45); }
+#start-screen .primary,#start-screen .secondary { border:3px solid var(--pixel); border-radius:0; box-shadow:inset -3px -3px 0 #a8742e,inset 3px 3px 0 #f2c55c,4px 4px 0 #000; }
+#start-screen .secondary { border-color:var(--brass); box-shadow:inset 0 0 0 2px var(--pixel),4px 4px 0 #000; }
+#start-screen .primary:not(:disabled):active,#start-screen .secondary:active { transform:translate(2px,2px); box-shadow:inset -3px -3px 0 #a8742e,inset 3px 3px 0 #f2c55c,2px 2px 0 #000; }
+#start-screen .primary:disabled { cursor:wait; opacity:.6; }
+#start-screen .era-brief { border:2px solid rgba(214,164,71,.45); border-left:6px solid var(--brass); box-shadow:4px 4px 0 rgba(0,0,0,.5); }
+#start-screen .era-pips i { transform:none; }
+@media (max-width:760px) { .title-logo { justify-content:flex-start; gap:0 12px; } }
+/* 2× needs 480 px of picture plus the panel's 68 px of padding. */
+@media (max-width:560px),(max-height:640px) { .title-vignette canvas { width:calc(var(--art-width) * 1px); height:calc(var(--art-height) * 1px); } }
+@media (max-width:520px),(max-height:640px) { #title-retro { width:calc(var(--art-width) * 4px); height:calc(var(--art-height) * 4px); } .title-pirates { font-size:56px; } .title-logo { gap:0 10px; } }
 @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
 /* The sea chart: a full-screen old map with a gazetteer beside it (below it on narrow screens). */
 #sea-chart { position:fixed; inset:0; z-index:20; display:grid; grid-template-columns:minmax(0,1fr) 340px; background:#20160d; color:var(--paper-ink); }

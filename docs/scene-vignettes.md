@@ -525,18 +525,22 @@ exploits recorded in the Pirate Hall of Fame?"* (CSTR 73)
 > with a large open book of records on a lectern, a quill, and a candle.
 > An empty frame is waiting on the wall.
 
-### 4.11 Optional: title and career openings
+### 4.11 Title and career openings
 
-**title** · orig. 0x26 `moon03` · the cover picture and opening-theme
-screen. That comes from the user. No literal call site was found, so it is
-probably loaded by a computed index. The title screen is a full screen, not
-a dialog, so this picture may be bigger than the 224 × 128 vignette. Keep
-the same pixel size and style so the opening matches the game.
-> A moonlit Caribbean night: a pirate ship under full sail crosses a silver
-> path of moonlight on a dark-indigo sea. The captain stands at the bow,
-> coat blowing, under a black flag. Palm-fringed islands are on the horizon
-> under a huge full moon and scattered clouds. Epic, romantic, cover-art
-> composition with clear space at the top for the title.
+**title-sloop** · orig. 0x26 `moon03` (the cover picture) · the title
+screen, under the RetroPirates! logo. The original's cover is a full screen;
+ours is an ordinary 224 × 128 vignette in the shared frame, shown at 2× (1×
+below 520 px wide or 640 px tall). `src/vignettes.mjs` draws a placeholder
+in code until real art is approved.
+> A single-masted, gaff-rigged Caribbean sloop of the later 17th century
+> under full sail, seen from a front three-quarter view: bow toward the
+> viewer and a little to the left, long bowsprit, jib and staysail drawing,
+> the big gaff mainsail and boom swung out behind the mast, a red pennant at
+> the masthead and a black flag at the gaff peak, a bow wave curling white.
+> A hand at the bow, the helmsman at the tiller. Late-afternoon light from
+> the upper left; a green palm-topped island and cumulus clouds on the
+> horizon. Clear, heroic cover composition with the ship as the one focal
+> point.
 
 Picked by a script for each era and nationality, and shown before play
 begins (CSTR 1–44, `src/opening.mjs`). These strings have no pictures in the

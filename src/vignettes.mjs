@@ -87,6 +87,7 @@ const DESCRIPTIONS = {
   sinking: 'Your ship settles by the stern as the crew takes to the water',
   outrun: 'A fast ship pulls away while the pursuer’s last shot falls short',
   nightfall: 'Two ships slip apart in the dark as night ends the chase',
+  'title-sloop': 'A sloop under full sail, seen from ahead and to one side, off a green island',
 };
 
 export function vignetteDescription(id, options = {}) {
@@ -1991,6 +1992,140 @@ function drawNightfall(p) {
   for (const [x, y] of [[74, 84], [154, 78]]) { p.rect(x, y, 2, 2, GOLD); for (let row = y + 6; row < 120; row += 4) p.rect(x - 1, row, 4, 1, '#8a7a3a'); }
 }
 
+// Fills a polygon of [x, y] art-pixel corners, sampling each row at its
+// pixel centre so the edges stay on whole art pixels.
+function polygon(p, points, color) {
+  const ys = points.map(([, y]) => y);
+  for (let y = Math.floor(Math.min(...ys)); y < Math.ceil(Math.max(...ys)); y += 1) {
+    const centre = y + 0.5;
+    const crossings = [];
+    points.forEach(([x0, y0], index) => {
+      const [x1, y1] = points[(index + 1) % points.length];
+      if ((y0 <= centre && y1 > centre) || (y1 <= centre && y0 > centre)) crossings.push(x0 + ((centre - y0) * (x1 - x0)) / (y1 - y0));
+    });
+    crossings.sort((a, b) => a - b);
+    for (let index = 0; index + 1 < crossings.length; index += 2) {
+      const from = Math.round(crossings[index]);
+      const to = Math.round(crossings[index + 1]);
+      if (to > from) p.rect(from, y, to - from, 1, color);
+    }
+  }
+}
+
+function outlinedPolygon(p, points, color) {
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) polygon(p, points.map(([x, y]) => [x + dx, y + dy]), OUTLINE);
+  polygon(p, points, color);
+}
+
+// A line (spars, stays and shrouds) drawn with a square brush `width` art
+// pixels across, centred on the path.
+function line(p, x0, y0, x1, y1, color, width = 1) {
+  const half = Math.floor(width / 2);
+  const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+  for (let step = 0; step <= steps; step += 1) {
+    p.rect(Math.round(x0 + ((x1 - x0) * step) / steps) - half, Math.round(y0 + ((y1 - y0) * step) / steps) - half, width, width, color);
+  }
+}
+
+// A cumulus: lit puffs over a shaded underside, on a flat base.
+function cumulus(p, puffs, light, shade) {
+  for (const [x, y, r] of puffs) p.disc(x + 1, y + 2, r, shade);
+  for (const [x, y, r] of puffs) p.disc(x, y, r, light);
+}
+
+// The title screen picture: a single-masted, gaff-rigged Caribbean sloop of
+// the later 1600s under full sail, seen from ahead and to one side (bow
+// toward the viewer), with jib, staysail and a long bowsprit, flying the
+// black flag, off a green island on a late-afternoon sea.
+function drawTitleSloop(p) {
+  sky(p, ['#4f7f9e', '#6390a6', '#82a8ac', '#a8bca6', '#d0c89c', '#e8d29a'], 64);
+  cumulus(p, [[14, 30, 7], [24, 26, 9], [36, 29, 7], [46, 32, 5]], '#f4ead0', '#c8b48c');
+  cumulus(p, [[178, 22, 6], [190, 18, 8], [202, 21, 7], [212, 25, 5]], '#f4ead0', '#c8b48c');
+  cumulus(p, [[62, 50, 3], [70, 48, 4], [78, 50, 3]], '#efe2c4', '#c8b48c');
+  // The island on the horizon, with two palms on its slope.
+  polygon(p, [[0, 65], [0, 50], [12, 46], [26, 47], [40, 53], [56, 58], [74, 65]], '#5f7f6c');
+  polygon(p, [[0, 65], [0, 54], [18, 52], [40, 57], [60, 65]], '#4f6e5c');
+  for (const [x, y] of [[20, 46], [30, 48]]) {
+    line(p, x, y, x + 1, y - 7, '#3b4a36');
+    for (const [dx, dy] of [[-4, 1], [4, 1], [-3, -1], [3, -1]]) line(p, x + 1, y - 7, x + 1 + dx, y - 7 + dy, '#3b5a40');
+  }
+  polygon(p, [[192, 65], [202, 60], [214, 60], [224, 62], [224, 65]], '#86a092');
+  // The sea: a pale horizon and swell lines that open out toward the viewer.
+  p.rect(0, 64, 224, 64, '#2e6a72');
+  p.rect(0, 64, 224, 1, '#d4d8b4');
+  p.rect(0, 65, 224, 2, '#4f8a88');
+  for (let y = 68, gap = 2; y < 128; y += Math.round(gap), gap += 0.7) {
+    const length = 3 + Math.round((y - 64) / 7);
+    const spacing = 22 + Math.round((y - 64) / 2);
+    for (let x = (y * 37) % spacing - spacing; x < 224; x += spacing) {
+      p.rect(x, y, length, 1, '#5f9a96');
+      p.rect(x + Math.round(spacing / 2), y + 1, Math.max(2, length - 2), 1, '#245a62');
+    }
+  }
+  // Her shadow on the water.
+  polygon(p, [[70, 108], [160, 86], [168, 92], [92, 118]], '#1f4f58');
+
+  // Mainsail, behind the mast: gaff above, boom below, the leech in shade.
+  outlinedPolygon(p, [[110, 22], [160, 7], [172, 64], [108, 70]], PARCHMENT);
+  polygon(p, [[147, 11], [160, 7], [172, 64], [158, 65]], '#d2bd8f');
+  polygon(p, [[160, 7], [172, 64], [167, 64], [157, 9]], '#bca478');
+  for (let panel = 1; panel < 6; panel += 1) {
+    const top = [110 + (50 * panel) / 6, 22 - (15 * panel) / 6];
+    const bottom = [108 + (64 * panel) / 6, 70 - (6 * panel) / 6];
+    line(p, Math.round(top[0]), Math.round(top[1]) + 1, Math.round(bottom[0]), Math.round(bottom[1]) - 1, '#cdb88a');
+  }
+  line(p, 109, 22, 161, 6, WOOD_DARK, 2);
+  line(p, 106, 70, 174, 63, WOOD_DARK, 2);
+  // Mast, raked a little aft, the topmast thinner.
+  line(p, 106, 78, 110, 20, OUTLINE, 3);
+  line(p, 107, 78, 110, 20, WOOD_LIGHT, 1);
+  line(p, 110, 20, 112, 3, WOOD_DARK, 1);
+  // Topping lift from the masthead to the boom end.
+  line(p, 112, 5, 173, 63, '#6a5a44');
+
+  // Hull, bow toward the viewer: the near side converges aft, the far bow
+  // shows as a lit sliver beyond the stem, and the deck is seen from just
+  // above; an ochre top strake over a dark wale, three small ports.
+  outlinedPolygon(p, [[66, 80], [58, 83], [70, 104], [78, 106], [70, 96]], '#8a6038');
+  outlinedPolygon(p, [[66, 80], [160, 72], [162, 76], [158, 86], [96, 101], [78, 106], [70, 96]], WOOD);
+  outlinedPolygon(p, [[66, 80], [90, 70], [130, 66], [158, 69], [160, 72]], '#9a7448');
+  for (const [x0, y0, x1, y1] of [[68, 79, 90, 71], [90, 71, 130, 67], [130, 67, 157, 70]]) line(p, x0, y0, x1, y1, '#6a4a2c', 2);
+  polygon(p, [[66, 80], [160, 72], [161, 75], [67, 85]], '#a8743a');
+  line(p, 67, 86, 161, 76, OUTLINE);
+  polygon(p, [[66, 80], [73, 80], [80, 104], [70, 96]], WOOD_LIGHT);
+  for (const [x, w, h] of [[86, 4, 3], [110, 3, 2], [132, 2, 2]]) p.rect(x, 88 - Math.round((x - 66) * 0.11), w, h, '#1d1710');
+  // Crew: a hand at the bow and the helmsman at the tiller.
+  for (const [x, y, coat] of [[80, 71, '#7a3a2a'], [146, 64, '#2c3f63']]) {
+    p.outlined([[x, y, 3, 4, coat]]);
+    p.rect(x, y - 2, 3, 2, SKIN);
+  }
+
+  // Bowsprit, then the staysail and the jib ahead of the mast.
+  line(p, 65, 80, 20, 99, OUTLINE, 3);
+  line(p, 65, 80, 21, 99, WOOD_LIGHT, 2);
+  outlinedPolygon(p, [[110, 32], [102, 74], [64, 80]], '#e2d2a6');
+  polygon(p, [[110, 32], [102, 74], [98, 74]], '#c9b48a');
+  outlinedPolygon(p, [[111, 16], [74, 66], [23, 97]], '#f4e8c8');
+  polygon(p, [[111, 16], [74, 66], [70, 68], [102, 26]], '#d8c49a');
+  line(p, 111, 16, 23, 97, '#8a7a5a');
+  // Shrouds down to the rails.
+  for (const [x, y] of [[98, 79], [104, 78], [116, 69]]) line(p, 110, 22, x, y, '#4a3a2c');
+
+  // Long red pennant at the masthead; the black flag at the gaff peak.
+  polygon(p, [[112, 2], [135, 5], [112, 6]], '#a8331f');
+  p.outlined([[161, 2, 13, 8, '#1b1b1b']]);
+  p.rect(166, 3, 3, 3, '#f4f0e4');
+  p.rect(167, 4, 1, 1, '#1b1b1b');
+  line(p, 164, 7, 171, 9, '#f4f0e4');
+  line(p, 171, 7, 164, 9, '#f4f0e4');
+
+  // Bow wave and wake.
+  polygon(p, [[58, 104], [72, 100], [84, 106], [96, 104], [80, 112]], '#eef2e6');
+  polygon(p, [[66, 104], [74, 102], [80, 107], [74, 109]], '#c8dcd6');
+  line(p, 80, 106, 158, 87, '#d8e6e0');
+  for (const [x, y, w] of [[100, 104, 18], [122, 98, 14], [142, 93, 12]]) p.rect(x, y, w, 1, '#d8e6e0');
+}
+
 const SCENES = {
   governor: { shape: 'portrait', draw: drawGovernor },
   'villain-news': { shape: 'portrait', draw: drawVillain },
@@ -2048,6 +2183,7 @@ const SCENES = {
   sinking: { shape: 'landscape', draw: drawSinking },
   outrun: { shape: 'landscape', draw: drawOutrun },
   nightfall: { shape: 'landscape', draw: drawNightfall },
+  'title-sloop': { shape: 'landscape', draw: drawTitleSloop },
 };
 
 // The shared 8 px carved frame with a brass fillet and corner pieces
