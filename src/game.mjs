@@ -2619,7 +2619,7 @@ function briefFortBattle(town) {
     vignette: { id: 'fort-walls', flag: town.nation }, kicker: 'Assault from the sea', title: `Attack ${town.name}`,
     body: `<p>${fortLine}</p>`
       + `<p><strong>Steer past the ${forts === 1 ? 'fort' : 'forts'} and run your flagship ashore by the town itself.</strong> Your men will land there and take the fort from the town side. Run aground anywhere else, under a fort’s walls included, and they will refuse to march; stand too far out to sea and the guns drive you off.</p>`
-      + `<p>You start upwind of the town, and ${fire}. Only the flagship’s crew goes ashore. Steer with Left/Right or A/D, fire with Space, and change sail with Up/Down.</p>`
+      + `<p>You start upwind of the town where the coast allows, and ${fire}. Only the flagship’s crew goes ashore. Steer with Left/Right or A/D, fire with Space, and change sail with Up/Down.</p>`
       + `<p>Choose the ship you will command. Eight hands remain aboard every reserve ship.</p>`,
     actions: [...choices, withdrawFromAssault(town)],
   });

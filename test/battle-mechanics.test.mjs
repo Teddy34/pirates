@@ -548,6 +548,35 @@ test('each fort is a type-8 battery of 12 guns on the shore beside the town, sha
   assert.doesNotThrow(() => JSON.stringify(battle));
 });
 
+test('on a small island the forts and the landing keep to the town’s own island', () => {
+  // A 5 × 5 cell island round the town at (40, 30), and another island two
+  // cells of water to the east.
+  const width = 80;
+  const height = 60;
+  const cells = new Uint8Array(width * height).map((_, index) => {
+    const x = index % width;
+    const y = Math.floor(index / width);
+    return Math.abs(y - 30) <= 2 && (Math.abs(x - 40) <= 2 || (x >= 45 && x <= 49)) ? CELL.LAND : CELL.WATER;
+  });
+  cells[30 * width + 40] = CELL.TOWN;
+  const map = { width, height, cells, blockIndex: new Int32Array(width * height).fill(-1), blocks: new Uint8Array(0) };
+  const battle = createFortBattle({
+    player: { ships: ['Sloop'], crew: 60, cannon: 12, wind: 0 },
+    town: { name: 'Nassau', nation: 'England', soldiers: 20, forts: 2, x: 40, y: 30 },
+    map, speedRows: SPEED_TABLE_1560, difficulty: 1, ability: 'navigation', crewMorale: 4, rng: zeroRng,
+  });
+  const { field, forts } = battle;
+  const toField = (cellX, cellY) => ({ x: (cellX + .5 - field.left) * field.cellPixels, y: (cellY + .5 - field.top) * field.cellPixels });
+  assert.equal(fortFieldGround(field, toField(47, 30)), 'land', 'the other island is never a landing');
+  assert.equal(fortFieldGround(field, field.landing), 'landing');
+  assert.equal(forts.length, 2);
+  for (const fort of forts) {
+    assert.equal(fortFieldGround(field, fort), 'land', 'a fort is not a landing place');
+    const cell = { x: field.left + fort.x / field.cellPixels, y: field.top + fort.y / field.cellPixels };
+    assert.ok(Math.abs(cell.x - 40.5) <= 3 && Math.abs(cell.y - 30.5) <= 3, 'on the town’s island');
+  }
+});
+
 test('you start in open water upwind of the town, pointed at the landing', () => {
   const { margin } = FORT_FIELD;
   for (let wind = 0; wind < 256; wind += 16) {

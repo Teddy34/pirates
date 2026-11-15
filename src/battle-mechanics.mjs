@@ -725,8 +725,9 @@ function stepBattleWind(battle, rng) {
 // other shore, the forts' included, is running aground (event 13, CSTR 173),
 // and leaving the field is being driven off (event 6, CSTR 196).
 export const FORT_FIELD = Object.freeze({ width: 600, height: 400, margin: 10, cellPixels: 10 });
-const GROUND = Object.freeze({ water: 0, land: 1, landing: 2 });
-const GROUND_NAMES = Object.freeze(['water', 'land', 'landing']);
+// `home` is land joined to the town's own; it reads as 'land'.
+const GROUND = Object.freeze({ water: 0, land: 1, landing: 2, home: 3 });
+const GROUND_NAMES = Object.freeze(['water', 'land', 'landing', 'land']);
 
 // Unit vector from the town toward the open sea: the mean direction of the
 // water cells within 20 cells.
@@ -762,9 +763,10 @@ export function fortFieldWindow(map, town) {
 }
 
 // The field's ground at battle-pixel resolution, read from the navigation
-// map: water (shallows included), land, and the landing zone (land within
-// reach of the town: its nearest water plus two cells, at least three
-// cells). `landing` is the zone's shore point nearest the town.
+// map: water (shallows included), land, the town's own landmass, and the
+// landing zone (the town's landmass within reach of the town: its nearest
+// water plus two cells, at least three cells). `landing` is the zone's shore
+// point nearest the town.
 export function buildFortField(map, town) {
   const { width, height, cellPixels } = FORT_FIELD;
   const { left, top } = fortFieldWindow(map, town);
@@ -776,6 +778,7 @@ export function buildFortField(map, town) {
     }
   }
   const centre = { x: (town.x + .5 - left) * cellPixels, y: (town.y + .5 - top) * cellPixels };
+  markHomeLand(cells, width, height, centre);
   const at = (x, y) => (x < 0 || y < 0 || x >= width || y >= height ? GROUND.water : cells[y * width + x]);
   const reach = 10 * cellPixels;
   const box = (radius, visit) => {
@@ -792,7 +795,7 @@ export function buildFortField(map, town) {
   let landingDistance = Infinity;
   box(landingRadius, (x, y) => {
     const distance = Math.hypot(x - centre.x, y - centre.y);
-    if (distance > landingRadius || at(x, y) !== GROUND.land) return;
+    if (distance > landingRadius || at(x, y) !== GROUND.home) return;
     cells[y * width + x] = GROUND.landing;
     const shore = [[2, 0], [-2, 0], [0, 2], [0, -2]].some(([dx, dy]) => at(x + dx, y + dy) === GROUND.water);
     if (shore && distance < landingDistance) { landing = { x, y }; landingDistance = distance; }
@@ -801,6 +804,27 @@ export function buildFortField(map, town) {
     left, top, cellPixels, width, height, town: centre, landingRadius,
     landing: landing ?? { x: Math.round(centre.x), y: Math.round(centre.y) }, cells,
   };
+}
+
+// Marks the land joined to the town's pixel (4-connected) as home. A town
+// pixel that is not land (never on the real maps) makes all land home.
+function markHomeLand(cells, width, height, centre) {
+  const start = Math.floor(centre.y) * width + Math.floor(centre.x);
+  if (cells[start] !== GROUND.land) {
+    cells.forEach((cell, index) => { if (cell === GROUND.land) cells[index] = GROUND.home; });
+    return;
+  }
+  const stack = [start];
+  cells[start] = GROUND.home;
+  while (stack.length) {
+    const index = stack.pop();
+    const x = index % width;
+    for (const next of [x > 0 ? index - 1 : -1, x < width - 1 ? index + 1 : -1, index - width, index + width]) {
+      if (next < 0 || next >= cells.length || cells[next] !== GROUND.land) continue;
+      cells[next] = GROUND.home;
+      stack.push(next);
+    }
+  }
 }
 
 // 'water', 'land' or 'landing' under a point: the whole-pixel ship centre,
@@ -819,40 +843,80 @@ function openWater(field, x, y, radius) {
     .every(([dx, dy]) => fortFieldGround(field, { x: x + dx * radius, y: y + dy * radius }) === 'water');
 }
 
-// Where the forts stand: shore points beside the town, outside the landing
-// zone, the first the nearest to the town and each next one well apart from
-// the others while staying close to the town.
+// Where the forts stand: shore points of the town's own landmass beside the
+// town, outside the landing zone, the first the nearest to the town and
+// each next one well apart from the others while staying close to the town.
+// A short coast packs them closer; on an island too small to hold them
+// outside the landing zone they stand on its shore within the zone, at least
+// 18 px from the town (settleForts then takes their ground out of the zone).
+// Only when the town's land has no room at all do they stand on other land.
 export function fortPlaces(field, count) {
-  const { width, height, town, landingRadius } = field;
-  const candidates = [];
+  const { width, height, town, landingRadius, cells } = field;
+  const home = [];
+  const near = [];
+  const other = [];
   for (let y = 24; y < height - 24; y += 4) {
     for (let x = 24; x < width - 24; x += 4) {
-      if (fortFieldGround(field, { x, y }) !== 'land') continue;
+      const cell = cells[y * width + x];
+      if (cell === GROUND.water) continue;
       const distance = Math.hypot(x - town.x, y - town.y);
-      if (distance < landingRadius + 12 || distance > landingRadius + 200) continue;
-      const shore = [[6, 0], [-6, 0], [0, 6], [0, -6]].some(([dx, dy]) => fortFieldGround(field, { x: x + dx, y: y + dy }) === 'water');
-      if (shore) candidates.push({ x, y, distance });
+      const shore = () => [[6, 0], [-6, 0], [0, 6], [0, -6]].some(([dx, dy]) => fortFieldGround(field, { x: x + dx, y: y + dy }) === 'water');
+      if (cell === GROUND.landing) {
+        if (distance >= 18 && shore()) near.push({ x, y, distance });
+        continue;
+      }
+      if (distance < landingRadius + 12 || distance > landingRadius + (cell === GROUND.home ? 200 : 120) || !shore()) continue;
+      (cell === GROUND.home ? home : other).push({ x, y, distance });
     }
   }
   const places = [];
-  while (places.length < count) {
+  const pick = (candidates, spacing) => {
     let best = null;
     let bestScore = -Infinity;
     for (const candidate of candidates) {
       const apart = places.length ? Math.min(...places.map((place) => Math.hypot(place.x - candidate.x, place.y - candidate.y))) : Infinity;
-      if (apart < 60) continue;
+      if (apart < spacing) continue;
       const score = places.length ? Math.min(apart, 160) - candidate.distance : -candidate.distance;
       if (score > bestScore) { best = candidate; bestScore = score; }
     }
-    if (!best) break;
-    places.push({ x: best.x, y: best.y });
+    return best;
+  };
+  const tiers = [[home, 60], [home, 30], [near, 24], [near, 12], [other, 60], [home, 1], [near, 1], [other, 1]];
+  for (const [candidates, spacing] of tiers) {
+    while (places.length < count) {
+      const best = pick(candidates, spacing);
+      if (!best) break;
+      places.push({ x: best.x, y: best.y });
+    }
   }
-  // A coast too short for them all: the rest stand round the town.
-  while (places.length < count) {
-    const angle = places.length * Math.PI / 2;
-    places.push({ x: Math.round(town.x + Math.cos(angle) * landingRadius), y: Math.round(town.y + Math.sin(angle) * landingRadius) });
-  }
+  // No shore left at all (never on the real maps): the rest stand at the town.
+  while (places.length < count) places.push({ x: Math.round(town.x), y: Math.round(town.y) });
   return places;
+}
+
+// Takes the ground within 14 px of each fort out of the landing zone, so
+// running onto a fort is running aground, and moves `landing` to the
+// remaining zone's shore point nearest the town. Mutates `field`.
+export function settleForts(field, places) {
+  const { width, height, town, landingRadius, cells } = field;
+  for (const place of places) {
+    for (let y = Math.max(0, place.y - 14); y <= Math.min(height - 1, place.y + 14); y += 1) {
+      for (let x = Math.max(0, place.x - 14); x <= Math.min(width - 1, place.x + 14); x += 1) {
+        if (cells[y * width + x] === GROUND.landing && Math.hypot(x - place.x, y - place.y) <= 14) cells[y * width + x] = GROUND.home;
+      }
+    }
+  }
+  const at = (x, y) => (x < 0 || y < 0 || x >= width || y >= height ? GROUND.water : cells[y * width + x]);
+  let best = Infinity;
+  for (let y = Math.max(0, Math.floor(town.y - landingRadius)); y < Math.min(height, town.y + landingRadius); y += 1) {
+    for (let x = Math.max(0, Math.floor(town.x - landingRadius)); x < Math.min(width, town.x + landingRadius); x += 1) {
+      if (at(x, y) !== GROUND.landing) continue;
+      const distance = Math.hypot(x - town.x, y - town.y);
+      const shore = [[2, 0], [-2, 0], [0, 2], [0, -2]].some(([dx, dy]) => at(x + dx, y + dy) === GROUND.water);
+      if (shore && distance < best) { field.landing = { x, y }; best = distance; }
+    }
+  }
+  return field;
 }
 
 // The fort's damage display: min(3, hits/20) (0xECF0).
@@ -960,10 +1024,12 @@ export function createFortBattle({ player, town, map, flagshipIndex = 0, speedRo
   fleet.unshift(selected);
   const windStrength = rng.int(3); // sea_battles.md §1: rnd(3) for a fort.
   const field = buildFortField(map, town);
-  const start = fortStart(field, player.wind);
   const fortMen = 4 * ((town.soldiers + 1) >> 1);
   const count = Math.min(town.forts & 7, MAX_FORT_BATTERIES);
-  const forts = createFortBatteries({ forts: town.forts, men: fortMen, flag: town.nation, places: fortPlaces(field, count) });
+  const places = fortPlaces(field, count);
+  settleForts(field, places);
+  const start = fortStart(field, player.wind);
+  const forts = createFortBatteries({ forts: town.forts, men: fortMen, flag: town.nation, places });
   return {
     frame: 0,
     noHitFrames: 0,

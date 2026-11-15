@@ -129,14 +129,18 @@ named captain (`0xF207`). Fort battles reuse the naval engine (§7).
   north up, 10 battle pixels to a cell, with the town toward the landward
   side, and paints it with the sailing map's terrain chunks, so the capes,
   bays and islands are the ones you sail past. The forts stand on the shore
-  beside the town (`fortPlaces`), drawn as small pixel-art forts in the
-  style of the town markers (`src/fort-sprites.mjs`).
+  of the town's own landmass beside the town (`fortPlaces`; on an island too
+  small for them outside the landing zone, on its shore at least 18 px from
+  the town, with their ground taken out of the zone by `settleForts`; on
+  other land only when the town's has no room, as at Nevis), drawn as small
+  pixel-art forts in the style of the town markers (`src/fort-sprites.mjs`).
 - **You land on the shore by the town, not at the fort.** The original
   carries the attack on when your ship touches the fort's box or runs
   ashore next to it (`0x8269`, event 5); any other shore is event 13. In the
-  port the flagship's centre reaching land near the town (within its
-  nearest water plus two cells, at least three cells) lands the crew; any
-  other land, a fort's shore included, is running aground. Nothing on the
+  port the flagship's centre reaching the town's own landmass near the town
+  (within its nearest water plus two cells, at least three cells) lands the
+  crew; any other land, a fort's shore or a neighbouring island included, is
+  running aground. Nothing on the
   field marks the landing: the town itself is the goal.
 - **The attacker starts from a favourable position.** You start in open
   water as near straight upwind of the town as the coast allows, 230 px out
