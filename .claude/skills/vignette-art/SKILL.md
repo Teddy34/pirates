@@ -24,9 +24,16 @@ Several sessions often make vignettes at the same time, and a shared
 checkout lets one session's commit sweep up another's files. So, before
 editing any repository file, even for research notes:
 
-1. `git fetch origin`, then
-   `git worktree add .claude/worktrees/<id>-art -b vignette-<id>-art origin/main`
-   (one worktree per PR; `<id>` names the scene or the batch).
+1. Fetch, then add the worktree under the main repository's
+   `.claude/worktrees/` (an absolute path, so it is not nested when you
+   start from inside another worktree); one worktree per PR, `<id>` names
+   the scene or the batch:
+
+   ```sh
+   git fetch origin
+   root=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   git worktree add "$root/.claude/worktrees/<id>-art" -b vignette-<id>-art origin/main
+   ```
 2. Do every edit, build, test and commit inside that worktree. Never edit,
    switch branches, stash, reset or commit in the main checkout or in
    another session's worktree, even when its state looks wrong: tell that
@@ -36,7 +43,9 @@ editing any repository file, even for research notes:
    before each commit.
 4. Before pushing, `git fetch` and rebase on `origin/main` if it moved;
    resolve the usual conflicts (CHANGELOG, the AGENTS.md vignette bullet,
-   row 12 of the plan, the PROVENANCE sections) by keeping both sides.
+   row 12 of the plan, `SCENE_ART_URLS` and `ART_DESCRIPTIONS`, the
+   PROVENANCE sections) by hand: keep each side's entry exactly once, merge
+   lists that both sides changed into one sentence, then rerun the checks.
 5. After the merge, remove the worktree and delete the branch.
 
 Generated images and crops stay in the scratchpad, outside the repository.
