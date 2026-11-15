@@ -63,6 +63,18 @@ test('the governor portrait cell follows the era and the nation', async () => {
   assert.match(vignetteDescription('governor', { era: '1680', nation: 'France' }), /^Placeholder picture/);
 });
 
+test('the harbour arrival picks its sheet row by the fort flag and era', async () => {
+  const { harbourRow } = await import('../src/vignettes.mjs');
+  assert.equal(harbourRow({ flag: 'Spain', era: '1560' }), 0);
+  assert.equal(harbourRow({ flag: 'England', era: '1680' }), 1);
+  assert.equal(harbourRow({ flag: 'France', era: '1620' }), 2);
+  assert.equal(harbourRow({ flag: 'Holland', era: '1640' }), 3);
+  assert.equal(harbourRow({ flag: 'Holland', era: 1660 }), 4);
+  assert.equal(harbourRow({ flag: 'pirate', era: '1660' }), null);
+  // Without a DOM the art never loads and the placeholder stands in.
+  assert.match(vignetteDescription('harbour-arrival', { flag: 'Spain', era: '1600' }), /^Placeholder picture/);
+});
+
 test('the title logo spells Retro in outlined pixel letters inside its canvas', async () => {
   const { RETRO_LOGO_SIZE, drawRetroLogo } = await import('../src/title-logo.mjs');
   const fills = new Map();

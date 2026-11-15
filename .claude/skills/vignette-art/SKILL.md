@@ -77,6 +77,11 @@ the pasted image cannot be found on disk).
      the flag's four corners (`flag_fix`, `paste_flag`) over repainting
      pixels by hand. Measure the corners on the full-size source, and widen
      the quad by a pixel or two if the old colours bleed at the edge.
+     `shade=True` keeps the source flag's folds as shading. Asking the
+     generator for a plain white flag and warping each nation's flag onto
+     it gives one picture per nation from one image: list them under
+     `variants` to build a sheet with a shared palette (see
+     `harbour-arrival`).
    - **Accept**: the detail is invisible at 1× or 2×. Say so.
 
    Ask the user which way to go when it is not obvious. The user often

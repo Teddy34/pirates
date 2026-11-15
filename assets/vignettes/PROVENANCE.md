@@ -65,3 +65,27 @@ Spanish stone fort.
   PNG).
 - **Rebuild:** `python3 tools/build_vignette.py --scene title-ship --source <image>`
   (Pillow).
+
+## harbour-arrival.png
+
+The town approach at a coastal town: a sheet of five 224 × 128 pictures, one
+per fort flag (rows: Spain, England, France, Holland to the 1640s, Holland
+from 1660). The captain at the bow rail looks across a harbour at a stone
+fort, a colonial town on a hill and a moored merchant ship.
+
+- **Source:** a 1659 × 948 (7 : 4) comic-style illustration generated with
+  ChatGPT from the prompt in `docs/scene-vignettes.md` (shared style block
+  plus the harbour-arrival scene, which asks for a plain white fort flag),
+  supplied by the user on 2026-11-15, who holds the rights to it. The exact
+  model was not recorded, nor whether the prompt was edited before use. The source file is not
+  kept in the repository. No material from the original game was used.
+- **Process:** `tools/build_vignette.py` warps each period flag onto the
+  plain white flag the source flies on the fort, keeping the source's folds
+  as shading: the Cross of Burgundy (Spain), St George's cross (England),
+  the plain white royal flag (France, official from 1661), the orange-white-
+  blue Prince's flag and the red-white-blue States flag (Holland). Each
+  version is reduced to 224 × 128 with a box filter, contrast ×1.15 and
+  colour ×1.2; the five rows are quantised together to 256 colours (median
+  cut, no dithering, indexed PNG).
+- **Rebuild:** `python3 tools/build_vignette.py --scene harbour-arrival --source <image>`
+  (Pillow).

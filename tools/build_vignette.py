@@ -23,13 +23,14 @@ Usage:
 """
 import argparse
 
-from PIL import Image, ImageDraw, ImageEnhance
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance
 
 # Art pixels of each vignette shape; keep in step with PICTURE_SIZES in
 # src/vignettes.mjs.
 SHAPES = {'landscape': (224, 128), 'portrait': (96, 128), 'title': (240, 160)}
 COLOURS = 256
 WHITE, RED, INK = (244, 240, 226), (196, 32, 36), (30, 24, 20)
+ORANGE, BLUE = (232, 118, 28), (34, 64, 140)
 
 
 def cross_of_burgundy(width=180, height=120):
@@ -46,6 +47,44 @@ def cross_of_burgundy(width=180, height=120):
             draw.ellipse([x - knot, y - knot, x + knot, y + knot], fill=RED)
     draw.rectangle([0, 0, width - 1, height - 1], outline=INK, width=3)
     return flag
+
+
+def st_george(width=180, height=120):
+    """England: a red cross on white."""
+    flag = Image.new('RGB', (width, height), WHITE)
+    draw = ImageDraw.Draw(flag)
+    bar = round(height / 5)
+    draw.rectangle([width / 2 - bar / 2, 0, width / 2 + bar / 2, height], fill=RED)
+    draw.rectangle([0, height / 2 - bar / 2, width, height / 2 + bar / 2], fill=RED)
+    draw.rectangle([0, 0, width - 1, height - 1], outline=INK, width=3)
+    return flag
+
+
+def plain_white(width=180, height=120):
+    """France: the royal navy's white flag, official on ships, forts and
+    colonies from 1661 (plain; some sources add gold fleurs-de-lis)."""
+    flag = Image.new('RGB', (width, height), WHITE)
+    ImageDraw.Draw(flag).rectangle([0, 0, width - 1, height - 1], outline=INK, width=3)
+    return flag
+
+
+def tricolour_bands(colours, width=180, height=120):
+    flag = Image.new('RGB', (width, height), WHITE)
+    draw = ImageDraw.Draw(flag)
+    for index, colour in enumerate(colours):
+        draw.rectangle([0, height * index / 3, width, height * (index + 1) / 3], fill=colour)
+    draw.rectangle([0, 0, width - 1, height - 1], outline=INK, width=3)
+    return flag
+
+
+def prince_flag():
+    """Holland to about 1640: orange, white and blue."""
+    return tricolour_bands([ORANGE, WHITE, BLUE])
+
+
+def states_flag():
+    """Holland from about 1660: red, white and blue."""
+    return tricolour_bands([RED, WHITE, BLUE])
 
 
 def solve(matrix, values):
@@ -73,29 +112,54 @@ def perspective_coefficients(target, source):
     return solve(matrix, values)
 
 
-def paste_flag(image, flag, quad):
+def paste_flag(image, flag, quad, shade=False):
     """Warps a flat flag onto quad, its corners in source pixels: hoist top,
-    fly top, fly bottom, hoist bottom."""
+    fly top, fly bottom, hoist bottom. With shade, the source's folds (its
+    light and shadow on a plain flag) darken the new flag the same way."""
     corners = [(0, 0), (flag.width, 0), (flag.width, flag.height), (0, flag.height)]
     warped = flag.transform(image.size, Image.Transform.PERSPECTIVE, perspective_coefficients(quad, corners), Image.Resampling.BICUBIC)
+    if shade:
+        light = image.convert('L')
+        flag_area = Image.new('L', image.size)
+        ImageDraw.Draw(flag_area).polygon(quad, fill=255)
+        brightest = max(1, ImageChops.multiply(light, flag_area).getextrema()[1])
+        light = light.point(lambda value: min(255, round(value * 255 / brightest)))
+        warped = ImageChops.multiply(warped, Image.merge('RGB', [light] * 3))
     mask = Image.new('L', image.size)
     ImageDraw.Draw(mask).polygon(quad, fill=255)
     image.paste(warped, (0, 0), mask)
 
 
-def flag_fix(make_flag, quad):
-    return lambda image: paste_flag(image, make_flag(), quad)
+def polygon_box(quad):
+    xs, ys = [x for x, _ in quad], [y for _, y in quad]
+    return (min(xs), min(ys), max(xs) + 1, max(ys) + 1)
+
+
+def flag_fix(make_flag, quad, shade=False):
+    return lambda image: paste_flag(image, make_flag(), quad, shade)
 
 
 # Scenes with art. `source` pins the expected source size (the fixes use
 # source pixel coordinates); `crop` is an optional (left, top, right, bottom)
-# box; `fixes` run on the source before reduction.
+# box; `fixes` run on the source before reduction. `variants` makes a sheet:
+# one picture per (name, fixes) pair, stacked top to bottom in that order and
+# quantised to one shared palette; the game picks a row (src/vignettes.mjs).
 SCENES = {
     'title-ship': {
         'shape': 'title',
         'source': (1536, 1024),
         # The source drew Spain's red-yellow-red flag of 1785 on the fort.
         'fixes': [flag_fix(cross_of_burgundy, [(1252, 551), (1306, 563), (1309, 605), (1252, 596)])],
+    },
+    # The source flies a plain white flag on the fort, painted over with the
+    # town's flag; rows follow HARBOUR_FLAGS in src/vignettes.mjs.
+    'harbour-arrival': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+        'variants': [
+            (name, [flag_fix(make, [(646, 138), (763, 168), (777, 240), (648, 230)], shade=True)])
+            for name, make in [('Spain', cross_of_burgundy), ('England', st_george), ('France', plain_white), ('Holland', prince_flag), ('Holland 1660', states_flag)]
+        ],
     },
 }
 
@@ -109,11 +173,18 @@ def centred_crop(size, aspect):
     return (0, (height - cropped) // 2, width, (height - cropped) // 2 + cropped)
 
 
-def pixelate(image, size, colours=COLOURS):
+def reduce(image, size):
     picture = image.resize(size, Image.Resampling.BOX)
     picture = ImageEnhance.Contrast(picture).enhance(1.15)
-    picture = ImageEnhance.Color(picture).enhance(1.2)
+    return ImageEnhance.Color(picture).enhance(1.2)
+
+
+def quantise(picture, colours=COLOURS):
     return picture.quantize(colors=colours, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+
+
+def pixelate(image, size, colours=COLOURS):
+    return quantise(reduce(image, size), colours)
 
 
 def build(scene, source_path, out_path, shape=None):
@@ -130,14 +201,26 @@ def build(scene, source_path, out_path, shape=None):
     for fix in entry.get('fixes', []):
         fix(image)
     box = entry.get('crop') or centred_crop(image.size, size[0] / size[1])
+    check_box(box, shape, size)
+    variants = entry.get('variants')
+    if not variants:
+        pixelate(image.crop(box), size).save(out_path, optimize=True)
+        return
+    sheet = Image.new('RGB', (size[0], size[1] * len(variants)))
+    for row, (_, fixes) in enumerate(variants):
+        picture = image.copy()
+        for fix in fixes:
+            fix(picture)
+        sheet.paste(reduce(picture.crop(box), size), (0, row * size[1]))
+    quantise(sheet).save(out_path, optimize=True)
+
+
+def check_box(box, shape, size):
     box_width, box_height = box[2] - box[0], box[3] - box[1]
     if abs(box_width / box_height - size[0] / size[1]) > 0.01:
         raise SystemExit(f'crop box {box} is not the {shape} aspect {size[0]} : {size[1]}')
     if box_width < size[0] or box_height < size[1]:
         raise SystemExit(f'source crop {box_width} x {box_height} is smaller than the {size[0]} x {size[1]} picture')
-    if box != (0, 0, *image.size):
-        image = image.crop(box)
-    pixelate(image, size).save(out_path, optimize=True)
 
 
 if __name__ == '__main__':
