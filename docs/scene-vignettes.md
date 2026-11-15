@@ -439,7 +439,9 @@ one picture for every era and nation. The art is
 `assets/vignettes/sailing-master.png` (provenance in
 `assets/vignettes/PROVENANCE.md`); no fixes were needed. The prompt drops
 the first brief's wheel (steering wheels date from the early 1700s), grey
-queue and clay pipe (too late for the 1560 era).
+queue and clay pipe (not confirmed for the 1560 era). The prompt's
+"around 1640" is mid-range: the one picture serves every era. Sources are
+in the provenance.
 
 > Vertical half-length portrait of a ship's sailing master on the open
 > upper deck of a 17th-century sailing ship at sea, around 1640. A stocky,
@@ -757,8 +759,10 @@ story never repeats a picture on consecutive screens. The placeholders in code:
 | open-swords | the story's sword fight | Real art, `assets/vignettes/open-swords.png`: see the prompt below the table. |
 | open-chart | the sailing master's closest cities (CSTR 69) | A sea chart with dividers, a dotted course and a compass rose. |
 
-**open-swords** is real art (provenance in `assets/vignettes/PROVENANCE.md`;
-no fixes were needed). No flag shows, so one picture serves every nation.
+**open-swords** is real art (provenance and sources in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation; the prompt's "around 1640" is mid-range
+for all eras.
 
 > A close-up sword fight on the open deck of a 17th-century sailing ship at
 > dusk, around 1640. Two men lock blades face to face, seen from the waist

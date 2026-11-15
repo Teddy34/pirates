@@ -234,12 +234,17 @@ a square sail and three sullen sailors by the mainmast.
   in `docs/scene-vignettes.md` with the shared style block and negatives.
   The user holds the rights to it. The source file is not kept in the
   repository. No material from the original game was used.
-- **Period choices:** the prompt drops the old brief's ship's wheel (wheel
-  steering dates from the early 1700s; ships of the period were steered by
-  tiller and whipstaff), its grey queue (a later seaman's fashion) and its
-  clay pipe (the picture serves the 1560 era too, before pipe smoking was
-  common among English seamen), and gives him a knitted wool cap of the
-  kind worn by 16th- and 17th-century seamen.
+- **Period choices:** one picture serves every era from 1560 to 1680; the
+  prompt says "around 1640", mid-range, and keeps to dress and gear found
+  across the whole span. It drops the old brief's ship's wheel (ships were
+  steered by tiller and whipstaff until wheels came in during the early
+  1700s: [Wikipedia, "Whipstaff"](https://en.wikipedia.org/wiki/Whipstaff),
+  consulted 2026-11-15). It also drops the grey queue and the clay pipe:
+  neither could be confirmed for seamen as early as the 1560 era, so they
+  were left out rather than guessed. The knitted wool cap is the kind worn
+  by soldiers, sailors and labourers in the 16th and 17th centuries
+  ([Wikipedia, "Monmouth cap"](https://en.wikipedia.org/wiki/Monmouth_cap),
+  consulted 2026-11-15).
 - **Process:** `tools/build_vignette.py` reduces it to 96 × 128 with a box
   filter, raises contrast (×1.15) and colour (×1.2), and quantises to 256
   colours (median cut, no dithering, indexed PNG). No historical fixes
@@ -263,9 +268,15 @@ lantern.
   `docs/scene-vignettes.md` with the shared style block and negatives. The
   user holds the rights to it. The source file is not kept in the
   repository. No material from the original game was used.
-- **Period choices:** both men hold short, curved, shell-guarded seamen's
-  swords (the hanger or cutlass of the 17th century) rather than rapiers;
-  no flag is shown, so one picture serves every nation.
+- **Period choices:** one picture serves every era from 1560 to 1680; the
+  prompt says "around 1640", mid-range. Both men hold short, curved,
+  shell-guarded seamen's swords, the hanger or cutlass common at sea in
+  the 17th century ([Wikipedia, "Cutlass"](https://en.wikipedia.org/wiki/Cutlass);
+  a late 17th-century iron shell-hilt hanger at [Royal Museums Greenwich](https://www.rmg.co.uk/collections/objects/rmgc-object-78877);
+  both consulted 2026-11-15). The shell guard is a 17th-century form, so
+  for the 1560 era the swords are an approximation, accepted because the
+  hilts are a few pixels at 1×. No ship's wheel and no flag is shown, so
+  one picture serves every nation.
 - **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to
   224 × 128 with a box filter, raises contrast (×1.15) and colour (×1.2),
   and quantises to 256 colours (median cut, no dithering, indexed PNG). No
