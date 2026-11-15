@@ -89,3 +89,24 @@ fort, a colonial town on a hill and a moored merchant ship.
   cut, no dithering, indexed PNG).
 - **Rebuild:** `python3 tools/build_vignette.py --scene harbour-arrival --source <image>`
   (Pillow).
+
+## merchant.png
+
+The merchant's portrait, 96 × 128 (3 : 4), shown at the trading post, when
+he refuses a pirate, at supper with a wife who is his daughter, and when he
+introduces his daughter: a plump, beaming merchant of about 1640 in a linen
+apron over a dark doublet with a flat white collar, arms spread in welcome,
+among sugar barrels, hides, cacao sacks, cloth-wrapped bales and a brass
+balance, with a ledger, a quill and coins on his desk.
+
+- **Source:** a 1086 × 1448 comic-style illustration generated with ChatGPT
+  (model not known) from the merchant prompt in `docs/scene-vignettes.md`,
+  supplied by the user on 2026-11-15, who holds the rights to it. The
+  source file is not kept in the repository. No material from the original
+  game was used.
+- **Process:** `tools/build_vignette.py` reduces it to 96 × 128 with a box
+  filter, raises contrast (×1.15) and colour (×1.2), and quantises to 256
+  colours (median cut, no dithering, indexed PNG). No historical fixes were
+  needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene merchant --source <image>`
+  (Pillow).

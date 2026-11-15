@@ -151,6 +151,10 @@ SCENES = {
         # The source drew Spain's red-yellow-red flag of 1785 on the fort.
         'fixes': [flag_fix(cross_of_burgundy, [(1252, 551), (1306, 563), (1309, 605), (1252, 596)])],
     },
+    'merchant': {
+        'shape': 'portrait',
+        'source': (1086, 1448),
+    },
     # The source flies a plain white flag on the fort, painted over with the
     # town's flag; rows follow HARBOUR_FLAGS in src/vignettes.mjs.
     'harbour-arrival': {

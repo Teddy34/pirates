@@ -221,10 +221,30 @@ depends on your purse; a married merchant is your father-in-law
 (`0x21E98`, `merchant_prices.asm`) · *"The merchant leaps to his feet,
 wipes his hands on his apron… 'My very dear Captain!'"*; *"We do not trade
 with pirates!"* (CSTR 256–260, 291–294)
-> A crowded colonial warehouse office: barrels of sugar, bales of tobacco
-> and hides, a hanging scale, a ledger on a high desk. A plump merchant in
-> an apron and spectacles gets up from his stool to greet the captain.
-> Dust in the shaft of light from a high window.
+In the game this is a 96 × 128 portrait (3 : 4, generate at 768 × 1024),
+one picture for every era and nation. The art is
+`assets/vignettes/merchant.png` (provenance in
+`assets/vignettes/PROVENANCE.md`).
+
+> Vertical half-length portrait of a colonial merchant in his warehouse
+> office, around 1640. A plump, prosperous man of about fifty, round ruddy
+> face, a broad delighted smile, short greying hair and a trimmed beard,
+> bareheaded. He has just risen from his stool and leans slightly forward in
+> welcome, arms spread wide, wiping his hands on a stained linen apron tied
+> over a plain dark-brown doublet with a flat white linen collar lying over
+> the shoulders and rolled white shirtsleeves. His head sits in the upper
+> third of the picture and his face is large and clearly lit. Behind him,
+> simplified and slightly darker: stacked sugar barrels, bales of tobacco
+> wrapped in cloth, a pile of dried cattle hides, sacks of cacao, and a
+> large brass balance scale hanging from a beam. In the foreground at the
+> bottom edge, a high wooden desk with an open ledger, a quill in an
+> inkwell and a small pile of silver coins. A shaft of warm light from a
+> high window on the upper left, with dust in the air.
+>
+> *Scene negatives:* spectacles, glasses, ruff, periwig, wig, cravat, tie,
+> tricorne hat, waistcoat with many buttons, paper money, banknotes, modern
+> scales, cardboard boxes, labels on barrels, lettering in the ledger,
+> full-body view, small distant figure.
 
 **merchant-daughter** · orig. 0x2E `merdaugh` · after trading, 1 chance in
 10 (`merchant_daughter.asm`) · *"An attractive young woman enters the

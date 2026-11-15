@@ -73,6 +73,7 @@ test('the harbour arrival picks its sheet row by the fort flag and era', async (
   assert.equal(harbourRow({ flag: 'pirate', era: '1660' }), null);
   // Without a DOM the art never loads and the placeholder stands in.
   assert.match(vignetteDescription('harbour-arrival', { flag: 'Spain', era: '1600' }), /^Placeholder picture/);
+  assert.match(vignetteDescription('merchant'), /^Placeholder picture/);
 });
 
 test('the title logo spells Retro in outlined pixel letters inside its canvas', async () => {
