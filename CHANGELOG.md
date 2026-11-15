@@ -13,6 +13,11 @@ history.
 
 ### Added
 
+- A default change workflow for maintainers and coding agents: each feature
+  or fix is built in its own worktree, opened as a pull request, reviewed
+  once independently, and merged automatically once tests pass; very small
+  details may go straight to `main` after the unit tests.
+
 - Courtship and marriage. At favour 2 or more with a town's nation, an
   audience ends with dinner and the governor's daughter or niece, courted by
   a rival suitor. Your charm is (personal wealth / 499 + twice your rank with

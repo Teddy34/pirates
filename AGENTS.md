@@ -156,6 +156,27 @@ Log every change in `CHANGELOG.md`: add an entry under **Unreleased** (Added, Ch
 
 After finishing work, always align the plan with what was done: update `docs/non-battle-feature-plan.md` (or `docs/tactical-sea-combat-plan.md` for sea combat), including its known differences from the original.
 
+## Change workflow
+
+Default for every feature and fix:
+
+1. Work in a dedicated git worktree on a new branch from an up-to-date `main`;
+   never develop directly in the main checkout.
+2. Make the change, its tests, its `CHANGELOG.md` entry and any plan update,
+   and run `make check` (at minimum `make syntax` and `make test`).
+3. Push the branch and open a pull request against `main`.
+4. Get one independent, read-only review of the diff (see *Reciprocal
+   review*), verify each finding against the code, fix what holds, and rerun
+   the tests.
+5. Once tests pass and review findings are resolved, merge the pull request
+   without waiting for the user (squash merge, delete the branch), then remove
+   the worktree.
+
+Very small details (a typo, a wording tweak, a one-line obvious fix, or a
+change to this workflow itself) may skip the worktree, pull request and review
+and be committed directly to `main`, but `make syntax` and `make test` must
+still pass first.
+
 ## Reciprocal review
 
 Before handing off substantial implementation changes, ask the other coding agent for one independent, read-only review: Codex asks Claude Code, and Claude Code asks Codex. Verify each finding against the code before acting on it. One reciprocal pass is enough unless the resulting fixes materially change the implementation.
