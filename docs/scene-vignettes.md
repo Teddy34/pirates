@@ -103,6 +103,13 @@ Attack / Sneak in / Leave"* (CSTR 114–115)
 > turquoise water. The captain stands in the foreground at the rail, seen
 > from behind. *Variants: one per nation flag.*
 
+The art is `assets/vignettes/harbour-arrival.png` (provenance in
+`assets/vignettes/PROVENANCE.md`): one illustration with a plain white flag
+on the fort, built into a sheet of five rows by `tools/build_vignette.py`,
+one per flag (Spain's Cross of Burgundy, St George's cross, the French royal
+white, the Dutch Prince's flag before 1660 and the States flag from 1660).
+The game picks the row from the town's nation and the career's era.
+
 **shore-arrival** · orig. 0x17 `arr_land` · the original shows it when you
 arrive on foot, and always for inland villages (`0x19C9B`). Here it is
 **only for landlocked towns**; a coastal town keeps its harbour picture even

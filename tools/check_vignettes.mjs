@@ -96,6 +96,11 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     if (await evaluate(`${dialogTitle}`) !== 'The Merchantman escapes') throw new Error(`${viewport.name}: the fleeing enemy's escape has the wrong title`);
     await clickButton('Continue');
     await until('the map', `!document.querySelector('#event-dialog[open]') && ${S}.mode === 'sailing'`);
+    // The harbour arrival shows its art, the fort flying the town's flag.
+    await open('arrival');
+    await until('the harbour art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('stone fort flying')`);
+    await expectPicture(`${viewport.name} harbour`, 'stone fort flying');
+    await screenshot(`${viewport.name}-harbour-arrival`);
     // The governor's portrait follows the era and the town's nation: the
     // 1680 French preview career's governor, then the gallery of all 24.
     await open('governor-promotion');

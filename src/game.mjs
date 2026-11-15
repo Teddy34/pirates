@@ -2357,7 +2357,7 @@ function approachTown({ overland = Boolean(state.player.onFoot) } = {}) {
   // Departure from the original, which also shows the land scene to a party
   // reaching a coastal town on foot: here only landlocked towns get it.
   showDialog({
-    vignette: { id: townLandlocked(town) ? 'shore-arrival' : 'harbour-arrival', flag: town.nation },
+    vignette: { id: townLandlocked(town) ? 'shore-arrival' : 'harbour-arrival', flag: town.nation, era: state.era },
     kicker: townInfoStatus(town.flags) === 'current' ? `${town.nation} · ${prosperity(town.growth)}` : town.nation, title: town.name,
     body: `<p>You have arrived at ${town.name}. ${fortText}</p>${convoyArrivalLines(town)}${townInfoBody(town, { brief: true })}`,
     actions: [
