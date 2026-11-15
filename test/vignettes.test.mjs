@@ -98,31 +98,24 @@ test('the title picture keeps its 3 : 2 artwork inside the frame', () => {
   assert.deepEqual(vignetteSize('title-ship'), { width: 240 + 2 * VIGNETTE_FRAME_WIDTH, height: 160 + 2 * VIGNETTE_FRAME_WIDTH });
 });
 
-test('dialog pictures keep whole-number scales and crop only the frame or a little of the picture', async () => {
-  const { dialogPictureLayout, vignetteSize, VIGNETTE_FRAME_WIDTH: f } = await import('../src/vignettes.mjs');
-  // Laptop 1000×577 (inner 976×553): 5× would fill the height but is too wide, so 4×.
-  const merchant = dialogPictureLayout('merchant', { width: 976, height: 553 });
-  assert.deepEqual([merchant.mode, merchant.scale, merchant.box], ['portrait', 4, { width: 384, height: 512 }]);
-  const tall = dialogPictureLayout('merchant', { width: 1416, height: 876 });
-  assert.equal(tall.scale, 7);
-  assert.equal(tall.box.height, 876);
-  assert.equal(tall.offset.x, -f * 7);
-  // Beside a trading table the column is narrower.
-  assert.ok(dialogPictureLayout('merchant', { width: 976, height: 553, table: true }).box.width <= 976 * 0.36);
-  // A landscape covers the dialog with its frame off screen.
-  const scene = dialogPictureLayout('tavern', { width: 976, height: 553 });
-  const size = vignetteSize('tavern');
-  assert.equal(scene.mode, 'scene');
-  assert.ok(scene.offset.x + f * scene.scale <= 0 && scene.offset.y + f * scene.scale <= 0);
-  assert.ok(scene.offset.x + (size.width - f) * scene.scale >= 976);
-  assert.ok(scene.offset.y + (size.height - f) * scene.scale >= 553);
-  // A window far from the picture's shape gets a column instead of a heavy crop.
-  for (const [width, height] of [[749, 548], [1656, 676], [788, 1038]]) {
-    const column = dialogPictureLayout('tavern', { width, height });
-    assert.equal(column.mode, 'column', `${width}×${height}`);
-    assert.ok(column.box.width <= width * 0.56 && column.box.height <= height);
+test('dialog pictures stay whole and framed at a whole-number scale that fits', async () => {
+  const { dialogPictureLayout, vignetteSize } = await import('../src/vignettes.mjs');
+  const boxes = [[976, 553], [1416, 876], [749, 548], [1656, 676], [788, 1038], [382, 772]];
+  for (const id of ['merchant', 'tavern', 'arrival']) {
+    const framed = vignetteSize(id);
+    for (const [width, height] of boxes) {
+      for (const table of [false, true]) {
+        const narrow = width < 761;
+        const layout = dialogPictureLayout(id, { width, height, narrow, table });
+        assert.ok(Number.isInteger(layout.scale) && layout.scale >= 1);
+        assert.deepEqual([layout.width, layout.height], [framed.width * layout.scale, framed.height * layout.scale]);
+        if (layout.scale > 1) assert.ok(layout.width <= width && layout.height <= height, `${id} ${width}×${height}`);
+      }
+    }
   }
-  // Phones: a band no wider than the screen.
-  const band = dialogPictureLayout('tavern', { width: 382, height: 772, narrow: true });
-  assert.deepEqual([band.mode, band.scale, band.box.width], ['band', 1, 224]);
+  // Laptop 1000×577: the merchant beside his table, the harbour in the corner.
+  assert.equal(dialogPictureLayout('merchant', { width: 976, height: 553, table: true }).scale, 2);
+  assert.equal(dialogPictureLayout('merchant', { width: 976, height: 553 }).scale, 3);
+  assert.equal(dialogPictureLayout('arrival', { width: 976, height: 553 }).scale, 2);
+  assert.equal(dialogPictureLayout('tavern', { width: 382, height: 772, narrow: true, maxScale: 1 }).scale, 1);
 });

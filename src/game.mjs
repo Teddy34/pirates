@@ -4572,35 +4572,28 @@ function showVignette(vignette) {
   if (vignetteNeedsArt(id)) loadVignetteArt().then(() => { if (shownVignette === vignette) paint(); });
 }
 
-// The dialog fills the screen (style.css, "Dialogs"). Its picture is a column
-// beside the text for a portrait, the backdrop behind the text for a
-// landscape, and a band above the text on narrow screens, where it is left
-// out when the page would not fit on one screen with it.
+// The dialog fills the screen (style.css, "Dialogs"). Its picture sits whole
+// and framed in the page's top left corner, the text beside and below it; on
+// narrow screens it is a band above the text, shrunk and then left out when
+// the page would not fit on one screen.
 const NARROW_DIALOG = matchMedia('(max-width:760px)');
-const dialogVignetteClip = dialogVignette.querySelector('.vignette-clip');
 function fitDialogVignette() {
-  dialog.classList.remove('has-scene', 'picture-dropped');
+  dialog.classList.remove('picture-dropped');
   if (!dialog.open || !shownVignette) return;
   const id = typeof shownVignette === 'string' ? shownVignette : shownVignette.id;
   const narrow = NARROW_DIALOG.matches;
   const place = (maxScale) => {
     const layout = dialogPictureLayout(id, {
-      width: dialog.clientWidth, height: dialog.clientHeight, narrow, maxScale,
-      // A trading table needs the room more than the picture does.
+      // The narrow page has 16 px of padding each side.
+      width: dialog.clientWidth - (narrow ? 32 : 0), height: dialog.clientHeight, narrow, maxScale,
       table: Boolean(dialogBody.querySelector('table')),
     });
-    dialog.classList.toggle('has-scene', layout.mode === 'scene');
-    dialogVignetteClip.style.width = `${layout.box.width}px`;
-    dialogVignetteClip.style.height = `${layout.box.height}px`;
-    Object.assign(dialogVignetteCanvas.style, {
-      width: `${dialogVignetteCanvas.width * layout.scale}px`, height: `${dialogVignetteCanvas.height * layout.scale}px`,
-      left: `${layout.offset.x}px`, top: `${layout.offset.y}px`,
-    });
+    dialogVignetteCanvas.style.width = `${layout.width}px`;
+    dialogVignetteCanvas.style.height = `${layout.height}px`;
     return layout.scale;
   };
   let scale = place();
   if (!narrow) return;
-  // Shrink the band until the page fits on one screen, else leave it out.
   const overflows = () => dialog.scrollHeight > dialog.clientHeight + 1;
   while (overflows() && scale > 1) scale = place(scale - 1);
   if (overflows()) dialog.classList.add('picture-dropped');

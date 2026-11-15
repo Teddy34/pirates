@@ -10,9 +10,8 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
       label: document.querySelector('#dialog-vignette canvas').getAttribute('aria-label'),
       hidden: document.querySelector('#dialog-vignette').classList.contains('hidden'),
       // The dialog scrolls vertically by design, so check what must not: the
-      // picture's visible box inside its width, and no sideways overflow. (The
-      // canvas itself overhangs the box: its drawn frame is cropped away.)
-      fits: document.querySelector('#dialog-vignette .vignette-clip').getBoundingClientRect().right <= document.querySelector('#event-dialog').getBoundingClientRect().right,
+      // picture inside its width, and no sideways overflow.
+      fits: document.querySelector('#dialog-vignette canvas').getBoundingClientRect().right <= document.querySelector('#event-dialog').getBoundingClientRect().right,
       inside: document.querySelector('#event-dialog').scrollWidth <= document.querySelector('#event-dialog').clientWidth,
     })`);
     if (shown.hidden || !shown.label.includes(description)) throw new Error(`${where}: picture "${description}" not shown: ${shown.label}`);

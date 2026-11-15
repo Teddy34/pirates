@@ -2287,48 +2287,20 @@ function drawFrame(p, w, h) {
   }
 }
 
-// Where a full-screen dialog shows its picture (style.css, "Dialogs"), in CSS
-// px of the dialog's inner box, always at a whole-number scale. The frame
-// drawn round the picture is cropped away: the dialog's own frame replaces it.
-// - 'portrait' (wide screens): a column the picture's width; the picture is
-//   enlarged to fill the dialog's height when that crops no more than a fifth
-//   of it and the column stays within `share` of the width, else it sits
-//   whole in the column with wood above and below.
-// - 'scene' (a landscape on wide screens): the picture covers the whole
-//   dialog behind the text, cropped at the edges, when that crops at most
-//   SCENE_CROP of it along either side; otherwise
-// - 'column': the landscape sits whole in a column beside the text.
-// - 'band' (narrow screens): the whole picture above the text, at most
-//   `maxScale`.
-// Returns the visible box, the scale and the canvas offset inside that box.
-export const SCENE_CROP = 0.3;
+// How large a full-screen dialog draws its picture (style.css, "Dialogs"),
+// always whole and framed, at the largest whole-number scale that fits its
+// share of the dialog's inner box (CSS px). On wide screens the picture sits
+// in the page's top left corner with the text beside and below it ('corner');
+// on narrow ones it is a band above the text ('band'), at most `maxScale`.
 export function dialogPictureLayout(id, { width, height, narrow = false, table = false, maxScale = Infinity }) {
-  const shape = vignetteShape(id);
-  const picture = PICTURE_SIZES[shape];
-  const frame = VIGNETTE_FRAME_WIDTH;
-  const place = (mode, scale, box) => ({
-    mode, scale, box,
-    offset: {
-      x: Math.round((box.width - (picture.width + 2 * frame) * scale) / 2),
-      y: Math.round((box.height - (picture.height + 2 * frame) * scale) / 2),
-    },
-  });
-  if (narrow) {
-    const tallest = Math.floor(height * (shape === 'portrait' ? 0.5 : 0.4) / picture.height);
-    const scale = Math.max(1, Math.min(Math.floor(width / picture.width), tallest, maxScale));
-    return place('band', scale, { width: picture.width * scale, height: picture.height * scale });
-  }
-  if (shape === 'portrait') {
-    const share = table ? 0.36 : 0.48;
-    const widest = Math.max(1, Math.floor(width * share / picture.width));
-    let scale = Math.min(Math.ceil(height / picture.height), widest);
-    if (picture.height * scale - height > picture.height * scale * 0.2) scale -= 1;
-    scale = Math.max(1, scale);
-    return place('portrait', scale, { width: picture.width * scale, height: Math.min(height, picture.height * scale) });
-  }
-  const cover = Math.max(1, Math.ceil(Math.max(width / picture.width, height / picture.height)));
-  const crop = Math.max(1 - width / (picture.width * cover), 1 - height / (picture.height * cover));
-  if (crop <= SCENE_CROP) return place('scene', cover, { width, height });
-  const scale = Math.max(1, Math.floor(Math.min(width * 0.56 / picture.width, height / picture.height)));
-  return place('column', scale, { width: picture.width * scale, height: picture.height * scale });
+  const framed = vignetteSize(id);
+  const portrait = vignetteShape(id) === 'portrait';
+  // Shares of the box: the picture leaves room for the text beside it and,
+  // for a landscape, below it; a trading table needs more of the width.
+  const share = narrow
+    ? { width: 1, height: portrait ? 0.5 : 0.4 }
+    : { width: table ? 0.3 : portrait ? 0.4 : 0.55, height: portrait ? 0.85 : 0.6 };
+  const fit = Math.floor(Math.min(width * share.width / framed.width, height * share.height / framed.height));
+  const scale = Math.max(1, Math.min(fit, maxScale));
+  return { mode: narrow ? 'band' : 'corner', scale, width: framed.width * scale, height: framed.height * scale };
 }

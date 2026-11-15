@@ -19,14 +19,14 @@ original game, or describe its pictures, in a prompt.
 | Picture (art pixels) | **224 × 128** (7 : 4) |
 | Frame | 8 art px on every side, one shared frame (§3) |
 | Framed vignette | **240 × 144** art px |
-| Display | The dialog fills the screen (`dialogPictureLayout` in `src/vignettes.mjs`), always at a whole-number scale with `image-rendering: pixelated`, and the drawn frame cropped away. A landscape covers the whole dialog, with the text in a card in the lower right corner, when that crops at most 30 % of the picture's width or height (`SCENE_CROP`, up to 15 % off each edge); keep each scene's subject away from that corner and the outer sixth of the picture. A window too far from the picture's shape (a tall tablet, a very wide strip) shows the landscape whole in a column beside the text instead. A portrait is a column beside the text, at most 48 % of the width (36 % beside a trading table); it is enlarged to fill the height when that crops no more than a fifth of it (keep the face clear of the top tenth), and otherwise sits whole with wood above and below. At 760 px wide or less the picture is a band above the text, shrunk and then left out when the page would not fit on one screen. |
+| Display | The dialog fills the screen (`dialogPictureLayout` in `src/vignettes.mjs`). The picture is always whole, in its drawn frame, at the largest whole-number scale that fits its share, with `image-rendering: pixelated`. It sits in the page's top left corner with the text beside and below it: a landscape takes at most 55 % of the width and 60 % of the height, a portrait 40 % and 85 %, and 30 % of the width beside a trading table. At 760 px wide or less the picture is a band above the text, shrunk and then left out when the page would not fit on one screen. |
 | Generate at | **1792 × 1024** (exactly 8 × the picture; most generators accept 7 : 4 or 16 : 9) |
 | Reduce | `tools/build_vignette.py`: historical fixes on the source, crop to shape, box downscale to 224 × 128, quantise to 256 colours (indexed PNG). Workflow: `.claude/skills/vignette-art/SKILL.md` |
 | File | `assets/vignettes/<id>.png`, 224 × 128, indexed PNG, no frame baked in |
 
 Why this size: 224 × 128 keeps a figure's face about 12–16 art px tall in a
 mid shot. That is the detail level of the town and ship sprites. The full-screen
-dialog shows it at 4× or more on laptop and desktop screens and at 1× on phones.
+dialog shows it at 2× to 5× on laptop and desktop screens and at 1× or 2× on phones.
 
 ## 2. Shared style block
 

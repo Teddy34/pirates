@@ -13,16 +13,14 @@ history.
 
 ### Changed
 
-- Menus and dialogs now fill the screen in an arcade-style frame. A place or
-  event picture is the backdrop of the whole dialog, with the text in a card
-  in its corner (in a column beside the text when the window's shape would
-  crop it too much); a portrait is a column beside the text, filling its
-  height where the width allows (the merchant goes from 1× to 3× on a
-  laptop). On phones the picture is a band on
-  top, shrunk or left out when the page would not fit on one screen. Text and
-  trading tables are larger, buttons are bevelled pixel controls with a pixel
-  icon for their action, the arrow keys move between them, and on wide
-  screens they stay pinned while long text scrolls.
+- Menus and dialogs now fill the screen in an arcade-style frame. The scene
+  picture sits whole and framed in the top left corner of the page, at the
+  largest whole-number scale that fits, with the text beside and below it
+  (the merchant goes from 1× to 2× on a laptop, beside his table). On phones
+  the picture is a band on top, shrunk or left out when the page would not
+  fit on one screen. Text and trading tables are larger, buttons are
+  bevelled pixel controls with a pixel icon for their action, the arrow keys
+  move between them, and the action bar sits at the bottom of the screen.
 - Arriving at a town, Enter now picks "Leave town": attacking a town,
   storming its walls, closing for battle, fighting a suitor's duel, selling a
   ship with cargo overboard, and overwriting or deleting a save are never the
