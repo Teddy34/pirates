@@ -96,6 +96,11 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     if (await evaluate(`${dialogTitle}`) !== 'The Merchantman escapes') throw new Error(`${viewport.name}: the fleeing enemy's escape has the wrong title`);
     await clickButton('Continue');
     await until('the map', `!document.querySelector('#event-dialog[open]') && ${S}.mode === 'sailing'`);
+    // The merchant's portrait is his art.
+    await open('merchant-family');
+    await until('the merchant art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('beaming merchant')`);
+    await expectPicture(`${viewport.name} merchant`, 'beaming merchant');
+    await screenshot(`${viewport.name}-merchant`);
     // The harbour arrival shows its art, the fort flying the town's flag.
     await open('arrival');
     await until('the harbour art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('stone fort flying')`);

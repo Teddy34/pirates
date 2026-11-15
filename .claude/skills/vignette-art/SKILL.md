@@ -122,6 +122,9 @@ the pasted image cannot be found on disk).
    - `docs/scene-vignettes.md`: the scene entry points to the art and its
      fixes.
    - `CHANGELOG.md` under Unreleased.
+   - The `src/vignettes.mjs` bullet in AGENTS.md "Current repository"
+     (move the scene out of the placeholder list) and row 12 of
+     `docs/non-battle-feature-plan.md`.
 8. **Verify** with `make syntax` (it also compiles `tools/*.py`), `make test` and
    `node tools/check_vignettes.mjs`. Then use the AGENTS.md change workflow:
    a PR with an independent review, unless the user says to push a small

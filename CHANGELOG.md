@@ -19,6 +19,9 @@ history.
 
 ### Added
 
+- The merchant now has a real portrait: a plump, beaming trader in his
+  apron, arms spread in welcome among sugar barrels, hides and cacao sacks.
+
 - Sailing into a coastal town now shows a real picture: the captain at the
   rail, looking across the harbour at a stone fort and a colonial town. The
   fort flies the town's flag as it looked at the time: the Cross of

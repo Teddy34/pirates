@@ -122,8 +122,10 @@ let artLoading = null;
 const SCENE_ART_URLS = {
   'title-ship': new URL('../assets/vignettes/title-ship.png', import.meta.url).href,
   'harbour-arrival': new URL('../assets/vignettes/harbour-arrival.png', import.meta.url).href,
+  merchant: new URL('../assets/vignettes/merchant.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
+  merchant: 'A plump, beaming merchant in a linen apron and a dark doublet spreads his arms in welcome among sugar barrels, hides, cacao sacks and a brass balance, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
 const sceneArt = {};
@@ -512,9 +514,14 @@ function drawTavern(p) {
   p.outlined([[50, 102, 5, 6, '#8a8a8a']]);
 }
 
-// A plump merchant in a soft cap, spectacles and apron, before shelves of
-// bales and casks and a hanging scale.
+// The merchant's portrait art (assets/vignettes/merchant.png) once loaded;
+// until then, the placeholder: a plump merchant in a soft cap and apron,
+// before shelves of bales and casks and a hanging scale.
 function drawMerchant(picture) {
+  if (sceneArt.merchant) {
+    picture.image(sceneArt.merchant, 0, 0, PICTURE_SIZES.portrait.width, PICTURE_SIZES.portrait.height, 0, 0);
+    return;
+  }
   picture.rect(0, 0, 96, 128, '#8a6a46');
   for (const y of [24, 56]) {
     picture.rect(0, y, 96, 3, WOOD_DARK);
