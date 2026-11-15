@@ -63,7 +63,7 @@ test('the governor portrait cell follows the era and the nation', async () => {
   assert.match(vignetteDescription('governor', { era: '1680', nation: 'France' }), /^Placeholder picture/);
 });
 
-test('the harbour arrival picks its sheet row by the fort flag and era', async () => {
+test('the harbour arrival and the quay pick their sheet row by the fort flag and era', async () => {
   const { harbourRow } = await import('../src/vignettes.mjs');
   assert.equal(harbourRow({ flag: 'Spain', era: '1560' }), 0);
   assert.equal(harbourRow({ flag: 'England', era: '1680' }), 1);
@@ -73,6 +73,7 @@ test('the harbour arrival picks its sheet row by the fort flag and era', async (
   assert.equal(harbourRow({ flag: 'pirate', era: '1660' }), null);
   // Without a DOM the art never loads and the placeholder stands in.
   assert.match(vignetteDescription('harbour-arrival', { flag: 'Spain', era: '1600' }), /^Placeholder picture/);
+  assert.match(vignetteDescription('port-quay', { flag: 'Spain', era: '1600' }), /^Placeholder picture/);
   assert.match(vignetteDescription('merchant'), /^Placeholder picture/);
   assert.match(vignetteDescription('barmaid'), /^Placeholder picture/);
   assert.match(vignetteDescription('bartender'), /^Placeholder picture/);

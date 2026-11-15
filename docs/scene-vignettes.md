@@ -135,10 +135,40 @@ if you walk in (a deliberate departure) · same text as above
 
 **port-quay** · no original slot; an addition · the town menu of a coastal
 town, while you are in port · *"Your ships lie safely at anchor."*
-> Seen from a busy stone quay: a whitewashed warehouse with a hoist on the
-> left, stevedores among barrels and bales, the captain looking out over his
-> ships at anchor in a calm bay, and a small fort flying the national flag on
-> the far headland. Afternoon light.
+> A busy stone quay in a small Caribbean colonial port town, warm afternoon
+> light. On the left, a two-storey whitewashed warehouse with a terracotta
+> tile roof and big wooden doors; from its upper loading door a plain
+> wooden beam sticks out with a rope and a wooden pulley block lifting a
+> bale. On the quay, four stevedores in loose linen shirts, knee-length
+> baggy canvas breeches, knitted wool caps and bare feet roll wooden
+> barrels, carry cloth-wrapped bales and sacks; a stack of barrels, a few
+> hemp sacks and coiled ropes, a wooden bollard. In the centre foreground,
+> standing at the quay edge seen from behind and slightly to one side, the
+> captain looks out over the bay (recurring description, bareheaded, long
+> coat). Beyond him, on calm turquoise water, his ships lie at anchor: a
+> three-masted ship with a high stern castle and a smaller two-masted ship,
+> their square sails furled on the yards, no flags flying from the ships. A
+> rowing boat with two oarsmen comes in to the quay steps. On the far
+> headland on the right, a small low stone fort with angled bastions; on
+> it, one tall flagpole with a single large plain white flag, flying flat
+> and fully spread towards the viewer, clearly visible against the blue
+> sky, with no emblem, cross or pattern on it. Green hills and palms
+> behind, a few cumulus clouds.
+>
+> *Scene negatives:* emblem on the fort flag, flags on the ships, red and
+> yellow striped flag, tricolour flag, union jack, skull and crossbones,
+> tricorne hat, bicorne hat, telescope, spyglass, ship's steering wheel,
+> iron crane, metal crane, lighthouse, steamship, shipping containers,
+> wooden pallets, forklift, stencilled crates, concrete, cars, power lines,
+> modern harbour. *One image for every nation: the build paints the town's
+> flag over the plain white one.*
+
+The art is `assets/vignettes/port-quay.png` (provenance in
+`assets/vignettes/PROVENANCE.md`), built like harbour-arrival: one
+illustration with a plain white fort flag, five rows, one per period flag,
+picked from the town's nation and the career's era. The ships fly no flags,
+so one picture serves every nation. The career openings that reuse
+port-quay show it too, with the fort flying the player's nation's flag.
 
 **town-square** · orig. 0x16 `town` · likely the town's backdrop near the
 tavern and barmaid code (`0x11606`); context unconfirmed. Used here for the

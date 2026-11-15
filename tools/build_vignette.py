@@ -139,6 +139,15 @@ def flag_fix(make_flag, quad, shade=False):
     return lambda image: paste_flag(image, make_flag(), quad, shade)
 
 
+# One row per town flag, in the order of HARBOUR_FLAGS in src/vignettes.mjs.
+FORT_FLAGS = [('Spain', cross_of_burgundy), ('England', st_george), ('France', plain_white), ('Holland', prince_flag), ('Holland 1660', states_flag)]
+
+
+def fort_flag_variants(quad):
+    """One variant per town flag, warped onto a plain white flag at quad."""
+    return [(name, [flag_fix(make, quad, shade=True)]) for name, make in FORT_FLAGS]
+
+
 # Scenes with art. `source` pins the expected source size (the fixes use
 # source pixel coordinates); `crop` is an optional (left, top, right, bottom)
 # box; `fixes` run on the source before reduction. `variants` makes a sheet:
@@ -168,10 +177,13 @@ SCENES = {
     'harbour-arrival': {
         'shape': 'landscape',
         'source': (1659, 948),
-        'variants': [
-            (name, [flag_fix(make, [(646, 138), (763, 168), (777, 240), (648, 230)], shade=True)])
-            for name, make in [('Spain', cross_of_burgundy), ('England', st_george), ('France', plain_white), ('Holland', prince_flag), ('Holland 1660', states_flag)]
-        ],
+        'variants': fort_flag_variants([(646, 138), (763, 168), (777, 240), (648, 230)]),
+    },
+    # Same plain white fort flag on the far headland, same rows.
+    'port-quay': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+        'variants': fort_flag_variants([(1478, 198), (1593, 215), (1592, 289), (1478, 277)]),
     },
     'sail-ho': {
         'shape': 'landscape',
