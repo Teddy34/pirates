@@ -82,6 +82,7 @@ test('the harbour arrival and the quay pick their sheet row by the fort flag and
   assert.match(vignetteDescription('sailing-master'), /^Placeholder picture/);
   assert.match(vignetteDescription('open-swords'), /^Placeholder picture/);
   assert.match(vignetteDescription('tavern'), /^Placeholder picture/);
+  assert.match(vignetteDescription('shipwright'), /^Placeholder picture/);
 });
 
 test('the title logo spells Retro in outlined pixel letters inside its canvas', async () => {

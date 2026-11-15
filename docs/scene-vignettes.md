@@ -292,10 +292,43 @@ appealingly."* (CSTR 296–300)
 (`0x218DA`) · *"The shipwright eyes you suspiciously, then asks your
 business… Repairing a ship / Selling a ship / Selling some cannon"*; *"I
 pay 50 gold pieces per cannon"* (CSTR 277–284, 313)
-> A shipyard slipway on the beach: a ship careened on her side with
-> carpenters caulking the hull, steam from a tar cauldron, stacked timber and
-> a row of iron cannon in the sand. A burly, bald shipwright with a leather
-> apron and an adze looks the captain up and down.
+In the game this is a 96 × 128 portrait (3 : 4, generate at 768 × 1024),
+one picture for every era and nation. The art is
+`assets/vignettes/shipwright.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. The prompt asks
+for a ship hauled over on her side for careening; the generator drew her
+upright on trestles, with the caulkers on a plank stage. That is accepted:
+it is still a beach repair, with no anachronism, and the hull is small at
+1×.
+
+> Vertical half-length portrait of a shipwright on a Caribbean beach
+> shipyard, around 1640. A burly, broad-shouldered man in his forties,
+> completely bald sunburnt head, a short dark beard going grey, thick
+> forearms, a sceptical, suspicious look: one eyebrow raised, eyes
+> narrowed, sizing up the viewer. He wears a coarse off-white linen shirt
+> with the sleeves rolled above the elbow, open at the neck, and a heavy
+> scarred leather apron. A long-handled shipwright's adze with a curved
+> iron blade rests on his shoulder. His head sits in the upper third of
+> the picture and his face is large and clearly lit. Behind him,
+> simplified and slightly darker: on a sandy beach, a wooden three-masted
+> merchant ship hauled over on her side for careening, her bare masts
+> tilted and her weedy hull bottom exposed, with workmen on planks
+> hammering tarred oakum into the seams with mallets; black smoke rising
+> from an iron tar cauldron over a fire; stacked timber and planks; and in
+> the sand in front of the hull a row of old iron cannon barrels lying
+> without carriages. Palm trees, a bright blue sky, warm afternoon sun.
+
+Scene negatives: flags, ship's steering wheel, tricorne hats, bicorne
+hats, power tools, steel hammers with rubber grips, metal scaffolding,
+modern dry dock, steamship, skull and crossbones, full-body view, small
+distant figure. Period sources: shipwright's tools including the adze,
+[Mary Rose Trust, "Meet the carpenter"](https://maryrose.org/meet-the-carpenter/)
+(1545 wreck) and [Ministère de la Culture, corsair wrecks, ship's
+tools](https://archeologie.culture.gouv.fr/epaves-corsaires/en/ships-tools);
+oakum and pitch in the seams, [a 1691 list of English dockyard terms, as
+transcribed on Model Ship World](https://modelshipworld.com/topic/14132-explanation-of-dockyard-terms-circa-1691)
+(a forum transcription, not checked against the original). No source was
+found for careening practice in the 1640s Caribbean.
 
 ### 4.4 The tavern
 

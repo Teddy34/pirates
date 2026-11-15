@@ -50,6 +50,9 @@ history.
   parrot on a beam and a hanging ship model, with the harbour at dusk
   through the open door. One picture serves every nation (no flag shows);
   the code-drawn room stays as the fallback.
+- The shipwright now has a real portrait: a burly, bald shipwright with an
+  adze on his shoulder eyes you suspiciously, before a ship being caulked
+  on the beach, a tar cauldron and a row of old cannon in the sand.
 - The town menu of a coastal town now shows real art: stevedores at work
   on a busy stone quay, ships at anchor in the bay, and a distant fort on
   the headland flying the town's period flag (one version per nation, the

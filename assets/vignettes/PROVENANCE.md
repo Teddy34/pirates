@@ -313,3 +313,31 @@ seen through the open door.
   PNG).
 - **Rebuild:** `python3 tools/build_vignette.py --scene tavern --source <image>`
   (Pillow).
+
+## shipwright.png
+
+The shipwright's portrait, 96 × 128 (3 : 4), shown at the shipyard: a
+burly, bald shipwright with a greying beard, rolled linen sleeves and a
+scarred leather apron eyes the viewer suspiciously, an adze on his
+shoulder, before a ship on trestles being caulked on the beach, a tar
+cauldron over a fire, stacked timber and a row of old iron cannon in the
+sand.
+
+- **Source:** a 1086 × 1448 comic-style illustration generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the shipwright prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** an adze, mallets and tarred oakum for caulking, a tar
+  cauldron, iron cannon barrels without carriages; no flag on the ship, so
+  one picture serves every nation. The ship stands upright on trestles
+  rather than careened on her side as asked; accepted (see
+  `docs/scene-vignettes.md`).
+- **Process:** `tools/build_vignette.py` crops the source to 3 : 4 when
+  needed, reduces it to 96 × 128 with a box filter, raises contrast (×1.15)
+  and colour (×1.2), and quantises to 256 colours (median cut, no
+  dithering, indexed PNG). No historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene shipwright --source <image>`
+  (Pillow).
