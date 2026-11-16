@@ -72,6 +72,7 @@ const DESCRIPTIONS = {
   'lost-city-maya': 'Lost Maya gold in a sea cave beside an old wreck',
   'sail-ho': 'The lookout points out a tiny sail on the horizon',
   'sail-nearer': 'A ship under sail draws nearer, her colours not yet visible',
+  'sail-colours': 'A ship close at hand shows her colours',
   boarding: 'Two ships grind together as boarders swing across through the smoke',
   'hostage-talks': 'A bound enemy captain offers a secret in the stern cabin',
   'crew-recruits': 'Sailors crowd around as the captain writes their names in the articles',
@@ -103,6 +104,11 @@ export function vignetteDescription(id, options = {}) {
   }
   if (FORT_FLAG_SCENES[id]) {
     if (sceneArt[id] && harbourRow(options) !== null) return FORT_FLAG_SCENES[id](HARBOUR_FLAGS[harbourRow(options)][1]);
+    return `Placeholder picture: ${DESCRIPTIONS[id]}.`;
+  }
+  if (id === 'sail-colours') {
+    const flag = colourFlag(options);
+    if (composeColours(colourStern(options), flag)) return `Close under her carved stern, the ship shows her colours: ${COLOUR_DESCRIPTIONS[flag]}, pixelated from a comic-style illustration.`;
     return `Placeholder picture: ${DESCRIPTIONS[id]}.`;
   }
   if (id === 'sail-nearer') {
@@ -279,6 +285,139 @@ export function sightedShipArt({ ship, era } = {}) {
   return SHIP_ART_DESCRIPTIONS[key] ? key : null;
 }
 
+// The ship's colours, close at hand: "She's flying %s colors" (CSTR 122).
+// A close view of her stern, one per period band and one for the small
+// craft, each drawn with a plain white flag; the flag is painted onto it
+// here from a sheet of flat flags and a map of the cloth
+// (tools/build_colours.py, assets/vignettes/colours/). The flag follows the
+// nation, the era and, where the sources differ, the ship's role (kind 6 and
+// up: escorts, pirate hunters and warships); sources in PROVENANCE.md.
+export const COLOUR_FLAGS = [
+  'spain-burgundy', 'spain-arms', 'england-george', 'england-red-ensign', 'france-blue-cross', 'france-white',
+  'holland-prince', 'holland-states', 'pirate-red', ...Array.from({ length: 32 }, (_, index) => `pirate-${index}`),
+];
+const COLOUR_CELL = { width: 72, height: 48, columns: 9 };
+const PIRATE_EMBLEMS = [
+  'a white cutlass', 'two crossed gold cutlasses', 'a white hourglass', 'a white arm raising a sword', 'a white heart',
+  'a gold crown', 'a gold eight-pointed star', 'a white crescent moon', 'a white anchor', 'a gold lightning bolt',
+  'a white boarding axe', 'three gold coins', 'a white key', 'a gold sun', 'a lit black grenade', 'a gold trident',
+  'a white arrow', 'a white fish', 'a black hourglass in a black border', 'a black heart in a gold border',
+  'two white dice', 'gold flames', 'a white chain', 'a white dagger', 'a gold bell', 'a black ship',
+  'a white cutlass under a black band', 'a gold star under a black band', 'a white crescent under a black band',
+  'a white anchor under a black band', 'a gold key under a black band', 'a gold sun under a black band',
+];
+const COLOUR_DESCRIPTIONS = {
+  'spain-burgundy': 'the Cross of Burgundy, a red ragged saltire on white',
+  'spain-arms': 'white with the crowned royal arms of Spain',
+  'england-george': 'St George’s red cross on white',
+  'england-red-ensign': 'a red ensign with St George’s cross in the canton',
+  'france-blue-cross': 'a white cross on blue',
+  'france-white': 'the plain white flag of the French king’s ships',
+  'holland-prince': 'the orange, white and blue Prince’s flag',
+  'holland-states': 'the red, white and blue States flag',
+  'pirate-red': 'a plain red flag: no quarter',
+  ...Object.fromEntries(PIRATE_EMBLEMS.map((emblem, index) => [`pirate-${index}`, `her captain’s own red colours with ${emblem}`])),
+};
+
+// The flag key for an encounter (or `colours`, a key, for the gallery).
+export function colourFlag({ flag, era, kind = 0, captainId, colours } = {}) {
+  if (colours) return COLOUR_DESCRIPTIONS[colours] ? colours : null;
+  const year = Number(era);
+  const navy = kind >= 6;
+  switch (flag) {
+    // The royal arms on white replaced the Cross of Burgundy as the navy's
+    // ensign under Charles II, in the 1670s; the cross stayed the jack and
+    // the merchants' flag.
+    case 'Spain': return year >= 1680 && navy ? 'spain-arms' : 'spain-burgundy';
+    // The red ensign with St George's canton is recorded by 1620.
+    case 'England': return year >= 1620 ? 'england-red-ensign' : 'england-george';
+    // White for the king's ships (from 1638 on charts, the navy's alone
+    // from 1661); merchants, and every French ship before, a white cross on
+    // blue.
+    case 'France': return year >= 1640 && navy ? 'france-white' : 'france-blue-cross';
+    // Orange to about 1630, both 1630-1662 (kept orange, as the forts),
+    // red from 1663.
+    case 'Holland': return year >= 1660 ? 'holland-states' : 'holland-prince';
+    case 'pirate': {
+      // A named pirate flies his own colours, one design per surname, as the
+      // original ties its pirate flags to the captains' names.
+      if (!captainId) return 'pirate-red';
+      const low = captainId & 0xff;
+      return `pirate-${((low >> 6) & 3) * 8 + ((low >> 3) & 7)}`;
+    }
+    default: return null;
+  }
+}
+
+const SMALL_CRAFT = new Set(['Pinnace', 'Sloop', 'Barque']);
+export function colourStern({ ship, era, stern } = {}) {
+  if (stern) return stern;
+  if (SMALL_CRAFT.has(ship)) return 'stern-small';
+  const year = Number(era);
+  return year <= 1600 ? 'stern-early' : year <= 1640 ? 'stern-mid' : 'stern-late';
+}
+
+let colourAtlas = null;
+let colourAtlasLoading = null;
+const colourSterns = {};
+const colourSternLoading = {};
+const colourPictures = new Map();
+
+function loadColourArt(stern) {
+  const url = (file) => new URL(`../assets/vignettes/colours/${file}`, import.meta.url).href;
+  colourAtlasLoading ??= loadImage(url('flags.png'), (image) => { colourAtlas = image; });
+  colourSternLoading[stern] ??= Promise.all([
+    loadImage(url(`${stern}.png`), (image) => { (colourSterns[stern] ??= {}).base = image; }),
+    loadImage(url(`${stern}-map.png`), (image) => { (colourSterns[stern] ??= {}).map = image; }),
+  ]);
+  return Promise.all([colourAtlasLoading, colourSternLoading[stern]]);
+}
+
+function imagePixels(image) {
+  const canvas = document.createElement('canvas');
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.drawImage(image, 0, 0);
+  return context.getImageData(0, 0, image.width, image.height);
+}
+
+// The stern picture with the flag painted on: each cloth pixel of the map
+// holds the flag's (u, v) in red and green and the folds' light in blue
+// (200 = full light). Null until its images have loaded.
+function composeColours(sternKey, flagKey) {
+  const id = `${sternKey}|${flagKey}`;
+  if (colourPictures.has(id)) return colourPictures.get(id);
+  const stern = colourSterns[sternKey];
+  const index = COLOUR_FLAGS.indexOf(flagKey);
+  if (!stern?.base || !stern.map || !colourAtlas || index < 0 || typeof document === 'undefined') return null;
+  const { width, height } = PICTURE_SIZES.landscape;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  context.drawImage(stern.base, 0, 0);
+  const picture = context.getImageData(0, 0, width, height);
+  const map = imagePixels(stern.map).data;
+  const flags = imagePixels(colourAtlas);
+  const { width: cellWidth, height: cellHeight, columns } = COLOUR_CELL;
+  const left = (index % columns) * cellWidth;
+  const top = Math.floor(index / columns) * cellHeight;
+  for (let at = 0; at < width * height * 4; at += 4) {
+    const light = map[at + 2];
+    if (!light) continue;
+    const x = left + Math.min(cellWidth - 1, Math.floor((map[at] / 256) * cellWidth));
+    const y = top + Math.min(cellHeight - 1, Math.floor((map[at + 1] / 256) * cellHeight));
+    const from = (y * flags.width + x) * 4;
+    for (let channel = 0; channel < 3; channel += 1) {
+      picture.data[at + channel] = Math.min(255, Math.round((flags.data[from + channel] * light) / 200));
+    }
+  }
+  context.putImageData(picture, 0, 0);
+  colourPictures.set(id, canvas);
+  return canvas;
+}
+
 function loadImage(url, store) {
   return new Promise((resolve) => {
     const image = new Image();
@@ -298,6 +437,7 @@ export function loadVignetteArt(id, options) {
       ...Object.entries(SCENE_ART_URLS).map(([scene, url]) => loadImage(url, (image) => { sceneArt[scene] = image; })),
     ]).then(() => {});
   }
+  if (id === 'sail-colours' && typeof Image !== 'undefined') return Promise.all([artLoading, loadColourArt(colourStern(options))]).then(() => {});
   const key = id === 'sail-nearer' ? sightedShipArt(options) : null;
   if (!key || typeof Image === 'undefined') return artLoading;
   shipArtLoading[key] ??= loadImage(new URL(`../assets/vignettes/ships/${key}.png`, import.meta.url).href, (image) => { shipArt[key] = image; });
@@ -306,6 +446,7 @@ export function loadVignetteArt(id, options) {
 
 // True while a vignette would be drawn better once the art has loaded.
 export function vignetteNeedsArt(id, options) {
+  if (id === 'sail-colours') return Boolean(colourFlag(options)) && !composeColours(colourStern(options), colourFlag(options));
   if (id === 'sail-nearer') {
     const key = sightedShipArt(options);
     return Boolean(key) && !shipArt[key];
@@ -1846,6 +1987,19 @@ function drawSailNearer(p, options = {}) {
   p.rect(0, 112, 64, 2, WOOD_LIGHT);
 }
 
+// The ship close at hand, her flag streaming from the stern; until the art
+// has loaded, a plain ship flying the game's own flag colours.
+function drawSailColours(p, options = {}) {
+  const picture = composeColours(colourStern(options), colourFlag(options));
+  if (picture) {
+    p.image(picture, 0, 0, VIGNETTE_PICTURE_WIDTH, VIGNETTE_PICTURE_HEIGHT, 0, 0);
+    return;
+  }
+  sky(p, ['#4f9ac8', '#7ab8d8', '#a8d4e0', '#d4e8e0'], 84);
+  sea(p, 84, '#1f6a8a', '#6ab0c0');
+  ship(p, 120, 104, { facing: -1, flag: options.flag ?? 'pirate', scale: 1.8 });
+}
+
 // Two hulls grind together in the smoke: grapnels taut, men swinging across,
 // and the enemy captain drawing on his own deck.
 function drawBoarding(p, { flag = 'Spain' } = {}) {
@@ -2523,6 +2677,7 @@ const SCENES = {
   'lost-city-maya': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'maya' }) },
   'sail-ho': { shape: 'landscape', draw: drawSailHo },
   'sail-nearer': { shape: 'landscape', draw: drawSailNearer },
+  'sail-colours': { shape: 'landscape', draw: drawSailColours },
   boarding: { shape: 'landscape', draw: drawBoarding },
   'hostage-talks': { shape: 'landscape', draw: drawHostageTalks },
   'crew-recruits': { shape: 'landscape', draw: drawCrewRecruits },

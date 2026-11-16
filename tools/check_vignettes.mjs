@@ -21,6 +21,8 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
   const scenes = [
     ['sail-ho', 'tiny sail'],
     ['sail-nearer', 'colours'],
+    ['sail-colours', 'colours'],
+    ['sail-colours-pirate', 'colours'],
     ['boarding', 'Two ships grind'],
     ['hostage-talks', 'bound enemy captain'],
     ['crew-recruits', 'names in the articles'],

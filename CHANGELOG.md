@@ -13,6 +13,18 @@ history.
 
 ### Changed
 
+- When the lookout reads a ship's colours, the dialog now shows her stern
+  close at hand with the flag streaming from it, a stern for each period
+  and one for small craft. The flag follows the nation, the era and the
+  ship's role: Spain's Cross of Burgundy (in 1680 the navy flies the
+  royal arms), England's St George's cross and then the red ensign,
+  France's white cross on blue for merchants and plain white for the
+  king's ships from 1640, the Dutch orange and later red tricolour. A
+  pirate flies a plain red "no quarter" flag; a named pirate flies his own
+  colours, one new design per surname, as the original tied its pirate
+  flags to captains' names; skull-and-crossbones flags, which came about
+  1700, are left out. `?preview=colours` shows every flag.
+
 - When a sail draws nearer ("She looks like a …"), the dialog now shows
   the ship: one picture per ship type and period (1560–1600, 1620–1640,
   1660–1680), from the high-castled four-masted galleons of the 16th
