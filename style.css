@@ -104,7 +104,12 @@ form .wide-field { grid-column:span 2; }
 .shipwright-actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
 .shipwright-actions > * { flex:1 1 96px; }
 .shipwright-sound { color:#725f43; text-align:center; }
+.shipwright-sold :is(th,td) { color:#725f43; }
+/* The yard redraws in place: a steady scrollbar gutter keeps its columns from narrowing when the page starts to scroll. */
+.dialog-text:has(.shipwright-manifest) { scrollbar-gutter:stable; }
 .shipwright-note { font-weight:700; }
+/* The longest notes wrap on the smallest phones: keep two lines there so the first wrapped note does not push the table down. */
+@media (max-width:359px) { .shipwright-note { min-height:2lh; } }
 .shipwright-refusals { font-style:italic; }
 .shipwright-help { font-size:14px; color:#725f43; }
 .plunder-cell { display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -272,12 +277,14 @@ form .wide-field { grid-column:span 2; }
 @media (prefers-reduced-motion:reduce) { #event-dialog #dialog-actions button:focus-visible .action-icon { animation:none; } }
 /* Trading tables: bigger rows and pixel controls in the wide text page. */
 /* Short screens: tighter buttons so the bar leaves room for the page. */
-@media (min-width:761px) and (max-height:700px) { .dialog-text { padding-top:26px; } #dialog-body { margin:12px 0 18px; } #dialog-actions { gap:8px; padding-top:12px; } #event-dialog #dialog-actions button { flex-basis:150px; min-height:44px; padding:8px 14px; font-size:13px; } #event-dialog .plunder-manifest :is(th,td) { padding:6px 8px; } #event-dialog :is(.plunder-arrow,.plunder-take-all) { min-height:38px; } #event-dialog .plunder-manifest { margin:12px 0 8px; } }
+@media (min-width:761px) and (max-height:700px) { .dialog-text { padding-top:26px; } #dialog-body { margin:12px 0 18px; } #dialog-actions { gap:8px; padding-top:12px; } #event-dialog #dialog-actions button { flex-basis:150px; min-height:44px; padding:8px 14px; font-size:13px; } #event-dialog .plunder-manifest :is(th,td) { padding:6px 8px; } #event-dialog :is(.plunder-arrow,.plunder-take-all,.shipwright-sound) { min-height:38px; } #event-dialog .plunder-manifest { margin:12px 0 8px; } }
 #event-dialog .plunder-manifest { font-size:clamp(15px,1.15vw,19px); }
 #event-dialog .plunder-manifest th,#event-dialog .plunder-manifest td { padding:12px 8px; }
 #event-dialog .plunder-manifest thead th { font-family:var(--mono); font-size:12px; letter-spacing:.14em; }
 #event-dialog :is(.plunder-arrow,.plunder-take-all,.plunder-take-everything) { min-height:46px; border:3px solid var(--pixel); border-radius:0; box-shadow:inset -3px -3px 0 var(--brass-dark),inset 3px 3px 0 var(--brass-light),3px 3px 0 #000; font-family:var(--mono); }
 #event-dialog :is(.plunder-arrow,.plunder-take-all,.plunder-take-everything):disabled { box-shadow:none; }
+/* "Sound" takes a Repair button's place at its height, so a repair does not shift the rows below. */
+#event-dialog .shipwright-sound { display:flex; align-items:center; justify-content:center; min-height:46px; }
 #event-dialog :is(.plunder-arrow,.plunder-take-all,.plunder-take-everything):not(:disabled):active { transform:translate(2px,2px); box-shadow:inset -3px -3px 0 var(--brass-dark),inset 3px 3px 0 var(--brass-light),1px 1px 0 #000; }
 @media (min-width:761px) { #event-dialog .merchant-manifest .plunder-take-all { white-space:nowrap; letter-spacing:-.02em; } }
 #event-dialog .plunder-cell strong,#event-dialog .merchant-price { font-size:clamp(18px,1.4vw,24px); }
@@ -293,5 +300,5 @@ form .wide-field { grid-column:span 2; }
   #dialog-body { font-size:18px; }
   #event-dialog #dialog-actions button { flex-basis:140px; min-height:50px; padding:10px 12px; font-size:13px; letter-spacing:.06em; }
   #event-dialog .plunder-manifest th,#event-dialog .plunder-manifest td { padding:8px 4px; }
-  #event-dialog :is(.plunder-arrow,.plunder-take-all) { min-height:38px; }
+  #event-dialog :is(.plunder-arrow,.plunder-take-all,.shipwright-sound) { min-height:38px; }
 }
