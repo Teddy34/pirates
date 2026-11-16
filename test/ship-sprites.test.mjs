@@ -16,7 +16,7 @@ test('ship sprites follow the sixteen heading sectors', () => {
 test('ship sprites are sized to fit and anchored on the hull at the waterline', () => {
   for (let type = 0; type < 8; type += 1) {
     for (let sector = 0; sector < 16; sector += 1) {
-      const sprite = paint({ type, heading: sector * 16, length: shipArtLength(type, 'battle') });
+      const sprite = paint({ type, heading: sector * 16, length: shipArtLength(type) + 7 });
       assert.equal(sprite.pixels.length, sprite.width * sprite.height * 4);
       const { x, y } = sprite.anchor;
       assert.equal(sprite.pixels[(y * sprite.width + x) * 4 + 3], 255, `type ${type} sector ${sector}`);

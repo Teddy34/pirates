@@ -192,7 +192,21 @@ named captain (`0xF207`). Fort battles reuse the naval engine (§7).
   and mark the wall-clock conversion `ASSUMED` so it can be tuned later.
 - The arena size and camera scale, the placement's centre, and sprite
   dimensions are presentation-compatible approximations until verified. Ship silhouettes are
-  drawn at about their hit box's size; the box is not drawn. The cannonball
+  drawn at about their hit box's size; the box is not drawn. Each ship type
+  has its own pixel-art design (`src/battle-ship-sprites.mjs`): the pinnace a
+  small square-rigged two-master, the sloop one gaff-rigged mast with jibs on
+  a long bowsprit, the barque a three-master with a lateen mizzen, the cargo
+  fluyt a bluff bow and a tall narrow stern, the merchantman forecastle,
+  sterncastle and one row of ports, the frigate a long low dark hull with a
+  yellow gun band, the war galleon four masts, high castles, a beakhead and
+  two gun rows, and the galleon a broad red-brown hull with a high gilded
+  sterncastle and lantern. The designs are original and presentation only;
+  the original's battle sprites are not reproduced. They are painted at a
+  fixed coarse resolution and drawn at a whole number of device pixels per
+  art pixel (about two battle pixels per art pixel), one sprite per heading
+  sector; sail state, a darker canvas while sails change, shot holes, a lost
+  foremast and scorched planks at heavy damage, and the masthead flag stay
+  on the sprite. The cannonball
   sprite shows one, two or three balls by the shooter's gun count (≤8, ≤20,
   more), a presentation-only hint: the original fires one ball per broadside
   and hits on its single point.
@@ -224,8 +238,9 @@ encounter dialog
 Add these modules:
 
 - `src/battle-mechanics.mjs`: pure formulas and one-frame state transition.
-- `src/battle-renderer.mjs`: battle camera and original vector ship, shot,
-  wake, smoke, wind, and status rendering.
+- `src/battle-renderer.mjs`: battle camera and original ship, shot, wake,
+  smoke, wind, and status rendering (pixel-art ships from
+  `src/battle-ship-sprites.mjs`).
 - `test/battle-mechanics.test.mjs`: deterministic formula, transition, AI, and
   outcome tests.
 

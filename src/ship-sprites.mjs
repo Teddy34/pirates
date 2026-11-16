@@ -1,4 +1,5 @@
-// Pixel-art ships for the sailing map and sea battles, in the towns' style:
+// Pixel-art ships for the sailing map, in the towns' style (the sea battle
+// has its own per-type designs in battle-ship-sprites.mjs):
 // an oblique view from the south with the hull's side showing, masts
 // standing upright, sails lit from the north-west and the nation's flag
 // streaming downwind. DOM-free: returns RGBA pixels plus the anchor pixel
@@ -31,10 +32,9 @@ const RIGS = [
   { masts: [[.32, .82], [.1, 1], [-.14, .8], [-.33, .62]], castle: 3, beam: .23, lantern: true },
 ];
 
-// Hull length in art pixels: the sailing map uses a small sprite, battles a
-// larger one sized to the hit box by the renderer.
-export function shipArtLength(type, view = 'map') {
-  return view === 'battle' ? 18 + 2 * type : 11 + type;
+// Hull length in art pixels on the sailing map.
+export function shipArtLength(type) {
+  return 11 + type;
 }
 
 // The sprite is chosen from the sixteen heading sectors, like the original's.
