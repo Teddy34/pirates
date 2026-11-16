@@ -253,6 +253,18 @@ SCENES = {
 }
 
 
+# The ship that draws nearer after "Sail ho!", one picture per type and
+# period band, too far off to read her colours: the generator drew her with
+# no flags. Each is built to assets/vignettes/ships/<key>.png
+# (--scene ships/<key>); src/vignettes.mjs (sightedShipArt) picks the key.
+SHIP_KEYS = ['barque', 'sloop'] + [
+    f'{band}-{kind}' for band in ('early', 'mid', 'late')
+    for kind in ('pinnace', 'fluyt', 'merchantman', 'frigate' if band == 'late' else 'fastgalleon', 'galleon', 'wargalleon')
+]
+for key in SHIP_KEYS:
+    SCENES[f'ships/{key}'] = {'shape': 'landscape', 'source': (1659, 948)}
+
+
 def centred_crop(size, aspect):
     width, height = size
     if width / height > aspect:

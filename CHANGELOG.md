@@ -13,6 +13,15 @@ history.
 
 ### Changed
 
+- When a sail draws nearer ("She looks like a …"), the dialog now shows
+  the ship: one picture per ship type and period (1560–1600, 1620–1640,
+  1660–1680), from the high-castled four-masted galleons of the 16th
+  century to the long, low frigates of the 1670s, with a two-masted lateen
+  barque and a single-masted sloop. She flies no flags yet, as the lookout
+  cannot make out her colours. Before 1660 the frigate is drawn as a fast,
+  race-built galleon, as the original names it. Each picture loads only
+  when shown, with a code-drawn ship as the fallback.
+
 - The tavern's visitors now have real pictures: sailors crowding the
   captain's table to sign the articles when recruits join, a dusty
   traveller sliding a sealed letter across the table, a toothless old

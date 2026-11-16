@@ -71,6 +71,7 @@ const DESCRIPTIONS = {
   'lost-city-olmec': 'Lost Olmec gold in a sea cave beside an old wreck',
   'lost-city-maya': 'Lost Maya gold in a sea cave beside an old wreck',
   'sail-ho': 'The lookout points out a tiny sail on the horizon',
+  'sail-nearer': 'A ship under sail draws nearer, her colours not yet visible',
   boarding: 'Two ships grind together as boarders swing across through the smoke',
   'hostage-talks': 'A bound enemy captain offers a secret in the stern cabin',
   'crew-recruits': 'Sailors crowd around as the captain writes their names in the articles',
@@ -103,6 +104,10 @@ export function vignetteDescription(id, options = {}) {
   if (FORT_FLAG_SCENES[id]) {
     if (sceneArt[id] && harbourRow(options) !== null) return FORT_FLAG_SCENES[id](HARBOUR_FLAGS[harbourRow(options)][1]);
     return `Placeholder picture: ${DESCRIPTIONS[id]}.`;
+  }
+  if (id === 'sail-nearer') {
+    const key = sightedShipArt(options);
+    if (key && shipArt[key]) return `${SHIP_ART_DESCRIPTIONS[key]} under sail, seen past the ship’s rail, flying no colours yet, pixelated from a comic-style illustration.`;
   }
   if (sceneArt[id]) return ART_DESCRIPTIONS[id];
   return `Placeholder picture: ${DESCRIPTIONS[id] ?? id}.`;
@@ -227,26 +232,84 @@ export function governorCell({ era, nation } = {}) {
   return { x: column * PICTURE_SIZES.portrait.width, y: row * PICTURE_SIZES.portrait.height };
 }
 
-// Loads the picture art once. Until it arrives, or if it cannot be loaded
-// (or there is no DOM), the code-drawn placeholder stands in.
-export function loadVignetteArt() {
-  if (artLoading) return artLoading;
-  if (typeof Image === 'undefined') return (artLoading = Promise.resolve());
-  const load = (url, store) => new Promise((resolve) => {
+// The ship that draws nearer after "Sail ho!" ("She looks like a ..."):
+// one picture per ship type and period, too far off to read her colours
+// (assets/vignettes/ships/, PROVENANCE.md). The eras fall into three
+// bands, 1560-1600, 1620-1640 and 1660-1680; the barque and the sloop
+// (1640 on) have one picture each. Before 1660 the frigate is the
+// original's "fast galleon" (encounters.md §2), a race-built galleon.
+const SHIP_ART_TYPES = {
+  Pinnace: 'pinnace', Sloop: 'sloop', Barque: 'barque', 'Cargo fluyt': 'fluyt', Merchantman: 'merchantman',
+  Frigate: 'frigate', 'Fast galleon': 'frigate', 'War galleon': 'wargalleon', Galleon: 'galleon',
+};
+const SHIP_ART_DESCRIPTIONS = {
+  barque: 'A small two-masted bark with two lateen sails',
+  sloop: 'A small single-masted sloop with a gaff mainsail and a headsail',
+  'early-pinnace': 'A small, low two-masted pinnace of the 16th century',
+  'early-fluyt': 'A round-sided Dutch fluyt with a tall, narrow stern',
+  'early-merchantman': 'A high-sided armed merchant ship of the 16th century',
+  'early-fastgalleon': 'A long, low, race-built fast galleon with four masts',
+  'early-galleon': 'A towering Spanish treasure galleon with four masts',
+  'early-wargalleon': 'A war galleon with two rows of guns and four masts',
+  'mid-pinnace': 'A small, low two-masted pinnace',
+  'mid-fluyt': 'A round-sided Dutch fluyt with a tall, narrow stern',
+  'mid-merchantman': 'An armed merchant ship with a tall, flat stern',
+  'mid-fastgalleon': 'A long, low, fast galleon with a single row of guns',
+  'mid-galleon': 'A towering, gilded Spanish treasure galleon',
+  'mid-wargalleon': 'A great warship with two tiers of guns and a gilded stern',
+  'late-pinnace': 'A small, low two-masted pinnace',
+  'late-fluyt': 'A round-sided Dutch fluyt with a tall, narrow stern',
+  'late-merchantman': 'An armed merchant ship with a carved stern',
+  'late-frigate': 'A long, low frigate with a single row of guns',
+  'late-galleon': 'A broad, gilded Spanish treasure galleon',
+  'late-wargalleon': 'A two-decked warship with two tiers of guns',
+};
+const shipArt = {};
+const shipArtLoading = {};
+
+export function sightedShipArt({ ship, era } = {}) {
+  const type = SHIP_ART_TYPES[ship];
+  if (!type) return null;
+  if (type === 'barque' || type === 'sloop') return type;
+  const year = Number(era);
+  if (!Number.isFinite(year)) return null;
+  const band = year <= 1600 ? 'early' : year <= 1640 ? 'mid' : 'late';
+  if (type === 'frigate') return band === 'late' ? 'late-frigate' : `${band}-fastgalleon`;
+  const key = `${band}-${type}`;
+  return SHIP_ART_DESCRIPTIONS[key] ? key : null;
+}
+
+function loadImage(url, store) {
+  return new Promise((resolve) => {
     const image = new Image();
     image.onload = () => { store(image); resolve(); };
     image.onerror = () => resolve();
     image.src = url;
   });
-  artLoading = Promise.all([
-    load(GOVERNOR_SHEET_URL, (image) => { governorSheet = image; }),
-    ...Object.entries(SCENE_ART_URLS).map(([id, url]) => load(url, (image) => { sceneArt[id] = image; })),
-  ]).then(() => {});
-  return artLoading;
+}
+
+// Loads the picture art once. Until it arrives, or if it cannot be loaded
+// (or there is no DOM), the code-drawn placeholder stands in. A sighted
+// ship's picture loads only when it is first shown.
+export function loadVignetteArt(id, options) {
+  if (!artLoading) {
+    artLoading = typeof Image === 'undefined' ? Promise.resolve() : Promise.all([
+      loadImage(GOVERNOR_SHEET_URL, (image) => { governorSheet = image; }),
+      ...Object.entries(SCENE_ART_URLS).map(([scene, url]) => loadImage(url, (image) => { sceneArt[scene] = image; })),
+    ]).then(() => {});
+  }
+  const key = id === 'sail-nearer' ? sightedShipArt(options) : null;
+  if (!key || typeof Image === 'undefined') return artLoading;
+  shipArtLoading[key] ??= loadImage(new URL(`../assets/vignettes/ships/${key}.png`, import.meta.url).href, (image) => { shipArt[key] = image; });
+  return Promise.all([artLoading, shipArtLoading[key]]).then(() => {});
 }
 
 // True while a vignette would be drawn better once the art has loaded.
-export function vignetteNeedsArt(id) {
+export function vignetteNeedsArt(id, options) {
+  if (id === 'sail-nearer') {
+    const key = sightedShipArt(options);
+    return Boolean(key) && !shipArt[key];
+  }
   return (id === 'governor' && !governorSheet) || (Boolean(SCENE_ART_URLS[id]) && !sceneArt[id]);
 }
 
@@ -378,6 +441,8 @@ function ship(p, x, y, { facing = 1, flag = 'pirate', sails = PARCHMENT, scale =
       p.rect(mx - sailWidth / 2, sy + sh - 2, sailWidth, 2, '#c7b48a');
     }
   });
+  // A ship too far off to read her colours flies none here.
+  if (flag === null) return;
   const mainTop = y - hullHeight - mastHeight;
   const [field, mark] = FLAGS[flag] ?? FLAGS.pirate;
   // A struck flag hangs half down the mast.
@@ -1765,6 +1830,22 @@ function drawSailHo(p) {
   p.outlined([[135, 101, 2, 8, '#2c3f63'], [133, 99, 18, 3, BRASS]]);
 }
 
+// The sighted ship at middle distance, flying no colours yet: its period
+// picture once loaded, otherwise a plain ship on the swell.
+function drawSailNearer(p, options = {}) {
+  const key = sightedShipArt(options);
+  if (key && shipArt[key]) {
+    p.image(shipArt[key], 0, 0, VIGNETTE_PICTURE_WIDTH, VIGNETTE_PICTURE_HEIGHT, 0, 0);
+    return;
+  }
+  sky(p, ['#4f9ac8', '#7ab8d8', '#a8d4e0', '#d4e8e0'], 76);
+  for (const [x, y, w] of [[20, 16, 44], [150, 24, 40]]) { p.rect(x, y, w, 4, '#f4f4ec'); p.rect(x + 8, y - 3, w - 18, 3, '#f4f4ec'); }
+  sea(p, 76, '#1f6a8a', '#6ab0c0');
+  ship(p, 130, 90, { facing: 1, flag: null, scale: 1.3 });
+  p.rect(0, 112, 64, 16, WOOD);
+  p.rect(0, 112, 64, 2, WOOD_LIGHT);
+}
+
 // Two hulls grind together in the smoke: grapnels taut, men swinging across,
 // and the enemy captain drawing on his own deck.
 function drawBoarding(p, { flag = 'Spain' } = {}) {
@@ -2441,6 +2522,7 @@ const SCENES = {
   'lost-city-olmec': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'olmec' }) },
   'lost-city-maya': { shape: 'landscape', draw: (p) => drawLostCity(p, { culture: 'maya' }) },
   'sail-ho': { shape: 'landscape', draw: drawSailHo },
+  'sail-nearer': { shape: 'landscape', draw: drawSailNearer },
   boarding: { shape: 'landscape', draw: drawBoarding },
   'hostage-talks': { shape: 'landscape', draw: drawHostageTalks },
   'crew-recruits': { shape: 'landscape', draw: drawCrewRecruits },

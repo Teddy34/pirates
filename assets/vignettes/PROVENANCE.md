@@ -187,6 +187,53 @@ slate and tallow candles behind him.
 - **Rebuild:** `python3 tools/build_vignette.py --scene bartender --source <image>`
   (Pillow).
 
+## ships/*.png
+
+The sighted ship, 224 × 128 (7 : 4) each, shown when the sail draws nearer
+("She looks like a …"): one ship under sail at middle distance, seen past
+our own rail and shrouds, flying no flags. Twenty pictures, one per ship
+type and period band: `barque`, `sloop`, and `early-`, `mid-` and `late-`
+(1560–1600, 1620–1640, 1660–1680) `pinnace`, `fluyt`, `merchantman`,
+`fastgalleon` (`frigate` in the late band), `galleon` and `wargalleon`.
+
+- **Source:** twenty 1659 × 948 comic-style illustrations generated on
+  2026-11-16 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the sail-nearer prompt and
+  ship table in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Period sources:** the fluyt's rounded, pear-shaped hull, two or three
+  masts and lateen mizzen, and its light armament (Wikipedia, "Fluyt",
+  rev. 1367062980); the galleon's beakhead, lateen mizzen and fourth
+  "bonaventure" mizzen on large ships (Wikipedia, "Galleon",
+  rev. 1378453936, several sections unsourced); the pinnace as a light,
+  single-decked, square-sterned vessel with sweeps and varied rigs
+  (Wikipedia, "Full-rigged pinnace", rev. 1353397534, citing *Some
+  Seventeenth-Century Vessels and the Sparrow-Hawk*, 1980); the frigate as
+  a long, low cruiser from the Dunkirk ships of about 1600 to the English
+  fourth to sixth rates of 1675 (Wikipedia, "Frigate", rev. 1383778071);
+  the later 17th-century Caribbean sloop with a large fore-and-aft gaff
+  mainsail and a headsail, a square topsail being unusual (secondary
+  sources only, e.g. bloodandpigment.com, 2020-10-18). "Bark" was a general
+  name for small ships in the period (Wikipedia, "Barque",
+  rev. 1378973771, citing Falconer); its rig is not recorded, so the
+  two-masted lateen bark, like a small caravel, is a design choice that
+  keeps the game's fore-and-aft barque, not a documented type. Before 1660
+  the game's frigate is the original's "fast galleon" (encounters.md §2),
+  drawn as a race-built galleon.
+- **Review:** no flags, ensigns or pennants on any ship; no steering
+  wheels, people or lettering. Accepted: the fluyts' tumblehome is milder
+  than in period draughts, and the 16th-century war galleon shows one full
+  tier of gunports rather than two; neither reads at 1×. No fixes were
+  needed.
+- **Process:** `tools/build_vignette.py` crops each source to 7 : 4
+  (centred), reduces it to 224 × 128 with a box filter, raises contrast
+  (×1.15) and colour (×1.2), and quantises to 256 colours (median cut, no
+  dithering, indexed PNG).
+- **Rebuild:** `python3 tools/build_vignette.py --scene ships/<key> --source <image>`
+  (Pillow).
+
 ## sail-ho.png
 
 The sail-sighted picture, 224 × 128 (7 : 4), shown when the lookout reports
