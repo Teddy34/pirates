@@ -19,7 +19,7 @@ import {
   captainRansomOffers, monthlyLandIncome,
   convoyRouteIndices, initialConvoys, monthlyConvoyStep, convoysInTown, meetsTreasureFleet, convoyGarrison, assaultBeforeTheWalls,
   captureConvoys, convoyReport,
-  diplomaticBriefing, tavernSpecialEncounters,
+  diplomaticBriefing, tavernSpecialEncounters, tavernDescription,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   merchantCommodityPrice, merchantFoodPrice, merchantStock, advanceDate,
   NATION_ORDER, monthlyWorldUpdate, initialWorldNews, randomTownRange, worldNewsMessage, newGameTowns,
@@ -3610,7 +3610,6 @@ function showTavern() {
       }));
   }
   const encounters = state.visit.tavernEncounters.filter(({ resolved }) => !resolved);
-  const mapPieces = mapPieceCount(state.treasureMaps[MAP_KIND.BURIED]);
   const actions = [];
   // 0x10FFE / 0x110BD. The original's gate 0x3312A is left out: only this
   // routine writes it, and only to clear it, so its meaning is unresolved.
@@ -3630,16 +3629,15 @@ function showTavern() {
   if (state.treasureMaps.some(({ pieces }) => pieces)) actions.push({ label: 'Study the treasure maps', run: () => showTreasureMaps(showTavern) });
   actions.push({ label: 'Return to town', secondary: true, run: showTownMenu });
 
-  const stranger = villainHere ? 'A well-dressed man in the far corner keeps his hat low and one eye on the back door. ' : '';
-  const visitor = encounters.length
-    ? stranger + encounters.map(({ kind }) => kind === 'map-seller'
-      ? 'A weather-beaten pirate guards a scrap of parchment in a shadowed booth.'
-      : 'A traveller watches the room, waiting for someone willing to buy information.').join(' ')
-    : stranger || 'No unusual visitors draw your attention tonight.';
+  // The room is described in prose; the treasure map's pieces are shown on
+  // the map itself (Study the treasure maps) and by the map seller.
+  const description = tavernDescription({
+    prosperityLevel: prosperityLevel(town.growth), villainHere, visitors: encounters.map(({ kind }) => kind),
+  });
   showDialog({
     vignette: 'tavern', kicker: `The tavern · ${town.name}`,
     title: 'Rumours, recruits, and strong drink',
-    body: `<p>${visitor}</p><dl><dt>Sailors</dt><dd>${state.visit.recruited ? 'Already approached' : 'Available'}</dd><dt>Treasure map</dt><dd>${mapPieces}/4 pieces</dd><dt>Your gold</dt><dd>${state.player.partyGold}</dd></dl>`,
+    body: `<p class="tavern-scene">${description.join(' ')}</p><dl><dt>Your gold</dt><dd>${state.player.partyGold}</dd></dl>`,
     actions,
   });
 }
@@ -3891,9 +3889,10 @@ function showTavernSpecialEncounter(encounter) {
     });
     return;
   }
+  const held = mapPieceCount(state.treasureMaps[MAP_KIND.BURIED]);
   showDialog({
     vignette: 'map-seller', kicker: 'A map seller', title: 'A scrap of an old treasure map',
-    body: `<p>The seller asks ${encounter.price} gold pieces for part of an old treasure map. Each piece shows more of the land around the cache.</p>`,
+    body: `<p>The seller asks ${encounter.price} gold pieces for part of an old treasure map. Each piece shows more of the land around the cache.${held ? ` You already hold ${held} of its 4 pieces.` : ' The map has 4 pieces; this would be your first.'}</p>`,
     actions: [
       { label: `Buy it · ${encounter.price} gold`, run: () => buyTreasureMapPiece(encounter) },
       { label: 'Decline', secondary: true, run: () => declineTavernEncounter(encounter) },
@@ -4029,7 +4028,7 @@ function treasureMapBody(kind) {
   const count = mapPieceCount(record);
   const missing = ['north-west', 'north-east', 'south-west', 'south-east'].filter((_, bit) => !(record.pieces & (1 << bit)));
   const alt = `${treasureMapTitle(kind)}: ${count} of 4 pieces, showing the land around a cross marked somewhere near ${town.name}${missing.length ? `; the ${missing.join(', ')} quarter${missing.length === 1 ? ' is' : 's are'} missing` : ''}.`;
-  return `<figure class="treasure-map"><img src="${treasureMapImage(record)}" alt="${alt}" width="320" height="320"><figcaption>Somewhere near ${town.name}</figcaption></figure><p>Land the party, walk to the cross and dig (<kbd>S</kbd>). Any piece is enough to dig; more pieces only show more of the land around the cache.</p>`;
+  return `<figure class="treasure-map"><img src="${treasureMapImage(record)}" alt="${alt}" width="320" height="320"><figcaption>Somewhere near ${town.name} · ${count} of 4 pieces</figcaption></figure><p>Land the party, walk to the cross and dig (<kbd>S</kbd>). Any piece is enough to dig; more pieces only show more of the land around the cache.</p>`;
 }
 
 // The Captain's Cabin "Treasure maps" item (0x29ECE for each record), offered

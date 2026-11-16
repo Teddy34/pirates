@@ -106,6 +106,10 @@ evidence for each item. This list collects them in one place.
 - The manual-based copy protection in the opening is left out, with its penalty
   branch and the +16 favour with each nation it grants on a pass.
 - Every opening screen has a picture; the original shows none there.
+- The tavern opens on a short prose description of the room, livelier in a
+  more prosperous town, naming any special guest (the villain, the traveller,
+  the map seller), with only your gold as a figure (#117). The treasure map's
+  piece count is shown on the map itself and by the map seller instead.
 - The shipwright's four-item menu is one screen: every ship with its hold, its
   guns, and Repair and Sell buttons, plus the cannon, traded in place. Ships
   are repaired one at a time or all at once and sold one at a time, rather

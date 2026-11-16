@@ -65,6 +65,14 @@ history.
   when walking ashore, swords, arrows and a thrust in a sword fight, and the
   pause button turns into a play button while the game is paused.
 
+- The tavern describes its room instead of listing figures (#117): a line of
+  atmosphere, livelier in a more prosperous town, and a word on any special
+  guest (the villain, the traveller, the map seller), with your gold kept
+  below. The Sailors and Treasure map rows are gone: the sailors' button
+  disappears once you have spoken to them, the map seller now says how many
+  of the map's 4 pieces you already hold (or that his would be the first),
+  and the treasure map's caption gives its piece count.
+
 - Sword fights now take place before real comic-style backdrops instead of
   the code-drawn ones: the waist of a galleon at sea with its guns run out
   (boarding, the mutiny and practice), a moonlit street of a Spanish

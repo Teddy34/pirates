@@ -583,6 +583,28 @@ export function tavernSpecialEncounters({ mapPieces = 0, towns = null, rng }) {
   return encounters;
 }
 
+// The tavern's opening text (issue #117): a line of atmosphere, which grows
+// livelier with the town's prosperity level (0-3, growth >> 6), then a line
+// for each special character present. Original prose; the original game
+// shows its tavern menu without such a description.
+const TAVERN_ATMOSPHERE = [
+  'A few idle hands nurse cheap rum under a smoking lamp, and most of the benches stand empty.',
+  'Sailors and dockhands share the long tables over ale, dice and talk of the sea.',
+  'The taproom is busy: mates off the merchantmen trade gossip over wine while a fiddler plays in the corner.',
+  'The tavern is packed and loud, coin changes hands at every card table, and the barmaid is hard pressed to keep the cups full.',
+];
+
+export function tavernDescription({ prosperityLevel = 1, villainHere = false, visitors = [] }) {
+  const lines = [TAVERN_ATMOSPHERE[Math.min(3, Math.max(0, prosperityLevel))]];
+  if (villainHere) lines.push('A well-dressed man in the far corner keeps his hat low and one eye on the back door.');
+  for (const kind of visitors) {
+    lines.push(kind === 'map-seller'
+      ? 'A weather-beaten pirate guards a scrap of parchment in a shadowed booth.'
+      : 'A traveller watches the room, waiting for someone willing to buy information.');
+  }
+  return lines;
+}
+
 export function diplomaticBriefing(diplomacy, nation) {
   return Object.entries(diplomacy[nation] ?? {})
     .filter(([other, relation]) => other !== nation && relation !== 0)

@@ -99,6 +99,12 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
       await screenshot(`${viewport.name}-${preview}`);
     }
 
+    // The map seller says how many of the map's pieces you hold, here none (#117).
+    await open('map-seller');
+    if (!await evaluate(`document.querySelector('#dialog-body').textContent.includes('this would be your first')`)) throw new Error(`${viewport.name}: the map seller does not say this is the first piece`);
+    await clickButton('Decline');
+    await until('the tavern', `${dialogTitle} === 'Rumours, recruits, and strong drink'`);
+
     // The follow-up dialog of each flow keeps its picture.
     await open('prison');
     await clickButton('Continue');
@@ -142,6 +148,9 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await open('tavern');
     await until('the tavern art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('play cards and dice')`);
     await expectPicture(`${viewport.name} tavern`, 'play cards and dice');
+    // The room is described in prose with only the purse as a figure (#117).
+    const tavern = await evaluate(`({ scene: document.querySelector('#dialog-body .tavern-scene')?.textContent ?? '', terms: [...document.querySelectorAll('#dialog-body dt')].map((term) => term.textContent) })`);
+    if (tavern.scene.length < 40 || JSON.stringify(tavern.terms) !== '["Your gold"]') throw new Error(`${viewport.name}: the tavern is not described in prose with only the gold: ${JSON.stringify(tavern)}`);
     await screenshot(`${viewport.name}-tavern`);
     // And the plunder division's counting house.
     await open('retirement');
