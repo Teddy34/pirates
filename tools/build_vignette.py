@@ -307,6 +307,12 @@ SCENES = {
     'nightfall': {
         'shape': 'landscape',
     },
+    'treasure-fleet': {
+        'shape': 'landscape',
+    },
+    'silver-train': {
+        'shape': 'landscape',
+    },
 }
 
 

@@ -13,6 +13,11 @@ history.
 
 ### Changed
 
+- Capturing the treasure fleet or the silver train now shows real
+  comic-style art: gold passed hand to hand from a beaten Spanish galleon
+  flying the Cross of Burgundy, and buccaneers lifting silver bars from a
+  broken mule train while the escort flees.
+
 - Inland towns and the sea fights now show real comic-style art. Arriving
   at an inland town shows the landing party halting above a palisaded
   town, and its town menu a sunlit plaza; both fly the town's period
