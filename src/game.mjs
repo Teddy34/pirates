@@ -1960,7 +1960,10 @@ function practiceFencing(done) {
   chooseWeapon({
     kicker: 'Practice', title: 'Fencing practice',
     body: `<p>One of your officers offers to cross swords with you. Practice adds to every blow you strike in earnest, up to six bouts.</p><dl><dt>Practice so far</dt><dd>${(state.player.fencingPractice ?? 0) / 5} of 6 bouts</dd></dl>`,
-    fight: (weapon) => beginSwordFight({ record: practiceRecord(), weapon, scene: 'deck', onEnd: ({ result }) => {
+    // Practice is offered only in town (#140): the bout is fought in a town
+    // street (the alley backdrop, one picture for every flag), not on a
+    // ship's deck; the fort walls belong to an assault on the town.
+    fight: (weapon) => beginSwordFight({ record: practiceRecord(), weapon, scene: 'alley', onEnd: ({ result }) => {
       state.player.fencingPractice = practiceAfterBout(state.player.fencingPractice);
       addLog(`${result === FIGHT_RESULT.won ? 'Won' : 'Lost'} a practice bout; practice ${state.player.fencingPractice / 5} of 6.`);
       done();
@@ -5512,7 +5515,11 @@ const SCENE_PREVIEWS = {
       scene: 'deck', onEnd: (outcome) => resolveBoarding(enemy, outcome),
     });
   },
-  'sword-practice': () => practiceFencing(resumeSailing),
+  // Practice from the town menu, where the game offers it.
+  'sword-practice': () => {
+    enterPreviewTown(previewTownIndex('Guadeloupe'));
+    practiceFencing(showTownMenu);
+  },
   'hostage-talks': () => resolveNamedCaptain({ ship: 'Galleon', flag: 'Spain', captainId: 3 }, resumeSailing),
   'crew-recruits': () => showRecruitOffer(12),
   'treasure-fleet-capture': () => showConvoyCaptures(['treasureFleet'], resumeSailing),
@@ -5792,6 +5799,8 @@ function openPreview(preview) {
   // Local previews expose the live state to the browser smoke checks.
   globalThis.piratesPreview = {
     get state() { return state; },
+    // The running sword fight's backdrop scene (deck, alley or walls).
+    get swordScene() { return swordView?.scene ?? null; },
     // Ends the current sword fight with `result`, for checks of its callers.
     settleFight(result) {
       if (!swordView) return false;
