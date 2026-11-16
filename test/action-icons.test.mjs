@@ -24,3 +24,24 @@ test('labels pick the icon of their action', () => {
   for (const [label, icon] of Object.entries(cases)) assert.equal(actionIconName(label), icon, label);
   assert.equal(actionIconName('Something unheard of'), null);
 });
+
+test('the sailing controls have their icons, turned and mirrored to match', () => {
+  const rows = (name) => {
+    const { pixels } = paintActionIcon(name);
+    return Array.from({ length: ACTION_ICON_SIZE }, (_, y) => Array.from({ length: ACTION_ICON_SIZE }, (_, x) => pixels.slice((y * ACTION_ICON_SIZE + x) * 4, (y * ACTION_ICON_SIZE + x) * 4 + 4).join()));
+  };
+  for (const name of ['turn-port', 'turn-starboard', 'sails-up', 'sails-down', 'pause', 'play', 'zoom-in', 'zoom-out', 'up', 'down', 'shovel', 'treasure-map', 'bolt']) {
+    assert.ok(ACTION_ICON_NAMES.includes(name), name);
+  }
+  const port = rows('turn-port');
+  assert.deepEqual(rows('turn-starboard'), port.map((row) => [...row].reverse()));
+  // The back arrow points left; up and down are it turned a quarter.
+  const back = rows('back');
+  const at = (grid, x, y) => grid[y][x];
+  for (let y = 0; y < ACTION_ICON_SIZE; y += 1) {
+    for (let x = 0; x < ACTION_ICON_SIZE; x += 1) {
+      assert.equal(at(rows('up'), ACTION_ICON_SIZE - 1 - y, x), at(back, x, y));
+      assert.equal(at(rows('down'), y, ACTION_ICON_SIZE - 1 - x), at(back, x, y));
+    }
+  }
+});

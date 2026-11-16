@@ -124,7 +124,7 @@ const turnRightButton = document.querySelector('[data-hold="right"]');
 
 const labels = {
   captain: document.querySelector('#captain-label'), date: document.querySelector('#date-label'),
-  speed: document.querySelector('#speed-label'), wind: document.querySelector('#wind-label'),
+  wind: document.querySelector('#wind-label'),
   sails: document.querySelector('#sails-label'),
   food: document.querySelector('#food-label'), crew: document.querySelector('#crew-label'),
   mood: document.querySelector('#mood-label'),
@@ -4687,7 +4687,7 @@ function togglePause() {
     input.lowerSailsPressed = false;
   }
   if (!state.paused && state.mode === 'sailing') resetSailingInterpolation();
-  pauseButton.firstChild.textContent = state.paused ? '▶ ' : 'Ⅱ ';
+  updatePauseControl();
   const activity = { battle: 'Battle', sword: 'Fight' }[state.mode] ?? 'Voyage';
   addLog(state.paused ? `${activity} paused.` : `${activity} resumed.`);
 }
@@ -4734,17 +4734,20 @@ function prosperity(growth) {
   return ['struggling', 'surviving', 'prospering', 'wealthy'][prosperityLevel(growth)];
 }
 
-function setControl(button, icon, label, ariaLabel) {
-  if (button.dataset.label === label) return;
-  button.dataset.label = label;
-  button.firstChild.textContent = icon;
-  button.querySelector('span').textContent = label;
-  button.setAttribute('aria-label', ariaLabel);
+// The controls under the map show only their pixel icon (as the dialog
+// buttons do); the name is the accessible name, and the tooltip adds the key.
+function setControl(button, icon, name, key) {
+  const title = key ? `${name} (${key})` : name;
+  if (button.title === title) return;
+  button.querySelector('.action-icon').src = actionIconUrl(icon);
+  button.setAttribute('aria-label', name);
+  button.title = title;
 }
 
 function updateInterface() {
   if (!state) return;
   const player = state.player;
+  updatePauseControl();
   document.body.classList.toggle('sword-fight', state.mode === 'sword');
   document.body.classList.toggle('sea-battle', state.mode === 'battle');
   if (state.mode === 'sword' && swordView) {
@@ -4761,13 +4764,13 @@ function updateInterface() {
 // The dock button fires, digs or opens the maps; on foot the four steering
 // buttons walk the party (0x1B210).
 function updateControls(inBattle, onFoot) {
-  if (inBattle) setControl(dockButton, '● ', 'Fire', 'Fire loaded broadside');
-  else if (onFoot) setControl(dockButton, '⛏ ', 'Dig', 'Search for treasure here');
-  else setControl(dockButton, '✉ ', 'Maps', 'Study your treasure maps');
-  setControl(turnLeftButton, onFoot ? '← ' : '↶ ', onFoot ? 'West' : 'Port', onFoot ? 'Walk west' : 'Turn to port');
-  setControl(turnRightButton, onFoot ? '→ ' : '↷ ', onFoot ? 'East' : 'Starboard', onFoot ? 'Walk east' : 'Turn to starboard');
-  setControl(lowerSailsButton, '↓ ', onFoot ? 'South' : 'Sails', onFoot ? 'Walk south' : 'Lower sails');
-  setControl(raiseSailsButton, '↑ ', onFoot ? 'North' : 'Sails', onFoot ? 'Walk north' : 'Raise sails');
+  if (inBattle) setControl(dockButton, 'cannon', 'Fire loaded broadside', 'Space');
+  else if (onFoot) setControl(dockButton, 'shovel', 'Search for treasure here', 'S');
+  else setControl(dockButton, 'treasure-map', 'Study your treasure maps', 'M');
+  setControl(turnLeftButton, onFoot ? 'back' : 'turn-port', onFoot ? 'Walk west' : 'Turn to port', '← or A');
+  setControl(turnRightButton, onFoot ? 'next' : 'turn-starboard', onFoot ? 'Walk east' : 'Turn to starboard', '→ or D');
+  setControl(lowerSailsButton, onFoot ? 'down' : 'sails-down', onFoot ? 'Walk south' : 'Lower sails', '↓');
+  setControl(raiseSailsButton, onFoot ? 'up' : 'sails-up', onFoot ? 'Walk north' : 'Raise sails', onFoot ? '↑ or W' : '↑');
   controls.setAttribute('aria-label', onFoot ? 'Landing party controls' : 'Sailing controls');
   zoomOutButton.disabled = Boolean(inBattle);
   zoomInButton.disabled = Boolean(inBattle);
@@ -4783,7 +4786,6 @@ function battleSailsLabel({ sails, sailTransition, targetSails }) {
 function updateBattleInterface(battle) {
   labels.captain.textContent = `Captain ${state.captain} · Battle`;
   labels.date.textContent = battle.fort ? `Attacking the fort of ${battle.encounter.town}` : `Engaging ${battle.encounter.flag} ${battle.enemy.name}`;
-  labels.speed.textContent = `${Math.abs(battle.player.speed ?? 0)} battle speed`;
   labels.wind.textContent = `${windFrom(battle.wind.direction)} · ${['light', 'medium', 'strong'][battle.wind.strength]}`;
   labels.sails.textContent = battleSailsLabel(battle.player);
   labels.food.textContent = 'Clock stopped';
@@ -4797,19 +4799,12 @@ function updateBattleInterface(battle) {
   chartButton.disabled = true;
 }
 
-function speedLabel(player, onFoot) {
-  // Leading, so the narrow layout's truncated field still shows it.
-  const fast = fastTravel ? `×${FAST_TRAVEL_FACTOR} · ` : '';
-  if (!onFoot) return `${fast}${player.speed.toFixed(1)} cells/day`;
-  return player.blockedByWater ? '⚠ Blocked' : `${fast}On foot · 2 cells/day`;
-}
-
 function updateSailingInterface(player, onFoot) {
   const town = nearestTown();
   const distance = nearestTownDistance();
   labels.captain.textContent = `Captain ${state.captain} · ${state.nationality}`;
-  labels.date.textContent = formatDate(state.calendar);
-  labels.speed.textContent = speedLabel(player, onFoot);
+  // Fast travel leads the date, so the narrow layout's truncated line still shows it.
+  labels.date.textContent = `${fastTravel ? `×${FAST_TRAVEL_FACTOR} · ` : ''}${formatDate(state.calendar)}`;
   labels.wind.textContent = windFrom(player.wind);
   labels.sails.previousElementSibling.textContent = onFoot ? 'Boat' : 'Sails';
   labels.sails.textContent = onFoot ? boatBearing() : { furled: 'Closed', battle: 'Low', full: 'High' }[player.sails];
@@ -4829,11 +4824,11 @@ function updateSailingInterface(player, onFoot) {
 // and back off, the sail pair pick the high and low lines, and the dock
 // button holds the quick thrust.
 function updateSwordInterface({ fight, foeName }) {
-  setControl(turnLeftButton, '← ', 'Attack', 'Attack (hold)');
-  setControl(turnRightButton, '→ ', 'Back off', 'Back off (hold)');
-  setControl(raiseSailsButton, '↑ ', 'High', 'Fight on the high line (hold)');
-  setControl(lowerSailsButton, '↓ ', 'Low', 'Fight on the low line (hold)');
-  setControl(dockButton, '⚡ ', 'Quick', 'Quick thrust (hold with Attack)');
+  setControl(turnLeftButton, 'swords', 'Attack (hold)', '← or A');
+  setControl(turnRightButton, 'back', 'Back off (hold)', '→ or D');
+  setControl(raiseSailsButton, 'up', 'Fight on the high line (hold)', '↑ or W');
+  setControl(lowerSailsButton, 'down', 'Fight on the low line (hold)', '↓ or S');
+  setControl(dockButton, 'bolt', 'Quick thrust (hold with Attack)', 'Shift');
   controls.setAttribute('aria-label', 'Sword fight controls');
   dockButton.disabled = state.paused;
   zoomOutButton.disabled = true;
@@ -4843,7 +4838,6 @@ function updateSwordInterface({ fight, foeName }) {
   const battle = fight.mode === FIGHT_MODE.battle;
   labels.captain.textContent = `Captain ${state.captain} · Fight`;
   labels.date.textContent = `Against the ${foeName}`;
-  labels.speed.textContent = WEAPONS[fight.weapon];
   labels.wind.textContent = `↔ ${fight.you.x - fight.foe.x}`;
   labels.sails.textContent = ['Mid', 'Low', 'High'][fight.you.move >= 0 && fight.you.move < 12 ? fight.you.move % 3 : 0];
   labels.food.textContent = 'Clock stopped';
@@ -5104,6 +5098,16 @@ form.addEventListener('submit', async (event) => {
 
 continueButton.addEventListener('click', async () => { const saved = loadGame(); if (saved && scenarios) await startGame(saved); });
 loadSlotButton.addEventListener('click', () => { if (scenarios) showLoadSlots(); });
+function updatePauseControl() {
+  if (state?.paused) setControl(pauseButton, 'play', 'Resume', 'P');
+  else setControl(pauseButton, 'pause', 'Pause', 'P');
+}
+updatePauseControl();
+setControl(zoomOutButton, 'zoom-out', 'Zoom map out', '−');
+setControl(zoomInButton, 'zoom-in', 'Zoom map in', '+');
+setControl(logbookButton, 'book', "Open the captain's logbook", 'L');
+setControl(chartButton, 'map', 'Open the sea chart', 'C');
+setControl(dockButton, 'treasure-map', 'Study your treasure maps', 'M');
 pauseButton.addEventListener('click', togglePause);
 logbookButton.addEventListener('click', openLogbookAtSea);
 chartButton.addEventListener('click', openSeaChartAtSea);

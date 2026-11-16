@@ -44,6 +44,23 @@ await withBrowser({ name: 'landing', portOffset: 1, screenshotEnv: 'LANDING_SCRE
     await evaluate(`localStorage.clear()`);
     console.log(`${viewport.name}: the career opened in ${startTown} and put to sea.`);
 
+    // The controls under the map are icon-only pixel buttons with a name and
+    // a tooltip, all on screen, and the HUD has no speed readout (#136).
+    const controlProblems = await evaluate(`[...document.querySelectorAll('#controls button')].flatMap((button) => {
+      const icon = button.querySelector('img.action-icon');
+      const r = button.getBoundingClientRect();
+      const problems = [];
+      if (!icon?.src.startsWith('data:image/png') || !icon.complete || !icon.naturalWidth) problems.push('no icon');
+      if (button.textContent.trim()) problems.push('visible text');
+      if (!button.getAttribute('aria-label') || !button.title) problems.push('no name or tooltip');
+      if (r.left < 0 || r.right > innerWidth || r.bottom > innerHeight || r.width < 44 || r.height < 44) problems.push('off screen or too small');
+      return problems.map((problem) => (button.id || button.dataset.hold) + ': ' + problem);
+    }).concat(document.querySelector('#speed-label') ? ['the speed readout is still shown'] : [])`);
+    if (controlProblems.length) throw new Error(`${viewport.name}: ${controlProblems.join('; ')}`);
+    const pauseNames = await evaluate(`(() => { const b = document.querySelector('#pause-button'); const src = b.querySelector('img').src; b.click(); const paused = [b.getAttribute('aria-label'), b.querySelector('img').src !== src]; b.click(); return [...paused, b.getAttribute('aria-label'), b.querySelector('img').src === src]; })()`);
+    if (pauseNames.join() !== 'Resume,true,Pause,true') throw new Error(`${viewport.name}: the pause control does not swap its icon (${pauseNames})`);
+    await screenshot(`${viewport.name}-controls`);
+
     // Declining to disembark turns the ship round and puts it back aboard.
     await open('landing');
     await until('the disembark prompt', `${dialogTitle} === 'Disembark?'`);
@@ -88,13 +105,13 @@ await withBrowser({ name: 'landing', portOffset: 1, screenshotEnv: 'LANDING_SCRE
     await clickButton('Leave town');
     await until('the party outside Panama', `${S}.player.onFoot && !${S}.paused && Math.floor(${S}.player.x) === ${S}.towns.find((t) => t.name === 'Panama').x`);
 
-    // Walking into water away from the boat is blocked, and the HUD says so.
+    // Walking into water away from the boat is blocked, and the log says so.
     await evaluate(`Object.assign(${S}.player, { x: 322.5, y: 441.7 })`);
     await press('s');
     await until('the search prompt from S', `${dialogTitle} === 'Search for treasure?'`);
     await clickButton('Keep walking');
     await press('ArrowDown');
-    await until('the blocked warning', `${S}.player.blockedByWater && document.querySelector('#speed-label').textContent.includes('Blocked')`);
+    await until('the blocked warning', `${S}.player.blockedByWater && document.querySelector('#log').textContent.includes('Water blocks the party')`);
     await screenshot(`${viewport.name}-blocked`);
     await press('w');
     await until('walking north again', `!${S}.player.blockedByWater && ${S}.player.walk.y < 0`);

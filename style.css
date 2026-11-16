@@ -51,9 +51,9 @@ form .wide-field { grid-column:span 2; }
 .hud-block span { display:grid; align-content:center; }
 .hud-block small { color:var(--muted); font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
 .hud-block b { font-family:"IM Fell English",Georgia,serif; font-size:16px; font-weight:400; white-space:nowrap; }
-/* Reserve room for the longest sailing value so the box keeps its width as values change (e.g. "12.0 cells/day", "WNW", "Closed", "9999 days"). */
+/* Reserve room for the longest sailing value so the box keeps its width as values change (e.g. "WNW", "Closed", "9999 days"). */
 .voyage b { font-variant-numeric:tabular-nums; }
-#speed-label { min-width:12ch; } #wind-label { min-width:5.5ch; } #sails-label { min-width:6ch; } #food-label { min-width:8.5ch; }
+#wind-label { min-width:5.5ch; } #sails-label { min-width:6ch; } #food-label { min-width:8.5ch; }
 .identity { display:grid; gap:0; }
 .identity strong { font-family:"IM Fell English",Georgia,serif; font-size:19px; }
 .identity span { color:var(--muted); font-size:12px; }
@@ -62,11 +62,14 @@ form .wide-field { grid-column:span 2; }
 #log p:not(:last-child) { color:var(--muted); font-size:13px; }
 /* The log would cover the fencers; the fight's own panel replaces it. */
 .sword-fight #log, .sea-battle #log { display:none; }
-#controls { position:fixed; left:50%; bottom:max(14px,env(safe-area-inset-bottom)); display:flex; gap:7px; transform:translateX(-50%); }
-#controls button { display:grid; grid-template-columns:auto auto; gap:7px; align-items:center; min-width:96px; min-height:48px; padding:9px 13px; border:1px solid var(--line); border-radius:3px; background:var(--panel); color:var(--ink); cursor:pointer; backdrop-filter:blur(10px); }
-#controls button:active,#controls button.pressed { background:#153e46; transform:translateY(1px); }
-#controls button.pressed { border-color:#e2b866; box-shadow:inset 0 0 0 1px #e2b866; }
-#controls button:disabled { cursor:default; opacity:.4; }
+/* The controls under the map are icon-only pixel buttons, framed like the dialogs' action buttons. */
+#controls { --pixel:#21180f; --brass-light:#f2c55c; --brass-dark:#a8742e; position:fixed; left:50%; bottom:max(14px,env(safe-area-inset-bottom)); display:flex; gap:10px; transform:translateX(-50%); }
+#controls button { display:grid; place-items:center; width:56px; height:52px; padding:0; border:3px solid var(--pixel); border-radius:0; background:var(--brass); cursor:pointer;
+  box-shadow:inset -4px -4px 0 var(--brass-dark),inset 4px 4px 0 var(--brass-light),4px 4px 0 #000; }
+#controls button:hover { background:var(--brass-light); }
+#controls button:focus-visible { background:var(--brass-light); outline:4px solid var(--paper); outline-offset:2px; }
+#controls button:active,#controls button.pressed { background:var(--brass-light); transform:translate(3px,3px); box-shadow:inset -4px -4px 0 var(--brass-dark),inset 4px 4px 0 var(--brass-light),1px 1px 0 #000; }
+#controls button:disabled { cursor:default; opacity:.45; transform:none; }
 #dialog-body p { margin:8px 0; }
 #dialog-body dl { display:grid; grid-template-columns:1fr auto; gap:5px 20px; margin:16px 0 0; font-family:"Source Sans 3",sans-serif; font-size:14px; }
 #dialog-body dt { color:#725f43; }
@@ -139,9 +142,9 @@ form .wide-field { grid-column:span 2; }
   .plunder-arrow { min-width:34px; min-height:36px; padding:3px 6px; }
   .plunder-take-all { min-width:0; min-height:36px; padding:5px 7px; }
 }
-@media (min-width:761px) and (max-width:1100px) { #controls{display:grid;grid-template-columns:repeat(5,1fr);width:min(620px,calc(100% - 20px))}#controls button{min-width:0}#log{bottom:126px} }
+@media (min-width:761px) and (max-width:820px) { #controls{gap:8px}#controls button{width:52px} }
 @media (min-width:761px) and (max-width:900px) { form{grid-template-columns:repeat(3,1fr)} }
-@media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}form .wide-field{grid-column:auto}.era-brief{grid-template-columns:1fr;padding:14px}.era-brief header{grid-row:auto}.career-brief{grid-template-columns:1fr}.screen-panel{justify-items:stretch;text-align:left}.lede{margin-left:0}#hud{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}.hud-block{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;min-width:0;min-height:auto;padding:6px 10px}.hud-block b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.identity{grid-auto-flow:row;min-height:auto}.identity strong,.identity span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(5,1fr);width:calc(100% - 20px)}#controls button{min-width:0;justify-content:center}#controls button span{display:none}#log{bottom:126px;width:calc(100% - 172px)} }
+@media (max-width:760px) { form{grid-template-columns:1fr;max-width:400px}form .wide-field{grid-column:auto}.era-brief{grid-template-columns:1fr;padding:14px}.era-brief header{grid-row:auto}.career-brief{grid-template-columns:1fr}.screen-panel{justify-items:stretch;text-align:left}.lede{margin-left:0}#hud{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}.hud-block{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;min-width:0;min-height:auto;padding:6px 10px}.hud-block b{font-size:14px;overflow:hidden;text-overflow:ellipsis}.identity{grid-auto-flow:row;min-height:auto}.identity strong,.identity span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.company span:last-child{display:none}#controls{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:calc(100% - 20px)}#controls button{width:auto;height:48px}#log{bottom:136px;width:calc(100% - 172px)} }
 /* The title screen: arcade-retro frame and controls around the pixel logo and the
    sloop vignette; the era brief keeps its readable serif text. */
 .visually-hidden { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }

@@ -33,6 +33,11 @@ history.
 
 ### Removed
 
+- The Speed readout is gone from the status panel at sea, ashore, in sea
+  battles and in sword fights (#136). Fast travel's "×2" now leads the date
+  instead, the blocked walking party is still announced in the log and on
+  the map, and the sword fight's panel still names your weapon.
+
 - The code-drawn pictures that showed while a scene's real art was still
   loading, and then flickered into the art, are gone, in the dialogs and
   behind sword fights alike. Until a picture arrives its frame stays empty
@@ -40,6 +45,14 @@ history.
   soon as its own picture has loaded rather than after every picture.
 
 ### Changed
+
+- The controls under the map (steering, sails, zoom, pause, logbook, sea
+  chart and the maps, dig or fire button) now match the dialogs' buttons
+  (#136): chunky brass pixel buttons, each showing only a pixel icon. The
+  text labels are gone; each button keeps its name for screen readers and
+  shows it, with its key, as a tooltip. The icons follow the mode: arrows
+  when walking ashore, swords, arrows and a thrust in a sword fight, and the
+  pause button turns into a play button while the game is paused.
 
 - Sword fights now take place before real comic-style backdrops instead of
   the code-drawn ones: the waist of a galleon at sea with its guns run out
