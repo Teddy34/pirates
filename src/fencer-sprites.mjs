@@ -22,10 +22,14 @@ const BOOT = '#3a2618';
 // Blade length in art pixels by weapon index (rapier, longsword, cutlass).
 const BLADE_LENGTH = [21, 18, 14];
 
-// Looks: coat colours, headgear and clothes.
+// Looks: coat colours, headgear and clothes. You are the scene pictures'
+// recurring captain (docs/scene-vignettes.md): bareheaded, dark hair tied
+// back, short beard, dark-blue coat with brass buttons and a red sash. Every
+// opponent wears headgear, so the two fencers differ in outline as well as
+// in colour.
 export const LOOKS = {
-  player: { coat: '#7c2a2a', coatDark: '#55191b', trim: GOLD, breeches: '#c9b48a', hat: 'tricorne', hatColor: '#1f1b1a', feather: '#e9e2cf' },
-  captain: { coat: '#3e4f7a', coatDark: '#27324f', trim: GOLD, breeches: '#bfae86', hat: 'tricorne', hatColor: '#1f1b1a' },
+  player: { coat: '#3b62a8', coatDark: '#26427a', trim: GOLD, sash: '#b8322a', breeches: '#c9b48a', hat: 'hair', hatColor: '#2a1b12', beard: true },
+  captain: { coat: '#7c2a2a', coatDark: '#55191b', trim: GOLD, breeches: '#bfae86', hat: 'tricorne', hatColor: '#1f1b1a' },
   guard: { coat: '#a8331f', coatDark: '#6e2013', trim: '#e3bd43', breeches: '#3f3a30', hat: 'morion', hatColor: '#c3c8cc' },
   villain: { coat: '#2a2630', coatDark: '#16131a', trim: '#8a2f6b', breeches: '#2f2a33', hat: 'wide', hatColor: '#141215', feather: '#8a2f6b' },
   mutineer: { coat: null, shirt: '#e9e0c8', shirtDark: '#bfb399', breeches: '#5a4a35', hat: 'bandana', hatColor: '#b8322a' },
@@ -34,11 +38,34 @@ export const LOOKS = {
   soldier: { coat: '#a8331f', coatDark: '#6e2013', trim: '#e3bd43', breeches: '#3f3a30', hat: 'morion', hatColor: '#c3c8cc' },
 };
 
-// Each nation's coat for guards, soldiers and captains (an opponent's flag).
+// Hue in degrees and saturation (0-1) of a '#rrggbb' colour.
+export function hueAndSaturation(hex) {
+  const [r, g, b] = [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const chroma = max - min;
+  const saturation = max === 0 ? 0 : chroma / max;
+  if (chroma === 0) return { hue: 0, saturation };
+  const sector = max === r ? ((g - b) / chroma + 6) % 6 : max === g ? (b - r) / chroma + 2 : (r - g) / chroma + 4;
+  return { hue: sector * 60, saturation };
+}
+
+// A coat an opponent must not wear: a hue within 40 degrees of your blue.
+export function coatLooksLikeYours(hex) {
+  const coat = hueAndSaturation(hex);
+  if (coat.saturation < .25) return false;
+  const yours = hueAndSaturation(LOOKS.player.coat).hue;
+  const apart = Math.abs(coat.hue - yours) % 360;
+  return Math.min(apart, 360 - apart) < 40;
+}
+
+// Each nation's coat for guards, soldiers and captains (an opponent's flag),
+// except a nation whose colour is blue like yours (France): its men keep
+// their own red coats, so you are the only fencer in blue.
 export function lookForOpponent(title, nation, nationColors) {
   const base = { Guard: LOOKS.guard, Suitor: LOOKS.captain, Mutineer: LOOKS.mutineer, Villain: LOOKS.villain, 'Sparring partner': LOOKS.sparring }[title] ?? LOOKS.captain;
   const colors = nationColors?.[nation];
-  if (!colors || !base.coat || title === 'Villain') return base;
+  if (!colors || !base.coat || title === 'Villain' || coatLooksLikeYours(colors.color)) return base;
   return { ...base, coat: colors.color, coatDark: colors.dark };
 }
 
@@ -136,6 +163,13 @@ function drawHat(art, look, headX, headTop) {
     art.rect(headX - 6, headTop, 13, 1, hatColor);
     art.rect(headX - 3, headTop - 3, 7, 3, hatColor);
     if (feather) art.line([headX + 3, headTop - 3], [headX + 6, headTop - 6], feather);
+  } else if (hat === 'hair') {
+    // Bareheaded: dark hair over the crown and the back of the head, tied
+    // in a short queue behind.
+    art.rect(headX - 2, headTop - 1, 5, 2, hatColor);
+    art.rect(headX - 3, headTop, 1, 3, hatColor);
+    art.set(headX - 4, headTop + 2, hatColor);
+    art.set(headX - 5, headTop + 3, hatColor);
   } else {
     art.rect(headX - 3, headTop, 7, 2, hatColor);
     art.line([headX - 3, headTop + 1], [headX - 6, headTop + 3], hatColor);
@@ -203,8 +237,18 @@ export function paintFencer({ move = 0, frame = 0, look = LOOKS.player, weapon =
   } else {
     art.line([torsoX - 1, shoulderY + 2], [torsoX - 2, hipY], coatDark);
   }
-  art.rect(torsoX - 4, hipY - 1, 8, 2, '#3a2a1a');
-  art.set(torsoX, hipY - 1, GOLD);
+  if (look.sash) {
+    // A sash knotted at the hip, its end hanging down.
+    art.rect(torsoX - 4, hipY - 1, 8, 2, look.sash);
+    art.rect(torsoX - 4, hipY + 1, 1, 3, look.sash);
+  } else {
+    art.rect(torsoX - 4, hipY - 1, 8, 2, '#3a2a1a');
+    art.set(torsoX, hipY - 1, GOLD);
+  }
+  if (look.trim && look.coat && look.trim === GOLD) {
+    // Brass buttons down the coat's front.
+    for (let y = shoulderY + 2; y < hipY - 1; y += 3) art.set(torsoX + 2, y, GOLD);
+  }
 
   // Head and headgear.
   const headX = torsoX + 1;
@@ -214,6 +258,11 @@ export function paintFencer({ move = 0, frame = 0, look = LOOKS.player, weapon =
   art.set(headX + 3, headTop + 3, SKIN);
   art.set(headX + 2, headTop + 2, '#2a1a12');
   art.rect(headX - 2, headTop + 5, 2, 1, '#5a3a22');
+  if (look.beard) {
+    // A short beard along the jaw.
+    art.rect(headX - 1, headTop + 5, 4, 1, look.hatColor);
+    art.set(headX + 2, headTop + 4, look.hatColor);
+  }
   drawHat(art, look, headX, headTop + 1);
 
   // Sword arm and blade (y up in the pose tables).

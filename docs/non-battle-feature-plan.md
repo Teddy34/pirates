@@ -81,6 +81,10 @@ The plan was last revised with #33. These changes followed it:
   Previews `sword-duel`, `sword-boarding` and `sword-practice`;
   `tools/check_sword_fights.mjs` is their browser check. The player's
   `fencingPractice` (`0x45E90`) is a new save field, defaulted to 0 on load.
+  Your fencer is the scene pictures' recurring captain: bareheaded, with a
+  dark-blue coat and a red sash. Every opponent wears headgear and a coat or
+  shirt of another colour; a French captain or guard keeps the red coat
+  rather than France's blue (#134). The fencers' colours are the port's own.
 - **Sea chart:** a full-screen, old-map chart of the whole Caribbean with
   every town on it (`src/sea-chart.mjs` paints it from the era's navigation
   map; `src/chart-view.mjs` runs the screen). Open it with C, the Chart
