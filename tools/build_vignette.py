@@ -274,6 +274,39 @@ SCENES = {
     'lost-city-maya': {
         'shape': 'landscape',
     },
+    # Plain white flags on the inland town's watchtower and on the governor's
+    # house, painted over with the town's flag; same rows as harbour-arrival.
+    'shore-arrival': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+        'variants': fort_flag_variants([(1474, 305), (1523, 308), (1523, 342), (1475, 341)]),
+    },
+    'town-square': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+        'variants': fort_flag_variants([(1092, 36), (1205, 39), (1206, 109), (1092, 105)]),
+    },
+    'boarding': {
+        'shape': 'landscape',
+    },
+    'hostage-talks': {
+        'shape': 'landscape',
+    },
+    'prize-plunder': {
+        'shape': 'landscape',
+    },
+    'enemy-destroyed': {
+        'shape': 'landscape',
+    },
+    'sinking': {
+        'shape': 'landscape',
+    },
+    'outrun': {
+        'shape': 'landscape',
+    },
+    'nightfall': {
+        'shape': 'landscape',
+    },
 }
 
 

@@ -949,3 +949,87 @@ nation:
   its objects are shown only as the game's "lost Olmec treasure".
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for each of the eight ids above.
+
+## shore-arrival.png, town-square.png
+
+The inland town's two pictures, about 1640, each a sheet of five
+224 × 128 rows (7 : 4), one per town flag in the order of `HARBOUR_FLAGS`
+(Spain, England, France, Holland's Prince's flag, Holland's States flag
+from 1660), as for `harbour-arrival.png`:
+
+- `shore-arrival.png`, shown when you walk into a landlocked town: the
+  captain at the jungle's edge raises a hand to halt his armed buccaneers
+  above a valley with a palisaded town, a church tower and a stone
+  watchtower flying the town's flag.
+- `town-square.png`, the landlocked town's menu: a sunlit plaza with a
+  whitewashed church, the governor's arcaded house flying the town's
+  flag, market stalls, a well, an ox cart and militiamen in buff coats.
+
+- **Source:** for each, a comic-style illustration (1659 × 948) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the scene's
+  prompt in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Fixes:** each source flies a plain white flag, as asked; the build
+  warps each town flag onto its four corners with the source's folds as
+  shading (`fort_flag_variants`), one row per flag. Period flags follow
+  the checklist in `.claude/skills/vignette-art/SKILL.md` and the rows of
+  `harbour-arrival.png`. The watchtower flag of `shore-arrival.png` is
+  small, about 7 × 5 art pixels, and each flag still reads.
+- **Accepted:** one picture serves every nation, so the plaza's church
+  with a cross and bell tower is the same for Protestant English and Dutch
+  towns; the militiamen wear nation-neutral buff coats and broad hats.
+- **Process:** `tools/build_vignette.py` reduces each row to its shape with
+  a box filter, raises contrast (×1.15) and colour (×1.2), and quantises
+  the sheet to one shared 256-colour palette (median cut, no dithering,
+  indexed PNG).
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for `shore-arrival` and `town-square`.
+
+## boarding.png, hostage-talks.png, prize-plunder.png, enemy-destroyed.png, sinking.png, outrun.png, nightfall.png
+
+The sea-fight pictures, about 1640, each 224 × 128 (7 : 4), one picture
+for every era and nation: the prompts ask for no flags, and the scenes
+hide them in smoke, distance, dusk or a struck prize, so no enemy's
+nation is shown wrongly.
+
+- `boarding.png`: two ships grind hull to hull in gunsmoke; the captain
+  leaps from the rail, cutlass raised, as the enemy captain in a plumed
+  hat draws among soldiers in steel helmets.
+- `hostage-talks.png`: in the lantern-lit stern cabin a bound enemy
+  captain in a torn red coat whispers a secret across the chart table;
+  the captain listens with folded arms.
+- `prize-plunder.png`: on a captured deck buccaneers hoist a chest from
+  the hold, roll a cask and hold up a jewelled cross; the captain counts
+  coins with the quartermaster; the beaten crew sits under guard.
+- `enemy-destroyed.png`: at dusk, sailors at their rail shield their eyes
+  as an enemy ship blows apart in a fireball.
+- `sinking.png`: a shattered ship goes down by the stern in a storm; the
+  captain looks back from a crowded boat pulling away.
+- `outrun.png`: a small ship under full sail heels through whitecaps while
+  a heavy warship's last shot falls short far behind.
+- `nightfall.png`: two distant ships with lit stern lanterns drift apart
+  under a crescent moon on the open sea.
+
+- **Source:** for each, a comic-style illustration (1659 × 948) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the scene's
+  prompt in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Regenerated:** the first `nightfall` image put a wounded man sitting on
+  a shore in the foreground, although the chase ends at sea; the prompt
+  now asks for open sea with no land or people, and the second image is
+  the one used.
+- **Process:** `tools/build_vignette.py` reduces each to its shape with a
+  box filter, raises contrast (×1.15) and colour (×1.2), and quantises to
+  256 colours (median cut, no dithering, indexed PNG). No historical fixes
+  were made. Accepted, as too small to read at 1×: the pursuing warship's
+  masthead pennant in `outrun.png` (about one art pixel); the flintlock
+  pistol on the cabin table, which fits about 1640 but not the 1560s; the
+  captain's knuckle-guard sword hilt, as in the earlier pictures.
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for each of the seven ids above.
