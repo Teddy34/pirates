@@ -142,6 +142,9 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await open('tavern');
     await until('the tavern art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('play cards and dice')`);
     await expectPicture(`${viewport.name} tavern`, 'play cards and dice');
+    // The room is described in prose with only the purse as a figure (#117).
+    const tavern = await evaluate(`({ scene: document.querySelector('#dialog-body .tavern-scene')?.textContent ?? '', terms: [...document.querySelectorAll('#dialog-body dt')].map((term) => term.textContent) })`);
+    if (tavern.scene.length < 40 || JSON.stringify(tavern.terms) !== '["Your gold"]') throw new Error(`${viewport.name}: the tavern is not described in prose with only the gold: ${JSON.stringify(tavern)}`);
     await screenshot(`${viewport.name}-tavern`);
     // And the plunder division's counting house.
     await open('retirement');

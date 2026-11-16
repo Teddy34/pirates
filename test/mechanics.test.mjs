@@ -5,7 +5,7 @@ import {
   MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
   isEncounterHunter, drawHunterCaptain, captainName, captainRenown, prizeMoraleBonus, startFromRecord, createRng, hunterOvertakes, escapeCostsShip, harborAttempt,
   merchantCommodityPrice, merchantFoodPrice, morale, relativeHeadingSector, tavernRecruits,
-  diplomaticBriefing, tavernSpecialEncounters,
+  diplomaticBriefing, tavernSpecialEncounters, tavernDescription,
   merchantCash, shipRepairPrice, shipSalePrice, shipwrightCash,
   dividePlunder, beginDivisionRefit, freshFleet, captiveWord, governorPirateHandover, prisonerEscape, portDesertion, governorPromotion,
   nationalStanding, governorAmnestyTerms, captainRansomOffers, monthlyLandIncome,
@@ -668,4 +668,19 @@ test('the crew mood follows 0x1DB2C: morale / 4 truncated, + 1, clamped', async 
   const { crewMood } = await import('../src/mechanics.mjs');
   assert.deepEqual([-8, -4, -3, -1, 0, 3, 4, 7, 8, 30].map(crewMood),
     ['angry', 'angry', 'unhappy', 'unhappy', 'unhappy', 'unhappy', 'pleased', 'pleased', 'happy', 'happy']);
+});
+
+test('tavern description is prose: atmosphere by prosperity, then any special characters', () => {
+  const quiet = tavernDescription({ prosperityLevel: 0 });
+  assert.equal(quiet.length, 1);
+  assert.match(quiet[0], /benches stand empty/);
+  assert.match(tavernDescription({ prosperityLevel: 3 })[0], /packed and loud/);
+  assert.equal(tavernDescription({ prosperityLevel: 9 })[0], tavernDescription({ prosperityLevel: 3 })[0]);
+  const busy = tavernDescription({ prosperityLevel: 2, villainHere: true, visitors: ['traveller', 'map-seller'] });
+  assert.equal(busy.length, 4);
+  assert.match(busy[1], /hat low/);
+  assert.match(busy[2], /traveller/);
+  assert.match(busy[3], /parchment/);
+  // No counters or bookkeeping in the room's description (issue #117).
+  for (const line of busy) assert.doesNotMatch(line, /\d|pieces|approached/);
 });

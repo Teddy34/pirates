@@ -41,8 +41,10 @@ await withBrowser({ name: 'villains', portOffset: 3, screenshotEnv: 'VILLAIN_SCR
     await clickButton('Continue');
     await until('the tavern', `${dialogTitle} === 'Rumours, recruits, and strong drink'`);
 
-    // In his town he can be followed; a lost duel lets him escape.
+    // In his town he can be followed; a lost duel lets him escape. The
+    // tavern's description notices him.
     await open('villain-tavern');
+    if (!await evaluate(`document.querySelector('#dialog-body .tavern-scene')?.textContent.includes('keeps his hat low')`)) throw new Error(`${viewport.name}: the tavern's description does not mention the villain`);
     await clickButton('Follow the man');
     await until('the confrontation', `${dialogTitle} === 'Sneaking out a back entrance'`);
     await clickButton('Cutlass');
