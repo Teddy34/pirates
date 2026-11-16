@@ -67,7 +67,7 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     ['marooned', 'driftwood fire'],
   ];
   // Each button's left and right arrows land on its nearest neighbour on the
-  // same line, judged from the page's own layout.
+  // same line, judged from the page's own layout, and stop at the line's end.
   const checkMenuArrows = async (where) => {
     const menuSize = await evaluate(`document.querySelectorAll('#dialog-actions button').length`);
     for (let index = 0; index < menuSize; index += 1) {
@@ -79,9 +79,9 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
           const inLine = buttons.filter((b) => { const r = b.getBoundingClientRect(); return Math.min(r.bottom, from.bottom) > Math.max(r.top, from.top) && (r.left - from.left) * sign > 1; });
           inLine.sort((a, b) => (a.getBoundingClientRect().left - b.getBoundingClientRect().left) * sign);
           buttons[${index}].focus();
-          return inLine[0]?.textContent ?? null;
+          // At the line's end the focus stays where it is.
+          return (inLine[0] ?? buttons[${index}]).textContent;
         })()`);
-        if (!expected) continue;
         await press(key);
         const landed = await evaluate(`document.activeElement?.textContent`);
         if (landed !== expected) throw new Error(`${where}: ${key} from button ${index + 1} of the town menu went to ${landed}, not ${expected}`);

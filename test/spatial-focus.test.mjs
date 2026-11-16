@@ -19,6 +19,10 @@ test('left and right stay on the wrapped second line', () => {
   assert.equal(move('Save voyage', 'ArrowRight'), 'Put to sea');
   assert.equal(move('Put to sea', 'ArrowLeft'), 'Save voyage');
   assert.equal(move('Save voyage', 'ArrowLeft'), 'Logbook');
+  // At the line's end the focus stays rather than jumping to the other line.
+  assert.equal(move('Put to sea', 'ArrowRight'), undefined);
+  assert.equal(move('Logbook', 'ArrowLeft'), undefined);
+  assert.equal(move('Practice fencing', 'ArrowRight'), undefined);
 });
 
 test('left and right walk the first line', () => {
@@ -35,6 +39,17 @@ test('up and down go to a button above or below in the same column', () => {
   assert.equal(move('Logbook', 'ArrowUp'), 'Governor');
   assert.equal(move('Save voyage', 'ArrowUp'), 'Merchant');
   assert.equal(move('Logbook', 'ArrowDown'), undefined);
+});
+
+test('a taller or shorter button sharing part of the row is in line; one only touching it is not', () => {
+  const row = [box(0, 0, 100, 40), box(300, 30, 100, 80), box(150, 40, 100, 40)];
+  // The far button shares 10 px of the row; the near one only touches it.
+  assert.equal(spatialNeighbour(row[0], row, 'ArrowRight'), 1);
+  // The tall one shares the near button's row too, so left goes there first.
+  assert.equal(spatialNeighbour(row[1], row, 'ArrowLeft'), 2);
+  // Of two buttons the same distance below, the one more nearly under wins.
+  const pair = [box(100, 0, 100, 40), box(20, 60, 100, 40), box(160, 60, 100, 40)];
+  assert.equal(spatialNeighbour(pair[0], pair, 'ArrowDown'), 2);
 });
 
 test('with nothing in line, the nearest button that way is chosen', () => {
