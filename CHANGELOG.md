@@ -11,6 +11,14 @@ history.
 
 ## Unreleased
 
+### Fixed
+
+- In sword fights the crews no longer spill past the edge of the deck,
+  street or walls: a crew closes ranks, and drops figures if it must, to
+  stay between its leader and the edge of the picture. On wide screens the
+  scene is now a framed picture on the dark page instead of ending in flat
+  bands of sky and ground colour, which looked like the screen was cut.
+
 ### Changed
 
 - Sword fights no longer show the voyage status bar (wind, sails, food,

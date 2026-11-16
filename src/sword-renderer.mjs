@@ -20,6 +20,14 @@ const CREW_OFFSET = 12;
 // both: his share from the left, yours from the right.
 const TOTAL_MORALE = 47;
 const PANEL_HEIGHT = 78;
+// The scene is a framed picture: this many CSS pixels of outline and brass
+// round it, the page's deep colour outside it.
+const SCENE_FRAME = 6;
+const OUTSIDE = '#071a21';
+// A crewman's body and raised arm reach this many art pixels from his anchor.
+const CREW_REACH = 16;
+// Crewmen stand at most this many art pixels apart, at least the smaller.
+const CREW_SPACING = [20, 9];
 const spriteCache = new Map();
 
 // Real art for the backdrops (assets/vignettes/PROVENANCE.md), built by
@@ -103,11 +111,12 @@ export function swordLayout(width, height, centre = SCENE_UNITS / 2) {
   const compact = width <= 760;
   // The voyage HUD is hidden in a fight, so the panel takes the top.
   const panelTop = 14;
-  const top = panelTop + PANEL_HEIGHT + 12;
+  const top = panelTop + PANEL_HEIGHT + 12 + SCENE_FRAME;
   const bottom = height - (width <= 1100 ? 150 : 96);
-  const available = Math.max(140, bottom - top);
+  const sceneBottomLimit = bottom - SCENE_FRAME;
+  const available = Math.max(140, sceneBottomLimit - top);
   const dpr = devicePixelScale();
-  const cssPerUnit = Math.min((width - 16) / Math.min(SCENE_UNITS, MIN_VISIBLE_UNITS), available / (BACKDROP.height * FIGHT_UNITS_PER_ART_PIXEL));
+  const cssPerUnit = Math.min((width - 16 - 2 * SCENE_FRAME) / Math.min(SCENE_UNITS, MIN_VISIBLE_UNITS), available / (BACKDROP.height * FIGHT_UNITS_PER_ART_PIXEL));
   // Whole device pixels per art pixel keep every sprite pixel square.
   const pixelScale = Math.max(1, Math.floor(cssPerUnit * FIGHT_UNITS_PER_ART_PIXEL * dpr));
   const unit = pixelScale / dpr / FIGHT_UNITS_PER_ART_PIXEL;
@@ -117,28 +126,41 @@ export function swordLayout(width, height, centre = SCENE_UNITS / 2) {
   const left = Math.round(width / 2 - cameraX * unit);
   const sceneTop = Math.round(top + Math.max(0, (available - sceneHeight) / 2));
   const ground = sceneTop + BACKDROP.groundY * FIGHT_UNITS_PER_ART_PIXEL * unit;
-  return { pixelScale, unit, left, ground, bottom, panelTop, compact };
+  // The picture's rectangle on screen: the whole backdrop, or the part of it
+  // a narrow screen shows.
+  const scene = {
+    left: Math.max(0, left), right: Math.min(width, Math.round(left + SCENE_UNITS * unit)),
+    top: sceneTop, bottom: Math.round(sceneTop + sceneHeight),
+  };
+  return { pixelScale, unit, left, ground, bottom, panelTop, compact, scene };
 }
 
 // `view` is { fight, scene, flag, era, yourLook, foeLook, yourName, foeName }.
 export function renderSwordFight(context, view, width, height) {
   const { fight } = view;
   const layout = swordLayout(width, height, (fight.you.x + fight.foe.x) / 2);
-  const { pixelScale, unit, left, ground } = layout;
+  const { pixelScale, unit, left, ground, scene } = layout;
   const toX = (x) => left + x * unit;
   const art = FIGHT_UNITS_PER_ART_PIXEL * unit;
 
+  context.fillStyle = OUTSIDE;
+  context.fillRect(0, 0, width, height);
+  // Everything in the scene stays inside its picture.
+  context.save();
+  context.beginPath();
+  context.rect(scene.left, scene.top, scene.right - scene.left, scene.bottom - scene.top);
+  context.clip();
   const { sprite: backdrop, sky, ground: floor } = backdropSprite(view);
   context.fillStyle = sky;
-  context.fillRect(0, 0, width, ground);
+  context.fillRect(scene.left, scene.top, scene.right - scene.left, ground - scene.top);
   context.fillStyle = floor;
-  context.fillRect(0, ground, width, height - ground);
+  context.fillRect(scene.left, ground, scene.right - scene.left, scene.bottom - ground);
   if (backdrop) drawPixelSprite(context, backdrop, left, ground, pixelScale);
 
   // The crews of a battle stand behind their leaders, further back.
   if (fight.mode === FIGHT_MODE.battle) {
-    drawCrew(context, fight, fight.you.men, 1, toX(fight.you.x + CREW_OFFSET), ground - 5 * art, pixelScale, art);
-    drawCrew(context, fight, fight.foe.men, -1, toX(fight.foe.x - CREW_OFFSET), ground - 5 * art, pixelScale, art, view.foeCrewLook);
+    drawCrew(context, fight, fight.you.men, 1, toX(fight.you.x + CREW_OFFSET), scene.right, ground - 5 * art, pixelScale, art);
+    drawCrew(context, fight, fight.foe.men, -1, toX(fight.foe.x - CREW_OFFSET), scene.left, ground - 5 * art, pixelScale, art, view.foeCrewLook);
   }
 
   const foeSprite = fencerSprite({ move: fight.foe.move, frame: fight.foe.frame, look: view.foeLook, weapon: fight.opponentWeapon, mirror: false });
@@ -157,17 +179,45 @@ export function renderSwordFight(context, view, width, height) {
     if (spark) drawPixelSprite(context, spark, x, ground - LINE_HEIGHT[line] * art, pixelScale);
   }
 
+  context.restore();
+  drawSceneFrame(context, scene, width);
   drawPanel(context, view, width, layout);
   drawHint(context, width, layout.bottom + 4, layout.compact);
 }
 
-function drawCrew(context, fight, men, side, startX, y, pixelScale, art, look = LOOKS.sailor) {
-  const figures = men > 1 ? Math.min(5, Math.ceil(men / 12)) : 0;
+// The chunky frame round the picture, on the sides that are on screen.
+function drawSceneFrame(context, scene, width) {
+  const { top, bottom } = scene;
+  const left = scene.left - SCENE_FRAME;
+  const right = scene.right + SCENE_FRAME;
+  const ring = (inset, colour) => {
+    context.fillStyle = colour;
+    const x0 = left + inset; const x1 = right - inset;
+    const y0 = top - SCENE_FRAME + inset; const y1 = bottom + SCENE_FRAME - inset;
+    const band = SCENE_FRAME - inset;
+    context.fillRect(x0, y0, x1 - x0, band);
+    context.fillRect(x0, y1 - band, x1 - x0, band);
+    if (scene.left > 0) context.fillRect(x0, y0, band, y1 - y0);
+    if (scene.right < width) context.fillRect(x1 - band, y0, band, y1 - y0);
+  };
+  ring(0, PANEL.outline);
+  ring(2, PANEL.frame);
+  ring(4, PANEL.outline);
+}
+
+// A crew lines up behind its leader, from `startX` towards the picture's
+// edge `edgeX`: up to five figures, closer together when the leader stands
+// near the edge, and fewer when even that does not fit.
+function drawCrew(context, fight, men, side, startX, edgeX, y, pixelScale, art, look = LOOKS.sailor) {
+  const room = (side * (edgeX - startX)) / art - 26 - CREW_REACH;
+  let figures = men > 1 ? Math.min(5, Math.ceil(men / 12)) : 0;
+  figures = Math.min(figures, Math.max(0, Math.floor(room / CREW_SPACING[1]) + 1));
+  const spacing = figures > 1 ? Math.min(CREW_SPACING[0], Math.floor(room / (figures - 1))) : 0;
   for (let index = figures - 1; index >= 0; index -= 1) {
     const sway = (fight.frame + index * 3) % 12;
     const move = sway < 4 ? [MOVE.slashMid, MOVE.guardHigh, MOVE.slashLow][index % 3] : index % 3;
     const sprite = fencerSprite({ move, frame: sway % 6, look, weapon: 2, mirror: side > 0, shade: .3 });
-    if (sprite) drawPixelSprite(context, sprite, startX + side * (26 + 20 * index) * art, y - (index % 2) * 3 * art, pixelScale);
+    if (sprite) drawPixelSprite(context, sprite, startX + side * (26 + spacing * index) * art, y - (index % 2) * 3 * art, pixelScale);
   }
 }
 
