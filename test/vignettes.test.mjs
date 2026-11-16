@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { drawVignette, vignetteDescription, vignetteShape, vignetteSize, VIGNETTE_FRAME_WIDTH } from '../src/vignettes.mjs';
 
 const SCENES = [
-  'sail-ho', 'boarding', 'hostage-talks', 'crew-recruits', 'treasure-fleet',
+  'sail-ho', 'sail-nearer', 'boarding', 'hostage-talks', 'crew-recruits', 'treasure-fleet',
   'silver-train', 'mutiny', 'prison', 'hall-of-fame', 'alley-duel',
   'retire-1', 'retire-2', 'retire-3', 'retire-4', 'land-attack', 'fort-walls',
   'sinking', 'outrun', 'nightfall', 'title-ship',
@@ -144,4 +144,37 @@ test('dialog pictures stay whole and framed at a whole-number scale that fits', 
   assert.equal(dialogPictureLayout('merchant', { width: 964, height: 541, room: 390 }).scale, 2);
   assert.equal(dialogPictureLayout('arrival', { width: 964, height: 541 }).scale, 2);
   assert.equal(dialogPictureLayout('tavern', { width: 382, height: 772, narrow: true, maxScale: 1 }).scale, 1);
+});
+
+test('the sighted ship\'s picture follows her type and the era band', async () => {
+  const { sightedShipArt, vignetteNeedsArt, vignetteDescription: describe } = await import('../src/vignettes.mjs');
+  assert.equal(sightedShipArt({ ship: 'Galleon', era: '1560' }), 'early-galleon');
+  assert.equal(sightedShipArt({ ship: 'Cargo fluyt', era: 1600 }), 'early-fluyt');
+  assert.equal(sightedShipArt({ ship: 'War galleon', era: '1620' }), 'mid-wargalleon');
+  // Before 1660 the frigate is the original's fast galleon.
+  assert.equal(sightedShipArt({ ship: 'Frigate', era: '1640' }), 'mid-fastgalleon');
+  assert.equal(sightedShipArt({ ship: 'Frigate', era: '1660' }), 'late-frigate');
+  assert.equal(sightedShipArt({ ship: 'Merchantman', era: '1680' }), 'late-merchantman');
+  assert.equal(sightedShipArt({ ship: 'Sloop', era: '1640' }), 'sloop');
+  assert.equal(sightedShipArt({ ship: 'Barque', era: '1560' }), 'barque');
+  assert.equal(sightedShipArt({ ship: 'Canoe', era: '1600' }), null);
+  assert.equal(sightedShipArt({ ship: 'Galleon' }), null);
+  // Without a DOM the art never loads and the placeholder stands in.
+  assert.equal(vignetteNeedsArt('sail-nearer', { ship: 'Galleon', era: '1620' }), true);
+  assert.equal(vignetteNeedsArt('sail-nearer', { ship: 'Canoe', era: '1620' }), false);
+  assert.match(describe('sail-nearer', { ship: 'Galleon', era: '1620' }), /^Placeholder picture.*colours/);
+});
+
+test('every sighted ship\'s picture is in the repository', async () => {
+  const { existsSync } = await import('node:fs');
+  const { sightedShipArt } = await import('../src/vignettes.mjs');
+  const scenarios = JSON.parse((await import('node:fs')).readFileSync(new URL('../assets/scenarios.json', import.meta.url)));
+  for (const [era, data] of Object.entries(scenarios.eras)) {
+    const ships = new Set([data.treasureFleet[0], ...Object.values(data.encounters).flat().map((entry) => entry[0])]);
+    for (const ship of ships) {
+      const key = sightedShipArt({ ship, era });
+      assert.ok(key, `${ship} in ${era} has no picture`);
+      assert.ok(existsSync(new URL(`../assets/vignettes/ships/${key}.png`, import.meta.url)), `${key}.png is missing`);
+    }
+  }
 });

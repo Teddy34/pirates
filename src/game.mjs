@@ -1625,6 +1625,7 @@ function revealEncounter(town, distance) {
     Object.assign(enemy, { captainId: captain.id, captainName: captainName(captain.id) });
   }
   showDialog({
+    vignette: { id: 'sail-nearer', ship, era: state.era },
     kicker: 'The sail draws nearer', title: `She looks like a ${ship}`,
     body: '<p>The lookout cannot yet make out her colors. Will you close the distance?</p>',
     actions: [
@@ -4570,7 +4571,7 @@ function showVignette(vignette) {
   paint();
   // Picture art loads in the background; repaint once it arrives if this
   // vignette is still the one on screen.
-  if (vignetteNeedsArt(id)) loadVignetteArt().then(() => { if (shownVignette === vignette) paint(); });
+  if (vignetteNeedsArt(id, options)) loadVignetteArt(id, options).then(() => { if (shownVignette === vignette) paint(); });
 }
 
 // The dialog fills the screen (style.css, "Dialogs"). Its picture sits whole
@@ -5431,6 +5432,7 @@ const townPreview = (show, { town = 'Guadeloupe', prepare } = {}) => () => start
 // opened over a paused voyage.
 const SCENE_PREVIEWS = {
   'sail-ho': () => showSighting(state.towns[0], 5),
+  'sail-nearer': () => revealEncounter(state.towns[0], 5),
   boarding: () => {
     beginTacticalBattle({ ...PREVIEW_ENEMY }, 0);
     state.paused = true;

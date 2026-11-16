@@ -797,6 +797,70 @@ nation.
 > balcony railing, balustrade, turned wooden column, platform at head
 > height.
 
+**sail-nearer** · no slot of its own in our table (the original's ship
+portraits `0x3A`–`0x42`, §4.12, are the nearest match) · the sail draws
+nearer: *"She looks like %s, captain. Investigate? / Sail away?"* (CSTR
+120; `encounters.md` §2 step 5) · the lookout can make out her type but
+not yet her colours.
+The art is one picture per ship type and period,
+`assets/vignettes/ships/<key>.png` (provenance in
+`assets/vignettes/PROVENANCE.md`), picked by `sightedShipArt` in
+`src/vignettes.mjs`. The six eras fall into three bands, `early`
+(1560–1600), `mid` (1620–1640) and `late` (1660–1680), each with only the
+types its encounter tables hold; the barque (every era) and the sloop
+(1640 on) have one picture each. Before 1660 the frigate is drawn as the
+original's "fast galleon" (`encounters.md` §2 step 4), a long, low,
+race-built galleon; from 1660 as a true frigate. The ship flies no flags
+at all, so the colours stay for the next step, "She's flying %s colors"
+(CSTR 122), which has no picture yet. The pictures share one frame and one
+prompt; only the ship changes.
+
+> Seen from the deck of our own ship in open Caribbean water at midday. In
+> the lower left corner only, a short piece of our own ship's weathered
+> wooden rail and two tarred shrouds with ratlines rising out of the
+> picture; no people. The rest of the picture is open sea and sky: a deep
+> blue swell flecked with small whitecaps, a pale blue sky with a few
+> white cumulus clouds, no land. At middle distance, in the centre and
+> right of the picture, one single ship under sail, seen from her side and
+> slightly from astern (three-quarter broadside view), heeling a little to
+> the wind, every sail full and pale cream with darker seams, a white bow
+> wave. The whole ship, from the waterline to the mast tops, is inside the
+> picture, about half the picture's width, sharp and clearly drawn against
+> the sky, so that her hull shape, her masts and her sails can be read at
+> a glance. Too far away to see any people on board. She flies no flags at
+> all: bare mastheads, no ensign, no pennants, no streamers, no banners.
+>
+> The ship: *see the table.*
+
+Shared negatives (after the §2 list): flags, ensign, pennants, streamers,
+banners, coat of arms on the sails, painted crosses on the sails, skull
+and crossbones, black flag, ship's steering wheel, people in the
+foreground, telescope, second ship, land, island, fort, steamship, modern
+yacht, Bermuda rig.
+
+| key | the ship | extra negatives |
+|---|---|---|
+| `barque` | A small two-masted coasting bark, like a small caravel: a short, beamy, single-decked wooden hull with a raised poop deck at the stern, a low bow and a short stubby bowsprit; two masts, the foremast taller, each carrying one large triangular lateen sail on a long slanting yard; two small gunports on the side. A small ship, much smaller than a galleon. | square sails, gaff sail, jib, three masts |
+| `sloop` | A small single-masted sloop of the later 17th century: a low, narrow, single-decked wooden hull with a low rail and a small square stern; one tall mast raked slightly back carrying a very large fore-and-aft gaff mainsail with a boom, and one large triangular headsail set to a long bowsprit; four small gunports and a row of small oar ports. A small, fast ship, much smaller than a galleon. | square sails, lateen sail, two masts, three masts, Bermuda rig, triangular mainsail |
+| `early-pinnace` | A small, light pinnace of the late 16th century: a slim, low, single-decked wooden hull, a square stern with a small low poop, hardly any forecastle, a short pointed beak at the bow; two masts, each with a square course and a small square topsail, and a small square spritsail under the bowsprit; four small gunports and a row of small oar ports for sweeps. A small ship, much smaller than a galleon. | lateen sail, gaff sail, three masts, high castles |
+| `early-fluyt` | An early Dutch fluyt merchant ship of about 1600: a long wooden hull with a strongly rounded, pear-shaped section, the sides bulging at the waterline and curving far inward above it to a narrow upper deck; a tall, narrow, rounded stern topped by a small high flat transom; a low bow with a small beakhead; only two small gunports; three tall masts with square courses and topsails on the fore and main masts, one triangular lateen sail on the short mizzen mast, a square spritsail under the bowsprit. | rows of gunports, high forecastle, ornate gilded carvings, four masts |
+| `early-merchantman` | An armed merchant ship of the late 16th century: a deep, full-bodied, high-sided three-masted wooden hull, deep laden, with a raised forecastle at the bow and a tall stern castle with a flat square transom; plain dark tarred and ochre planking; a single row of six gunports; square courses and topsails on the fore and main masts, one triangular lateen sail on the mizzen mast, a square spritsail under the bowsprit. | two rows of gunports, gilded carvings, four masts |
+| `early-fastgalleon` | A fast, low, race-built galleon of the 1580s: a long, low, narrow wooden hull with a low forecastle and a modest stern castle, a long projecting beakhead at the bow, a single long row of ten gunports; four masts: square courses and topsails on the fore and main masts, and two shorter masts aft, the mizzen and a smaller bonaventure mizzen, each with one triangular lateen sail; a square spritsail under the bowsprit. Sleek and fast-looking. | high towering castles, two rows of gunports, painted geometric patterns |
+| `early-galleon` | A great Spanish treasure galleon of the late 16th century, very large, broad and heavy, riding deep in the water: a towering stern castle several decks high with carved and gilded galleries, a high forecastle, a long low beakhead; a few gunports; four masts: square courses and topsails on the fore and main masts, the mizzen and a smaller bonaventure mizzen each with one triangular lateen sail; a square spritsail under the bowsprit. Massive and stately. | sleek low hull, painted geometric patterns |
+| `early-wargalleon` | A heavily armed war galleon of the late 16th century: a big, long wooden hull with two full rows of gunports and bronze cannon muzzles showing, a high forecastle and stern castle, a long beakhead; four masts: square courses, topsails and small topgallant sails on the fore and main masts, the mizzen and a smaller bonaventure mizzen each with one triangular lateen sail; a square spritsail under the bowsprit. Powerful and warlike. | painted geometric patterns |
+| `mid-pinnace` | A small, light pinnace of the 1620s to 1640s: a slim, low, single-decked wooden hull, a square stern with a small flat transom, a low forecastle, a short beakhead; two masts, each with a square course and a square topsail, and a square spritsail under the bowsprit; four small gunports and a row of small oar ports for sweeps. A small ship, much smaller than a galleon. | lateen sail, gaff sail, three masts, high castles |
+| `mid-fluyt` | A Dutch fluyt merchant ship of the 1620s to 1640s: a long wooden hull with a strongly rounded, pear-shaped section, the sides bulging at the waterline and curving far inward above it to a narrow upper deck; a tall, narrow, rounded stern topped by a small high flat transom with a little carving; a low bow with a small beakhead; only two small gunports; three very tall masts with square courses and topsails, small topgallant sails on the fore and main masts, a triangular lateen sail on the short mizzen mast, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. | rows of gunports, high forecastle, ornate gilded carvings, four masts |
+| `mid-merchantman` | An armed merchant ship of the 1620s to 1640s: a full-bodied, deep-laden three-masted wooden hull with a low forecastle and a tall stern with a flat square transom and a small enclosed quarter gallery; plain dark tarred and ochre planking; a single row of eight gunports; square courses and topsails on the fore and main masts, a triangular lateen sail with a small square topsail above it on the mizzen mast, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. | two rows of gunports, gilded carvings, four masts |
+| `mid-fastgalleon` | A fast, low galleon-frigate of the 1630s: a long, low, sleek wooden hull with an almost flush deck, a very low forecastle and a low poop, a sharp fine bow with a small beakhead, a single row of ten gunports; three tall masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a small square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. Sleek, fast and predatory. | high towering castles, two rows of gunports, four masts |
+| `mid-galleon` | A great Spanish treasure galleon of the 1620s to 1640s, very large, broad and heavy, riding deep in the water: a towering, richly carved and gilded stern with open galleries and quarter galleries, a high forecastle, a long beakhead; one row of gunports with a few more above; three masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a small square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. Massive and stately. | sleek low hull, four masts |
+| `mid-wargalleon` | A great warship of the 1620s to 1640s: a long, tall wooden hull with two full tiers of gunports, the port lids painted red and open, cannon muzzles out; a high, richly carved and gilded stern, a low forecastle, a long beakhead with a carved figurehead; three masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a small square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. Powerful and warlike. | four masts, painted geometric patterns |
+| `late-pinnace` | A small, light pinnace of the 1660s: a slim, low, single-decked wooden hull, a square stern with a small carved flat transom, almost no forecastle, a short beakhead; two masts, each with a square course and a square topsail, and a square spritsail under the bowsprit; four small gunports and a row of small oar ports for sweeps. A small ship, much smaller than a galleon. | lateen sail, gaff sail, three masts, high castles |
+| `late-fluyt` | A Dutch fluyt merchant ship of the 1670s: a long wooden hull with a strongly rounded, pear-shaped section, the sides bulging at the waterline and curving far inward above it to a narrow upper deck; a tall, narrow, rounded stern topped by a small high flat transom with a carved panel; a low bow with a small beakhead; only two small gunports; three very tall masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a small square topsail above it on the short mizzen mast, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. | rows of gunports, high forecastle, ornate gilded carvings, four masts |
+| `late-merchantman` | An armed merchant ship of the 1670s: a long, full-bodied wooden hull with an almost flush upper deck, a low forecastle and a moderately high square stern with a carved transom and quarter galleries; plain dark tarred and ochre planking with a yellow ochre band; a single row of ten gunports; three masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. | two rows of gunports, high castles, four masts |
+| `late-frigate` | A fast frigate of the 1670s: a long, low, sleek wooden hull with a single continuous gun deck and a long row of twelve open gunports, a small raised quarterdeck aft, no raised forecastle castle, a sharp fine bow with a small beakhead and a carved figurehead, a square stern with a modest carved transom; three tall masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. Sleek, fast and predatory. | high castles, two rows of gunports, four masts |
+| `late-galleon` | A great Spanish treasure galleon of the 1660s to 1680s, very large, broad and heavy, riding deep in the water: a tall, high square stern richly carved and gilded with open galleries and quarter galleries, a modest forecastle, a long beakhead; two rows of gunports; three masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. Massive and stately. | sleek low hull, four masts |
+| `late-wargalleon` | A large two-decked warship of the 1660s: a long, tall wooden hull with two full tiers of gunports, the port lids painted red and open, cannon muzzles out; a low forecastle, a stepped stern with a carved and gilded transom and quarter galleries, a long beakhead with a carved figurehead; three masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. Powerful and warlike. | four masts, high towering castles |
+
 **boarding** · orig. 0x11 `boarding` · the two ships meet before the
 boarding fight (`boarding.asm`) · *"The two ships crash together. Through
 the smoke, you spot %s approaching."* (CSTR 171)
@@ -1390,6 +1454,7 @@ A scene can serve more than one dialog:
 | id | dialogs |
 |---|---|
 | sail-ho | the first sighting only, not the closer looks that follow |
+| sail-nearer | the closer look, "She looks like a …"; the flag step ("She's flying %s colors") has no picture yet |
 | boarding | the provisional boarding choice, with the enemy's flag |
 | hostage-talks | the prisoner's offer and the report he gives |
 | crew-recruits | tavern volunteers and sailors from a captured ship |
