@@ -894,3 +894,58 @@ nation:
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for `crew-recruits`, `traveller`, `map-seller` and
   `villain-news`.
+
+## dig-found.png, dig-nothing.png, reunion-female.png, reunion-male.png, lost-city-inca.png, lost-city-aztec.png, lost-city-olmec.png, lost-city-maya.png
+
+The dig's results, about 1640, each 224 × 128 (7 : 4), for every era and
+nation:
+
+- `dig-found.png`: three sailors in a fresh jungle pit by a tall rock lean
+  over an opened, iron-bound oak chest of gold and silver coins; the
+  captain stands over them with the map.
+- `dig-nothing.png`: a beach of empty holes at sunset, one sailor slumped,
+  one on his spade, one flinging down his hat; the captain glares at the
+  torn map.
+- `reunion-female.png` (the sister or the niece) and `reunion-male.png`
+  (the father or the uncle): the rescued relative embraces the captain at
+  a plantation stockade's open gate, the crew moved behind them, broken
+  chains on the ground. The game's female relatives are a sister and a
+  niece, so the woman is young, not the older woman of the first brief.
+- `lost-city-<culture>.png`: a sea cave by an old wreck's ribs, the
+  captain and torch-bearing sailors before spilled chests of the culture's
+  objects: Inca (gold sun disc with a face, gold llamas, tumi knives,
+  beakers, quipu cords); Aztec (gold feathered serpents, a turquoise
+  mosaic mask with shell eyes, jade, a carved stone calendar disc); Olmec
+  (a colossal basalt head, jade figures, mask and celts); Maya (a glyph
+  stela, a painted ruler statue, a jaguar throne, a jade mosaic mask).
+
+- **Source:** for each, a comic-style illustration (1659 × 948) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the scene's
+  prompt in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Period references for the objects:** Smarthistory, "Mosaic mask of
+  Tezcatlipoca" and "Turquoise mosaics, an introduction" (Mixtec-Aztec
+  turquoise mosaics, 15th–16th century, British Museum),
+  https://smarthistory.org/mosaic-mask-of-tezcatlipoca; The Metropolitan
+  Museum of Art, "Ancient Andean Metalworking (900–1532 CE)" (Inca camelid
+  effigies, tumis), https://www.metmuseum.org/essays/ancient-andean-metalworking;
+  Smarthistory, "Olmec art" (colossal basalt heads, jade figurines),
+  https://smarthistory.org/americas-before-1900/north-america-to-1500/mesoamerica/olmec-art;
+  The Met, Piedras Negras Stela 5 (a ruler on a jaguar-pelt throne),
+  https://www.metmuseum.org/art/collection/search/318413.
+- **Process:** `tools/build_vignette.py` reduces each to its shape with a
+  box filter, raises contrast (×1.15) and colour (×1.2), and quantises to
+  256 colours (median cut, no dithering, indexed PNG). No historical fixes
+  were made. Accepted, as too small to read at 1×: the distant ships'
+  masthead pennants (one or two art pixels; their large flags are the
+  correct red ragged saltire on white); the tumis carry a figure on the
+  handle in the Lambayeque/Chimú manner rather than plain Inca blades;
+  the captain's sword has a D-shaped knuckle-guard as in the earlier
+  pictures. The lost cities themselves are the original game's fiction:
+  the Olmec culture ended many centuries before the Spanish came, and
+  its objects are shown only as the game's "lost Olmec treasure".
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for each of the eight ids above.

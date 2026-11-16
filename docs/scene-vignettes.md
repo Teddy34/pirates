@@ -1074,12 +1074,58 @@ box, you find %s gleaming pieces of gold and silver."* (CSTR 183)
 > fresh pit around an oak chest whose lid has just been prised open. Gold
 > glow is on their faces, and the captain holds the treasure map.
 
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024), one picture for every era and nation. The art is
+`assets/vignettes/dig-found.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. Final prompt:
+
+> Wide landscape panel, around 1640. A jungle clearing on a Caribbean island
+> beside a tall, strangely shaped grey rock that marks the spot. In the
+> centre, in a freshly dug pit of red-brown earth, three sweaty, bare-armed
+> sailors in loose linen shirts, canvas breeches and knitted caps lean on
+> wooden spades around an iron-bound oak chest whose lid has just been
+> prised open with a crowbar: it is heaped with gleaming gold and silver
+> coins, and a warm golden glow lights their amazed, grinning faces from
+> below. Standing at the edge of the pit, the captain, a lean man about
+> thirty, sun-weathered face, dark hair tied back, short beard, faded dark-blue coat with brass buttons, red sash, cutlass at the hip, tall boots,
+> holds an old yellowed parchment map in one hand and stares down at the
+> chest in triumph. Heaps of dug earth, a pickaxe and a coil of rope around
+> the pit; palms, broad-leaved jungle plants and hanging vines frame the
+> scene; dappled sunlight.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, readable writing on the map, metal shovels with D-handles,
+wheelbarrow, glass bottles, sunglasses.
+
 **dig-nothing** · orig. 0x1A `search` · nothing found (`0xABD0`) ·
 *"After three days of fruitless digging, the search is called off. There
 is no treasure here."* (CSTR 189)
 > A beach scarred with many empty holes at sunset: exhausted sailors lean on
 > spades, one throws down his hat, and the captain stares at a torn map,
 > frustrated.
+
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024), one picture for every era and nation. The art is
+`assets/vignettes/dig-nothing.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. Final prompt:
+
+> Wide landscape panel, around 1640. A long Caribbean beach at sunset, the
+> sand scarred with many empty, abandoned holes and heaps of dug sand, under
+> an orange and violet sky with the sun low over the sea. Three exhausted,
+> sunburnt sailors in sweat-stained linen shirts, canvas breeches and
+> knitted caps lean wearily on wooden spades; one angrily throws his broad-brimmed hat down onto the sand; another sits slumped on the edge of a pit.
+> In the foreground, the captain, a lean man about thirty, sun-weathered
+> face, dark hair tied back, short beard, faded dark-blue coat with brass
+> buttons, red sash, cutlass at the hip, tall boots, stands frustrated,
+> glaring at a torn, yellowed parchment map in his hands. A ship's boat is
+> drawn up at the waterline, a small ship at anchor beyond, a few leaning
+> palms. Weary, defeated mood, long shadows.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, readable writing on the map, metal shovels with D-handles, chest,
+gold, treasure.
 
 **reunion** · orig. 0x50–0x53 `reunionf` / `reunionm` (chosen by the
 relative's sex) · you rescue a lost relative (`0xA95F`,
@@ -1090,6 +1136,50 @@ are reunited at last."* (CSTR 184)
 > His crew stands back, moved, and the broken chains of a stockade are on the
 > ground. *Male variant:* the same scene with a gaunt, bearded man, father,
 > brother or uncle, embracing the captain.
+
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024), one picture for every era and nation. The art is
+`assets/vignettes/reunion-female.png` and `reunion-male.png`, picked by
+the relative's sex (provenance in `assets/vignettes/PROVENANCE.md`); no
+fixes were needed. Final prompt: The game's female relatives are a sister
+and a niece, so the woman is drawn young.
+
+*Female:*
+
+> Wide landscape panel, around 1640. At the open timber gate of a remote
+> stockade on the edge of a Caribbean sugar plantation, at golden late-afternoon light, a thin young woman in her twenties, pale and worn from
+> years of captivity, in a faded, patched brown wool bodice and a frayed
+> linen skirt and coif, her long hair loose, runs into the arms of the
+> captain, a lean man about thirty, sun-weathered face, dark hair tied back,
+> short beard, faded dark-blue coat with brass buttons, red sash, cutlass at
+> the hip, tall boots; they embrace, his hat in his hand, her face full of
+> tearful joy. Broken iron chains and a smashed padlock lie on the ground by
+> the gate. A few steps behind, his crew of sailors in linen shirts and
+> knitted caps stand back, moved, one taking off his cap. Rough log
+> palisade, thatched huts, tall green sugar cane and hills behind.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, old woman, wedding dress, modern clothes, kissing.
+
+*Male:*
+
+> Wide landscape panel, around 1640. At the open timber gate of a remote
+> stockade on the edge of a Caribbean sugar plantation, at golden late-afternoon light, a gaunt older man in his fifties with a long unkempt grey
+> beard and thin grey hair, worn from years of captivity, in a ragged, faded
+> linen shirt and patched brown breeches, barefoot, embraces the captain, a
+> lean man about thirty, sun-weathered face, dark hair tied back, short
+> beard, faded dark-blue coat with brass buttons, red sash, cutlass at the
+> hip, tall boots; they hold each other tightly, the captain's hat in his
+> hand, the old man's eyes closed in tearful joy. Broken iron chains and a
+> smashed padlock lie on the ground by the gate. A few steps behind, his
+> crew of sailors in linen shirts and knitted caps stand back, moved, one
+> taking off his cap. Rough log palisade, thatched huts, tall green sugar
+> cane and hills behind.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, young man, modern clothes, kissing.
 
 **lost-city-inca / -aztec / -olmec / -maya** · orig. 0x79–0x7C `inca`,
 `aztec`, `olmec`, `maya` · you dig up the lost treasure of an ancient city
@@ -1103,6 +1193,94 @@ lost %s treasure! … A hundred thousand gold pieces…"* (CSTR 185, 188)
 > carvings, turquoise mosaic masks, a sun-stone calendar. **Olmec**: a
 > colossal basalt head half buried, jade figurines. **Maya**: stela glyphs,
 > jade masks, a jaguar throne.
+
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024), one picture for every era and nation. The art is
+`assets/vignettes/lost-city-<culture>.png`, one per culture (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. Final prompt: The
+four prompts share the cave; only the last sentence changes.
+
+*Inca:*
+
+> Wide landscape panel, around 1640. A hidden sea cave on a Caribbean coast,
+> its mouth half drowned by turquoise sea water with daylight beyond. Inside
+> on a dark rock and sand floor lie the broken, blackened timber ribs and
+> keel of an old Spanish galleon wreck, and split, rotten iron-bound chests
+> spilling a hoard of ancient gold onto the sand. Three stunned sailors in
+> linen shirts and knitted caps hold up burning torches whose warm orange
+> light glints on the gold; the captain, a lean man about thirty, sun-weathered face, dark hair tied back, short beard, faded dark-blue coat
+> with brass buttons, red sash, cutlass at the hip, tall boots, stands in
+> the foreground in awe, one hand raised. The treasure is Inca: a large
+> hammered gold sun disc with a human face and rays, small solid gold llama
+> figurines, gold tumi ceremonial knives with crescent blades, gold and
+> silver beakers, and coloured knotted quipu cords spilling out of a chest.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, Aztec or Egyptian motifs, pyramids, skulls, jewelled crowns,
+European coins only.
+
+*Aztec:*
+
+> Wide landscape panel, around 1640. A hidden sea cave on a Caribbean coast,
+> its mouth half drowned by turquoise sea water with daylight beyond. Inside
+> on a dark rock and sand floor lie the broken, blackened timber ribs and
+> keel of an old Spanish galleon wreck, and split, rotten iron-bound chests
+> spilling a hoard of ancient gold onto the sand. Three stunned sailors in
+> linen shirts and knitted caps hold up burning torches whose warm orange
+> light glints on the gold; the captain, a lean man about thirty, sun-weathered face, dark hair tied back, short beard, faded dark-blue coat
+> with brass buttons, red sash, cutlass at the hip, tall boots, stands in
+> the foreground in awe, one hand raised. The treasure is Aztec: gold
+> feathered-serpent figures, a mask covered in turquoise mosaic with shell
+> eyes, gold lip plugs and pendants, jade beads, and a large round carved
+> stone calendar disc leaning against the rock wall, carved with a central
+> face and rings of glyphs.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, Inca or Egyptian motifs, pyramids, skulls, jewelled crowns,
+European coins only, readable text.
+
+*Olmec:*
+
+> Wide landscape panel, around 1640. A hidden sea cave on a Caribbean coast,
+> its mouth half drowned by turquoise sea water with daylight beyond. Inside
+> on a dark rock and sand floor lie the broken, blackened timber ribs and
+> keel of an old Spanish galleon wreck, and split, rotten iron-bound chests
+> spilling a hoard of ancient gold onto the sand. Three stunned sailors in
+> linen shirts and knitted caps hold up burning torches whose warm orange
+> light glints on the gold; the captain, a lean man about thirty, sun-weathered face, dark hair tied back, short beard, faded dark-blue coat
+> with brass buttons, red sash, cutlass at the hip, tall boots, stands in
+> the foreground in awe, one hand raised. The treasure is Olmec: a colossal
+> grey basalt head with a heavy-lidded, full-lipped face and a close-fitting
+> helmet, half buried in the sand at the back of the cave, and green jade
+> figurines with downturned, jaguar-like mouths, polished jade celts, a jade
+> mask and jade beads spilling from a chest together with gold.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, Easter Island moai, Egyptian motifs, pyramids, skulls, jewelled
+crowns, readable text.
+
+*Maya:*
+
+> Wide landscape panel, around 1640. A hidden sea cave on a Caribbean coast,
+> its mouth half drowned by turquoise sea water with daylight beyond. Inside
+> on a dark rock and sand floor lie the broken, blackened timber ribs and
+> keel of an old Spanish galleon wreck, and split, rotten iron-bound chests
+> spilling a hoard of ancient gold onto the sand. Three stunned sailors in
+> linen shirts and knitted caps hold up burning torches whose warm orange
+> light glints on the gold; the captain, a lean man about thirty, sun-weathered face, dark hair tied back, short beard, faded dark-blue coat
+> with brass buttons, red sash, cutlass at the hip, tall boots, stands in
+> the foreground in awe, one hand raised. The treasure is Maya: a tall
+> carved limestone stela covered with square glyph blocks and a richly
+> dressed ruler figure standing at the back of the cave, a green jade mosaic
+> mask, jade ear spools and beads, gold discs, and a stone throne carved in
+> the shape of a jaguar.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, Egyptian motifs, pyramids, skulls, jewelled crowns, readable text.
 
 **treasure-trove** · orig. 0x32 `trescave` · "a picture of your wealth"
 from the cabin's treasure chest (`0xBE05`, `captains_cabin.md`)

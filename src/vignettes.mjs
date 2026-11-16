@@ -98,6 +98,13 @@ const DESCRIPTIONS = {
   'merchant-daughter': 'The merchant’s daughter smiles at the captain in her father’s shop',
 };
 
+// The reunion has one picture per relative's sex; every other scene's art is
+// keyed by its id.
+function sceneArtKey(id, options = {}) {
+  if (id === 'reunion') return options.female === false ? 'reunion-male' : 'reunion-female';
+  return id;
+}
+
 export function vignetteDescription(id, options = {}) {
   if (id === 'governor' && governorSheet && governorCell(options)) {
     return `Portrait of the ${NATION_ADJECTIVES[options.nation]} governor in the dress of the ${options.era}s, pixelated from a period painting.`;
@@ -115,7 +122,7 @@ export function vignetteDescription(id, options = {}) {
     const key = sightedShipArt(options);
     if (key && shipArt[key]) return `${SHIP_ART_DESCRIPTIONS[key]} under sail, seen past the ship’s rail, flying no colours yet, pixelated from a comic-style illustration.`;
   }
-  if (sceneArt[id]) return ART_DESCRIPTIONS[id];
+  if (sceneArt[sceneArtKey(id, options)]) return ART_DESCRIPTIONS[sceneArtKey(id, options)];
   return `Placeholder picture: ${DESCRIPTIONS[id] ?? id}.`;
 }
 
@@ -165,8 +172,24 @@ const SCENE_ART_URLS = {
   traveller: new URL('../assets/vignettes/traveller.png', import.meta.url).href,
   'map-seller': new URL('../assets/vignettes/map-seller.png', import.meta.url).href,
   'villain-news': new URL('../assets/vignettes/villain-news.png', import.meta.url).href,
+  'dig-found': new URL('../assets/vignettes/dig-found.png', import.meta.url).href,
+  'dig-nothing': new URL('../assets/vignettes/dig-nothing.png', import.meta.url).href,
+  'reunion-female': new URL('../assets/vignettes/reunion-female.png', import.meta.url).href,
+  'reunion-male': new URL('../assets/vignettes/reunion-male.png', import.meta.url).href,
+  'lost-city-inca': new URL('../assets/vignettes/lost-city-inca.png', import.meta.url).href,
+  'lost-city-aztec': new URL('../assets/vignettes/lost-city-aztec.png', import.meta.url).href,
+  'lost-city-olmec': new URL('../assets/vignettes/lost-city-olmec.png', import.meta.url).href,
+  'lost-city-maya': new URL('../assets/vignettes/lost-city-maya.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
+  'dig-found': 'In a jungle clearing by a strange tall rock, three grinning sailors in a fresh pit of red earth lean over an iron-bound oak chest heaped with gold and silver coins, while the captain in his blue coat stands over them with the old map, pixelated from a comic-style illustration.',
+  'dig-nothing': 'At sunset on a beach scarred with empty holes, one exhausted sailor slumps by a pit, another leans on his spade and a third flings down his hat, while the captain in his blue coat glares at a torn map, pixelated from a comic-style illustration.',
+  'reunion-female': 'At the open gate of a plantation stockade a thin young woman in a patched bodice and linen coif, in tears of joy, embraces the captain in his blue coat, hat in his hand, as his sailors look on moved and broken chains lie on the ground, pixelated from a comic-style illustration.',
+  'reunion-male': 'At the open gate of a plantation stockade a gaunt, grey-bearded old man in rags, barefoot and weeping, embraces the captain in his blue coat, hat in his hand, as his sailors look on moved and broken chains lie on the ground, pixelated from a comic-style illustration.',
+  'lost-city-inca': 'In a sea cave beside the ribs of an old wreck, the captain and his torch-bearing sailors stare at Inca treasure spilling from broken chests: a gold sun disc with a face, gold llamas, tumi knives, gold and silver beakers and knotted quipu cords, pixelated from a comic-style illustration.',
+  'lost-city-aztec': 'In a sea cave beside the ribs of an old wreck, the captain and his torch-bearing sailors stare at Aztec treasure: gold feathered serpents, a turquoise mosaic mask with shell eyes, jade beads and gold pendants, before a great carved stone calendar disc, pixelated from a comic-style illustration.',
+  'lost-city-olmec': 'In a sea cave beside the ribs of an old wreck, the captain and his torch-bearing sailors stare at a colossal basalt head half buried in the sand, above broken chests of gold coins, green jade figures, a jade mask and polished jade celts, pixelated from a comic-style illustration.',
+  'lost-city-maya': 'In a sea cave beside the ribs of an old wreck, the captain and his torch-bearing sailors stare at a carved Maya stela of glyphs, a painted ruler statue and a jaguar throne, above broken chests of gold and a green jade mosaic mask, pixelated from a comic-style illustration.',
   'crew-recruits': 'A rowdy crowd of barefoot sailors, a tall African freedman with an axe, a grey-bearded gunner and a ship’s boy among them, jostle round a tavern table as the captain writes their names in the articles, pixelated from a comic-style illustration.',
   traveller: 'A dusty, well-dressed traveller in a wide-brimmed hat, green doublet and brown cloak slides a letter sealed with red wax across a tavern table, his other palm open for payment, pixelated from a comic-style illustration.',
   'map-seller': 'A toothless, winking old pirate in a red head-scarf, with a gold earring and a peg leg, holds up a torn scrap of treasure map marked with a cross by a guttering candle, pixelated from a comic-style illustration.',
@@ -451,7 +474,7 @@ export function vignetteNeedsArt(id, options) {
     const key = sightedShipArt(options);
     return Boolean(key) && !shipArt[key];
   }
-  return (id === 'governor' && !governorSheet) || (Boolean(SCENE_ART_URLS[id]) && !sceneArt[id]);
+  return (id === 'governor' && !governorSheet) || (Boolean(SCENE_ART_URLS[sceneArtKey(id, options)]) && !sceneArt[sceneArtKey(id, options)]);
 }
 
 export function vignetteShape(id) {
@@ -1743,8 +1766,13 @@ function openChest(p, x, y) {
 // A treasure map held out in front of a figure at (x, y).
 const heldMap = (p, x, y) => p.outlined([[x + 6, y - 20, 11, 8, PARCHMENT]]);
 
-// A jungle clearing by a strange rock: the crew around a prised-open chest.
+// The dig's art (assets/vignettes/dig-found.png) once loaded; until then a
+// jungle clearing by a strange rock: the crew around a prised-open chest.
 function drawDigFound(p) {
+  if (sceneArt['dig-found']) {
+    p.image(sceneArt['dig-found'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#8fc8d0', '#b4dcc8'], 40);
   for (let x = -8; x < 232; x += 18) p.disc(x, 38 + (x * 7) % 9, 15, x % 4 ? '#2f6a3a' : '#3f7a3a');
   p.rect(0, 46, 224, 12, '#2f6a3a');
@@ -1767,8 +1795,13 @@ function drawDigFound(p) {
   heldMap(p, 112, 82);
 }
 
-// A beach scarred with empty holes at sunset.
+// The empty dig's art (assets/vignettes/dig-nothing.png) once loaded; until
+// then a beach scarred with empty holes at sunset.
 function drawDigNothing(p) {
+  if (sceneArt['dig-nothing']) {
+    p.image(sceneArt['dig-nothing'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#5a4a7a', '#a8564a', '#e08a4a', '#f2c070'], 50);
   p.disc(168, 48, 10, '#fff0b0');
   sea(p, 50, '#7a4a5a', '#e0a060');
@@ -1790,8 +1823,14 @@ function drawDigNothing(p) {
   p.outlined([[94, 118, 10, 2, '#1d1710'], [97, 115, 5, 3, '#1d1710']]);
 }
 
-// At a remote plantation's gate a thin, older relative runs to the captain.
+// The reunion's art (assets/vignettes/reunion-female.png or reunion-male.png,
+// by the relative's sex) once loaded; until then a plantation's gate where a
+// thin relative runs to the captain.
 function drawReunion(p, { female = true } = {}) {
+  if (sceneArt[female ? 'reunion-female' : 'reunion-male']) {
+    p.image(sceneArt[female ? 'reunion-female' : 'reunion-male'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#7aa0c0', '#c8a890', '#f0c88a'], 64);
   for (let row = 0; row < 12; row += 1) p.rect(0, 52 + row, 224, 1, row < 6 ? '#3f7a3a' : '#4f8a3f');
   p.rect(0, 64, 224, 64, '#a89058');
@@ -1865,9 +1904,14 @@ const LOST_CITY_ART = {
   },
 };
 
-// A hidden sea cave: an old wreck's ribs, spilled gold, torchlit crew, and
-// the marks of the culture that lost it.
+// The lost city's art (assets/vignettes/lost-city-<culture>.png) once loaded;
+// until then a hidden sea cave: an old wreck's ribs, spilled gold, torchlit
+// crew, and the marks of the culture that lost it.
 function drawLostCity(p, { culture }) {
+  if (sceneArt[`lost-city-${culture}`]) {
+    p.image(sceneArt[`lost-city-${culture}`], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   p.rect(0, 0, 224, 128, '#2f2a2a');
   for (let y = 0; y < 90; y += 9) for (let x = (y % 18) * 2; x < 224; x += 37) p.rect(x, y, 16, 2, '#3f3838');
   // The drowned mouth of the cave.
