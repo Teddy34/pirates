@@ -214,6 +214,26 @@ SCENES = {
         'source': (1659, 948),
         'fixes': [patch_fix((1520, 900, 1589, 948), (1590, 900))],
     },
+    'governor-daughter': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+    },
+    # The ship off the fort flew a red flag with a yellow cross, which reads
+    # as Spain's colours of 1785 and shows in every nation's town; sky from
+    # just above it paints it out between the two mast tops.
+    'governor-niece': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+        'fixes': [patch_fix((344, 150, 370, 180), (344, 197))],
+    },
+    'wedding': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+    },
+    'merchant-daughter': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+    },
 }
 
 

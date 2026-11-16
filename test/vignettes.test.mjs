@@ -7,6 +7,7 @@ const SCENES = [
   'silver-train', 'mutiny', 'prison', 'hall-of-fame', 'alley-duel',
   'retire-1', 'retire-2', 'retire-3', 'retire-4', 'land-attack', 'fort-walls',
   'sinking', 'outrun', 'nightfall', 'title-ship',
+  'governor-daughter', 'governor-niece', 'wedding', 'merchant-daughter',
 ];
 
 // A context that records which art pixels were painted, after the clip the
@@ -94,6 +95,7 @@ test('the harbour arrival and the quay pick their sheet row by the fort flag and
   assert.match(vignetteDescription('tavern'), /^Placeholder picture/);
   assert.match(vignetteDescription('shipwright'), /^Placeholder picture/);
   assert.match(vignetteDescription('divide-plunder'), /^Placeholder picture/);
+  for (const id of ['governor-daughter', 'governor-niece', 'wedding', 'merchant-daughter']) assert.match(vignetteDescription(id), /^Placeholder picture/);
 });
 
 test('the title logo spells Retro in outlined pixel letters inside its canvas', async () => {

@@ -715,3 +715,45 @@ sand.
   dithering, indexed PNG). No historical fixes were needed.
 - **Rebuild:** `python3 tools/build_vignette.py --scene shipwright --source <image>`
   (Pillow).
+
+## governor-daughter.png, governor-niece.png, wedding.png, merchant-daughter.png
+
+The courtship scenes, each 224 × 128 (7 : 4): the governor's daughter in a
+rose silk gown in a fountain courtyard, the captain bowing to her while her
+rival suitor in black glowers; the governor's niece in green laughing with
+the captain on a lamplit balcony at night, watched by a duenna with a
+rosary; the newly married couple coming down the steps of a whitewashed
+church as townsfolk throw petals, a guitarist plays and sailors toss their
+caps (shown for every marriage); and the merchant's daughter, in a blue
+bodice, apron and coif, coming into her father's warehouse with a basket of
+oranges as he beams from his ledger desk.
+
+- **Source:** four 1659 × 948 comic-style illustrations generated on
+  2026-11-15 with the built-in image generation tool of the OpenAI Codex
+  CLI (codex-cli 0.169.0, `image_gen`; model not reported), run under the
+  user's own account at the user's request, from the prompts in
+  `docs/scene-vignettes.md` §4.2 and §4.3 with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Period choices:** mid-seventeenth-century gowns with pointed bodices,
+  full sleeves and broad flat lace collars; the bride wears her best
+  coloured silk, not white, which brides took up after Queen Victoria's
+  wedding of 1840 ([V&A, "Wedding colour"](https://www.vam.ac.uk/articles/wedding-colour)).
+  The off-shoulder line of the gowns became fully established in the 1650s
+  ([FIT, Fashion History Timeline, 1650–1659](https://fashionhistory.fitnyc.edu/1650-1659/)),
+  a little later than the 1640 the prompts name; accepted, since the
+  pictures serve every era from 1560 to 1680. No flag shows in the
+  wedding or the merchant's daughter; the governor's daughter has a red
+  masthead pennant one or two pixels long at 1×, accepted. The wedding's
+  guitar has a modern outline rather than a five-course baroque guitar's;
+  it is about 15 pixels wide at 1×, accepted.
+- **Fix:** in the governor's niece, a ship off the fort flew a red flag with
+  a yellow cross, which reads as Spain's colours of 1785 and would show in
+  every nation's town; a patch of sky from just above it paints it out
+  (`patch_fix` in the scene's `SCENES` entry).
+- **Process:** `tools/build_vignette.py` crops each source to 7 : 4, reduces
+  it to 224 × 128 with a box filter, raises contrast (×1.15) and colour
+  (×1.2), and quantises to 256 colours (median cut, no dithering, indexed
+  PNG).
+- **Rebuild:** `python3 tools/build_vignette.py --scene <governor-daughter|governor-niece|wedding|merchant-daughter> --source <image>`
+  (Pillow).
