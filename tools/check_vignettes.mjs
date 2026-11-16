@@ -44,8 +44,8 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     ['silver-train-capture', 'broken mule train'],
     ['mutiny', 'armed crew'],
     ['prison', 'stone cell'],
-    ['hall-of-fame', 'empty frame'],
-    ['alley-duel', 'moonlit alley'],
+    ['hall-of-fame', 'empty gilded frame'],
+    ['alley-duel', 'moonlit alley of whitewashed'],
     ['retire-1', 'seaside cottage'],
     ['retire-2', 'plantation veranda'],
     ['retire-3', 'former flagship'],
@@ -105,7 +105,7 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await until('the record', `document.querySelector('#dialog-body .hall-of-fame')`);
     await evaluate(`document.querySelector('#dialog-actions button').scrollIntoView()`);
     if (!await evaluate(`document.querySelector('#dialog-actions button').getBoundingClientRect().bottom <= innerHeight`)) throw new Error(`${viewport.name}: the record's Continue cannot be reached`);
-    await expectPicture(`${viewport.name} record`, 'empty frame');
+    await expectPicture(`${viewport.name} record`, 'empty gilded frame');
     // Your last ship sinking goes on to the island, and an escape returns to
     // the map.
     await open('sinking');

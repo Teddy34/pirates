@@ -1386,6 +1386,57 @@ recognises you, the villain, the rival suitor (`0x1968C`, `0x18A49`,
 > rapiers, their shadows long on the cobbles. A cat bolts and a shutter
 > opens above.
 
+The art is `assets/vignettes/alley-duel.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948); provenance in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed. One picture serves
+the guard, the villain and the rival suitor, so the opponent is anonymous:
+a plain leather jerkin and broad hat, no sash (coloured sashes and hat
+bows served as faction field signs, red for Imperial and Catholic troops,
+orange for the House of Orange: [Wikipedia, "Field
+sign"](https://en.wikipedia.org/wiki/Field_sign), an article tagged as
+needing more citations), no plume, badge, armour or uniform. Both blades
+are long rapiers with swept iron hilts, which span the whole period; the
+cup hilt is a Spanish fashion of the early 1600s and the small sword
+replaced the rapier only around 1715 ([Wikipedia,
+"Rapier"](https://en.wikipedia.org/wiki/Rapier); the 1715 date is uncited
+there). The houses have wooden balconies with turned balusters rather than
+wrought iron; that such balconies already stood in Caribbean towns in the
+17th century is only supported here by travel guides to Cartagena de
+Indias, not by an architectural history (Je ne sais pas). No street lamps.
+Final prompt (after the shared style block):
+
+> Wide landscape panel, around 1640, a moonlit night in a colonial
+> Caribbean port town. A narrow cobbled back alley runs away from the
+> viewer between two-storey houses of rough whitewashed plaster, washed
+> blue-grey by a full moon high in the night sky, with terracotta tile
+> eaves, heavy wooden doors and wooden shutters, and projecting wooden
+> balconies with turned wooden balusters. Laundry lines with linen shirts
+> are strung across the alley between the balconies. At the far end, a low
+> arch and a warm glow from a doorway. In the middle ground, two men
+> square off with drawn swords, their long moon shadows falling across the
+> wet cobbles. On the left, the captain, a lean man about thirty, sun-weathered
+> face, dark hair tied back, short beard, faded dark-blue coat
+> with brass buttons, red sash, tall boots, in a fencing guard with a long
+> straight rapier with a swept iron hilt. On the right, facing him, an
+> anonymous swordsman, about forty, black moustache and small pointed
+> beard, in a plain dark-brown leather jerkin over a white linen shirt
+> with a plain small falling collar, dark breeches, high boots, a plain
+> broad-brimmed black felt hat with no plume, no sash, no badge and no
+> armour, lunging with a long straight rapier with a swept iron hilt.
+> Above them a wooden shutter has just swung open and a startled old woman
+> in a white linen cap leans out holding a candle. In the right foreground
+> a scrawny cat bolts across the cobbles, a toppled wooden bucket beside
+> it. No street lamps.
+
+Scene negatives: tricorne hats, bicorne, periwig, powdered wig, napoleonic
+uniform, red coats with facings, military uniform, coloured sash on the
+swordsman, plume, coat of arms, flags, banners, flag, national emblem,
+skull and crossbones, parrot, hook hand, cartoon pirate, street lamps, gas
+lamps, electric light, wrought-iron lamp posts, glass windows with large
+panes, shop signs, painted signs, house numbers, bayonets, pistols,
+katana, sabre with a knuckle-bow only, small sword, epee, foil, modern
+fencing gear.
+
 **fort-walls** · orig. 0x28 `fort` · fight scenes 1–2: storming the walls
 (`0x18F4B`, `town_assault.asm`) · *"Your men scale the walls of the fort. As
 the battle rages, the fort's commander attacks you with his sword."* (CSTR
@@ -1734,6 +1785,57 @@ exploits recorded in the Pirate Hall of Fame?"* (CSTR 73)
 > A wood-panelled hall lined with painted portraits of famous sea captains,
 > with a large open book of records on a lectern, a quill, and a candle.
 > An empty frame is waiting on the wall.
+
+The art is `assets/vignettes/hall-of-fame.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948); provenance in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed. Halls of naval
+portraits existed in the period: Ferdinand Bol's 1667 portraits of Michiel
+de Ruyter hung in the offices of the Dutch admiralties ([Wikipedia,
+"Portrait of Michiel de
+Ruyter"](https://en.wikipedia.org/wiki/Portrait_of_Michiel_de_Ruyter);
+[Rijksmuseum SK-A-44](https://www.rijksmuseum.nl/en/collection/SK-A-44)),
+and Peter Lely painted the thirteen Flagmen of Lowestoft for the Duke of
+York in the mid-1660s ([Wikipedia, "Flagmen of
+Lowestoft"](https://en.wikipedia.org/wiki/Flagmen_of_Lowestoft); [Royal Museums
+Greenwich](https://www.rmg.co.uk/collections/objects/rmgc-object-14347)). The portraits show invented faces, not those sitters, with
+long natural hair rather than periwigs so they suit the whole period. The
+quill is right for the period (the steel dip pen dates from the early
+1800s: [Wikipedia, "Quill"](https://en.wikipedia.org/wiki/Quill)). The
+record book's pages hold only illegible scribbles. Final prompt (after the
+shared style block):
+
+> Wide landscape panel, the 17th century, inside a quiet wood-panelled
+> hall of a colonial admiralty or brotherhood of sea captains, warm
+> candlelight and pale daylight from a tall window at the upper left with
+> small leaded diamond panes. The walls are panelled in dark carved oak up
+> to a high cornice. Hung along the walls, a row of large oil-painted
+> portraits of anonymous sea commanders of the period, half-length, in
+> heavy carved frames, some gilded and some black ebony: weathered men
+> with moustaches and pointed beards and long natural shoulder-length
+> hair, in steel breastplates over buff leather coats with wide plain
+> white falling linen collars, one older portrait with a white pleated
+> ruff and a steel gorget, one holding a commander's baton, behind some of
+> them a small grey seascape with a sailing ship carrying no flags. Their
+> faces are generic and invented, not resembling any real person. In the
+> centre of the wall, between the portraits, hangs one empty gilded frame
+> of the same size, with only bare dark backing inside it, waiting. In the
+> foreground at the centre stands a carved oak lectern holding a large
+> leather-bound record book lying open, its two cream pages covered with
+> faint, illegible handwritten scribbles (only wavy grey lines, no
+> readable letters or words). Beside the book: a white goose-feather quill
+> standing in a pewter inkwell, a small pewter sand-shaker, and a brass
+> candlestick with a lit beeswax candle whose warm flame lights the pages.
+> A wide-plank wooden floor, a dark red wool runner on it. No people in
+> the room.
+
+Scene negatives: readable writing, letters, words, names, numbers,
+calligraphy, plaques, nameplates, engraved titles, legible signatures on
+paintings, portraits of famous real people, tricorne hats, bicorne,
+periwig, powdered wig, full-bottomed wig, napoleonic uniform, red coats
+with facings, epaulettes, medals, flags, banners, coat of arms, national
+emblem, skull and crossbones, pirate flag, parrot, hook hand, cartoon
+pirate, steel pen, fountain pen, ballpoint pen, electric light, chandelier
+with bulbs, ship's wheel, telescope, globe with modern map, photographs.
 
 ### 4.11 Title and career openings
 
