@@ -38,6 +38,11 @@ history.
 
 ### Fixed
 
+- A town you walked into is now left with "Leave on foot" and a boot icon,
+  not "Put to sea" with a ship (#139); the log says the party left on foot.
+  "Leave town" on the approach to a town reached overland shows the boot
+  too. Towns entered by ship keep "Put to sea". The `?preview=in-town` and
+  `arrival-land` previews now put the landing party ashore at the town.
 - In a dialog whose buttons wrap onto two lines of different widths (the
   town menu on a wide screen), the left and right arrows now stay on the
   focused button's own line instead of jumping back up to the first one

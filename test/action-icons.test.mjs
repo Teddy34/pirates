@@ -16,7 +16,7 @@ test('labels pick the icon of their action', () => {
   const cases = {
     'Attack the town': 'cannon', 'Storm the walls': 'swords', Governor: 'crown', Tavern: 'mug', Merchant: 'coins',
     Shipwright: 'hammer', 'Divide the plunder': 'chest', 'Practice fencing': 'swords', Logbook: 'book', 'Save voyage': 'quill',
-    'Put to sea': 'ship', 'Leave town': 'ship', 'Sail into the harbor': 'anchor', 'Sneak into town': 'mask',
+    'Put to sea': 'ship', 'Leave town': 'ship', 'Leave on foot': 'boot', 'Sail into the harbor': 'anchor', 'Sneak into town': 'mask',
     Investigate: 'spyglass', 'Return to town': 'back', Continue: 'next', 'Study the treasure maps (M)': 'map',
     'Continue the voyage': 'ship', 'Close for battle': 'cannon', Delete: 'cross', 'Delete slot 2': 'cross', Back: 'back',
     'Withdraw your offer': 'back', 'Wait for a better offer': 'next', 'Decline the mission': 'back', 'Leave them drinking': 'back',

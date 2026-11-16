@@ -2370,7 +2370,7 @@ function approachTown({ overland = Boolean(state.player.onFoot) } = {}) {
       { label: overland ? 'March into town' : 'Sail into the harbor', run: () => tryHarbor(town) },
       { label: 'Sneak into town', run: () => trySneak(town) },
       { label: 'Attack the town', risky: true, run: () => attackTown(town) },
-      { label: 'Leave town', icon: overland ? 'back' : 'ship', focus: true, secondary: true, run: () => { departFromApproach(); resumeSailing(); } },
+      { label: 'Leave town', icon: overland ? 'boot' : 'ship', focus: true, secondary: true, run: () => { departFromApproach(); resumeSailing(); } },
     ],
   });
 }
@@ -3063,7 +3063,7 @@ function showTownMenu() {
     { label: 'Practice fencing', secondary: true, run: () => practiceFencing(showTownMenu) },
     { label: 'Logbook', secondary: true, run: () => showLogbook(showTownMenu) },
     { label: 'Save voyage', secondary: true, run: () => showSaveSlots(showTownMenu) },
-    { label: 'Put to sea', secondary: true, run: leaveTown },
+    { label: departureLabel(), secondary: true, run: leaveTown },
   );
   const landlocked = townLandlocked(town);
   const welcome = townWelcome(landlocked);
@@ -4451,6 +4451,16 @@ function tradeWithMerchant(kind, direction, requested) {
 // desertion, then a prisoner may jump overboard (CSTR 110), then the fleet
 // check while still in the town (0x180B0, 0x47ACA bit 1 set), so too few men
 // for the last ship means prison (CSTR 175), then the departure (0x19B9E).
+// A party that walked in leaves the way it came, on foot (placeForDeparture),
+// so its button neither says "Put to sea" nor shows a ship (#139).
+function leavingOnFoot() {
+  return Boolean(state.visit.overland && state.player.onFoot);
+}
+
+function departureLabel() {
+  return leavingOnFoot() ? 'Leave on foot' : 'Put to sea';
+}
+
 function leaveTown() {
   const player = state.player;
   const desertion = portDesertion({ crew: player.crew, partyGold: player.partyGold, morale: player.crewMorale });
@@ -4477,7 +4487,7 @@ function releasePrisonerOverboard() {
     showDialog({
       kicker: 'A prisoner escapes', title: 'Man overboard',
       body: `<p>${who} jumps overboard and escapes!</p>`,
-      actions: [{ label: 'Put to sea', run: departureFleetCheck }],
+      actions: [{ label: departureLabel(), run: departureFleetCheck }],
     });
     return;
   }
@@ -4490,13 +4500,14 @@ function departureFleetCheck() {
 
 function putToSea() {
   const town = state.towns[state.visit.townIndex];
+  const onFoot = leavingOnFoot();
   placeForDeparture(state.visit.townIndex, state.visit.overland);
   state.visit = null;
   state.mode = 'sailing';
   state.player.arrivalGuard = true;
   setupClouds();
   resumeSailing();
-  addLog(`Put to sea from ${town.name}.`);
+  addLog(onFoot ? `The landing party left ${town.name} on foot.` : `Put to sea from ${town.name}.`);
 }
 
 // An action's optional `key` is a one-letter keyboard shortcut, such as the
@@ -4530,6 +4541,7 @@ function showDialog({ kicker, title, body, actions, vignette, redraw = false }) 
     if (icon) {
       const image = document.createElement('img');
       image.className = 'action-icon';
+      image.dataset.icon = action.icon ?? actionIconName(action.label);
       image.src = icon;
       image.alt = '';
       button.prepend(image);
@@ -5450,16 +5462,26 @@ function startPreview(then, overrides) {
 const previewTownIndex = (name) => state.towns.findIndex((town) => town.name === name);
 
 // Puts the paused captain ashore in the town screen of `townIndex`.
-function enterPreviewTown(townIndex, { sneaking = false } = {}) {
+function enterPreviewTown(townIndex, { sneaking = false, overland = false } = {}) {
   state.nearestTownIndex = townIndex;
   state.mode = 'town';
   state.paused = true;
-  state.visit = { townIndex, sneaking, recruited: false, merchant: null };
+  state.visit = { townIndex, sneaking, overland, recruited: false, merchant: null };
+  if (overland) previewPartyAshore(townIndex);
 }
 
-// A screen in Guadeloupe (or `town`), after `prepare` adjusts the state.
-const townPreview = (show, { town = 'Guadeloupe', prepare } = {}) => () => startPreview(() => {
-  enterPreviewTown(previewTownIndex(town));
+// A landing party standing at a town, its boat beached on the same spot, for
+// the previews of a town reached on foot.
+function previewPartyAshore(townIndex) {
+  const { x, y } = state.towns[townIndex];
+  const spot = { x: x + .5, y: y + .5 };
+  Object.assign(state.player, { ...spot, onFoot: true, ship: { ...spot, heading: state.player.heading }, landing: spot, walk: null });
+}
+
+// A screen in Guadeloupe (or `town`), after `prepare` adjusts the state;
+// `overland` puts the party in town on foot.
+const townPreview = (show, { town = 'Guadeloupe', overland = false, prepare } = {}) => () => startPreview(() => {
+  enterPreviewTown(previewTownIndex(town), { overland });
   prepare?.();
   show();
 });
@@ -5614,11 +5636,13 @@ const PREVIEWS = {
   // The town approach at a coastal town, or (`arrival-land`) a landlocked one.
   ...Object.fromEntries([['arrival', false], ['arrival-land', true]].map(([id, overland]) => [id, () => startPreview(() => {
     state.nearestTownIndex = previewTownIndex(overland ? 'Panama' : 'Guadeloupe');
+    if (overland) previewPartyAshore(state.nearestTownIndex);
     approachTown({ overland });
   })])),
-  // The town menu at a coastal town, or (`in-town`) a landlocked one.
+  // The town menu at a coastal town, or (`in-town`) a landlocked one reached
+  // on foot.
   'in-port': townPreview(showTownMenu),
-  'in-town': townPreview(showTownMenu, { town: 'Panama' }),
+  'in-town': townPreview(showTownMenu, { town: 'Panama', overland: true }),
   marooned: () => startPreview(() => {
     state.paused = true;
     loseLastShip({ inTown: false, cause: REEF_TEXT, done: resumeSailing });

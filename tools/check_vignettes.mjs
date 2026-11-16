@@ -222,6 +222,20 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await until('the quay art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('headland fort flying')`);
     await expectPicture(`${viewport.name} quay`, 'headland fort flying');
     await screenshot(`${viewport.name}-port-quay`);
+    // A town reached by ship is left by sea; one reached on foot is left on
+    // foot, with a boot and not a ship on its buttons (#139).
+    const leaveButton = `[...document.querySelectorAll('#dialog-actions button')].map((b) => [b.textContent, b.querySelector('.action-icon')?.dataset.icon]).find(([label]) => /^(Put to sea|Leave)/.test(label))`;
+    const byShip = await evaluate(leaveButton);
+    if (byShip?.join() !== 'Put to sea,ship') throw new Error(`${viewport.name}: the port's leave button is ${byShip}`);
+    await open('in-town');
+    const onFoot = await evaluate(leaveButton);
+    if (onFoot?.join() !== 'Leave on foot,boot') throw new Error(`${viewport.name}: the inland town's leave button is ${onFoot}`);
+    await clickButton('Leave on foot');
+    await until('the party outside the town on foot', `(!document.querySelector('#event-dialog[open]') && ${S}.mode === 'sailing' && ${S}.player.onFoot) || (document.querySelector('#event-dialog[open] button')?.click(), false)`);
+    if (!(await evaluate(`document.querySelector('#log').textContent`)).includes('on foot')) throw new Error(`${viewport.name}: the log does not say the party left on foot`);
+    await open('arrival-land');
+    const fromApproach = await evaluate(leaveButton);
+    if (fromApproach?.join() !== 'Leave town,boot') throw new Error(`${viewport.name}: the overland approach's leave button is ${fromApproach}`);
     // Left and right stay on a button's own line of the wrapped menu (#108);
     // at 1440 px its second line holds three wide buttons under six.
     await checkMenuArrows(viewport.name);

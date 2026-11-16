@@ -55,6 +55,11 @@ const ICONS = {
     '............', '.....kk.....', '....kSSk....', '.....kk.....', '...kSSSSk...', '.....SS.....',
     '.....SS.....', '.k...SS...k.', '.Sk..SS..kS.', '..SS.SS.SS..', '...SSSSSS...', '............',
   ],
+  // A buccaneer's cuffed boot: leaving a town on foot.
+  boot: [
+    '............', '..kkkkkk....', '.kGGGGGGk...', '.kbbbbbbk...', '..kbbbbk....', '..kbbbbk....',
+    '..kbbbbk....', '..kbbbbk....', '..kbbbbkkk..', '..kbbbbbbbk.', '..kBBBBBBBk.', '..kkkkkkkkk.',
+  ],
   ship: [
     '............', '.....k......', '.....kw.....', '....wkww....', '...wwkwww...', '..wwwkwwww..',
     '.....k......', '.bbbbbbbbbb.', '..bbbbbbbb..', '...BBBBBB...', '.uuuuuuuuuu.', '............',
@@ -162,6 +167,7 @@ const LABEL_ICONS = [
   [/tavern|barmaid|bartender|sailors/i, 'mug'],
   [/investigate|hail|follow|traveller/i, 'spyglass'],
   [/sail into|march into|harbor/i, 'anchor'],
+  [/on foot/i, 'boot'],
   [/put to sea|sail away|leave town|voyage|keep sailing|prize crew|keep her|pirating/i, 'ship'],
   [/^leave/i, 'back'],
   [/^(continue|next|yes|done|welcome|take|keep walking|wait|finish)/i, 'next'],
