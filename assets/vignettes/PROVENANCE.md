@@ -1191,3 +1191,37 @@ or uniforms.
   sand-shaker's plain modern-looking shape.
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for `alley-duel` and `hall-of-fame`.
+
+## mutiny.png, prison.png
+
+The mutiny and the prison, about 1640, each 224 × 128 (7 : 4), one picture
+for every era and nation, with no flags.
+
+- `mutiny.png`: at dawn on a ship's quarterdeck the captain draws his
+  cutlass alone at the rail as a huge bare-chested ringleader points a
+  cutlass at him from the top of the ladder, the crew behind him armed with
+  an axe, knives and handspikes. Shown when the crew mutinies.
+- `prison.png`: in a vaulted stone cell lit by a barred window, the wounded
+  captain sits on straw beside his coat, a jug and bread, tally marks
+  scratched on the wall and a guard's shadow with a pike on the door. Shown
+  on imprisonment and release.
+
+- **Source:** for each, a comic-style illustration (1659 × 948) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the scene's
+  prompt in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Regenerated:** the first `prison` image showed a fort with a domed
+  sentry box through the window, a feature of the Spanish forts that would
+  tie the cell to one nation; the prompt now asks for only sky and a palm
+  frond, and the second image is the one used.
+- **Process:** `tools/build_vignette.py` reduces each to its shape with a
+  box filter, raises contrast (×1.15) and colour (×1.2), and quantises to
+  256 colours (median cut, no dithering, indexed PNG). `prison` is cropped
+  to (6, 4)–(1653, 945) to drop a thin dark border baked into the source;
+  no other fixes were made. Accepted: the captain's wide turned-back cuffs
+  in `mutiny.png`, shared with his other pictures.
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for `mutiny` and `prison`.

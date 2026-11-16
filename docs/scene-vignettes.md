@@ -1285,6 +1285,41 @@ their leader."* (CSTR 139)
 > leader points his cutlass at the captain, who draws his own sword alone at
 > the rail.
 
+The art is `assets/vignettes/mutiny.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948) for every era and nation, with no flags (provenance
+in `assets/vignettes/PROVENANCE.md`); no fixes were needed. The prompt arms
+the crew with handspikes, capstan bars, knives, a marlinspike and a boarding
+axe rather than belaying pins: no dated source for pin rails in 1560–1680
+was found (Je ne sais pas). The quarterdeck shows no steering gear, which
+fits a whipstaff worked from the steerage below it. Accepted: the captain's
+wide turned-back cuffs, a late-17th-century cut shared with his other
+pictures. Final prompt (after the shared style block):
+
+> Wide landscape panel, around 1640, at dawn on the quarterdeck of a three-masted
+> wooden merchant ship of the 17th century at sea. The quarterdeck is
+> a raised wooden deck at the stern with a carved balustrade rail and a
+> short wooden ladder up from the main deck; a large stern lantern on its
+> iron bracket at the back; the mizzen mast with its furled lateen sail
+> behind. Pink and gold dawn sky, calm grey-green sea. On the left, alone at
+> the rail, the captain, a lean man about thirty, sun-weathered face, dark
+> hair tied back, short beard, faded dark-blue coat with brass buttons, red
+> sash, cutlass at the hip, tall boots, is drawing his cutlass from its
+> scabbard, jaw set. Facing him from the top of the ladder, a huge bare-chested
+> mutineer leader with a shaved head, a red sash and wide linen
+> breeches points a heavy curved cutlass at the captain's chest. Behind the
+> leader an angry crew of eight sailors crowds up the ladder and along the
+> main deck: weathered men in loose linen shirts, wide knee-length canvas
+> breeches, knitted woollen caps and a few broad-brimmed felt hats,
+> barefoot, armed with long wooden handspikes, capstan bars, knives, a
+> marlinspike and a boarding axe, faces snarling and shouting. Strong
+> tension, the empty strip of deck between the captain and the leader is the
+> focus.
+
+Scene negatives: ship's steering wheel, helm wheel, tricorne hats, bicorne,
+periwig, skull and crossbones, black pirate flag, flags, ensigns, banners,
+pennants, parrot, hook hand, eyepatch, peg leg, cartoon pirate, pistols with
+modern shape, striped sailor shirts.
+
 **prison** · orig. 0x0A `prison` · you are imprisoned after a lost
 assault, and the months pass (`0x16696`, `0x1F2D1`) · *"You bravely fight on
 and are wounded. You are imprisoned in %s."*, *"The months pass slowly…"*
@@ -1293,6 +1328,47 @@ and are wounded. You are imprisoned in %s."*, *"The months pass slowly…"*
 > bandage on his arm, sits on straw with his back to the wall. A single
 > barred window throws a square of light. Tally marks are scratched on the
 > wall, and a guard's shadow is on the door.
+
+The art is `assets/vignettes/prison.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948) shown on imprisonment and release in a town of any
+nation; provenance in `assets/vignettes/PROVENANCE.md`. The cell, door and
+guard's shadow (a broad-brimmed hat and a pike) carry no nation's mark. The
+first image showed a fort with a round domed sentry box through the window,
+like the "iconic garitas" of the Spanish walls of San Juan
+([NPS, "City Walls", 2019](https://www.nps.gov/saju/learn/historyculture/citywalls.htm)),
+which would tie the cell to one nation; it was regenerated with only sky and
+a palm frond. The second image has a thin dark
+border baked in, cropped away by a `crop` box in `tools/build_vignette.py`.
+The tally marks read as a scratched texture at 1×. Final prompt (after the
+shared style block):
+
+> Wide landscape panel, around 1640, daytime inside a damp stone cell deep
+> in a colonial Caribbean fortress: thick walls of rough grey and ochre
+> stone blocks with lime mortar, a low barrel-vaulted stone ceiling, a stone
+> floor with scattered straw. High on the left wall a single small deep
+> window with three thick iron bars shows only bright blue sky and one green
+> palm frond, no buildings or towers outside, and throws a bright slanting
+> shaft of sunlight down to a barred square of light on the floor in front
+> of the captain. Sitting on the straw against the back wall, his knees
+> drawn up, the wounded captain, a lean man about thirty, sun-weathered
+> face, dark hair tied back but dishevelled, unshaven with a grown-out
+> beard, gaunt and tired but defiant, in a torn and dirty white linen shirt
+> with his faded dark-blue coat with brass buttons lying beside him, ragged
+> breeches and worn tall boots, no weapon; a bloodstained linen bandage is
+> wrapped round his upper left arm. On the stone wall beside him, many rows
+> of tally marks scratched into the stone in groups of five, counting long
+> months. A wooden bowl, a clay water jug and a crust of bread on the floor.
+> On the right a heavy iron-bound oak door with a small barred grille;
+> through the grille falls the dark cast shadow of a guard holding a tall
+> pike, stretched across the floor and wall. Quiet, heavy, melancholy mood,
+> the captain's face the focus.
+
+Scene negatives: sentry box, watchtower, fortress turret seen through the
+window, buildings outside the window, chains on a modern padlock, electric
+light, night, moon, tricorne hats, bicorne, periwig, skull and crossbones,
+flags, banners, coats of arms, uniforms, modern prison bars, steel bars,
+iron bed, toilet, rat cartoon, skeletons, cartoon pirate, eyepatch, hook
+hand.
 
 **shipwreck** · no original slot of its own; an addition · one of your
 ships strikes a reef and is lost while others sail on (`strikeReef`), and
