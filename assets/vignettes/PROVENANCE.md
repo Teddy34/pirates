@@ -757,3 +757,46 @@ oranges as he beams from his ledger desk.
   PNG).
 - **Rebuild:** `python3 tools/build_vignette.py --scene <governor-daughter|governor-niece|wedding|merchant-daughter> --source <image>`
   (Pillow).
+
+## crew-recruits.png, traveller.png, map-seller.png, villain-news.png
+
+Four tavern pictures of about 1640, one picture each for every era and
+nation:
+
+- `crew-recruits.png`, 224 × 128 (7 : 4), shown when sailors volunteer in
+  the tavern or a beaten crew asks to join: a rowdy group of barefoot
+  sailors in canvas slops and knitted caps, among them a tall African
+  freedman with an axe, a grey-bearded gunner and a ship's boy, crowd a
+  tavern table as the captain writes their names in the articles, coins and
+  a stoneware jug beside him.
+- `traveller.png`, 96 × 128 (3 : 4): a dusty, well-dressed traveller in a
+  wide-brimmed hat, green doublet with a falling linen collar and brown
+  cloak slides a letter sealed with red wax across the table, his other
+  palm open for payment.
+- `map-seller.png`, 96 × 128: a toothless, winking old pirate in a red
+  head-scarf, with a gold earring and a peg leg, holds up a torn scrap of
+  treasure map by a guttering candle.
+- `villain-news.png`, 96 × 128, the villain of the family quest: a scarred
+  Spanish nobleman in black and crimson with a standing white collar, a gold
+  chain and a swept-hilt rapier, in a torch-lit stone hallway as a servant
+  hurries away.
+
+- **Source:** for each, a comic-style illustration (1659 × 948 for the
+  recruits, 1086 × 1448 for the portraits) generated on 2026-11-16 with the
+  built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the scene's prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to them. The source files are not kept in the
+  repository. No material from the original game was used.
+- **Process:** `tools/build_vignette.py` reduces each to its shape with a
+  box filter, raises contrast (×1.15) and colour (×1.2), and quantises to
+  256 colours (median cut, no dithering, indexed PNG). No historical fixes
+  were made. Accepted, as too small to read at 1×: the captain's sword in
+  the recruits picture has a D-shaped knuckle-guard hilt that looks later
+  than 1640; the traveller's letter is folded like a packet with diagonal
+  creases; the villain's collar is a plain standing band rather than the
+  projecting golilla of Philip IV's court.
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for `crew-recruits`, `traveller`, `map-seller` and
+  `villain-news`.

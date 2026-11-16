@@ -13,6 +13,13 @@ history.
 
 ### Changed
 
+- The tavern's visitors now have real pictures: sailors crowding the
+  captain's table to sign the articles when recruits join, a dusty
+  traveller sliding a sealed letter across the table, a toothless old
+  pirate holding up a scrap of treasure map, and the scarred Spanish
+  nobleman who holds your lost relatives. Each is pixelated from a
+  comic-style illustration; the code-drawn pictures stay as the fallback
+  until the art loads.
 - Courtship and marriage now have their own pictures instead of borrowing
   the governor's and merchant's portraits: the governor's daughter in a
   fountain courtyard with her jealous suitor, the governor's niece laughing

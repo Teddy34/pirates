@@ -191,6 +191,22 @@ SCENES = {
         'source': (1659, 948),
         'variants': fort_flag_variants([(1565, 237), (1595, 242), (1595, 262), (1565, 259)]),
     },
+    'crew-recruits': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+    },
+    'traveller': {
+        'shape': 'portrait',
+        'source': (1086, 1448),
+    },
+    'map-seller': {
+        'shape': 'portrait',
+        'source': (1086, 1448),
+    },
+    'villain-news': {
+        'shape': 'portrait',
+        'source': (1086, 1448),
+    },
     'sail-ho': {
         'shape': 'landscape',
         'source': (1536, 1024),

@@ -150,8 +150,16 @@ const SCENE_ART_URLS = {
   'governor-niece': new URL('../assets/vignettes/governor-niece.png', import.meta.url).href,
   wedding: new URL('../assets/vignettes/wedding.png', import.meta.url).href,
   'merchant-daughter': new URL('../assets/vignettes/merchant-daughter.png', import.meta.url).href,
+  'crew-recruits': new URL('../assets/vignettes/crew-recruits.png', import.meta.url).href,
+  traveller: new URL('../assets/vignettes/traveller.png', import.meta.url).href,
+  'map-seller': new URL('../assets/vignettes/map-seller.png', import.meta.url).href,
+  'villain-news': new URL('../assets/vignettes/villain-news.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
+  'crew-recruits': 'A rowdy crowd of barefoot sailors, a tall African freedman with an axe, a grey-bearded gunner and a ship’s boy among them, jostle round a tavern table as the captain writes their names in the articles, pixelated from a comic-style illustration.',
+  traveller: 'A dusty, well-dressed traveller in a wide-brimmed hat, green doublet and brown cloak slides a letter sealed with red wax across a tavern table, his other palm open for payment, pixelated from a comic-style illustration.',
+  'map-seller': 'A toothless, winking old pirate in a red head-scarf, with a gold earring and a peg leg, holds up a torn scrap of treasure map marked with a cross by a guttering candle, pixelated from a comic-style illustration.',
+  'villain-news': 'A scarred nobleman with a cruel smile and a thin moustache, in black and crimson with a heavy gold chain, a gloved hand on his rapier, stands in a torch-lit stone hallway as a servant hurries away, pixelated from a comic-style illustration.',
   bartender: 'A burly, one-eyed tavernkeeper with a black eyepatch and a big grey moustache, in a leather jerkin and stained apron, dries a lidded pewter tankard behind a wooden counter, before casks, stoneware jugs and a chalked tally slate, pixelated from a comic-style illustration.',
   barmaid: 'A smiling, winking barmaid with chestnut curls under a linen coif, in a red laced bodice and apron, holds up three lidded pewter tankards in a candlelit tavern full of sailors, pixelated from a comic-style illustration.',
   merchant: 'A plump, beaming merchant in a linen apron and a dark doublet spreads his arms in welcome among sugar barrels, hides, cacao sacks and a brass balance, pixelated from a comic-style illustration.',
@@ -1081,10 +1089,15 @@ function drawBartender(picture) {
   p.rect(58, 104, 18, 1, '#c9c3b4'); p.rect(58, 109, 18, 1, '#c9c3b4');
 }
 
-// A dusty, well-dressed traveller in a wide hat and travelling cloak, a
+// The traveller's portrait art (assets/vignettes/traveller.png) once loaded;
+// until then, the placeholder: a dusty, well-dressed traveller in a wide hat and travelling cloak, a
 // satchel strap across his chest, holding up a sealed letter, in a quiet
 // corner of the tavern by a shuttered window.
 function drawTraveller(picture) {
+  if (sceneArt.traveller) {
+    picture.image(sceneArt.traveller, 0, 0, PICTURE_SIZES.portrait.width, PICTURE_SIZES.portrait.height, 0, 0);
+    return;
+  }
   picture.rect(0, 0, 96, 128, '#3e2c20');
   for (let x = 0; x < 96; x += 16) picture.rect(x, 0, 1, 128, '#2c1e14');
   // A window with half-open shutters on a grey evening.
@@ -1128,9 +1141,14 @@ function drawTraveller(picture) {
   p.outlined([[74, 93, 5, 4, '#a8331f']]);
 }
 
-// A toothless old pirate in a filthy head-scarf with a gold earring,
+// The map seller's portrait art (assets/vignettes/map-seller.png) once
+// loaded; until then, the placeholder: a toothless old pirate in a filthy head-scarf with a gold earring,
 // grinning over a torn scrap of treasure map, by a guttering candle.
 function drawMapSeller(picture) {
+  if (sceneArt['map-seller']) {
+    picture.image(sceneArt['map-seller'], 0, 0, PICTURE_SIZES.portrait.width, PICTURE_SIZES.portrait.height, 0, 0);
+    return;
+  }
   picture.rect(0, 0, 96, 128, '#22180f');
   picture.disc(14, 84, 22, '#3a2818');
   picture.disc(14, 84, 12, '#4e3620');
@@ -1673,8 +1691,13 @@ function drawLostCity(p, { culture }) {
   captain(p, 74, 124);
 }
 
-// A menacing nobleman by a candle: thin moustache, cruel smile, a scar.
+// The villain's portrait art (assets/vignettes/villain-news.png) once loaded;
+// until then, the placeholder: a menacing nobleman by a candle: thin moustache, cruel smile, a scar.
 function drawVillain(picture) {
+  if (sceneArt['villain-news']) {
+    picture.image(sceneArt['villain-news'], 0, 0, PICTURE_SIZES.portrait.width, PICTURE_SIZES.portrait.height, 0, 0);
+    return;
+  }
   picture.rect(0, 0, 96, 128, '#2a1a2e');
   picture.rect(0, 0, 96, 6, '#160d18');
   picture.rect(72, 58, 16, 3, WOOD_LIGHT);
@@ -1786,9 +1809,14 @@ function drawHostageTalks(picture) {
   picture.rect(138, 100, 8, 2, '#c9b07a');
 }
 
-// Mixed sailors crowd a tavern table as the captain enters their names in
+// The recruits' art (assets/vignettes/crew-recruits.png) once loaded; until
+// then, the placeholder: mixed sailors crowd a tavern table as the captain enters their names in
 // the articles, coins and the rum jug beside him.
 function drawCrewRecruits(picture) {
+  if (sceneArt['crew-recruits']) {
+    picture.image(sceneArt['crew-recruits'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   picture.rect(0, 0, 224, 128, '#6a4c30');
   picture.rect(0, 0, 224, 12, '#2c1e14');
   for (const x of [40, 118, 196]) picture.rect(x, 0, 6, 88, '#2c1e14');
