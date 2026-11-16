@@ -1033,3 +1033,46 @@ nation is shown wrongly.
   captain's knuckle-guard sword hilt, as in the earlier pictures.
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for each of the seven ids above.
+
+## treasure-fleet.png, silver-train.png
+
+The big captures, each 224 × 128 (7 : 4), drawn about 1640 and used for
+every era, as the sea fights are: a deliberate simplification, since the
+dress and ships change little enough to read the same at 1×.
+
+- `treasure-fleet.png`: in a sunlit harbour below a hilltop fort, a
+  shot-holed Spanish galleon with a gilded stern lies alongside the
+  captain's ship; barefoot sailors pass gold ingots, coin chests and pearl
+  strings across a plank into the glittering hold; the captain holds up an
+  ingot; the disarmed Spanish crew and an officer in a morion sit under
+  guard. The galleon flies a white flag with a red ragged saltire (the
+  Cross of Burgundy, flown as an ensign by Spanish Habsburg ships and
+  forts until Spain's standardised naval flag of 1785:
+  [FOTW](https://fotw.info/FLAGS/es_brgdy.html)); the fleet is always
+  Spanish.
+- `silver-train.png`: in a dusty street of an isthmus port town, a broken
+  mule train spills silver bars and coins from slashed packs; buccaneers
+  lift bars overhead round the captain; the escort in steel morions and buff
+  coats flees past a whitewashed church. Mule trains carried the Peruvian
+  silver across the Isthmus of Panama on the Camino Real; Drake and Le Testu
+  ambushed one near Nombre de Dios in 1573
+  ([Wikipedia, "Francis Drake's expedition of 1572–1573"](https://en.wikipedia.org/wiki/Francis_Drake%27s_expedition_of_1572%E2%80%931573)).
+
+- **Source:** for each, a comic-style illustration (1659 × 948) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the scene's
+  prompt in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Process:** `tools/build_vignette.py` reduces each to its shape with a
+  box filter, raises contrast (×1.15) and colour (×1.2), and quantises to
+  256 colours (median cut, no dithering, indexed PNG). No historical fixes
+  were made: the galleon's flag came out as asked and stays readable at 1×
+  (the centred crop trims its fly edge). Accepted, as too small to read at
+  1×: the lock type of the buccaneers' long muskets. Known limit of the
+  single picture: the 17th-century galleon is later than the 1560s, and the
+  Spanish morions and buff coats fit the 1560s to about the 1640s better
+  than the 1670s.
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for `treasure-fleet` and `silver-train`.

@@ -189,8 +189,12 @@ const SCENE_ART_URLS = {
   'sinking': new URL('../assets/vignettes/sinking.png', import.meta.url).href,
   'outrun': new URL('../assets/vignettes/outrun.png', import.meta.url).href,
   'nightfall': new URL('../assets/vignettes/nightfall.png', import.meta.url).href,
+  'treasure-fleet': new URL('../assets/vignettes/treasure-fleet.png', import.meta.url).href,
+  'silver-train': new URL('../assets/vignettes/silver-train.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
+  'treasure-fleet': 'In a sunlit harbour below a hilltop fort, barefoot sailors pass gold ingots, chests of coins and strings of pearls across a plank from a beaten royal galleon, shot-holed and flying a white flag with a red ragged saltire, into the glittering hold of the captain’s ship, while the captain in his blue coat holds up an ingot and the disarmed Spanish crew sits under guard, pixelated from a comic-style illustration.',
+  'silver-train': 'In a dusty colonial street, a broken mule train spills silver bars and coins from its slashed packs as cheering buccaneers lift the bars overhead around the captain in his blue coat, and the escort soldiers in steel morions flee past a whitewashed church, pixelated from a comic-style illustration.',
   'boarding': 'Through thick gunsmoke two ships grind hull to hull, grapnels taut, as the captain in his blue coat leaps from the rail with his cutlass raised and his men swing across, while the enemy captain in a plumed hat draws his sword among soldiers in steel helmets, pixelated from a comic-style illustration.',
   'hostage-talks': 'In the lantern-lit stern cabin a bound enemy captain in a torn red coat and ruined lace collar leans over the table to whisper a secret, while the captain in his blue coat listens with his arms folded, a pistol and dividers on the chart between them, pixelated from a comic-style illustration.',
   'prize-plunder': 'On the deck of a captured ship grinning buccaneers hoist a chest from the hold, roll a cask and hold up a jewelled gold cross beside sacks of coin and bolts of silk, as the captain in his blue coat counts coins with the quartermaster and the beaten crew sits under guard, pixelated from a comic-style illustration.',
@@ -2157,8 +2161,13 @@ function drawCrewRecruits(picture) {
   for (const [x, y] of [[124, 94], [130, 96], [136, 94]]) picture.rect(x, y, 4, 2, GOLD);
 }
 
-// The beaten royal galleon alongside: gold goes hand to hand across a plank.
+// The art (assets/vignettes/treasure-fleet.png) once loaded; until then the
+// beaten royal galleon alongside: gold goes hand to hand across a plank.
 function drawTreasureFleet(p) {
+  if (sceneArt['treasure-fleet']) {
+    p.image(sceneArt['treasure-fleet'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#6ab0d8', '#8fc8e0', '#b8dce4', '#e0e8d4'], 66);
   sea(p, 66, '#1f7a8a', '#7ac8c0');
   ship(p, 158, 96, { facing: -1, flag: 'Spain', scale: 1.5, struck: true, sails: '#d8cfb4' });
@@ -2184,9 +2193,14 @@ function pannierMule(p, x, y) {
   p.outlined([[x + 8, y - 6, 11, 3, '#d4dce0']]);
 }
 
-// A broken mule train in a dusty street: spilled silver, cheering buccaneers,
-// the escort running past the church.
+// The art (assets/vignettes/silver-train.png) once loaded; until then a broken
+// mule train in a dusty street: spilled silver, cheering buccaneers, the escort
+// running past the church.
 function drawSilverTrain(p) {
+  if (sceneArt['silver-train']) {
+    p.image(sceneArt['silver-train'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#8fc0d0', '#b4d4d0', '#dcdcc0'], 44);
   p.rect(0, 44, 224, 84, '#d4bc8c');
   for (const [x, y] of [[20, 70], [80, 118], [142, 84], [196, 108], [110, 74]]) p.rect(x, y, 8, 1, '#c0a678');

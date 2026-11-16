@@ -1212,6 +1212,68 @@ fortune in silver from the mines of Peru!"* (CSTR 187)
 > open and spilling silver bars. The buccaneers cheer and lift ingots
 > overhead, and the escort soldiers flee past the church.
 
+In the game these are 224 × 128 landscapes (7 : 4, generate at 1792 ×
+1024), drawn about 1640 and used for every era, like the sea fights. The
+treasure fleet is always Spanish, so its galleon flies the Cross of
+Burgundy, a red ragged saltire on white, a Spanish Habsburg ensign until
+1785; the silver train shows no flag. The art is `assets/vignettes/treasure-fleet.png` and
+`assets/vignettes/silver-train.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. Final prompts, after
+the shared style block:
+
+treasure-fleet:
+
+> in a sunlit tropical harbour below a colonial town with a stone fort, a
+> huge beaten Spanish galleon lies alongside a smaller, lower buccaneer
+> ship. The galleon is a high-sided 17th-century galleon: a tall, ornately
+> carved and gilded square stern castle with stern windows and lanterns, a
+> beakhead at the bow, three masts with square sails furled on the yards and
+> a triangular lateen sail furled on the mizzen yard, gun ports along her
+> side, cannon-shot holes and splintered rails. At her stern flies one large
+> white flag bearing a red ragged diagonal cross (a saltire made of two
+> crossed knotty red branches with stubs). A wide plank bridges the two
+> rails: a chain of barefoot sailors in loose linen shirts, knee breeches
+> and headscarves passes heavy gold ingots, open iron-bound chests
+> overflowing with gold and silver coins, and strings of pearls down into
+> the open hatch of the buccaneer ship, where the hold glitters with heaped
+> treasure. In the foreground on the buccaneer deck stands the captain, a
+> lean man about thirty, sun-weathered face, dark hair tied back, short
+> beard, faded dark-blue coat with brass buttons, red sash, cutlass at the
+> hip, tall boots, one boot on a chest, holding up a gold ingot and
+> grinning. On the galleon's deck a few disarmed Spanish sailors and an
+> officer in a steel morion helmet and buff coat sit under guard of a
+> buccaneer with a long musket. Blue sea, white clouds, gulls.
+
+Scene negatives: red and yellow striped flag, modern Spanish flag, coat of
+arms on a flag, skull and crossbones, black pirate flag, ship's steering
+wheel, tricorne hats, bicorne, periwig, parrot, hook hand, cartoon pirate,
+union jack, tricolour flag, glass bottles.
+
+silver-train:
+
+> a dusty street of a small Spanish colonial port town on the hot jungle
+> coast of the Isthmus of Panama, whitewashed adobe houses with red clay
+> tile roofs and wooden balconies, a plain whitewashed church with a bell
+> gable at the end of the street, palm trees and green jungle hills behind.
+> A long column of brown pack mules stands in the street, each with a rope
+> halter and a wooden pack saddle; the leather and canvas packs are slashed
+> open and spill flat grey-white silver bars and coins into the dust.
+> Cheering buccaneers in loose linen shirts, broad-brimmed felt hats or
+> headscarves, knee breeches, bare feet or rough shoes, with long muskets
+> and cutlasses, lift silver bars over their heads. In the middle stands the
+> captain, a lean man about thirty, sun-weathered face, dark hair tied back,
+> short beard, faded dark-blue coat with brass buttons, red sash, cutlass at
+> the hip, tall boots, raising a silver bar high. In the background the
+> escort of Spanish soldiers flees past the church: steel morion helmets
+> with a curved brim and a crest, buff leather coats, red sashes, matchlock
+> muskets and pikes dropped on the ground. Bright afternoon sun, long
+> shadows, dust in the air.
+
+Scene negatives: flags, banners, red and yellow striped flag, horses with
+modern saddles, wagons, carts, cowboys, Mexican sombreros, ponchos, tricorne
+hats, bicorne, periwig, skull and crossbones, parrot, hook hand, cartoon
+pirate, glass bottles.
+
 ### 4.7 Mutiny, prison and marooning
 
 **mutiny** · orig. 0x21 `mutiny` · the crew mutinies (`0x1DDFE`,
