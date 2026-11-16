@@ -3892,7 +3892,7 @@ function showTavernSpecialEncounter(encounter) {
   const held = mapPieceCount(state.treasureMaps[MAP_KIND.BURIED]);
   showDialog({
     vignette: 'map-seller', kicker: 'A map seller', title: 'A scrap of an old treasure map',
-    body: `<p>The seller asks ${encounter.price} gold pieces for part of an old treasure map. Each piece shows more of the land around the cache.${held ? ` You already hold ${held} of its 4 pieces.` : ''}</p>`,
+    body: `<p>The seller asks ${encounter.price} gold pieces for part of an old treasure map. Each piece shows more of the land around the cache.${held ? ` You already hold ${held} of its 4 pieces.` : ' The map has 4 pieces; this would be your first.'}</p>`,
     actions: [
       { label: `Buy it · ${encounter.price} gold`, run: () => buyTreasureMapPiece(encounter) },
       { label: 'Decline', secondary: true, run: () => declineTavernEncounter(encounter) },

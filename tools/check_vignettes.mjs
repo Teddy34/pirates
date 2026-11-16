@@ -99,6 +99,12 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
       await screenshot(`${viewport.name}-${preview}`);
     }
 
+    // The map seller says how many of the map's pieces you hold, here none (#117).
+    await open('map-seller');
+    if (!await evaluate(`document.querySelector('#dialog-body').textContent.includes('this would be your first')`)) throw new Error(`${viewport.name}: the map seller does not say this is the first piece`);
+    await clickButton('Decline');
+    await until('the tavern', `${dialogTitle} === 'Rumours, recruits, and strong drink'`);
+
     // The follow-up dialog of each flow keeps its picture.
     await open('prison');
     await clickButton('Continue');
