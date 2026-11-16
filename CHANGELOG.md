@@ -38,6 +38,9 @@ history.
 
 ### Fixed
 
+- Fencing practice in town is now fought in a town street (the alley
+  backdrop) instead of on a ship's deck (#140). The `?preview=sword-practice`
+  preview opens it from a town and returns to the town menu.
 - A town you walked into is now left with "Leave on foot" and a boot icon,
   not "Put to sea" with a ship (#139); the log says the party left on foot.
   "Leave town" on the approach to a town reached overland shows the boot

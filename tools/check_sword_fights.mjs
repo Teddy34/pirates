@@ -86,8 +86,14 @@ await withBrowser({ name: 'sword', portOffset: 5, screenshotEnv: 'SWORD_SCREENSH
     await navigate(`/?preview=sword-practice`);
     await until('the practice offer', `${dialogTitle} === 'Fencing practice'`);
     await clickButton('Longsword');
+    // Practice happens in town, so it is fought in the town's street, not
+    // on a deck (#140), and returns to the town menu.
+    await until('the practice fight', inFight);
+    const practiceScene = await evaluate('globalThis.piratesPreview.swordScene');
+    if (practiceScene !== 'alley') throw new Error(`${viewport.name}: practice is fought on the ${practiceScene} backdrop, not in the town's alley`);
     await fightItOut(`${viewport.name}-practice`);
     await until('the practice bonus', `${S}.player.fencingPractice === 5`);
+    await until('the town menu after practice', `${S}.mode === 'town' && [...document.querySelectorAll('#event-dialog[open] #dialog-actions button')].some((b) => b.textContent === 'Practice fencing')`);
     console.log(`${viewport.name}: duel, pause, boarding, guard, mutiny, assault and practice fights play through.`);
   }
 });
