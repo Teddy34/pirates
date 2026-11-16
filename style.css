@@ -62,6 +62,8 @@ form .wide-field { grid-column:span 2; }
 #log p:not(:last-child) { color:var(--muted); font-size:13px; }
 /* The log would cover the fencers; the fight's own panel replaces it. */
 .sword-fight #log, .sea-battle #log { display:none; }
+/* A sword fight's own panel on the canvas shows both sides' morale and crews; the voyage HUD has nothing to add there. */
+.sword-fight #hud { display:none; }
 /* The controls under the map are icon-only pixel buttons, framed like the dialogs' action buttons. */
 #controls { --pixel:#21180f; --brass-light:#f2c55c; --brass-dark:#a8742e; position:fixed; left:50%; bottom:max(14px,env(safe-area-inset-bottom)); display:flex; gap:10px; transform:translateX(-50%); }
 #controls button { display:grid; place-items:center; width:56px; height:52px; padding:0; border:3px solid var(--pixel); border-radius:0; background:var(--brass); cursor:pointer;

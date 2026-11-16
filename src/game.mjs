@@ -4835,16 +4835,12 @@ function updateSwordInterface({ fight, foeName }) {
   zoomInButton.disabled = true;
   logbookButton.disabled = true;
   chartButton.disabled = true;
-  const battle = fight.mode === FIGHT_MODE.battle;
-  labels.captain.textContent = `Captain ${state.captain} · Fight`;
-  labels.date.textContent = `Against the ${foeName}`;
-  labels.wind.textContent = `↔ ${fight.you.x - fight.foe.x}`;
-  labels.sails.textContent = ['Mid', 'Low', 'High'][fight.you.move >= 0 && fight.you.move < 12 ? fight.you.move % 3 : 0];
-  labels.food.textContent = 'Clock stopped';
-  labels.crew.textContent = battle ? String(fight.you.men) : 'Alone';
-  labels.mood.textContent = crewMoodLabel();
-  labels.gold.textContent = `Morale ${fight.you.morale}`;
-  labels.nearest.textContent = battle ? `${fight.foe.men} foes` : `Foe ${fight.foe.morale}`;
+  // The HUD is hidden in a fight and the panel is drawn on the canvas, so
+  // the canvas's label carries the panel's figures for screen readers.
+  const crews = fight.mode === FIGHT_MODE.battle;
+  const side = ({ morale, men }) => `morale ${morale}${crews ? `, ${men} men` : ''}`;
+  const status = `Sword fight with the ${foeName}: you ${side(fight.you)}; the ${foeName} ${side(fight.foe)}`;
+  if (canvas.getAttribute('aria-label') !== status) canvas.setAttribute('aria-label', status);
 }
 
 function render() {

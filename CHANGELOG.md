@@ -13,6 +13,14 @@ history.
 
 ### Changed
 
+- Sword fights no longer show the voyage status bar (wind, sails, food,
+  gold, nearest town), whose fields meant nothing in a fight. The fight's
+  panel moves to the top in a chunky pixel frame, and its two morale bars
+  become one tug-of-war bar of 47 cells: the foe's share fills from the
+  left, yours from the right, since the two always add up to 47 as in the
+  original. In crew battles each side's crew count sits under the bar with
+  a sailor icon.
+
 - Buttons that carry on, agree or finish (Continue, Yes, Done, Take...)
   now show a tick instead of a right arrow, which read as "press the right
   arrow key" rather than Enter or Space. "Wait..." shows an hourglass and
