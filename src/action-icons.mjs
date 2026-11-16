@@ -91,7 +91,57 @@ const ICONS = {
     '............', '............', '.......k....', '.......kk...', '..kkkkkkgk..', '.kggggggggk.',
     '..kkkkkkgk..', '.......kk...', '.......k....', '............', '............', '............',
   ],
+  // The sailing controls under the map (game.mjs, setControl).
+  'turn-port': [
+    '............', '....kkkkkk..', '...kggggggk.', '...kgkkkkgk.', '.kkkgkkkkgk.', '.kgggggkkgk.',
+    '..kgggk.kgk.', '...kgk..kgk.', '....k...kgk.', '........kgk.', '........kkk.', '............',
+  ],
+  'sails-up': [
+    '....k.....k.', 'bbbbbbbbbkkk', 'kwwwwwwwk.k.', 'kwwwwwwwk.k.', 'kwwwwwwwk.k.', '.kwwwwwk..k.',
+    '..kkkkk.....', '....k.......', '....k.......', '.kbbbbbbbbk.', '..kBBBBBBk..', '.uuuuuuuuuu.',
+  ],
+  'sails-down': [
+    '....k.......', 'bbbbbbbbb.k.', 'kwwwwwwwk.k.', 'kwwwwwwwk.k.', 'kwwwwwwwk.k.', '.kwwwwwk.kkk',
+    '..kkkkk...k.', '....k.......', '....k.......', '.kbbbbbbbbk.', '..kBBBBBBk..', '.uuuuuuuuuu.',
+  ],
+  pause: [
+    '............', '............', '..kkk..kkk..', '..kgk..kgk..', '..kgk..kgk..', '..kgk..kgk..',
+    '..kgk..kgk..', '..kgk..kgk..', '..kGk..kGk..', '..kkk..kkk..', '............', '............',
+  ],
+  play: [
+    '............', '...kk.......', '...kgk......', '...kggk.....', '...kgggk....', '...kggggk...',
+    '...kggggk...', '...kgggk....', '...kggk.....', '...kgk......', '...kk.......', '............',
+  ],
+  'zoom-in': [
+    '..kkkkk.....', '.kwwwwwk....', 'kwwwkwwwk...', 'kwwwkwwwk...', 'kwkkkkkwk...', 'kwwwkwwwk...',
+    'kwwwkwwwk...', '.kwwwwwkk...', '..kkkkkkbk..', '.......kbbk.', '........kbbk', '.........kk.',
+  ],
+  'zoom-out': [
+    '..kkkkk.....', '.kwwwwwk....', 'kwwwwwwwk...', 'kwwwwwwwk...', 'kwkkkkkwk...', 'kwwwwwwwk...',
+    'kwwwwwwwk...', '.kwwwwwkk...', '..kkkkkkbk..', '.......kbbk.', '........kbbk', '.........kk.',
+  ],
+  shovel: [
+    '.........kk.', '........kbbk', '.......kbkk.', '......kbk...', '.....kbk....', '....kbk.....',
+    '..kkSk......', '.ksssk......', 'kssssk......', 'ksssk.......', 'kkkk........', '............',
+  ],
+  'treasure-map': [
+    '............', '.kkkkkkkkkk.', '.kwwwwwwwwk.', '.kwwrrwwrrk.', '.kwwwrrrrwk.', '.kwwwwrrwwk.',
+    '.kwwwrrrrwk.', '.kwGrrwwrrk.', '.kGwwwwwwwk.', '.kwGwwwwwwk.', '.kkkkkkkkkk.', '............',
+  ],
+  bolt: [
+    '.....kkkk...', '....kggk....', '...kggk.....', '..kggkkkk...', '.kggggggk...', '.kkkkggk....',
+    '....kggk....', '...kggk.....', '..kgk.......', '..kk........', '............', '............',
+  ],
 };
+
+// Mirrored and turned copies: starboard mirrors port, and the up and down
+// arrows turn the back arrow.
+const mirror = (rows) => rows.map((row) => [...row].reverse().join(''));
+const turnRight = (rows) => rows.map((_, y) => rows.map((row) => row[y]).reverse().join(''));
+const turnLeft = (rows) => mirror(turnRight(rows)).reverse();
+ICONS['turn-starboard'] = mirror(ICONS['turn-port']);
+ICONS.up = turnRight(ICONS.back);
+ICONS.down = turnLeft(ICONS.back);
 
 // First match wins, so the specific actions come before the generic ones.
 const LABEL_ICONS = [
