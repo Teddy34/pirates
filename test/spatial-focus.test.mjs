@@ -52,10 +52,13 @@ test('a taller or shorter button sharing part of the row is in line; one only to
   assert.equal(spatialNeighbour(pair[0], pair, 'ArrowDown'), 2);
 });
 
-test('with nothing in line, the nearest button that way is chosen', () => {
+test('up and down with nothing in the column take the nearest button that way', () => {
   // A lone button below and to the right of two stacked ones.
   const stacked = [box(0, 0, 100, 40), box(0, 50, 100, 40), box(150, 120, 100, 40)];
-  assert.equal(spatialNeighbour(stacked[0], stacked, 'ArrowRight'), 2);
   assert.equal(spatialNeighbour(stacked[0], stacked, 'ArrowDown'), 1);
+  assert.equal(spatialNeighbour(stacked[1], stacked, 'ArrowDown'), 2);
+  // Left and right never leave the line, even for a button alone on it.
+  assert.equal(spatialNeighbour(stacked[0], stacked, 'ArrowRight'), -1);
+  assert.equal(spatialNeighbour(stacked[2], stacked, 'ArrowLeft'), -1);
   assert.equal(spatialNeighbour(stacked[0], stacked, 'Enter'), -1);
 });
