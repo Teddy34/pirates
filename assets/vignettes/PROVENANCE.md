@@ -1155,3 +1155,39 @@ England, France, Holland's Prince's flag, Holland's States flag from
   indexed PNG).
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for `land-attack` and `fort-walls`.
+
+## alley-duel.png, hall-of-fame.png
+
+Each 224 × 128 (7 : 4), one picture for every era and nation, with no flags
+or uniforms.
+
+- `alley-duel.png`: on a moonlit night the captain crosses swept-hilt
+  rapiers with an anonymous swordsman in a leather jerkin and plain broad
+  black hat, in a cobbled alley of whitewashed houses with wooden balconies
+  and laundry lines; an old woman with a candle leans out of a shutter and
+  a cat bolts past a spilled bucket. Shown for the guard who recognises
+  you, the villain sneaking out a back entrance and the rival suitor, so
+  the opponent wears no sash, badge or plume.
+- `hall-of-fame.png`: a wood-panelled hall hung with half-length portraits
+  of invented sea commanders (breastplates, falling collars, one older
+  portrait with a ruff, one with a baton) and one empty gilded frame among
+  them; on a carved desk in front, an open record book of illegible
+  scribbles, a quill in a pewter inkwell, a sand-shaker and a lit candle.
+
+- **Source:** for each, a comic-style illustration (1659 × 948) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the scene's
+  prompt in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Process:** `tools/build_vignette.py` crops each to 7 : 4, reduces it
+  with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were made. Accepted, as unreadable at 1×: the tiny
+  masthead pennants on the distant ships of the alley and of the hall's
+  window, the small flag on the fort seen through the window, the captain's
+  long coat with deep cuffs (the recurring captain's coat), and the
+  sand-shaker's plain modern-looking shape.
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for `alley-duel` and `hall-of-fame`.

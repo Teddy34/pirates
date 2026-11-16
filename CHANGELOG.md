@@ -13,6 +13,12 @@ history.
 
 ### Changed
 
+- The sword fight in a back alley and the Pirate Hall of Fame now show real
+  comic-style art: the captain crossing rapiers with an anonymous swordsman
+  in a moonlit alley (one picture for the guard, the villain and the rival
+  suitor), and a panelled hall of sea captains' portraits with an empty
+  frame waiting above the open record book.
+
 - Attacking a town now shows real comic-style art. By land, the captain
   points his cutlass at a town's palisade as his buccaneers and a drummer
   march out of the jungle under the militia's fire; against a fort,

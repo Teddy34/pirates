@@ -195,6 +195,8 @@ const SCENE_ART_URLS = {
   'silver-train': new URL('../assets/vignettes/silver-train.png', import.meta.url).href,
   shipwreck: new URL('../assets/vignettes/shipwreck.png', import.meta.url).href,
   marooned: new URL('../assets/vignettes/marooned.png', import.meta.url).href,
+  'alley-duel': new URL('../assets/vignettes/alley-duel.png', import.meta.url).href,
+  'hall-of-fame': new URL('../assets/vignettes/hall-of-fame.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
   'treasure-fleet': 'In a sunlit harbour below a hilltop fort, barefoot sailors pass gold ingots, chests of coins and strings of pearls across a plank from a beaten royal galleon, shot-holed and flying a white flag with a red ragged saltire, into the glittering hold of the captain’s ship, while the captain in his blue coat holds up an ingot and the disarmed Spanish crew sits under guard, pixelated from a comic-style illustration.',
@@ -207,6 +209,8 @@ const ART_DESCRIPTIONS = {
   'outrun': 'A small ship under full sail heels through the whitecaps, her crew at the rail, while far behind a heavy warship fires a last shot whose splash falls short, pixelated from a comic-style illustration.',
   'nightfall': 'Under a crescent moon and the first stars, two distant ships drift apart on a dark sea, each with one lit stern lantern, the last red of sunset along the horizon, pixelated from a comic-style illustration.',
   shipwreck: 'Under a squally grey sky a three-masted ship lies driven onto a coral reef, her masts snapped and her sails in rags as the surf breaks over her, while sailors cling to a floating spar and haul a swimmer to it among barrels and crates, pixelated from a comic-style illustration.',
+  'alley-duel': 'In a moonlit alley of whitewashed houses with wooden balconies and laundry lines, the captain in his blue coat crosses rapiers with a swordsman in a leather jerkin and broad black hat, as an old woman with a candle leans from a shutter and a cat bolts past a spilled bucket, pixelated from a comic-style illustration.',
+  'hall-of-fame': 'In a wood-panelled hall hung with portraits of sea captains in breastplates and white collars, an empty gilded frame waits among them above a carved desk where a record book lies open beside a quill, an inkwell and a lit candle, pixelated from a comic-style illustration.',
   marooned: 'On a palm-fringed island beach the castaway captain, barefoot in a torn shirt, sits by a driftwood fire drinking from a coconut shell as two island men in cotton loincloths offer him papaya and grilled fish, while out in the bay a small two-masted ship lies at anchor and her boat rows in, pixelated from a comic-style illustration.',
   'dig-found': 'In a jungle clearing by a strange tall rock, three grinning sailors in a fresh pit of red earth lean over an iron-bound oak chest heaped with gold and silver coins, while the captain in his blue coat stands over them with the old map, pixelated from a comic-style illustration.',
   'dig-nothing': 'At sunset on a beach scarred with empty holes, one exhausted sailor slumps by a pit, another leans on his spade and a third flings down his hat, while the captain in his blue coat glares at a torn map, pixelated from a comic-style illustration.',
@@ -2288,9 +2292,14 @@ function drawImprisoned(p) {
   p.disc(192, 70, 6, '#2f2118');
 }
 
-// A panelled hall of famous captains; the record lies open for a new name
-// beneath an empty frame.
+// The art (assets/vignettes/hall-of-fame.png) once loaded; until then a
+// panelled hall of famous captains, the record open for a new name beneath
+// an empty frame.
 function drawHallOfFame(p) {
+  if (sceneArt['hall-of-fame']) {
+    p.image(sceneArt['hall-of-fame'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   p.rect(0, 0, 224, 128, '#5a3b22');
   p.rect(0, 0, 224, 6, '#2c1e14');
   for (let x = 0; x < 224; x += 32) p.rect(x, 6, 1, 98, WOOD_DARK);
@@ -2317,9 +2326,14 @@ function drawHallOfFame(p) {
   p.rect(152, 57, 1, 2, GOLD);
 }
 
-// A moonlit alley of whitewashed houses: two swordsmen square off, a shutter
-// opens above and a cat bolts.
+// The art (assets/vignettes/alley-duel.png) once loaded; until then a
+// moonlit alley of whitewashed houses where two swordsmen square off, a
+// shutter opens above and a cat bolts.
 function drawAlleyDuel(p) {
+  if (sceneArt['alley-duel']) {
+    p.image(sceneArt['alley-duel'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#0f1a3a', '#16244a', '#1f3058'], 44);
   p.disc(112, 14, 7, '#e8ecd8');
   for (const [x, y] of [[92, 8], [134, 22], [120, 34]]) p.rect(x, y, 1, 1, '#e8ecd8');

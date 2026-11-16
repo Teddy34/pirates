@@ -321,6 +321,12 @@ SCENES = {
     'marooned': {
         'shape': 'landscape',
     },
+    'alley-duel': {
+        'shape': 'landscape',
+    },
+    'hall-of-fame': {
+        'shape': 'landscape',
+    },
     # Plain white flags on the palisade's watchtower and on the fort's
     # snapped flagpole, painted over with the town's flag; same rows as
     # harbour-arrival.
