@@ -4751,7 +4751,7 @@ function updateInterface() {
   document.body.classList.toggle('sword-fight', state.mode === 'sword');
   document.body.classList.toggle('sea-battle', state.mode === 'battle');
   if (state.mode === 'sword' && swordView) {
-    updateSwordInterface();
+    updateSwordInterface(swordView);
     return;
   }
   const inBattle = state.mode === 'battle' && state.battle;
@@ -4823,7 +4823,7 @@ function updateSailingInterface(player, onFoot) {
 // The sailing buttons become the fight's controls: the steering pair attack
 // and back off, the sail pair pick the high and low lines, and the dock
 // button holds the quick thrust.
-function updateSwordInterface() {
+function updateSwordInterface({ fight, foeName }) {
   setControl(turnLeftButton, 'swords', 'Attack (hold)', '← or A');
   setControl(turnRightButton, 'back', 'Back off (hold)', '→ or D');
   setControl(raiseSailsButton, 'up', 'Fight on the high line (hold)', '↑ or W');
@@ -4835,6 +4835,12 @@ function updateSwordInterface() {
   zoomInButton.disabled = true;
   logbookButton.disabled = true;
   chartButton.disabled = true;
+  // The HUD is hidden in a fight and the panel is drawn on the canvas, so
+  // the canvas's label carries the panel's figures for screen readers.
+  const crews = fight.mode === FIGHT_MODE.battle;
+  const side = ({ morale, men }) => `morale ${morale}${crews ? `, ${men} men` : ''}`;
+  const status = `Sword fight with the ${foeName}: you ${side(fight.you)}; the ${foeName} ${side(fight.foe)}`;
+  if (canvas.getAttribute('aria-label') !== status) canvas.setAttribute('aria-label', status);
 }
 
 function render() {
