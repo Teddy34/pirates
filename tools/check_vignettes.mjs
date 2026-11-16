@@ -23,8 +23,12 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     ['sail-nearer', 'colours'],
     ['sail-colours', 'colours'],
     ['sail-colours-pirate', 'colours'],
-    ['boarding', 'Two ships grind'],
-    ['hostage-talks', 'bound enemy captain'],
+    ['boarding', 'grind hull to hull'],
+    ['prize', 'jewelled gold cross'],
+    ['enemy-destroyed', 'orange fireball'],
+    ['arrival-land', 'raises a hand to halt'],
+    ['in-town', 'inland colonial plaza'],
+    ['hostage-talks', 'whisper a secret'],
     ['crew-recruits', 'names in the articles'],
     ['traveller', 'sealed with red wax'],
     ['map-seller', 'torn scrap of treasure map'],
@@ -48,9 +52,9 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     ['retire-4', 'beside the king'],
     ['land-attack', 'palisade'],
     ['fort-walls', 'ramparts'],
-    ['sinking', 'settles by the stern'],
-    ['outrun', 'last shot falls short'],
-    ['nightfall', 'night ends the chase'],
+    ['sinking', 'goes down by the stern'],
+    ['outrun', 'splash falls short'],
+    ['nightfall', 'stern lantern'],
   ];
   for (const viewport of VIEWPORTS) {
     await setViewport(viewport);

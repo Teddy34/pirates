@@ -13,6 +13,14 @@ history.
 
 ### Changed
 
+- Inland towns and the sea fights now show real comic-style art. Arriving
+  at an inland town shows the landing party halting above a palisaded
+  town, and its town menu a sunlit plaza; both fly the town's period
+  flag. Boarding, a prisoner's offer, plundering a prize, an enemy ship
+  blowing up, your own ship going down, a ship outrunning the battle and
+  night ending a chase each get one picture, drawn without readable flags
+  so it serves every nation.
+
 - The dig's results now show real comic-style art: the crew round an
   opened oak chest in a jungle pit, an exhausted crew among empty holes at
   sunset, a rescued sister or niece and a rescued father or uncle

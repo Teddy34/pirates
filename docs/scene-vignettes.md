@@ -133,6 +133,34 @@ if you walk in (a deliberate departure) · same text as above
 > church bell tower and a flag. The captain leads the party with his hand
 > raised to halt. Late morning, humid haze.
 
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024). The art is `assets/vignettes/shore-arrival.png`, one row per town
+flag: the source flies a plain white flag that the build paints with the
+town's flag, as for port-quay (provenance in
+`assets/vignettes/PROVENANCE.md`). Final prompt:
+
+> Wide landscape panel, around 1640, late morning, humid haze. A landing
+> party of about a dozen armed buccaneers in linen shirts, canvas breeches,
+> knitted caps and broad-brimmed hats, with long muskets, cutlasses and
+> powder horns, comes out of the edge of a dense tropical jungle onto a red
+> dirt road on a hillside. At the front, the captain, a lean man about
+> thirty, sun-weathered face, dark hair tied back, short beard, faded
+> dark-blue coat with brass buttons, red sash, cutlass at the hip, tall
+> boots, raises one hand to halt his men. Below them in a green valley lies
+> a small inland colonial town: whitewashed houses with terracotta tile
+> roofs, a log palisade around it, a church bell tower, and a small square
+> stone watchtower by the gate with a flagpole on top and one modest-sized
+> plain white flag in proportion to the building (no wider than the tower is
+> tall), flying flat and spread towards the viewer against the blue sky,
+> with no emblem, cross or pattern on it. Palms, banana plants and misty
+> green mountains behind; no sea.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, sea, harbour, ships, oversized flag, emblem on the flag, red and
+yellow striped flag, tricolour flag, union jack, more than one flag,
+telescope, spyglass.
+
 **port-quay** · no original slot; an addition · the town menu of a coastal
 town, while you are in port · *"Your ships lie safely at anchor."*
 > A busy stone quay in a small Caribbean colonial port town, warm afternoon
@@ -183,6 +211,34 @@ town menu of a landlocked town
 > A busy colonial plaza: a church with a bell gable, the governor's
 > arcaded house, market stalls with fruit and cloth, soldiers in morions
 > leaning on halberds, an ox cart, chickens, a well, and sharp noon shadows.
+
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024). The art is `assets/vignettes/town-square.png`, one row per town
+flag: the source flies a plain white flag that the build paints with the
+town's flag, as for port-quay (provenance in
+`assets/vignettes/PROVENANCE.md`). Final prompt:
+
+> Wide landscape panel, around 1640, sharp noon light and short shadows. A
+> busy plaza of a small inland Caribbean colonial town, seen across its open
+> dusty square: on the left a whitewashed church with a small bell tower; at
+> the back the governor's two-storey house with a shaded arcade of round
+> arches on the ground floor and a wooden balcony, a flagpole on its roof
+> with one modest-sized plain white flag in proportion to the building (no
+> wider than the tower is tall), flying flat and spread towards the viewer
+> against the blue sky, with no emblem, cross or pattern on it. Market
+> stalls under canvas awnings with heaps of oranges, plantains, melons and
+> bolts of cloth; townsfolk in linen shirts, women in long skirts, bodices
+> and linen coifs, a water seller; a stone well with a bucket in the centre;
+> an ox cart loaded with sacks; chickens and a dog in the dust; two militia
+> soldiers in buff leather coats and broad-brimmed hats leaning on long
+> muskets in the arcade's shade. No single figure in the foreground; the eye
+> goes across the square to the governor's house.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, captain in the foreground, oversized flag, emblem on the flag, red
+and yellow striped flag, tricolour flag, union jack, more than one flag,
+glass windows, street lamps, cars, power lines, modern shop signs.
 
 ### 4.2 The governor
 
@@ -939,6 +995,31 @@ the smoke, you spot %s approaching."* (CSTR 171)
 > cutlasses and pistols. Through the smoke on the enemy deck, the enemy
 > captain draws his sword.
 
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024), one picture for every era and nation: no flag is readable, so it
+serves every enemy. The art is `assets/vignettes/boarding.png` (provenance
+in `assets/vignettes/PROVENANCE.md`); no fixes were needed. Final prompt:
+
+> Wide landscape panel, around 1640, mid-battle. Two wooden sailing warships
+> of the 17th century grind together hull to hull in a heaving blue-grey
+> sea, their rigging tangled, grappling hooks and taut lines between their
+> rails, thick white and grey gunsmoke drifting across both decks and hiding
+> their upper masts. In the foreground the captain's men, buccaneers in
+> linen shirts and knitted caps with cutlasses, boarding axes and pistols,
+> swing across on ropes and leap over the rail, led by the captain, a lean
+> man about thirty, sun-weathered face, dark hair tied back, short beard,
+> faded dark-blue coat with brass buttons, red sash, cutlass at the hip,
+> tall boots, cutlass raised. On the enemy deck beyond, through a gap in the
+> smoke, the enemy captain in a dark coat and broad-brimmed plumed hat draws
+> his rapier among his sailors with pikes. Flashes of musket fire,
+> splintered wood.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, flags, ensigns, banners, pennants, red and yellow striped flag,
+tricolour flag, union jack, cannon on wheels on the open top deck, modern
+weapons.
+
 **sinking** · orig. 0x1F `sinking` · your ship sinks, or the enemy ship
 blows up (`sea_battle.asm`, `sea_battle_status.asm`) · *"Your ship is holed
 in a dozen places, and gradually sinks beneath the waves."*, *"The enemy
@@ -950,6 +1031,48 @@ magazine."* (CSTR 167–168)
 > orange fireball, with spars flying and the captain's ship in silhouette in
 > the foreground.
 
+In the game variant A is `sinking` (your ship) and variant B is
+`enemy-destroyed`, each a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024) for every era and nation, with no readable flag. The art is
+`assets/vignettes/sinking.png` and `enemy-destroyed.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. Final prompts:
+
+*Variant A (sinking):*
+
+> Wide landscape panel, around 1640, a grey stormy afternoon. A shattered
+> three-masted wooden ship of the 17th century settles by the stern in a
+> heavy grey-green sea: her stern already under water, her bow lifting, her
+> masts leaning and broken, torn sails and rigging trailing in the waves,
+> cannon holes in her side. Sailors in linen shirts leap from the rail into
+> the water; others cling to floating spars, barrels and planks. In the
+> foreground a crowded ship's boat pulls away with oarsmen rowing hard, the
+> captain, a lean man about thirty, sun-weathered face, dark hair tied back,
+> short beard, faded dark-blue coat with brass buttons, red sash, cutlass at
+> the hip, tall boots, standing in its stern looking back at his sinking
+> ship in grief. Spray, low dark clouds.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, flags, ensigns, banners, pennants, red and yellow striped flag,
+tricolour flag, union jack, lifebuoys, life jackets, steamship, modern
+lifeboat.
+
+*Variant B (enemy-destroyed):*
+
+> Wide landscape panel, around 1640, at dusk over a dark sea. In the middle
+> distance a three-masted wooden warship of the 17th century blows up as the
+> fire reaches her powder magazine: a huge orange and yellow fireball
+> bursting from her waist, black smoke rolling up, masts and spars and
+> burning planks flying through the air, debris splashing into the glowing
+> water. In the foreground, the dark silhouette of the captain's own ship
+> seen from behind her rail, her rigging and a few sailors black against the
+> blaze, shielding their faces. The sky is deep violet and orange.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, flags, ensigns, banners, pennants, red and yellow striped flag,
+tricolour flag, union jack, modern explosion, mushroom cloud, steamship.
+
 **outrun** · orig. 0x75 `outrun` · one ship gets out of range
 (`0xE79A`) · *"Your ship sails out of range of the enemy; the battle is
 over."*, *"Using full sails and skillful seamanship, the enemy vessel
@@ -958,12 +1081,52 @@ pulls out of range."* (CSTR 197–198)
 > stiff breeze, leaving a white wake. Far behind, a heavier warship fires a
 > last useless shot, and the splash falls short.
 
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024), one picture for every era and nation: no flag is readable, so it
+serves every enemy. The art is `assets/vignettes/outrun.png` (provenance
+in `assets/vignettes/PROVENANCE.md`); no fixes were needed. Final prompt:
+
+> Wide landscape panel, around 1640, a bright windy day with whitecaps. A
+> wide seascape: in the foreground a small, fast two-masted 17th-century
+> sailing ship under every stitch of square sail heels hard in a stiff
+> breeze, leaving a long white wake, spray at her bow. Far behind, on the
+> horizon, a heavier three-masted warship fires a last cannon shot with a
+> puff of white smoke from her bow, and the splash of the ball falls short
+> in the sea well behind the small ship's stern. Blue sky with fast clouds.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, flags, ensigns, banners, pennants, red and yellow striped flag,
+tricolour flag, union jack, steamship, ship's steering wheel.
+
 **nightfall** · orig. 0x74 `night` · the sun sets and ends a long chase
 (`0xE88E`) · *"After a long chase, the sun sets, ending the battle."* (CSTR
 169, 317)
 > A dark-blue night sea under a sliver of moon and the first stars: two
 > distant ship silhouettes with a single stern lantern each slip apart. The
 > last red glow of sunset is on the horizon.
+
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024), one picture for every era and nation: no flag is readable, so it
+serves every enemy. The art is `assets/vignettes/nightfall.png`
+(provenance in `assets/vignettes/PROVENANCE.md`); no fixes were needed.
+Final prompt:
+
+> Wide landscape panel, around 1640, just after sunset. Seen from the open
+> sea, with no land and no people anywhere in view: a calm dark-blue night
+> sea filling the whole lower half of the picture under a thin crescent moon
+> and the first stars, the last deep red glow of sunset along the horizon.
+> Two distant 17th-century sailing ships, dark silhouettes with sails set,
+> slip away from each other in opposite directions, each with a single warm
+> yellow stern lantern lit, its reflection trembling on the water. Quiet,
+> the battle over. Only sea, sky and the two distant ships.
+
+Scene negatives: land, shore, island, coast, palm trees, rocks, foreground
+figures, people, tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, flags, ensigns, banners, pennants, red and yellow striped flag,
+tricolour flag, union jack, steamship, lighthouse, modern lights, city
+lights.
 
 **hostage-talks** · orig. 0x23 `hostage` · a captured captain or
 nobleman offers information or a ransom (`0xDE6A`) · *"I have information
@@ -974,6 +1137,31 @@ for ransom?"* (CSTR 136, 165)
 > lantern. He leans forward, offering a secret. Charts and a pistol lie on
 > the table.
 
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024), one picture for every era and nation: no flag is readable, so it
+serves every enemy. The art is `assets/vignettes/hostage-talks.png`
+(provenance in `assets/vignettes/PROVENANCE.md`); no fixes were needed.
+Final prompt:
+
+> Wide landscape panel, around 1640, night. Inside the low wooden stern
+> cabin of a 17th-century ship, lit by one brass lantern swaying from a
+> beam, with the leaded stern windows dark behind. At a heavy oak table, a
+> captured enemy captain in a fine but torn and stained dark red coat with a
+> ruined lace collar, his wrists bound with rope, sits forward and leans
+> across the table, eyes narrowed, offering a secret in a low voice. Across
+> the table, the captain, a lean man about thirty, sun-weathered face, dark
+> hair tied back, short beard, faded dark-blue coat with brass buttons, red
+> sash, cutlass at the hip, tall boots, sits back in a chair, arms folded,
+> listening with suspicion. On the table: an unrolled sea chart held flat by
+> a flintlock pistol, a pair of brass dividers, a pewter cup and a candle.
+> Warm lamplight, deep shadows.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, flags, ensigns, banners, pennants, red and yellow striped flag,
+tricolour flag, union jack, ship's steering wheel, glass oil lamp,
+readable writing on the chart, modern furniture.
+
 **prize-plunder** · orig. 0x0F `plunder` · plundering a captured ship,
 and the loot of a captured town (`0xDC14`, `0x22673`, `0xAE64`,
 `0x1F64C`) · *"Captain, we've captured a %s ton %s with %s guns… Keep
@@ -983,6 +1171,31 @@ valuables."* (CSTR 164, 193)
 > the hold through an open hatch. One holds up a jewelled cross and another
 > rolls a cask. The captain counts with a quartermaster, and the beaten enemy
 > crew sits under guard.
+
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024), one picture for every era and nation: no flag is readable, so it
+serves every enemy. The art is `assets/vignettes/prize-plunder.png`
+(provenance in `assets/vignettes/PROVENANCE.md`); no fixes were needed.
+Final prompt:
+
+> Wide landscape panel, around 1640, bright afternoon. On the main deck of a
+> captured merchant ship, her flag already struck and no colours flying, the
+> captain's buccaneers in linen shirts, knitted caps and head-scarves haul
+> treasure up through an open square hatch from the hold with a rope: an
+> iron-bound chest, leather sacks of coin and bolts of bright silk. One
+> grinning man holds up a jewelled gold cross; another rolls a wine cask
+> across the planks. By the mast, the captain, a lean man about thirty,
+> sun-weathered face, dark hair tied back, short beard, faded dark-blue coat
+> with brass buttons, red sash, cutlass at the hip, tall boots, counts coins
+> into a ledger with a grizzled quartermaster. At the side the beaten enemy
+> crew sits on the deck under guard of two buccaneers with muskets. Rigging,
+> furled sails and blue sea around.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon
+pirate, flags, ensigns, banners, pennants, red and yellow striped flag,
+tricolour flag, union jack, ship's steering wheel, glass bottles, modern
+weapons.
 
 **treasure-fleet** · orig. 0x29 `fleet` · you capture the treasure fleet
 (`0x22988`, `treasure_fleet_silver_train.md`) · *"You have captured the

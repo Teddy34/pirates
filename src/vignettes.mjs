@@ -180,8 +180,24 @@ const SCENE_ART_URLS = {
   'lost-city-aztec': new URL('../assets/vignettes/lost-city-aztec.png', import.meta.url).href,
   'lost-city-olmec': new URL('../assets/vignettes/lost-city-olmec.png', import.meta.url).href,
   'lost-city-maya': new URL('../assets/vignettes/lost-city-maya.png', import.meta.url).href,
+  'shore-arrival': new URL('../assets/vignettes/shore-arrival.png', import.meta.url).href,
+  'town-square': new URL('../assets/vignettes/town-square.png', import.meta.url).href,
+  'boarding': new URL('../assets/vignettes/boarding.png', import.meta.url).href,
+  'hostage-talks': new URL('../assets/vignettes/hostage-talks.png', import.meta.url).href,
+  'prize-plunder': new URL('../assets/vignettes/prize-plunder.png', import.meta.url).href,
+  'enemy-destroyed': new URL('../assets/vignettes/enemy-destroyed.png', import.meta.url).href,
+  'sinking': new URL('../assets/vignettes/sinking.png', import.meta.url).href,
+  'outrun': new URL('../assets/vignettes/outrun.png', import.meta.url).href,
+  'nightfall': new URL('../assets/vignettes/nightfall.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
+  'boarding': 'Through thick gunsmoke two ships grind hull to hull, grapnels taut, as the captain in his blue coat leaps from the rail with his cutlass raised and his men swing across, while the enemy captain in a plumed hat draws his sword among soldiers in steel helmets, pixelated from a comic-style illustration.',
+  'hostage-talks': 'In the lantern-lit stern cabin a bound enemy captain in a torn red coat and ruined lace collar leans over the table to whisper a secret, while the captain in his blue coat listens with his arms folded, a pistol and dividers on the chart between them, pixelated from a comic-style illustration.',
+  'prize-plunder': 'On the deck of a captured ship grinning buccaneers hoist a chest from the hold, roll a cask and hold up a jewelled gold cross beside sacks of coin and bolts of silk, as the captain in his blue coat counts coins with the quartermaster and the beaten crew sits under guard, pixelated from a comic-style illustration.',
+  'enemy-destroyed': 'At dusk, from behind the rail of their own ship, sailors shield their eyes as an enemy ship blows apart in a huge orange fireball, her masts and burning planks flying across a glowing sea, pixelated from a comic-style illustration.',
+  'sinking': 'Under a stormy sky a shattered ship goes down by the stern, men leaping from her rail and clinging to spars, while the captain in his blue coat looks back from a crowded boat pulling away, pixelated from a comic-style illustration.',
+  'outrun': 'A small ship under full sail heels through the whitecaps, her crew at the rail, while far behind a heavy warship fires a last shot whose splash falls short, pixelated from a comic-style illustration.',
+  'nightfall': 'Under a crescent moon and the first stars, two distant ships drift apart on a dark sea, each with one lit stern lantern, the last red of sunset along the horizon, pixelated from a comic-style illustration.',
   'dig-found': 'In a jungle clearing by a strange tall rock, three grinning sailors in a fresh pit of red earth lean over an iron-bound oak chest heaped with gold and silver coins, while the captain in his blue coat stands over them with the old map, pixelated from a comic-style illustration.',
   'dig-nothing': 'At sunset on a beach scarred with empty holes, one exhausted sailor slumps by a pit, another leans on his spade and a third flings down his hat, while the captain in his blue coat glares at a torn map, pixelated from a comic-style illustration.',
   'reunion-female': 'At the open gate of a plantation stockade a thin young woman in a patched bodice and linen coif, in tears of joy, embraces the captain in his blue coat, hat in his hand, as his sailors look on moved and broken chains lie on the ground, pixelated from a comic-style illustration.',
@@ -243,6 +259,8 @@ export function harbourRow({ flag, era } = {}) {
 // The scenes drawn from a fort-flag sheet, and their description given the flag.
 const FORT_FLAG_SCENES = {
   'harbour-arrival': (flag) => `Sailing into a colonial harbour town past a stone fort flying ${flag}, the captain at the rail, pixelated from a comic-style illustration.`,
+  'shore-arrival': (flag) => `At the jungle’s edge above an inland valley the captain in his blue coat raises a hand to halt his armed buccaneers, looking down on a palisaded town with a church tower and a stone watchtower flying ${flag}, pixelated from a comic-style illustration.`,
+  'town-square': (flag) => `A sunlit inland colonial plaza: a whitewashed church with a bell tower, the governor’s arcaded house flying ${flag}, market stalls of oranges, plantains and cloth, a stone well, an ox cart, chickens and militiamen in the shade, pixelated from a comic-style illustration.`,
   'port-quay': (flag) => `On a busy stone quay stevedores roll barrels and hoist bales beside a warehouse, with two ships at anchor in the bay below a distant headland fort flying ${flag}, pixelated from a comic-style illustration.`,
 };
 
@@ -685,6 +703,10 @@ function drawGovernor(picture, options = {}) {
 }
 
 function drawPrizePlunder(p, { flag = 'Spain' } = {}) {
+  if (sceneArt['prize-plunder']) {
+    p.image(sceneArt['prize-plunder'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#8fb7c4', '#9fc3cc', '#b4d0d0', '#cfe0d4'], 70);
   for (const [cx, cy, w] of [[40, 16, 30], [150, 24, 44], [196, 12, 22]]) { p.rect(cx, cy, w, 4, '#eef3ee'); p.rect(cx + 4, cy - 3, w - 10, 3, '#eef3ee'); }
   sea(p, 70, '#2f6b6b', '#6fa3a0');
@@ -702,6 +724,10 @@ function drawPrizePlunder(p, { flag = 'Spain' } = {}) {
 }
 
 function drawEnemyDestroyed(p, { flag = 'Spain' } = {}) {
+  if (sceneArt['enemy-destroyed']) {
+    p.image(sceneArt['enemy-destroyed'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#3a3150', '#5a3a50', '#8a4a4a', '#c46a3a', '#e39a4f'], 78);
   sea(p, 78, '#1f3a45', '#3f5f66');
   // Fireball over the enemy hull, with flying spars.
@@ -940,9 +966,11 @@ function drawHarbourArrival(p, { flag, era } = {}) {
   captain(p, 54, 128, { skin: WOOD_DARK });
 }
 
-// A landing party at the jungle's edge looks down a dirt road on a
+// The art (assets/vignettes/shore-arrival.png, one row per town flag) once
+// loaded; until then a landing party at the jungle's edge looks down a dirt road on a
 // palisaded town with a church tower and the town's flag.
-function drawShoreArrival(p, { flag = 'Spain' } = {}) {
+function drawShoreArrival(p, { flag = 'Spain', era } = {}) {
+  if (drawFortFlagArt(p, 'shore-arrival', { flag, era })) return;
   sky(p, ['#b4cdc4', '#c4d6c4', '#d4dcc4'], 44);
   // Far hills and the town in the valley below.
   for (let row = 0; row < 20; row += 1) p.rect(0, 30 + row, 224, 1, row < 6 ? '#7aa07a' : '#6a9a5a');
@@ -1016,9 +1044,11 @@ function drawPortQuay(p, { flag = 'Spain', era } = {}) {
   captain(p, 150, 122);
 }
 
-// A landlocked town's plaza at noon: the church, the governor's arcaded
+// The art (assets/vignettes/town-square.png, one row per town flag) once
+// loaded; until then a landlocked town's plaza at noon: the church, the governor's arcaded
 // house under the town's flag, market stalls, a well, soldiers and an ox cart.
-function drawTownSquare(p, { flag = 'Spain' } = {}) {
+function drawTownSquare(p, { flag = 'Spain', era } = {}) {
+  if (drawFortFlagArt(p, 'town-square', { flag, era })) return;
   sky(p, ['#8fc0d0', '#a4cdd6', '#bcd9d6'], 44);
   // Green hills beyond the rooftops: no sea anywhere in this view.
   for (let x = 0; x < 224; x += 2) p.rect(x, 26 + Math.round(Math.sin(x / 26) * 4), 2, 24, '#6a9a5a');
@@ -2044,9 +2074,13 @@ function drawSailColours(p, options = {}) {
   ship(p, 120, 104, { facing: -1, flag: options.flag ?? 'pirate', scale: 1.8 });
 }
 
-// Two hulls grind together in the smoke: grapnels taut, men swinging across,
+// The art (assets/vignettes/boarding.png) once loaded; until then two hulls grind together in the smoke: grapnels taut, men swinging across,
 // and the enemy captain drawing on his own deck.
 function drawBoarding(p, { flag = 'Spain' } = {}) {
+  if (sceneArt['boarding']) {
+    p.image(sceneArt['boarding'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#6a6470', '#8a7a78', '#b89a78', '#d8b880'], 76);
   sea(p, 76, '#2a5a64', '#6a9a9a');
   ship(p, 68, 112, { flag: 'pirate', scale: 1.4 });
@@ -2064,9 +2098,13 @@ function drawBoarding(p, { flag = 'Spain' } = {}) {
   blade(p, 152, 86, 15, -1);
 }
 
-// The stern cabin: a bound enemy captain leans over the table and offers a
+// The art (assets/vignettes/hostage-talks.png) once loaded; until then the stern cabin: a bound enemy captain leans over the table and offers a
 // secret under the lantern.
 function drawHostageTalks(picture) {
+  if (sceneArt['hostage-talks']) {
+    picture.image(sceneArt['hostage-talks'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   picture.rect(0, 0, 224, 128, '#3f2a1a');
   for (let x = 12; x < 224; x += 26) picture.rect(x, 0, 1, 128, WOOD_DARK);
   picture.rect(0, 0, 224, 8, WOOD_DARK);
@@ -2463,9 +2501,13 @@ function drawFortWalls(p, { flag = 'Spain' } = {}) {
   blade(p, 138, 110, 20, -1);
 }
 
-// Your ship settles by the stern in a grey sea; men leap clear, cling to
+// The art (assets/vignettes/sinking.png) once loaded; until then your ship settles by the stern in a grey sea; men leap clear, cling to
 // spars, and a boat pulls away.
 function drawSinking(p) {
+  if (sceneArt['sinking']) {
+    p.image(sceneArt['sinking'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#4a5460', '#5a6470', '#6a747c', '#7a8488'], 58);
   for (const [x, y, w] of [[0, 14, 70], [90, 8, 80], [170, 22, 60]]) { p.rect(x, y, w, 6, '#3f4852'); p.rect(x + 8, y - 4, w - 18, 4, '#3f4852'); }
   sea(p, 58, '#2a4a54', '#5a7a80');
@@ -2495,9 +2537,13 @@ function drawSinking(p) {
   for (const x of [182, 194, 204]) p.outlined([[x, 112, 5, 8, '#4a5a3a'], [x, 107, 5, 5, SKIN]]);
 }
 
-// A small ship under every sail leaves a heavy warship behind; its last shot
+// The art (assets/vignettes/outrun.png) once loaded; until then a small ship under every sail leaves a heavy warship behind; its last shot
 // falls short. `escaper` is the flag of the ship getting away.
 function drawOutrun(p, { escaper = 'pirate', pursuer = 'Spain' } = {}) {
+  if (sceneArt['outrun']) {
+    p.image(sceneArt['outrun'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#5aa0d0', '#7ab8dc', '#a8d0e0', '#d0e4e0'], 60);
   for (const [x, y, w] of [[20, 16, 40], [110, 10, 54], [180, 26, 36]]) { p.rect(x, y, w, 4, '#f4f4ec'); p.rect(x + 6, y - 3, w - 14, 3, '#f4f4ec'); }
   sea(p, 60, '#1f6a8a', '#6ab0c0');
@@ -2513,9 +2559,13 @@ function drawOutrun(p, { escaper = 'pirate', pursuer = 'Spain' } = {}) {
   for (let x = 120; x < 220; x += 9) p.rect(x, 118, 5, 1, '#e8f0ee');
 }
 
-// Night falls on the chase: two distant stern lanterns slip apart under a
+// The art (assets/vignettes/nightfall.png) once loaded; until then night falls on the chase: two distant stern lanterns slip apart under a
 // sliver of moon, the last red on the horizon.
 function drawNightfall(p) {
+  if (sceneArt['nightfall']) {
+    p.image(sceneArt['nightfall'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#0c1430', '#121c3e', '#1a284c', '#3a2a48', '#8a3a3a'], 70);
   for (const [x, y] of [[18, 10], [44, 30], [70, 8], [98, 22], [130, 12], [150, 34], [186, 18], [208, 40], [116, 44]]) p.rect(x, y, 1, 1, '#e8ecd8');
   p.disc(180, 22, 7, '#e8ecd8');
