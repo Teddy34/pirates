@@ -207,27 +207,83 @@ prompt below is kept for a future landscape version.
 governor's house (`0x12935`, `marriage.md`) · *"The governor introduces you
 to his young daughter. She is presently being courted by %s, but she seems
 interested in you! Make conversation? / Propose marriage?"* (CSTR 141–146)
-> A garden courtyard of a governor's mansion with bougainvillea and a
-> fountain: a young noblewoman in a pale silk gown with a fan and a
-> high-necked lace collar gives a curious sideways glance to the captain,
-> who bows. Behind her, a stiff, richly dressed rival suitor watches with
-> jealousy. Soft evening light.
+The art is `assets/vignettes/governor-daughter.png` (provenance in
+`assets/vignettes/PROVENANCE.md`), one picture for every era and nation; no
+fixes were needed. Final prompt (after the §2 style block):
+
+> Scene, around 1640: the garden courtyard of a colonial governor's mansion
+> at golden evening light, whitewashed arcades with terracotta roof tiles,
+> bougainvillea, palms in pots and a small stone fountain. On the left, a
+> young noblewoman of about twenty in a pale rose silk gown with a stiff
+> pointed bodice, full sleeves gathered with ribbons, a broad flat lace
+> collar lying over her shoulders, a pearl necklace and dark hair in
+> ringlets at the sides of her face, holds a closed folding fan and gives a
+> curious, amused sideways glance to the right. On the right, the captain
+> [recurring captain, §2] bows to her with his broad-brimmed felt hat in
+> his hand. Behind them in the middle distance, a stiff, richly dressed
+> rival suitor, a haughty older nobleman in a black silk doublet with
+> slashed sleeves, a broad lace collar, a plumed broad-brimmed hat and a
+> rapier, watches with jealousy, arms crossed. Mid shot, the two faces
+> large and clearly lit.
+
+Scene negatives: periwig, wig, powdered hair, tricorne hat, bicorne,
+crinoline, hoop skirt, Victorian dress, white wedding dress, corset worn
+outside, cleavage, high Renaissance ruff, modern garden furniture, electric
+lights, glass windows with modern frames, ship's wheel.
 
 **governor-niece** · orig. 0x2C `niece` · the same courtship when the
 governor has a niece, not a daughter (`0x12AA4`)
-> An inner balcony of a colonial mansion: a lively young woman in a dark
-> green gown, a governor's niece, leans on the balustrade and laughs at
-> something the captain has said. An older duenna in black frowns from a
-> chair. Warm lamplight.
+The art is `assets/vignettes/governor-niece.png`. One fix: a ship off
+the fort flew a red flag with a yellow cross (Spain's colours of 1785), so
+sky from just above it paints it out. Final prompt (after the §2 style
+block):
+
+> Scene, around 1640: an inner balcony of a colonial mansion at night, a
+> carved dark wooden balustrade over a lamplit courtyard, a hanging brass
+> oil lamp and a lit candle in a pewter holder giving warm light. A lively
+> young woman of about twenty, the governor's niece, in a dark green silk
+> gown with a pointed bodice, full sleeves, a broad flat white lace collar
+> over her shoulders and chestnut hair in a bun with loose curls at the
+> sides, leans back on the balustrade and laughs openly at something said
+> by the captain [recurring captain, §2], who stands beside her with a
+> modest grin, hat under his arm. In the background on the right, an older
+> duenna in plain black with a white linen headcloth sits stiffly on a
+> high-backed wooden chair with a rosary in her hands and frowns at them.
+> Mid shot, the two young faces large and clearly lit.
+
+Scene negatives: periwig, wig, powdered hair, tricorne hat, bicorne,
+crinoline, hoop skirt, Victorian dress, cleavage, nun's habit, modern lamp,
+electric light, glass light bulb, ship's wheel.
 
 **wedding** · orig. 0x01 `wedding` · marriage to the governor's daughter
 or niece, or to the merchant's daughter (`0x12C6D`, `0x225F9`) · *"Amid
 merriment and celebration you and your lovely bride are married."* (CSTR
 145, 299)
-> The steps of a white colonial church: the captain, in a new coat, and his
-> bride, in an ivory gown and mantilla, come out under a rain of petals.
-> Guests in their best clothes cheer, a guitarist plays, sailors from his
-> crew throw hats in the air, and the bell rings. Bright morning.
+The art is `assets/vignettes/wedding.png`, shown for every marriage; no
+fixes were needed. The bride wears her best coloured silk: white wedding
+gowns spread after Queen Victoria's wedding of 1840 ([V&A, "Wedding
+colour"](https://www.vam.ac.uk/articles/wedding-colour)), so the earlier
+ivory gown and mantilla were dropped. The guitar has a modern outline, about
+15 pixels wide at 1×; accepted. Final prompt (after the §2 style block):
+
+> Scene, around 1640, bright morning: the stone steps of a whitewashed
+> colonial church with a plain bell tower and a big arched wooden door, a
+> bell swinging in the tower. The newly married couple come down the steps
+> arm in arm: the captain [recurring captain, §2], looking proud and happy,
+> and his bride, a young woman in her best gown of deep crimson-red silk
+> with a pointed bodice, full sleeves, a broad white lace collar over her
+> shoulders, pearls, and a small wreath of fresh flowers in her loose dark
+> hair. Townsfolk in their best seventeenth-century clothes cheer and
+> scatter flower petals; a musician plays a small baroque guitar; on one
+> side a group of rough sailors from the captain's crew, in loose shirts,
+> short breeches and knitted caps, throw their caps in the air. Palms and a
+> blue sky behind. The couple is the clear focal point, in the centre,
+> faces large and clearly lit.
+
+Scene negatives: white wedding dress, ivory gown, long white veil, bridal
+train, tuxedo, top hat, rice, confetti, champagne, wedding cake, cars,
+periwig, tricorne hat, bicorne, crinoline, hoop skirt, Victorian dress,
+stained glass with figures, ship's wheel.
 
 **villain-news** · orig. 0x02 `evilone` · after a promotion the governor
 names the villain who knows where your lost relative is; also shown when
@@ -284,9 +340,31 @@ one picture for every era and nation. The art is
 10 (`merchant_daughter.asm`) · *"An attractive young woman enters the
 shop. The merchant introduces you to his daughter. She bats her eyes at you
 appealingly."* (CSTR 296–300)
-> The same warehouse office: a young woman in a simple blue bodice and white
-> apron, with a basket of oranges, comes in through the door and smiles at
-> the captain, while her father beams from behind the ledger desk.
+The art is `assets/vignettes/merchant-daughter.png`; no fixes were
+needed. Her father's refusal keeps the merchant's portrait, and the wedding
+after paying his debt uses the wedding picture. Final prompt (after the §2
+style block):
+
+> Scene, around 1640: the warehouse office of a colonial merchant, stacked
+> sugar barrels, cloth-wrapped tobacco bales and a large brass balance
+> scale hanging from a beam, a shaft of warm light from a high window on
+> the upper left. On the left, a pretty young woman of about eighteen in a
+> simple blue wool bodice laced at the front, a white linen chemise with
+> the sleeves rolled up, a long brown skirt, a white apron and a white
+> linen coif over her fair hair, comes in through an open wooden door with
+> a basket of oranges on her hip and smiles shyly at the captain, lowering
+> her eyelashes. In the centre right, the captain [recurring captain, §2]
+> turns towards her, hat in hand, surprised and charmed. On the right
+> behind a high wooden desk with an open ledger, a quill and an inkwell,
+> her father, a plump merchant of about fifty with a round ruddy face,
+> greying short hair, a trimmed beard, a stained linen apron over a plain
+> dark-brown doublet and a flat white linen collar, beams at them both.
+> Mid shot, faces large and clearly lit.
+
+Scene negatives: spectacles, glasses, ruff, periwig, wig, cravat, tie,
+tricorne hat, waistcoat with many buttons, paper money, banknotes, modern
+scales, cardboard boxes, labels on barrels, lettering in the ledger,
+cleavage, ship's wheel.
 
 **shipwright** · orig. 0x06 `swright` · repair, sell ships, sell cannon
 (`0x218DA`) · *"The shipwright eyes you suspiciously, then asks your

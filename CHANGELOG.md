@@ -13,6 +13,14 @@ history.
 
 ### Changed
 
+- Courtship and marriage now have their own pictures instead of borrowing
+  the governor's and merchant's portraits: the governor's daughter in a
+  fountain courtyard with her jealous suitor, the governor's niece laughing
+  on a lamplit balcony under a duenna's eye, the merchant's daughter with a
+  basket of oranges in her father's warehouse, and a wedding on the church
+  steps for every marriage. The bride wears coloured silk, as brides did
+  before white gowns caught on in the 1840s. Each keeps a code-drawn
+  fallback until its image loads.
 - The career opening now has real art for every picture: the audience at
   court, the sugar plantation, the Spanish boarding (the galleon flies the
   Cross of Burgundy), the landfall in the West Indies, the prison cell, the
