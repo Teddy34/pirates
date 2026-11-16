@@ -13,6 +13,20 @@ history.
 
 ### Changed
 
+- Sea battle ships are now chunky pixel-art sprites with a design of their
+  own for each ship type, so you can tell what you are fighting by its
+  outline: the pinnace is a small two-master with square sails, the sloop a
+  single gaff-rigged mast with jibs on a long bowsprit, the barque a
+  three-master with a triangular mizzen, the cargo fluyt a round bow and a
+  tall narrow stern, the merchantman has castles fore and aft and a row of
+  gunports, the frigate a long low dark hull with a yellow gun band, the war
+  galleon four masts, towering castles and two rows of guns, and the
+  galleon a broad red-brown hull with a high gilded stern and lantern. The
+  ships are drawn at a fixed coarse resolution in whole screen pixels
+  instead of being redrawn finer on large and high-density screens, which
+  made them look sharp and thin. Sail state, damage and the flag show as
+  before; hit areas and battle rules are unchanged.
+
 - In sword fights you now look like the captain in the scene pictures:
   bareheaded with dark hair tied back and a short beard, in a dark-blue coat
   with brass buttons and a red sash. You used to wear a red coat, which

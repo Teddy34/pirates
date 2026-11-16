@@ -2,7 +2,8 @@ import { NATIONS } from './data.mjs';
 import { BATTLE_SAIL_TRANSITION_FRAMES, SMOKE_LIFE_FRAMES, broadsideState, damageLevel, fortDamageLevel, fortFieldGround } from './battle-mechanics.mjs';
 import { FORT_SPRITE_ANCHOR, FORT_SPRITE_HEIGHT, FORT_SPRITE_WIDTH, paintFortSprite } from './fort-sprites.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite } from './town-sprites.mjs';
-import { headingSector, paintShipSprite, shipArtLength } from './ship-sprites.mjs';
+import { headingSector } from './ship-sprites.mjs';
+import { battleShipPixelScale, paintBattleShipSprite } from './battle-ship-sprites.mjs';
 import { SEA_FRAMES, WIND_DIAL_SIZE, paintSea, paintWindDial } from './sea-sprites.mjs';
 import { paintShotSprite, volleyTier } from './shot-sprites.mjs';
 import { SMOKE_STAGES, paintSmokeSprite } from './smoke-sprites.mjs';
@@ -10,29 +11,29 @@ import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas
 
 const shipSpriteCache = new Map();
 
-// The pixel-art ship (ship-sprites.mjs): one sprite per heading sector, sail
-// state (shaded while changing), flag, wind and damage level. The hull is
-// shipArtLength battle pixels long; on large screens the sprite is painted
-// at `detail` art pixels per battle pixel so an art pixel stays at most
-// about MAX_ART_PIXEL device pixels.
-const MAX_ART_PIXEL = 3;
+// The pixel-art ship (battle-ship-sprites.mjs): one design per ship type,
+// one sprite per heading sector, sail state (darker while changing), flag,
+// wind and damage level. The art has a fixed, coarse resolution and is drawn
+// at a whole number of device pixels per art pixel, so it stays chunky on
+// every screen.
 function drawShip(context, ship, wind, scale) {
-  const devicePixels = scale * devicePixelScale();
-  const detail = Math.max(1, Math.ceil(devicePixels / MAX_ART_PIXEL));
-  const length = shipArtLength(ship.type, 'battle') * detail;
   const key = NATIONS[ship.flag] ? ship.flag : 'pirate';
   const sector = headingSector(ship.heading);
   const windSector = headingSector(wind);
   const level = Math.min(4, ship.damage >> 4);
   const changing = ship.sailTransition > 0;
-  const sprite = cachedSprite(shipSpriteCache, `${ship.type}|${sector}|${ship.sails}|${changing}|${key}|${windSector}|${level}|${detail}`, () => paintShipSprite({
+  const sprite = cachedSprite(shipSpriteCache, `${ship.type}|${sector}|${ship.sails}|${changing}|${key}|${windSector}|${level}`, () => paintBattleShipSprite({
     type: ship.type, heading: sector * 16, sails: ship.sails, changing, nation: { key, ...NATIONS[key] },
-    wind: windSector * 16, damage: level * 16, length,
+    wind: windSector * 16, damage: level * 16,
   }));
   if (!sprite) return;
-  const pixelScale = Math.max(1, Math.round(devicePixels / detail));
-  drawPixelSprite(context, sprite, ship.x, ship.y, pixelScale);
+  drawPixelSprite(context, sprite, ship.x, ship.y, battleShipPixelScale(scale, devicePixelScale()));
 }
+
+// Shots and smoke are painted at `detail` art pixels per battle pixel on
+// large screens, so their art pixel stays at most about MAX_ART_PIXEL
+// device pixels.
+const MAX_ART_PIXEL = 3;
 
 const shotSpriteCache = new Map();
 
