@@ -63,7 +63,7 @@ import {
 } from './romance.mjs';
 import { ERA_DIFFICULTIES, careerBrief, eraBrief } from './eras.mjs';
 import { RETRO_LOGO_SIZE, drawRetroLogo } from './title-logo.mjs';
-import { GOVERNOR_ERAS, GOVERNOR_NATIONS, dialogPictureLayout, drawVignette, loadVignetteArt, vignetteDescription, vignetteNeedsArt, vignetteShape, vignetteSize } from './vignettes.mjs';
+import { COLOUR_FLAGS, GOVERNOR_ERAS, GOVERNOR_NATIONS, dialogPictureLayout, drawVignette, loadVignetteArt, vignetteDescription, vignetteNeedsArt, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
 import { paintPartySprite } from './party-sprites.mjs';
@@ -1643,6 +1643,7 @@ function identifyEncounter(enemy) {
     ? `<p>“Arrgh! It’s the ${captainRenown(enemy.captainId)} ${enemy.flag === 'pirate' ? 'pirate' : 'pirate-hunter'}, ${enemy.captainName}! He’s chasing us, captain!”</p>`
     : '';
   showDialog({
+    vignette: { id: 'sail-colours', ship: enemy.ship, era: state.era, flag: enemy.flag, kind: enemy.kind, captainId: enemy.captainId },
     kicker: `${enemy.flag === 'pirate' ? 'Pirate' : enemy.flag} colors`, title: enemy.captainName ? `${enemy.captainName}’s ${enemy.ship}` : `The ${enemy.ship}`,
     body: `${hunterLine}<p>She carries about ${enemy.crew * 4} hands and ${enemy.guns} guns. ${enemy.hostile ? 'She alters course and gives chase.' : 'Her crew watches your approach.'}</p>`,
     actions: [
@@ -3196,6 +3197,22 @@ function showGovernorPortraitGallery(index) {
     body: '<p>The governor’s portrait for this era and nation.</p>',
     actions: [
       { label: 'Next', run: () => showGovernorPortraitGallery((index + 1) % count) },
+      { label: 'Close', secondary: true, run: resumeSailing },
+    ],
+  });
+}
+
+// The preview gallery of ships' colours (?preview=colours), each flag on
+// one of the four sterns in turn.
+const COLOUR_STERNS = ['stern-early', 'stern-mid', 'stern-late', 'stern-small'];
+function showColoursGallery(index) {
+  const colours = COLOUR_FLAGS[index];
+  showDialog({
+    vignette: { id: 'sail-colours', colours, stern: COLOUR_STERNS[index % COLOUR_STERNS.length] },
+    kicker: `Ships’ colours · ${index + 1} of ${COLOUR_FLAGS.length}`, title: colours,
+    body: '<p>A flag the lookout can make out at close range.</p>',
+    actions: [
+      { label: 'Next', run: () => showColoursGallery((index + 1) % COLOUR_FLAGS.length) },
       { label: 'Close', secondary: true, run: resumeSailing },
     ],
   });
@@ -5433,6 +5450,9 @@ const townPreview = (show, { town = 'Guadeloupe', prepare } = {}) => () => start
 const SCENE_PREVIEWS = {
   'sail-ho': () => showSighting(state.towns[0], 5),
   'sail-nearer': () => revealEncounter(state.towns[0], 5),
+  'sail-colours': () => identifyEncounter({ ...PREVIEW_ENEMY }),
+  // A named pirate (a mission pirate's id) flying his own colours.
+  'sail-colours-pirate': () => identifyEncounter({ ...PREVIEW_ENEMY, ship: 'Sloop', flag: 'pirate', kind: 7, hostile: true, captainId: 0x8008, captainName: captainName(0x8008) }),
   boarding: () => {
     beginTacticalBattle({ ...PREVIEW_ENEMY }, 0);
     state.paused = true;
@@ -5623,6 +5643,7 @@ const PREVIEWS = {
   }),
   // Every governor portrait in turn, era by era; Next steps through them.
   'governor-portraits': () => startPreview(() => showGovernorPortraitGallery(0)),
+  colours: () => startPreview(() => showColoursGallery(0)),
   'governor-promotion': () => startPreview(() => {
     enterPreviewTown(state.towns.findIndex(({ nation }) => nation === 'France'));
     state.player.favour.France = 6;

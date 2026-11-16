@@ -812,7 +812,7 @@ types its encounter tables hold; the barque (every era) and the sloop
 original's "fast galleon" (`encounters.md` §2 step 4), a long, low,
 race-built galleon; from 1660 as a true frigate. The ship flies no flags
 at all, so the colours stay for the next step, "She's flying %s colors"
-(CSTR 122), which has no picture yet. The pictures share one frame and one
+(CSTR 122), with its own picture, sail-colours. The pictures share one frame and one
 prompt; only the ship changes.
 
 > Seen from the deck of our own ship in open Caribbean water at midday. In
@@ -860,6 +860,76 @@ yacht, Bermuda rig.
 | `late-frigate` | A fast frigate of the 1670s: a long, low, sleek wooden hull with a single continuous gun deck and a long row of twelve open gunports, a small raised quarterdeck aft, no raised forecastle castle, a sharp fine bow with a small beakhead and a carved figurehead, a square stern with a modest carved transom; three tall masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. Sleek, fast and predatory. | high castles, two rows of gunports, four masts |
 | `late-galleon` | A great Spanish treasure galleon of the 1660s to 1680s, very large, broad and heavy, riding deep in the water: a tall, high square stern richly carved and gilded with open galleries and quarter galleries, a modest forecastle, a long beakhead; two rows of gunports; three masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. Massive and stately. | sleek low hull, four masts |
 | `late-wargalleon` | A large two-decked warship of the 1660s: a long, tall wooden hull with two full tiers of gunports, the port lids painted red and open, cannon muzzles out; a low forecastle, a stepped stern with a carved and gilded transom and quarter galleries, a long beakhead with a carved figurehead; three masts with square courses, topsails and topgallant sails on the fore and main masts, a triangular lateen sail with a square topsail above it on the mizzen, a square spritsail under the bowsprit and a small square sprit-topsail on a little mast at the end of the bowsprit. Powerful and warlike. | four masts, high towering castles |
+
+**sail-colours** · the original's flag pictures over a spyglass view
+(`baseflag`, `f-span`, `f-engl`, `f-french`, `f-dutch`, `fjolly01`–`20`;
+not used) · the lookout reads her colours: *"She's flying %s colors …
+Close for battle? / Hail for news? / Sail away?"* (CSTR 122), or the named
+pirate or pirate hunter who gives chase (CSTR 121).
+The art is `assets/vignettes/colours/` (provenance in
+`assets/vignettes/PROVENANCE.md`): a close view of her stern, one per
+period band (`stern-early` 1560–1600, `stern-mid` 1620–1640,
+`stern-late` 1660–1680) and `stern-small` for the pinnace, barque and
+sloop of any era, each generated with one plain white flag. The game paints
+the flag onto it (`composeColours` in `src/vignettes.mjs`) from a sheet of
+flat flags (`flags.png`) and a map of the cloth that
+`tools/build_colours.py` measures on the source, so one picture serves
+every nation, era and pirate. The spyglass circle is not used: a telescope
+is anachronistic before 1608.
+
+Which flag (`colourFlag`): the nation, the era and, where the sources
+differ, the ship's role (kind 6 and up: escorts, pirate hunters and
+warships, "navy"):
+
+| nation | flag | sources |
+|---|---|---|
+| Spain | the Cross of Burgundy (red ragged saltire on white); in 1680, navy ships fly white with the crowned royal arms | FOTW es_brgdy (ensign to the 1670s, then jack to 1785), es1701 (Charles II's royal arms ensign, 1670s) |
+| England | 1560–1600: St George's cross; from 1620: the red ensign with St George's canton | Wikipedia "Red Ensign" (canton by 1620, merchants confirmed 1674) |
+| France | merchants, and every ship before 1640: a white cross on blue; from 1640, navy: plain white | Wikipedia "French ensigns" (1661 ordinance); white cross on blue on Champlain's 1612 map; FOTW cites a white ensign "1638–1790" |
+| Holland | 1600–1640: the Prince's flag (orange, white, blue); from 1660: red, white, blue. None in 1560: the encounter tables hold no Dutch ship before the Revolt | Wikipedia "Flag of the Netherlands" (navy 1588–1630 orange, both 1630–1662, red from 1663) |
+| pirate | an unnamed pirate: a plain red flag (the "bloody flag", no quarter); a named pirate: his own colours | buccaneers' "bloody flag" reported in 1681 (secondary sources); skull and crossbones only from about 1700 |
+
+Named pirates: the original ties its twenty pirate flags to captains'
+names (the copy-protection question "Can you tell by his flag what his
+name is?", CSTR 310; a flag picture per nation and name row, table
+`0x32F90` read at `0xD78B`). Ours are new designs, one per surname
+(`pirate-<nation × 8 + surname>`, 32 in all, of which the hunters' rows
+0–4 and the mission pirates' Spanish and English rows 0–7 occur): red
+fields with a bold white, gold or black emblem (cutlass, crossed cutlasses,
+hourglass, arm and sword, heart, crown, star, crescent, anchor, lightning,
+axe, coins, key, sun, grenade, trident, arrow, fish, dice, flames, chain,
+dagger, bell, ship), some with a border or a black band. No skulls or
+bones: those flags date from about 1700, after the game's eras. A pirate
+hunter (a navy captain who chases you) flies his nation's navy flag. The
+family quest's villains are never met at sea, so they have no flag. Check
+every flag with `?preview=colours`, an encounter with `sail-colours` and a
+named pirate with `sail-colours-pirate`.
+
+> Seen from our own ship, close behind and slightly to one side of another
+> ship sailing away from us across a deep blue swell flecked with
+> whitecaps, at midday. Her stern fills the lower right two thirds of the
+> picture: *<the stern, see the table>* From a tall wooden flagstaff
+> rising straight up from the top of her stern, a single very large flag
+> streams out to the left in a steady wind, held almost flat with only two
+> or three soft, gentle folds, seen nearly face-on; the flag is one plain,
+> pure white rectangle of cloth with no marks, no emblem, no cross, no
+> stripes and no border, and it fills most of the upper left part of the
+> picture, clear and sharp against an empty, cloudless clear blue sky.
+> Beyond the stern, the lower parts of her masts, rigging and full pale
+> cream sails. No people visible, no other flags, no pennants, no other
+> ships, no land.
+
+| key | the stern |
+|---|---|
+| `stern-early` | the high, narrow, square stern castle of a large late 16th-century ship: flat planked transom of dark tarred wood with ochre bands, a small open gallery with turned balusters, a few small square stern windows, two stern gunports, the long tiller port, a large carved wooden stern lantern on top. Not gilded. |
+| `stern-mid` | the tall, flat-transomed stern of a large ship of the 1630s: dark wood with a carved and modestly gilded upper transom, two rows of leaded stern windows, an open stern gallery with a balustrade, small enclosed quarter galleries at the corners, two stern gunports below, three carved stern lanterns on top. |
+| `stern-late` | the broad, high, richly carved stern of a large ship of the 1670s: two tiers of glazed stern windows with an open gallery, enclosed quarter galleries at the corners, a carved and gilded upper counter with scrollwork and carved figures (no coat of arms), dark blue-green painted panels, two stern gunports, three large gilded stern lanterns on top. |
+| `stern-small` | the small, low, plain square transom stern of a small single-decked coasting vessel: weathered planking, a narrow rail, the rudder head and tiller, a small carved name board with no letters, one small stern window. No lanterns, no gilding. |
+
+Negatives: the §2 list, plus coat of arms, emblem on the flag, cross on
+the flag, stripes on the flag, coloured flag, second flag, pennant,
+streamer, skull and crossbones, black flag, clouds behind the flag,
+people, ship's steering wheel, telescope, land, steamship.
 
 **boarding** · orig. 0x11 `boarding` · the two ships meet before the
 boarding fight (`boarding.asm`) · *"The two ships crash together. Through
@@ -1454,7 +1524,8 @@ A scene can serve more than one dialog:
 | id | dialogs |
 |---|---|
 | sail-ho | the first sighting only, not the closer looks that follow |
-| sail-nearer | the closer look, "She looks like a …"; the flag step ("She's flying %s colors") has no picture yet |
+| sail-nearer | the closer look, "She looks like a …" |
+| sail-colours | her colours, "She's flying %s colors", and the named pirate or hunter who gives chase |
 | boarding | the provisional boarding choice, with the enemy's flag |
 | hostage-talks | the prisoner's offer and the report he gives |
 | crew-recruits | tavern volunteers and sailors from a captured ship |

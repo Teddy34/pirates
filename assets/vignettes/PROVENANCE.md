@@ -234,6 +234,53 @@ type and period band: `barque`, `sloop`, and `early-`, `mid-` and `late-`
 - **Rebuild:** `python3 tools/build_vignette.py --scene ships/<key> --source <image>`
   (Pillow).
 
+## colours/*
+
+The ship's colours, 224 × 128 (7 : 4), shown when the lookout reads her
+flag: a close view of her stern with a large flag streaming from its
+flagstaff. Four sterns (`stern-early`, `stern-mid`, `stern-late`,
+`stern-small`), each with its cloth map (`<stern>-map.png`), and the sheet
+of flat flags painted onto them in the game (`flags.png`, order in
+`flags.json`).
+
+- **Source of the sterns:** four 1659 × 948 comic-style illustrations
+  generated on 2026-11-16 with the built-in image generation tool of the
+  OpenAI Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the
+  sail-colours prompt and stern table in `docs/scene-vignettes.md` with the
+  shared style block and negatives, each with one plain white flag. The
+  user holds the rights to them. The source files are not kept in the
+  repository. No material from the original game was used.
+- **Flags:** drawn by Claude Code in `tools/build_colours.py` from the
+  period descriptions below; the 32 pirate captains' colours are new
+  designs, not the original's pirate flags (which were tied to captains'
+  names through the copy-protection question). Sources for the choice of
+  flag by nation, era and role: Spain, FOTW "Cross of Burgundy"
+  (fotw.info/flags/es_brgdy.html, ensign to the 1670s, then jack) and
+  "Historical flags 1701–1785" (es1701.html, Ivan Sache, 2015-07-28,
+  Charles II's royal arms ensign; its exact first year is not given);
+  England, Wikipedia "Red Ensign" (the canton by 1620, merchants confirmed
+  1674); France, Wikipedia "French ensigns" (the 1661 ordinance: white for
+  the king's ships, a white cross on blue for merchants), Champlain's 1612
+  map and FOTW's "white ensign 1638–1790" through a search summary (the
+  white cross on blue before 1640 for every French ship is a choice: no
+  source found for the navy's flag before 1638); Holland, Wikipedia "Flag
+  of the Netherlands" (rev. 1383762538: orange 1588–1630, both 1630–1662,
+  red from 1663); pirates, the "bloody flag" reported for buccaneers in
+  1681 (secondary sources) and skull-and-crossbones flags only from about
+  1700. Spain's royal arms are simplified to a crowned shield quartered
+  with castles and lions.
+- **Review:** the sterns show no flag but the white one, no lettering, no
+  people; the late stern's carved figures are generic, with no coat of
+  arms. No fixes were needed.
+- **Process:** `python3 tools/build_colours.py flags` draws the flag sheet.
+  `python3 tools/build_colours.py stern --key <stern> --source <image>`
+  pixelates the stern like `tools/build_vignette.py` (box reduction,
+  contrast ×1.15, colour ×1.2, 256 colours, no dithering) and measures the
+  white flag (its bright, unsaturated pixels inside the stern's box, and
+  their four extreme corners) into the cloth map: the flag's (u, v)
+  through the perspective of those corners, and the folds' light.
+
 ## sail-ho.png
 
 The sail-sighted picture, 224 × 128 (7 : 4), shown when the lookout reports
