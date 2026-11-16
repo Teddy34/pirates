@@ -23,6 +23,8 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     ['boarding', 'Two ships grind'],
     ['hostage-talks', 'bound enemy captain'],
     ['crew-recruits', 'names in the articles'],
+    ['traveller', 'sealed with red wax'],
+    ['map-seller', 'torn scrap of treasure map'],
     ['treasure-fleet-capture', 'beaten royal galleon'],
     ['silver-train-capture', 'broken mule train'],
     ['mutiny', 'armed crew'],

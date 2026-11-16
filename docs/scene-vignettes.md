@@ -290,10 +290,36 @@ names the villain who knows where your lost relative is; also shown when
 you meet him in his town (`0x122E9`, `0x1897A`, `lost_relatives.md`) ·
 *"The evil %s %s knows the whereabouts of your %s! He was last seen in the
 city of %s."* (CSTR 137–138)
-> A menacing nobleman with a cruel smile, a thin moustache and a scarred
-> cheek, in a black and crimson doublet, rings on gloved fingers, a hand on
-> his rapier hilt. He stands half in shadow in a torch-lit stone hallway,
-> and a frightened servant hurries away behind him.
+In the game this is a 96 × 128 portrait (3 : 4, generate at 768 × 1024),
+one picture for every era and nation. The art is
+`assets/vignettes/villain-news.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. The plain
+standing collar is accepted: Philip IV banned the ruff and brought in the
+stiff golilla collar in the early 1620s (1623 per
+[Artnet News, on the Hispanic Society's *Spanish Style* exhibition](https://news.artnet.com/art-world/hispanic-society-spanish-fashion-2711741);
+Wikipedia's *Ruff* article says 1621), and its exact shape does not read
+at 1×. The prompt sets him around 1640 in Spanish dress because the port's
+villains always move among Spanish towns (`VILLAIN_NATION` in
+`src/villains.mjs`).
+
+> Vertical half-length portrait of a menacing Spanish nobleman, around 1640,
+> a colonial grandee and the villain of the story. A man in his forties with
+> a cruel thin smile, cold narrow eyes, a thin waxed upturned moustache and
+> a small pointed beard on the chin, black hair swept back, a pale scar
+> across one cheek. He wears a severe black doublet with a row of small gold
+> buttons and slashed sleeves showing crimson silk, a stiff plain white flat
+> collar standing up under the chin (a narrow rigid white collar, no ruff),
+> a short black cape over one shoulder, and a heavy gold chain across his
+> chest. One black-gloved hand with gold rings rests on the hilt of a rapier
+> with a swept iron hilt. His head sits in the upper third of the picture
+> and his face is large and clearly lit from the side, the other half in
+> shadow. Behind him, simplified and dark: a torch-lit stone hallway with an
+> arched doorway, and a small frightened servant hurrying away in the
+> background.
+
+Scene negatives: ruff, lace cravat, periwig, tricorne hat, bicorne, top hat,
+cape with high Dracula collar, vampire, fantasy villain, armour, cutlass,
+pistol, Napoleonic uniform, Victorian dress.
 
 **pirate-delivered** · orig. 0x23 `hostage` (same slot as
 **hostage-talks**) · you hand a captured pirate to the governor
@@ -522,25 +548,108 @@ and [Pewter Society](https://pewtersociety.org/node/48).
 tavern, or survivors after a sea battle (`0x10F0C`, `0xE1E2`) · *"Look!
 It's that %s sea-dog… A rowdy group of %s men asks to join your crew."*;
 *"Captain, %s sailors wish to join our crew."* (CSTR 151, 166, 309)
-> A rowdy group of mixed sailors (tarred pigtails, bare feet, a tall
-> African freedman with a boarding axe, a grizzled gunner, a boy with a
-> knife) crowd around a table where the captain writes their names in the
-> articles. Coins and a rum jug are on the table.
+In the game this is a 224 × 128 landscape (7 : 4, generated at 1659 × 948),
+one picture for every era and nation. The art is
+`assets/vignettes/crew-recruits.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. The captain's
+D-guard sword hilt, which looks later than 1640, is accepted: it is a few
+pixels at 1×. The first brief's tarred pigtails are dropped (their date
+is not checked here). The sailors wear loose canvas slops and knitted
+caps: knitted Monmouth caps were worn by labourers and sailors in the
+16th–18th centuries ([The Historic Dockyard Chatham,
+collection, Monmouth cap](https://collection.thedockyard.co.uk/objects/8924));
+open-kneed slops and wide petticoat breeches for 17th-century seamen,
+[Reconstructing History, "Breeches for Seamen"](https://reconstructinghistory.com/blogs/blog/breeches-for-seamen)
+(a reenactors' source, which notes the evidence is thin). The articles
+follow the written agreement buccaneer crews drew up before sailing, as
+told by Exquemelin, *De Americaensche Zee-rovers*, Amsterdam 1678
+([Library of Congress, The Buccaneers of America](https://www.loc.gov/exhibits/exploring-the-early-americas/interactives/buccaneers-of-america/);
+[Wikipedia, Pirate code](https://en.wikipedia.org/wiki/Pirate_code)).
+
+> Wide horizontal scene inside a smoky, low-beamed Caribbean port tavern,
+> around 1640. On the right, seated at a heavy scarred wooden table, the
+> captain, a lean man about thirty, sun-weathered face, dark hair tied back,
+> short beard, faded dark-blue coat with brass buttons, red sash, cutlass at
+> the hip, tall boots, writes names with a goose quill in a large open
+> ledger of ship's articles, an inkpot beside it. On the table: a small heap
+> of silver coins and a grey-and-blue salt-glazed stoneware jug. Crowding
+> eagerly towards the table from the left, a rowdy group of five common
+> sailors, each clearly different: a tall African freedman with a boarding
+> axe over his shoulder, bare-chested under an open canvas jacket; a
+> grizzled grey-bearded gunner with a powder horn on a cord; a young ship's
+> boy with a knife in his belt; a red-faced sailor in a knitted red wool cap
+> raising his hand to volunteer; a lean sailor in a broad-brimmed battered
+> felt hat. The sailors wear loose linen shirts, short canvas jackets, very
+> wide knee-length canvas breeches or loose canvas slops, coloured
+> neckerchiefs, knitted wool caps; some are barefoot. Faces large and
+> lively, grinning, jostling. Behind them, simplified and slightly darker:
+> casks on a rack, tallow candles in iron holders giving a warm golden glow,
+> an open doorway showing bright sunlight and a ship's masts in the harbour.
+
+Scene negatives: tarred pigtails, striped sailor shirts, bell-bottom
+trousers, tricorne hats, bicorne, periwig, skull and crossbones, black
+pirate flag, glass bottles, glass beer mugs, beer taps, bar stools, ship's
+steering wheel, parrot, eyepatch on everyone, fantasy pirates.
 
 **traveller-information** · orig. 0x0D `infoman` · a traveller sells
 information (`0x1118E`) · *"A traveller from %s offers to sell you
 information for %s gold pieces."* (CSTR 152)
-> In a quiet corner of the tavern a well-dressed but dusty traveller with a
-> travelling cloak, a wide hat and a satchel slides a folded letter across
-> the table, his palm open for payment. The captain weighs a purse.
+In the game this is a 96 × 128 portrait (3 : 4, generate at 768 × 1024),
+one picture for every era and nation. The art is
+`assets/vignettes/traveller.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. The captain and his purse
+are left out of the portrait so the traveller fills it. The letter's
+diagonal folds, close to a modern envelope, are accepted: it reads as a
+sealed packet at 1×.
+
+> Vertical half-length portrait of a travelling gentleman in a quiet corner
+> of a Caribbean port tavern, around 1640. A man in his forties, lean,
+> clever face with sharp watchful eyes, a neat pointed beard and upturned
+> moustache, shoulder-length dark hair. He wears a broad-brimmed dark felt
+> hat with a plain band, a good but road-dusty doublet of muted green wool
+> with a plain falling white linen collar, a heavy brown travelling cloak
+> thrown back over one shoulder, and a leather satchel on a strap across his
+> chest. His head sits in the upper third of the picture and his face is
+> large and clearly lit. Seated at a wooden table, he slides a folded letter
+> sealed with red wax across the table towards the viewer with one gloved
+> hand, and holds the other hand open, palm up, waiting for payment.
+> Discreet, knowing half-smile. Behind him, simplified and slightly darker:
+> a dim wooden wall, a single tallow candle in an iron holder giving a warm
+> golden glow, a dusty pair of riding boots and a walking staff leaning
+> against the wall.
+
+Scene negatives: tricorne hats, bicorne, periwig, top hat, cravat, Victorian
+dress, envelope, modern paper, glass beer mugs, oil lamps, ship's steering
+wheel.
 
 **map-seller** · orig. 0x0E `mapman` · a scruffy pirate sells a piece of
 a treasure map (`0x112F5`, `treasure_maps.asm`) · *"In a dark corner of
 the tavern, a scruffy pirate offers to sell you part of an old treasure
 map for 500 gold pieces."* (CSTR 153)
-> A dark corner booth lit by one guttering candle: a toothless old pirate
-> with a peg leg and a filthy head-scarf holds up a torn, yellowed scrap of
-> map with an X on it, a grin on his face. The captain's hand is on his purse.
+In the game this is a 96 × 128 portrait (3 : 4, generate at 768 × 1024),
+one picture for every era and nation. The art is
+`assets/vignettes/map-seller.png` (provenance in
+`assets/vignettes/PROVENANCE.md`); no fixes were needed. The captain's hand is left
+out of the portrait so the seller fills it.
+
+> Vertical half-length portrait of an old pirate in a dark corner booth of a
+> Caribbean port tavern, around 1640, lit by one guttering tallow candle on
+> the table. A scrawny, toothless old sea-dog in his sixties, leathery
+> wrinkled face, a wide gap-toothed conspiratorial grin, a stubbly white
+> beard, one eye half-closed in a wink, a filthy faded red cloth knotted
+> over his head, a small gold ring in one ear. He wears a ragged, stained
+> linen shirt and a patched, sleeveless canvas jerkin; a wooden peg leg
+> sticks out from under the table. His head sits in the upper third of the
+> picture and his face is large and clearly lit from below by the candle.
+> With both gnarled hands he holds up towards the viewer a torn, yellowed,
+> ragged-edged scrap of old parchment map with a hand-drawn coastline in
+> brown ink and a bold ink cross on it. Behind him, simplified and very
+> dark: the shadowy wooden wall of the booth, a grey stoneware jug, cobwebs.
+> Secretive, shady, candlelit with deep shadows.
+
+Scene negatives: skull and crossbones, black pirate flag, tricorne hat,
+bicorne, parrot, hook hand, readable writing on the map, modern map, glass
+bottle, rum bottle, oil lamp, ship's steering wheel, cartoon pirate.
 
 **ships-news** · orig. 0x24 / 0x15 `shipnews` · the news board, the
 "Ship's News" pages (`0x1E84C`) · CSTN 18 "Ship's News"

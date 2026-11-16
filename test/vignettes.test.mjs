@@ -60,7 +60,8 @@ test('the governor portrait cell follows the era and the nation', async () => {
   // Without a DOM the art never loads and the placeholder stands in.
   await loadVignetteArt();
   assert.equal(vignetteNeedsArt('governor'), true);
-  assert.equal(vignetteNeedsArt('traveller'), false);
+  assert.equal(vignetteNeedsArt('prize'), false);
+  assert.equal(vignetteNeedsArt('traveller'), true);
   assert.equal(vignetteNeedsArt('tavern'), true);
   assert.match(vignetteDescription('governor', { era: '1680', nation: 'France' }), /^Placeholder picture/);
 });
@@ -96,6 +97,7 @@ test('the harbour arrival and the quay pick their sheet row by the fort flag and
   assert.match(vignetteDescription('shipwright'), /^Placeholder picture/);
   assert.match(vignetteDescription('divide-plunder'), /^Placeholder picture/);
   for (const id of ['governor-daughter', 'governor-niece', 'wedding', 'merchant-daughter']) assert.match(vignetteDescription(id), /^Placeholder picture/);
+  for (const id of ['crew-recruits', 'traveller', 'map-seller', 'villain-news']) assert.match(vignetteDescription(id), /^Placeholder picture/);
 });
 
 test('the title logo spells Retro in outlined pixel letters inside its canvas', async () => {
