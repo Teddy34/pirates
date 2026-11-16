@@ -24,6 +24,11 @@ history.
 
 ### Fixed
 
+- In a dialog whose buttons wrap onto two lines of different widths (the
+  town menu on a wide screen), the left and right arrows now stay on the
+  focused button's own line instead of jumping back up to the first one
+  (#108). Up and down prefer the button above or below in the same column.
+
 - Fort battles at small island towns such as St. Eustatius: running your
   flagship ashore by the town now lands your men even where a fort stands
   right beside the town. The shore round such a fort used to count as
