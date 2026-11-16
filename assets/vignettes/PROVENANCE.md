@@ -1046,9 +1046,10 @@ dress and ships change little enough to read the same at 1×.
   strings across a plank into the glittering hold; the captain holds up an
   ingot; the disarmed Spanish crew and an officer in a morion sit under
   guard. The galleon flies a white flag with a red ragged saltire (the
-  Cross of Burgundy, Spain's naval flag in the period:
+  Cross of Burgundy, flown as an ensign by Spanish Habsburg ships and
+  forts until Spain's standardised naval flag of 1785:
   [FOTW](https://fotw.info/FLAGS/es_brgdy.html)); the fleet is always
-  Spanish, so one picture serves every era.
+  Spanish.
 - `silver-train.png`: in a dusty street of an isthmus port town, a broken
   mule train spills silver bars and coins from slashed packs; buccaneers
   lift bars overhead round the captain; the escort in steel morions and buff
@@ -1069,8 +1070,9 @@ dress and ships change little enough to read the same at 1×.
   256 colours (median cut, no dithering, indexed PNG). No historical fixes
   were made: the galleon's flag came out as asked and stays readable at 1×
   (the centred crop trims its fly edge). Accepted, as too small to read at
-  1×: the lock type of the buccaneers' long muskets, and the Spanish
-  morions and buff coats, which fit the 1560s to about the 1640s better
+  1×: the lock type of the buccaneers' long muskets. Known limit of the
+  single picture: the 17th-century galleon is later than the 1560s, and the
+  Spanish morions and buff coats fit the 1560s to about the 1640s better
   than the 1670s.
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for `treasure-fleet` and `silver-train`.

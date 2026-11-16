@@ -1213,9 +1213,10 @@ fortune in silver from the mines of Peru!"* (CSTR 187)
 > overhead, and the escort soldiers flee past the church.
 
 In the game these are 224 × 128 landscapes (7 : 4, generate at 1792 ×
-1024). The treasure fleet is always Spanish, so its galleon flies the Cross
-of Burgundy, a red ragged saltire on white, in every era; the silver train
-shows no flag. The art is `assets/vignettes/treasure-fleet.png` and
+1024), drawn about 1640 and used for every era, like the sea fights. The
+treasure fleet is always Spanish, so its galleon flies the Cross of
+Burgundy, a red ragged saltire on white, a Spanish Habsburg ensign until
+1785; the silver train shows no flag. The art is `assets/vignettes/treasure-fleet.png` and
 `assets/vignettes/silver-train.png` (provenance in
 `assets/vignettes/PROVENANCE.md`); no fixes were needed. Final prompts, after
 the shared style block:
