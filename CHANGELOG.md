@@ -21,6 +21,9 @@ history.
 
 ### Changed
 
+- Continue, Next, Yes, Wait and the other go-ahead buttons now carry a
+  pixel tick instead of a right arrow, which read as "press the right arrow
+  key" when the button answers to Enter or Space (#107).
 - Sword fights now take place before real comic-style backdrops instead of
   the code-drawn ones: the waist of a galleon at sea with its guns run out
   (boarding, the mutiny and practice), a moonlit street of a Spanish

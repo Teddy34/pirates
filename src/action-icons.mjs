@@ -87,9 +87,11 @@ const ICONS = {
     '............', '............', '....k.......', '...kk.......', '..kgkkkkkk..', '.kggggggggk.',
     '..kgkkkkkk..', '...kk.......', '....k.......', '............', '............', '............',
   ],
-  next: [
-    '............', '............', '.......k....', '.......kk...', '..kkkkkkgk..', '.kggggggggk.',
-    '..kkkkkkgk..', '.......kk...', '.......k....', '............', '............', '............',
+  // A tick rather than an arrow: an arrow reads as "press the right arrow key"
+  // when these buttons answer to Enter or Space (#107).
+  confirm: [
+    '............', '.........kk.', '........kggk', '.......kggk.', '.kk...kggk..', 'kggk.kggk...',
+    '.kggkggk....', '..kgggk.....', '...kgk......', '....k.......', '............', '............',
   ],
 };
 
@@ -98,7 +100,7 @@ const LABEL_ICONS = [
   [/attack|prepare for battle|close for battle|plunder and sink/i, 'cannon'],
   [/^delete|^overwrite/i, 'cross'],
   [/^(return|back|close|decline|no\b|nothing|withdraw|part company|remain)/i, 'back'],
-  [/^wait/i, 'next'],
+  [/^wait/i, 'confirm'],
   [/sword|duel|fencing|storm/i, 'swords'],
   [/governor|audience|mission/i, 'crown'],
   [/propose|conversation|marriage|retract/i, 'heart'],
@@ -114,7 +116,7 @@ const LABEL_ICONS = [
   [/sail into|march into|harbor/i, 'anchor'],
   [/put to sea|sail away|leave town|voyage|keep sailing|prize crew|keep her|pirating/i, 'ship'],
   [/^leave/i, 'back'],
-  [/^(continue|next|yes|done|welcome|take|keep walking|wait|finish)/i, 'next'],
+  [/^(continue|next|yes|done|welcome|take|keep walking|wait|finish)/i, 'confirm'],
 ];
 
 export function actionIconName(label) {
