@@ -13,6 +13,15 @@ history.
 
 ### Changed
 
+- The dig's results now show real comic-style art: the crew round an
+  opened oak chest in a jungle pit, an exhausted crew among empty holes at
+  sunset, a rescued sister or niece and a rescued father or uncle
+  embracing the captain at a plantation gate, and the four lost cities'
+  treasure in a sea cave by an old wreck, each with its culture's
+  objects (an Inca sun disc and llamas, an Aztec turquoise mask and stone
+  calendar, an Olmec colossal head and jades, a Maya stela and jaguar
+  throne).
+
 - When the lookout reads a ship's colours, the dialog now shows her stern
   close at hand with the flag streaming from it, a stern for each period
   and one for small craft. The flag follows the nation, the era and the

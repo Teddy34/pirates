@@ -98,6 +98,8 @@ test('the harbour arrival and the quay pick their sheet row by the fort flag and
   assert.match(vignetteDescription('divide-plunder'), /^Placeholder picture/);
   for (const id of ['governor-daughter', 'governor-niece', 'wedding', 'merchant-daughter']) assert.match(vignetteDescription(id), /^Placeholder picture/);
   for (const id of ['crew-recruits', 'traveller', 'map-seller', 'villain-news']) assert.match(vignetteDescription(id), /^Placeholder picture/);
+  for (const id of ['dig-found', 'dig-nothing', 'reunion', 'lost-city-inca', 'lost-city-aztec', 'lost-city-olmec', 'lost-city-maya']) assert.match(vignetteDescription(id), /^Placeholder picture/);
+  assert.match(vignetteDescription('reunion', { female: false }), /^Placeholder picture/);
 });
 
 test('the title logo spells Retro in outlined pixel letters inside its canvas', async () => {

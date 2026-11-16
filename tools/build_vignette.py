@@ -250,6 +250,30 @@ SCENES = {
         'shape': 'landscape',
         'source': (1659, 948),
     },
+    'dig-found': {
+        'shape': 'landscape',
+    },
+    'dig-nothing': {
+        'shape': 'landscape',
+    },
+    'reunion-female': {
+        'shape': 'landscape',
+    },
+    'reunion-male': {
+        'shape': 'landscape',
+    },
+    'lost-city-inca': {
+        'shape': 'landscape',
+    },
+    'lost-city-aztec': {
+        'shape': 'landscape',
+    },
+    'lost-city-olmec': {
+        'shape': 'landscape',
+    },
+    'lost-city-maya': {
+        'shape': 'landscape',
+    },
 }
 
 
