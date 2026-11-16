@@ -13,6 +13,11 @@ history.
 
 ### Changed
 
+- Buttons that carry on, agree or finish (Continue, Yes, Done, Take...)
+  now show a tick instead of a right arrow, which read as "press the right
+  arrow key" rather than Enter or Space. "Wait..." shows an hourglass and
+  "Keep walking" a boot; the arrow stays on the on-foot "Walk east" control.
+
 - Sea battle ships are now chunky pixel-art sprites with a design of their
   own for each ship type, so you can tell what you are fighting by its
   outline: the pinnace is a small two-master with square sails, the sloop a

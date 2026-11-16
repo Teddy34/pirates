@@ -55,6 +55,17 @@ const ICONS = {
     '............', '.....kk.....', '....kSSk....', '.....kk.....', '...kSSSSk...', '.....SS.....',
     '.....SS.....', '.k...SS...k.', '.Sk..SS..kS.', '..SS.SS.SS..', '...SSSSSS...', '............',
   ],
+  // A tick: carry on, agree or finish. Not an arrow, which reads as the
+  // right-arrow key rather than Enter or Space.
+  tick: [
+    '............', '.........kk.', '........kggk', '.......kggk.', '......kggk..', '.kk..kggk...',
+    'kggkkggk....', 'kgggggk.....', '.kgggk......', '..kgk.......', '...k........', '............',
+  ],
+  // An hourglass: wait.
+  hourglass: [
+    '.kkkkkkkkkk.', '.kBBBBBBBBk.', '..kwwwwwwk..', '..kwggggwk..', '...kwggwk...', '....kgwk....',
+    '....kwgk....', '...kwwgwk...', '..kwwggwwk..', '..kggggggk..', '.kBBBBBBBBk.', '.kkkkkkkkkk.',
+  ],
   // A buccaneer's cuffed boot: leaving a town on foot.
   boot: [
     '............', '..kkkkkk....', '.kGGGGGGk...', '.kbbbbbbk...', '..kbbbbk....', '..kbbbbk....',
@@ -153,7 +164,8 @@ const LABEL_ICONS = [
   [/attack|prepare for battle|close for battle|plunder and sink/i, 'cannon'],
   [/^delete|^overwrite/i, 'cross'],
   [/^(return|back|close|decline|no\b|nothing|withdraw|part company|remain)/i, 'back'],
-  [/^wait/i, 'next'],
+  [/^wait/i, 'hourglass'],
+  [/^keep walking/i, 'boot'],
   [/sword|duel|fencing|storm/i, 'swords'],
   [/governor|audience|mission/i, 'crown'],
   [/propose|conversation|marriage|retract/i, 'heart'],
@@ -170,7 +182,7 @@ const LABEL_ICONS = [
   [/on foot/i, 'boot'],
   [/put to sea|sail away|leave town|voyage|keep sailing|prize crew|keep her|pirating/i, 'ship'],
   [/^leave/i, 'back'],
-  [/^(continue|next|yes|done|welcome|take|keep walking|wait|finish)/i, 'next'],
+  [/^(continue|next|yes|done|welcome|take|finish)/i, 'tick'],
 ];
 
 export function actionIconName(label) {
