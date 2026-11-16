@@ -1036,7 +1036,9 @@ nation is shown wrongly.
 
 ## treasure-fleet.png, silver-train.png
 
-The big captures, each 224 × 128 (7 : 4), one picture for every era.
+The big captures, each 224 × 128 (7 : 4), drawn about 1640 and used for
+every era, as the sea fights are: a deliberate simplification, since the
+dress and ships change little enough to read the same at 1×.
 
 - `treasure-fleet.png`: in a sunlit harbour below a hilltop fort, a
   shot-holed Spanish galleon with a gilded stern lies alongside the
