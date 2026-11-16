@@ -4738,10 +4738,10 @@ function updateControls(inBattle, onFoot) {
   if (inBattle) setControl(dockButton, 'cannon', 'Fire loaded broadside', 'Space');
   else if (onFoot) setControl(dockButton, 'shovel', 'Search for treasure here', 'S');
   else setControl(dockButton, 'treasure-map', 'Study your treasure maps', 'M');
-  setControl(turnLeftButton, onFoot ? 'back' : 'turn-port', onFoot ? 'Walk west' : 'Turn to port', '←');
-  setControl(turnRightButton, onFoot ? 'next' : 'turn-starboard', onFoot ? 'Walk east' : 'Turn to starboard', '→');
+  setControl(turnLeftButton, onFoot ? 'back' : 'turn-port', onFoot ? 'Walk west' : 'Turn to port', '← or A');
+  setControl(turnRightButton, onFoot ? 'next' : 'turn-starboard', onFoot ? 'Walk east' : 'Turn to starboard', '→ or D');
   setControl(lowerSailsButton, onFoot ? 'down' : 'sails-down', onFoot ? 'Walk south' : 'Lower sails', '↓');
-  setControl(raiseSailsButton, onFoot ? 'up' : 'sails-up', onFoot ? 'Walk north' : 'Raise sails', '↑');
+  setControl(raiseSailsButton, onFoot ? 'up' : 'sails-up', onFoot ? 'Walk north' : 'Raise sails', onFoot ? '↑ or W' : '↑');
   controls.setAttribute('aria-label', onFoot ? 'Landing party controls' : 'Sailing controls');
   zoomOutButton.disabled = Boolean(inBattle);
   zoomInButton.disabled = Boolean(inBattle);
@@ -4795,11 +4795,11 @@ function updateSailingInterface(player, onFoot) {
 // and back off, the sail pair pick the high and low lines, and the dock
 // button holds the quick thrust.
 function updateSwordInterface({ fight, foeName }) {
-  setControl(turnLeftButton, 'swords', 'Attack (hold)');
-  setControl(turnRightButton, 'back', 'Back off (hold)');
-  setControl(raiseSailsButton, 'up', 'Fight on the high line (hold)');
-  setControl(lowerSailsButton, 'down', 'Fight on the low line (hold)');
-  setControl(dockButton, 'bolt', 'Quick thrust (hold with Attack)');
+  setControl(turnLeftButton, 'swords', 'Attack (hold)', '← or A');
+  setControl(turnRightButton, 'back', 'Back off (hold)', '→ or D');
+  setControl(raiseSailsButton, 'up', 'Fight on the high line (hold)', '↑ or W');
+  setControl(lowerSailsButton, 'down', 'Fight on the low line (hold)', '↓ or S');
+  setControl(dockButton, 'bolt', 'Quick thrust (hold with Attack)', 'Shift');
   controls.setAttribute('aria-label', 'Sword fight controls');
   dockButton.disabled = state.paused;
   zoomOutButton.disabled = true;

@@ -44,6 +44,11 @@ await withBrowser({ name: 'sword', portOffset: 5, screenshotEnv: 'SWORD_SCREENSH
     // Pausing stops the fight clock.
     await navigate(`/?preview=sword-duel`);
     await until('the fight', inFight);
+    // The controls under the fight are its keys' icon buttons (#136).
+    const fightControls = await evaluate(`[...document.querySelectorAll('#controls button')].map((b) => b.getAttribute('aria-label') + ' [' + b.title + '] ' + Boolean(b.querySelector('img.action-icon')?.src.startsWith('data:image/png')) + ' ' + JSON.stringify(b.textContent.trim())).join('; ')`);
+    for (const expected of ['Attack (hold) [Attack (hold) (← or A)] true ""', 'Quick thrust (hold with Attack) [Quick thrust (hold with Attack) (Shift)] true ""']) {
+      if (!fightControls.includes(expected)) throw new Error(`${viewport.name}: sword-fight controls are ${fightControls}`);
+    }
     await holdKey('p', true); await holdKey('p', false);
     const frame = await evaluate(`${S}.paused`);
     if (!frame) throw new Error(`${viewport.name}: P does not pause the fight`);
