@@ -132,6 +132,13 @@ const SCENE_ART_URLS = {
   'open-chart': new URL('../assets/vignettes/open-chart.png', import.meta.url).href,
   'open-buccaneers': new URL('../assets/vignettes/open-buccaneers.png', import.meta.url).href,
   'open-quarterdeck': new URL('../assets/vignettes/open-quarterdeck.png', import.meta.url).href,
+  'open-court': new URL('../assets/vignettes/open-court.png', import.meta.url).href,
+  'open-plantation': new URL('../assets/vignettes/open-plantation.png', import.meta.url).href,
+  'open-boarded': new URL('../assets/vignettes/open-boarded.png', import.meta.url).href,
+  'open-landfall': new URL('../assets/vignettes/open-landfall.png', import.meta.url).href,
+  'open-prison': new URL('../assets/vignettes/open-prison.png', import.meta.url).href,
+  'open-night-raid': new URL('../assets/vignettes/open-night-raid.png', import.meta.url).href,
+  'open-colony': new URL('../assets/vignettes/open-colony.png', import.meta.url).href,
   tavern: new URL('../assets/vignettes/tavern.png', import.meta.url).href,
   'divide-plunder': new URL('../assets/vignettes/divide-plunder.png', import.meta.url).href,
   shipwright: new URL('../assets/vignettes/shipwright.png', import.meta.url).href,
@@ -147,6 +154,13 @@ const ART_DESCRIPTIONS = {
   'open-chart': 'A hand-drawn chart of the Caribbean on vellum, with Cuba, Hispaniola, Jamaica, the chain of small islands and the Spanish Main, lies on a cabin table under open brass dividers, beside an hourglass, a candlestick and a window on a harbour fort, pixelated from a comic-style illustration.',
   'open-buccaneers': 'On a Hispaniola beach a grizzled buccaneer teaches a young man to aim a long musket, beside a boucan smoking a wild pig, hides drying under a thatched lean-to and two men on a log, with a boat drawn up and a small ship in the bay, pixelated from a comic-style illustration.',
   'open-quarterdeck': 'On a ship’s quarterdeck the captain in his blue coat and a black-bearded captain in a wide-brimmed hat face each other with drawn curved swords, as the crew watches from the deck below, pixelated from a comic-style illustration.',
+  'open-court': 'In a gilded hall hung with tapestries of ships, the captain kneels in his blue coat before a grey-bearded noble patron in black silk and a lace collar, who hands him a sealed charter from a red velvet chair, as courtiers whisper and a halberdier stands guard, pixelated from a comic-style illustration.',
+  'open-plantation': 'At dusk at the edge of a sugar-cane field a young labourer in a torn shirt and straw hat, cane knife in hand, talks in secret with two crouching smugglers, one with a finger to his lips, above a cove where a small ship lies at anchor, with a boiling house smoking in the distance, pixelated from a comic-style illustration.',
+  'open-boarded': 'A Spanish officer in a steel morion and breastplate leaps onto your deck and points his rapier at the captain in his blue coat, as soldiers with muskets and pikes climb over the rail from a galleon flying the red ragged cross of Burgundy, pixelated from a comic-style illustration.',
+  'open-landfall': 'A galleon under full sail runs through the whitecaps toward a green, mountainous island fringed with palms, a lookout pointing from the maintop and sailors crowding the bow, pixelated from a comic-style illustration.',
+  'open-prison': 'In a vaulted stone cell a ragged, chained young prisoner sits on straw and stares up at a barred window where the moon shines, beside a bucket, a cracked jug and a crust of bread, a rat in the corner and torchlight behind the iron-bound door, pixelated from a comic-style illustration.',
+  'open-night-raid': 'Under a full moon a young man in a leather jerkin, cutlass in hand, points from the stern of a longboat at a small ship riding at anchor with a lantern lit, as smugglers row with rag-wrapped oars across the moonlit bay, pixelated from a comic-style illustration.',
+  'open-colony': 'Inside a log stockade of thatched huts a red-bearded settler leader in a battered morion, sword drawn, points at the gate and the ship beyond while ragged colonists with pitchforks and spades shout behind him, facing the captain in his blue coat, sword in hand, pixelated from a comic-style illustration.',
   tavern: 'In a smoky, low-beamed waterfront tavern four sailors play cards and dice over pewter tankards while a fiddler plays by the casks, under a parrot, lanterns and a hanging ship model, the open door showing masts at dusk, pixelated from a comic-style illustration.',
   'divide-plunder': 'In a sunlit colonial counting house the captain rests a hand on an open chest of silver while a bald clerk in spectacles writes in a ledger and a quartermaster counts coins into the palm of grinning buccaneers lined up for their share, beside stacks of rough silver coins, gold, pearls and a brass balance, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
@@ -1153,8 +1167,14 @@ function drawMissing(p) {
 
 // The career opening's scenes (src/opening.mjs).
 
-// A patron on a dais hears a young captain who kneels, hat in hand.
+// The court audience art (assets/vignettes/open-court.png) once loaded;
+// until then, the placeholder: a patron on a dais hears a young captain who
+// kneels, hat in hand.
 function drawCourt(p) {
+  if (sceneArt['open-court']) {
+    p.image(sceneArt['open-court'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   p.rect(0, 0, 224, 128, '#6a2a2a');
   for (let x = 6; x < 224; x += 18) p.rect(x, 0, 2, 96, '#7a3a30');
   p.rect(0, 0, 224, 8, BRASS);
@@ -1182,8 +1202,14 @@ function caneRows(p, top, colors) {
   }
 }
 
-// A labourer talks in secret with smugglers at the edge of the cane at dusk.
+// The plantation art (assets/vignettes/open-plantation.png) once loaded;
+// until then, the placeholder: a labourer talks in secret with smugglers at
+// the edge of the cane at dusk.
 function drawPlantation(p) {
+  if (sceneArt['open-plantation']) {
+    p.image(sceneArt['open-plantation'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#3a2f55', '#7a4a5a', '#c47a4a', '#e8b060'], 54);
   p.disc(170, 52, 9, '#f4d58a');
   sea(p, 54, '#3a4a5a', '#7a6a60');
@@ -1232,8 +1258,14 @@ function drawQuarterdeck(p) {
   blade(p, 128, 108, 16, -1);
 }
 
-// A Spanish officer draws his sword on your deck, his ship alongside.
+// The Spanish boarding art (assets/vignettes/open-boarded.png) once loaded;
+// until then, the placeholder: a Spanish officer draws his sword on your
+// deck, his ship alongside.
 function drawBoarded(p, { flag = 'pirate' } = {}) {
+  if (sceneArt['open-boarded']) {
+    p.image(sceneArt['open-boarded'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#8fc0d8', '#b0d4e0', '#d4e4dc'], 52);
   sea(p, 52, '#2f7a8a', '#6ab0b0');
   ship(p, 158, 74, { facing: -1, flag: 'Spain', scale: 1.1 });
@@ -1252,8 +1284,13 @@ function islandShore(p, y) {
   for (let row = 0; row < 22; row += 1) p.rect(0, y + 8 - row, 104 - row * 3, 1, row < 12 ? '#3f7a3a' : '#2f6a4a');
 }
 
-// Your ship running in on a green West Indian island.
+// The landfall art (assets/vignettes/open-landfall.png) once loaded; until
+// then, the placeholder: your ship running in on a green West Indian island.
 function drawLandfall(p, { flag = 'pirate' } = {}) {
+  if (sceneArt['open-landfall']) {
+    p.image(sceneArt['open-landfall'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#5aa8d8', '#7ac0e0', '#a8d8e4', '#d4ecdc'], 62);
   for (const [x, y, w] of [[130, 14, 50], [40, 24, 40], [176, 34, 34]]) { p.rect(x, y, w, 5, '#f4f4ec'); p.rect(x + 6, y - 3, w - 14, 3, '#f4f4ec'); }
   sea(p, 62, '#2a8aa0', '#7ac8c8');
@@ -1276,8 +1313,14 @@ function stoneCell(p) {
   for (const x of [189, 193]) p.rect(x, 54, 1, 8, '#6a6a70');
 }
 
-// A stone cell, moonlight through the bars, a prisoner on the straw.
+// The prison cell art (assets/vignettes/open-prison.png) once loaded; until
+// then, the placeholder: a stone cell, moonlight through the bars, a
+// prisoner on the straw.
 function drawPrison(p) {
+  if (sceneArt['open-prison']) {
+    p.image(sceneArt['open-prison'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   stoneCell(p);
   // Barred window and the shaft of light under it.
   p.rect(82, 14, 44, 30, OUTLINE);
@@ -1292,8 +1335,14 @@ function drawPrison(p) {
   for (let step = 0; step < 16; step += 2) p.rect(48 - step, 104 - step, 1, 1, '#9a9aa2');
 }
 
-// Moonlit water: a boatload of smugglers creeps up on an anchored ship.
+// The night raid art (assets/vignettes/open-night-raid.png) once loaded;
+// until then, the placeholder: on moonlit water a boatload of smugglers
+// creeps up on an anchored ship.
 function drawNightRaid(p) {
+  if (sceneArt['open-night-raid']) {
+    p.image(sceneArt['open-night-raid'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#0f1a3a', '#16244a', '#1f3058'], 66);
   for (const [x, y] of [[20, 12], [60, 30], [96, 10], [128, 24], [206, 18], [180, 40], [36, 46]]) p.rect(x, y, 1, 1, '#e8ecd8');
   p.disc(170, 22, 10, '#e8ecd8');
@@ -1333,8 +1382,14 @@ function drawBuccaneers(p) {
   p.rect(146, 106, 14, 1, WOOD_DARK);
 }
 
-// A poor new colony: stakes, thatch, thin fields, angry settlers.
+// The colony art (assets/vignettes/open-colony.png) once loaded; until then,
+// the placeholder: a poor new colony of stakes, thatch and thin fields, with
+// angry settlers.
 function drawColony(p) {
+  if (sceneArt['open-colony']) {
+    p.image(sceneArt['open-colony'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#a8b8b8', '#c0c8b8', '#d4d0b0'], 54);
   p.rect(0, 54, 224, 74, '#7a7a4a');
   for (let row = 58; row < 128; row += 7) p.rect((row * 5) % 30, row, 190, 1, '#6a6a3a');

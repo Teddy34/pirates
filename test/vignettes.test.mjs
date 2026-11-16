@@ -84,6 +84,13 @@ test('the harbour arrival and the quay pick their sheet row by the fort flag and
   assert.match(vignetteDescription('open-chart'), /^Placeholder picture/);
   assert.match(vignetteDescription('open-buccaneers'), /^Placeholder picture/);
   assert.match(vignetteDescription('open-quarterdeck'), /^Placeholder picture/);
+  assert.match(vignetteDescription('open-court'), /^Placeholder picture/);
+  assert.match(vignetteDescription('open-plantation'), /^Placeholder picture/);
+  assert.match(vignetteDescription('open-boarded'), /^Placeholder picture/);
+  assert.match(vignetteDescription('open-landfall'), /^Placeholder picture/);
+  assert.match(vignetteDescription('open-prison'), /^Placeholder picture/);
+  assert.match(vignetteDescription('open-night-raid'), /^Placeholder picture/);
+  assert.match(vignetteDescription('open-colony'), /^Placeholder picture/);
   assert.match(vignetteDescription('tavern'), /^Placeholder picture/);
   assert.match(vignetteDescription('shipwright'), /^Placeholder picture/);
   assert.match(vignetteDescription('divide-plunder'), /^Placeholder picture/);

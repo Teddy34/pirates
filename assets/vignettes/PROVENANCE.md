@@ -390,6 +390,242 @@ swords, as the crew watches from the deck below.
 - **Rebuild:** `python3 tools/build_vignette.py --scene open-quarterdeck --source <image> --shape landscape`
   (Pillow).
 
+## open-court.png
+
+The career opening's audience at court, 224 × 128 (7 : 4), for "an audience
+at court for royal approval" and the aristocratic friends' support (CSTR 2
+and 8: the England, France and Holland stories from 1560 to 1680): in a
+gilded hall hung with tapestries of ships, the captain kneels before a
+grey-bearded noble patron in black silk who hands him a parchment charter
+with a red wax seal, as courtiers whisper and a halberdier stands guard.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-court prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** Dress around 1620: the patron's black silk doublet and
+  breeches, lace-edged falling collar and gold chain, and the courtiers'
+  falling collars and broad plumed hats, follow
+  `docs/governor-dress-1560-1680.md` (the soft falling band had largely
+  displaced the standing collar by the mid-1620s). One picture serves every
+  era, as for `open-swords`; a 1560 audience would show ruffs instead,
+  accepted. The story is told for three nations, and Holland had no king, so
+  the hall shows no crown, coat of arms or flag, and the patron is a noble,
+  not a king ("your patron" in the text). The charter carries only illegible
+  scribble, no lettering. The tapestries' ships fly pennants a few source
+  pixels wide, invisible at 1×; accepted. The captain's long coat with brass
+  buttons is the recurring captain's dress, kept the same in every scene.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-court --source <image> --shape landscape`
+  (Pillow).
+
+## open-plantation.png
+
+The career opening's sugar plantation, 224 × 128 (7 : 4), for the indentured
+labourer's stories (CSTR 14 and 18: France 1600 and England 1620 to 1680):
+at dusk at the edge of the cane a young labourer in a torn shirt and straw
+hat, cane knife in hand, talks in secret with two crouching smugglers above
+a cove where a small single-masted ship lies at anchor, with a boiling house
+smoking in the distance.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-plantation prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** English sugar planting in Barbados took off in the
+  1640s, worked at first largely by European indentured servants beside a
+  smaller number of enslaved Africans ([King's College London, "The
+  introduction of sugar
+  cane"](https://kingscollections.org/exhibitions/specialcollections/caribbean/sugar);
+  Hilary McD. Beckles, ["Plantation Production and White 'Proto-Slavery':
+  White Indentured Servants and the Colonisation of the English West Indies,
+  1624–1645"](https://resolve.cambridge.org/core/journals/americas/article/plantation-production-and-white-protoslavery-white-indentured-servants-and-the-colonisation-of-the-english-west-indies-16241645/86B4E777C5FE054DF931B07AF0E99BD8),
+  *The Americas*; both consulted 2026-11-15). A plantation's works included
+  a mill and a boiling house (Cryssa Bazos, ["Sugar Production in 17th
+  century Colonial
+  Barbados"](https://cryssabazos.com/2018/11/14/sugar-production-in-17th-century-colonial-barbados/),
+  2018, a secondary blog source; consulted 2026-11-15). The prompt leaves
+  out a windmill, whose date in the Caribbean was not checked. No flag
+  shows: the small ship has none, so one picture serves both nations.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-plantation --source <image> --shape landscape`
+  (Pillow).
+
+## open-boarded.png
+
+The career opening's Spanish boarding, 224 × 128 (7 : 4), for "You encounter
+a Spanish ship … only to find yourself boarded!" (CSTR 35 and 44: France
+1560 and Holland 1600, 1640 and 1680): a Spanish officer in a steel morion
+and breastplate leaps onto your deck and points his rapier at the captain,
+as soldiers with muskets and pikes climb over the rail from a galleon flying
+the Cross of Burgundy.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-boarded prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** The galleon flies the Cross of Burgundy, a red ragged
+  saltire on white, Spain's naval ensign in the period ([FOTW, "Cross of
+  Burgundy flag"](https://fotw.info/FLAGS/es_brgdy.html), consulted
+  2026-11-15); it survives the reduction at about 12 × 9 art pixels. The
+  officer's morion, half armour, red sash and rapier, and the soldiers'
+  morions, buff coats, muskets and pikes, follow late 16th and early 17th
+  century Spanish soldiers (George Gush, ["Renaissance Armies: The
+  Spanish"](https://myarmoury.com/feature_armies_spanish.php), myArmoury;
+  Àlex Claramunt Soto, ["Tercios clothing. Spanish military fashion in the
+  17th century (1600-1650)"](https://www.1898miniaturas.com/en/?p=3164);
+  both consulted 2026-11-15). His small ruff and slashed sleeves suit 1560
+  to about 1640; the Dutch 1680 story would show later dress, accepted. The
+  muskets' locks are too small to read at 1×. Your own ship shows no flag,
+  so one picture serves the French and Dutch stories.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-boarded --source <image> --shape landscape`
+  (Pillow).
+
+## open-landfall.png
+
+The career opening's landfall, 224 × 128 (7 : 4), for "Land ho!" and setting
+course for the Main (CSTR 3 and 10: England, France and Holland from 1560 to
+1660): a galleon under full sail runs through the whitecaps toward a green,
+mountainous island fringed with palms, a lookout pointing from the maintop
+and sailors crowding the bow.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-landfall prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** The ship is a three-masted galleon with square sails
+  on the fore and main masts and a lateen sail on the mizzen, a high carved
+  stern and a beakhead, the usual galleon rig of the period ([The Mariners'
+  Museum,
+  "Galleon"](https://exploration.marinersmuseum.org/watercraft/galleon/),
+  consulted 2026-11-15). No flag, ensign or pennant shows, so one picture
+  serves every nation, and no ship's wheel shows. The island has no
+  buildings, as a first landfall should.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-landfall --source <image> --shape landscape`
+  (Pillow).
+
+## open-prison.png
+
+The career opening's prison, 224 × 128 (7 : 4), for "a foul prison" (CSTR 22
+and 32: France 1600, England 1680 and every Spanish story): in a vaulted
+stone cell a ragged young prisoner, his ankle chained to the wall, sits on
+straw and stares up at a barred window where the moon shines, beside a
+bucket, a cracked jug and a crust of bread, with torchlight behind the
+iron-bound door.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-prison prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** A plain stone cell with an iron-bound oak door, straw,
+  a shackle and chain, a wooden bucket and an earthenware jug: nothing in it
+  is tied to one nation or decade. Two small palm trees show through the
+  window; they place the cell in the colonies, which fits the Spanish story
+  (CSTR 32) but not quite the European prison before transportation (CSTR
+  22). They are a few art pixels at 1×; accepted.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-prison --source <image> --shape landscape`
+  (Pillow).
+
+## open-night-raid.png
+
+The career opening's night raid, 224 × 128 (7 : 4), for "a sneak attack on a
+small ship riding at anchor" (CSTR 15: every Spanish story and England 1620,
+1640 and 1680): under a full moon a young man in a leather jerkin, cutlass
+in hand, points from the stern of a longboat at a small two-masted ship
+riding at anchor with a lantern lit, as smugglers row with rag-wrapped oars
+across the bay.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-night-raid prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** A ship's longboat was its largest boat, rowed by eight
+  or ten oarsmen ([Wikipedia,
+  "Longboat"](https://en.wikipedia.org/wiki/Longboat), consulted
+  2026-11-15); the picture shows eight. No flag shows on the anchored ship,
+  so one picture serves every nation. The first take gave the young man a
+  third hand and was regenerated with a corrected prompt. In both takes the
+  rowers face the bow, toward the ship, where real rowers face the stern;
+  the generator kept this, and it reads as a comic-panel convention, so it
+  was accepted.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-night-raid --source <image> --shape landscape`
+  (Pillow).
+
+## open-colony.png
+
+The career opening's poor colony, 224 × 128 (7 : 4), for "the colonists are
+discouraged. 'Turn back,' they demand" (CSTR 9: England 1600 and France
+1620): inside a stockade of upright logs, among thatched huts, a dry well
+and a field of stunted maize, a red-bearded settler leader in a battered
+morion, sword drawn, points at the gate and the ship beyond while ragged
+colonists with pitchforks and spades shout behind him, facing the captain,
+sword in hand.
+
+- **Source:** a 1659 × 948 comic-style illustration generated on 2026-11-15
+  with the built-in image generation tool of the OpenAI Codex CLI (codex-cli
+  0.169.0, `image_gen`; model not reported), run under the user's own
+  account at the user's request, from the open-colony prompt in
+  `docs/scene-vignettes.md` with the shared style block and negatives. The
+  user holds the rights to it. The source file is not kept in the
+  repository. No material from the original game was used.
+- **Period choices:** Early English colonies were walled with upright logs
+  set in a trench, and their first buildings were earthfast, built on posts
+  in the ground (Historic Jamestowne, ["Finding the Walls of the
+  Fort"](https://historicjamestowne.org/archaeology/map-of-discoveries/palisades/)
+  and ["Reconstructing James
+  Fort"](https://historicjamestowne.org/archaeology/projects/reconstructing-james-fort/),
+  both consulted 2026-11-15). Thatched roofs: je ne sais pas, the sources
+  found do not say what the roofs were. The settlers' worn doublets,
+  breeches and broad felt hats suit about 1610, and the leader's morion is
+  an old soldier's helmet. No flag shows, so one picture serves both
+  stories.
+- **Process:** `tools/build_vignette.py` reduces the 7 : 4 source to 224 ×
+  128 with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG). No
+  historical fixes were needed.
+- **Rebuild:** `python3 tools/build_vignette.py --scene open-colony --source <image> --shape landscape`
+  (Pillow).
+
 ## tavern.png
 
 The tavern picture, 224 × 128 (7 : 4), shown on every tavern visit: in a

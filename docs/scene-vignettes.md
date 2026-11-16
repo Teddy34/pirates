@@ -845,19 +845,20 @@ begins (CSTR 1–44, `src/opening.mjs`). These strings have no pictures in the
 original, so these vignettes are additions. `STORY_VIGNETTES` gives each
 string one picture, reusing a scene where it fits (tavern, shipwreck,
 governor, merchant, bartender, port-quay, town-square, harbour-arrival), and a
-story never repeats a picture on consecutive screens. The placeholders in code:
+story never repeats a picture on consecutive screens. Every opening picture is
+real art; each keeps its code-drawn placeholder as the fallback:
 
 | id | text cue | prompt |
 |---|---|---|
-| open-court | an audience at court for royal approval (CSTR 2, 8) | A gilded throne room: a young captain kneels before a patron noble who holds a royal charter. |
-| open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Cane fields at dusk: a young labourer talks in secret with smugglers at the edge of the field, with a small ship at anchor beyond. |
+| open-court | an audience at court for royal approval (CSTR 2, 8) | Real art, `assets/vignettes/open-court.png`: see the prompt below the table. |
+| open-plantation | indentured on a sugar plantation (CSTR 14, 18) | Real art, `assets/vignettes/open-plantation.png`: see the prompt below the table. |
 | open-quarterdeck | a fight on deck, or a duel for command (CSTR 20, 26, 43) | Real art, `assets/vignettes/open-quarterdeck.png`: see the prompt below the table. |
-| open-boarded | a Spanish ship boards you (CSTR 35, 44) | A Spanish officer draws his sword on the hero's deck. |
-| open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | A ship runs in on a green, palm-fringed West Indian island. |
-| open-prison | a foul prison (CSTR 22, 32) | A prisoner on straw in a stone cell, moonlight through a barred window. |
-| open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Smugglers row toward an anchored ship under the moon. |
+| open-boarded | a Spanish ship boards you (CSTR 35, 44) | Real art, `assets/vignettes/open-boarded.png`: see the prompt below the table. |
+| open-landfall | "Land ho!"; setting course for the Main (CSTR 3, 10) | Real art, `assets/vignettes/open-landfall.png`: see the prompt below the table. |
+| open-prison | a foul prison (CSTR 22, 32) | Real art, `assets/vignettes/open-prison.png`: see the prompt below the table. |
+| open-night-raid | a sneak attack on a small ship at anchor (CSTR 15) | Real art, `assets/vignettes/open-night-raid.png`: see the prompt below the table. |
 | open-buccaneers | living among the buccaneers (CSTR 38) | Real art, `assets/vignettes/open-buccaneers.png`: see the prompt below the table. |
-| open-colony | a poor colony, "Turn back" (CSTR 9) | Thatched huts inside a stockade, angry settlers facing their leader. |
+| open-colony | a poor colony, "Turn back" (CSTR 9) | Real art, `assets/vignettes/open-colony.png`: see the prompt below the table. |
 | open-swords | the story's sword fight | Real art, `assets/vignettes/open-swords.png`: see the prompt below the table. |
 | open-chart | the sailing master's closest cities (CSTR 69) | Real art, `assets/vignettes/open-chart.png`: see the prompt below the table. |
 
@@ -981,6 +982,206 @@ ship's steering wheel, rifle with a scope, revolver, tents, women.
 Scene negatives: flags, ensign, pennant, ship's steering wheel, wheel,
 tricorne hat, bicorne hat, katana, rapier with a basket hilt, skull and
 crossbones, black flag, eyepatch, parrot, blood, cannon firing, smoke.
+
+**open-court** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> An audience at a European royal court around 1620, in a tall, gilded hall
+> lit by warm daylight from high leaded windows on the left. On the right, a
+> wealthy noble patron sits in a high-backed carved and gilded armchair on a
+> low dais under a dark red velvet canopy: a grey-bearded man about sixty in
+> a black silk doublet and breeches, a wide white lace falling collar, a
+> heavy gold chain across his chest, black stockings and shoes with
+> rosettes. He leans forward and holds out a large parchment charter with a
+> red wax seal hanging from it on a ribbon. In the centre left, the captain,
+> a lean man about thirty, sun-weathered face, dark hair tied back, short
+> beard, faded dark-blue long coat with brass buttons, red sash, cutlass at
+> the hip, tall boots, bareheaded, kneels on one knee on the polished stone
+> floor, one hand on his heart, reaching up for the charter. Behind them,
+> simplified: courtiers in black and dark-coloured doublets with lace
+> collars, broad-brimmed plumed felt hats in hand, whispering; a guard
+> holding a tall halberd; large faded tapestries of ships and sea on the
+> walls, gilded panelling, a long table with an inkstand and quills. Keep
+> the patron's face, the charter and the kneeling captain clearly in the
+> middle band of the picture.
+
+Scene negatives: crown, king on a throne, coat of arms, heraldry, flags,
+banners, ship's steering wheel, tricorne hat, bicorne hat, periwig, powdered
+wig, ruffled lace jabot, military uniforms, globe, chandelier with candles
+lit by electricity.
+
+**open-plantation** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> The edge of a sugar-cane plantation on a Caribbean island around 1640, at
+> dusk, under an orange and violet sky. Tall, dense green sugar cane with
+> long ragged leaves fills the left half of the picture. At the edge of the
+> field, a young indentured labourer, lean, about twenty, sun-weathered
+> face, dark hair tied back, a short beard, in a torn, sweat-stained loose
+> linen shirt, rough canvas breeches and bare feet, a broad-brimmed battered
+> straw hat, a long-bladed cane knife hanging from his hand, crouches and
+> talks in secret with two rough smugglers who kneel half-hidden in the
+> cane: one grizzled with a grey beard and a knitted cap, one younger with a
+> broad felt hat and a short cutlass, both in faded linen shirts and short
+> canvas breeches, leaning in, one with a finger to his lips. On the right,
+> the field gives way to a rocky slope down to a small, hidden cove, where a
+> small single-masted ship with a furled sail rides at anchor on calm dark
+> water, and a small rowing boat is pulled up on the beach. Far off in the
+> background, a low stone boiling house with a tall chimney trailing grey
+> smoke. Keep the three faces clearly in the middle band of the picture.
+
+Scene negatives: flags, whips, chains, overseer on a horse, windmill, steam
+engine, factory, tractor, ship's steering wheel, tricorne hat, bicorne hat,
+eyepatch, parrot, skull and crossbones, black flag, banana plantation, palm
+oil plantation.
+
+**open-boarded** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). The Spanish galleon
+flies the Cross of Burgundy; your own ship shows no flag, so one picture
+serves the French and Dutch stories. Prompt:
+
+> A Spanish boarding on the open main deck of a 17th-century merchant
+> sailing ship at sea, around 1620, in hard midday light. On the right, the
+> high side of a Spanish galleon lies alongside, its dark wooden hull with
+> open gunports and carved, painted upper works towering over the deck;
+> grappling hooks on ropes bite into our rail, and Spanish soldiers are
+> climbing over it. High on its stern a large white flag flies with a red
+> ragged diagonal saltire cross made of two knotted, rough-cut branches, the
+> only flag in the picture. In the centre, the Spanish boarding officer has
+> just jumped down on our deck: a proud, dark-moustached man with a pointed
+> beard, wearing a polished steel morion helmet with a high comb and a
+> curved brim, a steel breastplate over a dark red doublet with slashed
+> sleeves, a red silk sash, wide dark breeches and boots; he draws a long
+> straight rapier with a swept iron hilt and points it, sneering. Facing him
+> on the left, the captain, a lean man about thirty, sun-weathered face,
+> dark hair tied back, short beard, faded dark-blue long coat with brass
+> buttons, red sash, cutlass at the hip, tall boots, bareheaded, his hand
+> going to his own short curved sword. Behind the officer, Spanish soldiers
+> in morion helmets and plain buff coats with long matchlock muskets and
+> pikes; behind the captain, his own sailors in plain linen shirts, knitted
+> caps and canvas breeches, falling back. Tarred mast, shrouds with ratlines
+> and coiled ropes frame the scene; a strip of blue sea. Keep the officer's
+> face, the rapier and the captain in the middle band of the picture.
+
+Scene negatives: red and yellow striped flag, Spanish flag with stripes,
+coat of arms on a flag, any second flag, pennant, ensign on our ship, ship's
+steering wheel, wheel, tricorne hat, bicorne hat, conquistador armour plates
+on legs, full plate armour, skull and crossbones, black flag, eyepatch,
+parrot, blood, cannon firing, smoke.
+
+**open-landfall** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> Landfall in the West Indies around 1620: a powerful three-masted sailing
+> warship of the period, a galleon with a high, carved, painted stern
+> castle, a lower forecastle, a beakhead at the bow, a row of closed
+> gunports along a dark tarred hull with ochre wales, square sails on the
+> fore and main masts and a triangular lateen sail on the mizzen mast, all
+> sails full and pale cream, runs before the trade wind across a deep blue
+> sea flecked with whitecaps. It is seen from behind and to one side,
+> heeling slightly, its bow wave white. Ahead, filling the right part of the
+> picture, a green, mountainous West Indian island: a white sand beach
+> fringed with tall coconut palms, dense green forest climbing steep hills,
+> a line of surf on an outer reef, a few white clouds over the peaks. A tiny
+> lookout stands in the round top of the mainmast, one arm stretched out
+> toward the island; small sailors crowd the forecastle rail, looking ahead.
+> Seabirds wheel in the bright blue sky. Keep the ship's hull and sails and
+> the island clearly in the middle band of the picture.
+
+Scene negatives: flags, ensign, pennants, streamers, banners, ship's
+steering wheel, jib sails, staysails, spanker, steamship, modern yacht,
+lighthouse, buildings, town, fort, skull and crossbones, black flag, people
+on the beach.
+
+**open-prison** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> A foul prison cell in a 17th-century stone fortress at night, around 1620.
+> A low, vaulted cell of rough, damp grey stone blocks streaked with mould
+> and water stains. High on the back wall, a small window with thick crossed
+> iron bars lets in a single cold blue beam of moonlight that falls across
+> the floor. In the beam, a young prisoner, lean, about twenty-five,
+> sun-weathered, gaunt face, dark hair untied and matted, a short ragged
+> beard, in a torn, dirty linen shirt and ragged breeches, barefoot, sits on
+> a heap of filthy straw with his back against the wall and his arms on his
+> knees, staring up at the window with a hard, determined look; a heavy iron
+> shackle on one ankle is chained to a ring in the wall. Around him: a
+> wooden bucket, a cracked earthenware water jug, a crust of bread, a rat in
+> the corner. On the left, a heavy oak door banded with iron and studded
+> with nails, with a small barred grille through which a faint warm orange
+> glow of a torch shows. Deep shadows, cold blue and grey moonlight against
+> small warm torchlight. Keep the prisoner's face and the moonlit window
+> clearly in the picture.
+
+Scene negatives: flags, modern prison bars, cell with metal bunks, padlock
+of modern design, handcuffs, orange jumpsuit, electric light, skeleton,
+skull, torture instruments, blood, tricorne hat, bicorne hat, eyepatch,
+parrot.
+
+**open-night-raid** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. The rowers face the bow, toward the ship,
+where real rowers face the stern; accepted. Prompt:
+
+> A sneak attack at night in a quiet Caribbean bay around 1620, under a full
+> moon. A large, low open wooden rowing boat, a ship's longboat, glides
+> across calm black water toward a small two-masted sailing ship riding at
+> anchor in the middle distance on the right: a modest wooden vessel with a
+> high square stern, its sails furled on the yards, a taut anchor cable
+> running down from its bow, a single small lantern glowing warm orange at
+> its stern, no one awake on deck. In the boat, in the foreground on the
+> left, eight rough smugglers sit on the thwarts in pairs facing the stern,
+> backs toward the ship as rowers do, pulling the oars slowly and silently,
+> oar blades wrapped in rags, crouched low; they wear plain linen shirts,
+> knitted caps and broad-brimmed felt hats, with short curved cutlasses and
+> long knives in their belts and a boarding axe at their feet. In the stern
+> of the boat, facing forward toward the ship, a young man, lean, about
+> twenty-five, sun-weathered face, dark hair tied back, a short beard, in a
+> loose linen shirt and a dark sleeveless leather jerkin, crouches by the
+> tiller: his right hand points at the ship, his left hand grips a cutlass
+> at his side; he has exactly two arms and two hands, his face tense and
+> watchful. A wide silver path of moonlight runs across the water from the
+> moon low in the deep indigo sky; dark palm trees and black hills line the
+> shore behind. Cold blue and silver moonlight, with only the lantern warm.
+> Keep the boat, the young man's face and the anchored ship clearly in the
+> middle band of the picture.
+
+Scene negatives: flags, ensign, pennant, ship's steering wheel, wheel,
+outboard motor, oars with metal rowlocks, guns firing, explosions, fire,
+skull and crossbones, black flag, tricorne hat, bicorne hat, eyepatch,
+parrot, daylight, sun, extra hands, extra arms, rowers facing forward.
+
+**open-colony** is real art (provenance, sources and review in
+`assets/vignettes/PROVENANCE.md`; no fixes were needed). No flag shows, so
+one picture serves every nation. Prompt:
+
+> A poor new colony on a tropical coast around 1610, at midday under a hazy,
+> harsh sky. Inside a stockade of rough upright logs with sharpened tops, a
+> few crude, earthfast houses with walls of split timber and mud and steep,
+> ragged palm-thatch roofs; a muddy yard, a well with a wooden bucket, a
+> small field of stunted, yellowing maize behind sandy soil, empty barrels,
+> a broken hoe. In the centre a crowd of angry, ragged, gaunt colonists in
+> worn, patched doublets and breeches, plain linen shirts and broad-brimmed
+> felt hats, some barefoot, brandish pitchforks, a hoe and a spade and
+> shout; at their head stands their leader, a tall, heavy, red-bearded man
+> in a battered steel morion helmet and a buff leather coat, who draws a
+> long straight sword and points at the open gate toward the sea. Facing him
+> on the left, his back half to us, the captain, a lean man about thirty,
+> sun-weathered face, dark hair tied back, short beard, faded dark-blue long
+> coat with brass buttons, red sash, cutlass at the hip, tall boots,
+> bareheaded, his short curved sword drawn and held low and ready. Through
+> the open stockade gate, a strip of blue sea with a single three-masted
+> ship at anchor. Keep the two men facing each other and the leader's face
+> clearly in the middle band of the picture.
+
+Scene negatives: flags, banners, flagpole, log cabins with notched corners,
+stone church, brick houses, glass windows, ship's steering wheel, tricorne
+hat, bicorne hat, pilgrim hats with buckles, native warriors, blood, skull
+and crossbones, black flag, eyepatch, parrot.
 
 The sailing master's greeting (CSTR 68) uses the **sailing-master** portrait (§4.5).
 
