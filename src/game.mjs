@@ -3467,11 +3467,12 @@ function visitGovernorRelative(town, next) {
     next();
     return;
   }
+  const courtship = { vignette: `governor-${word}`, kicker: portrait.kicker };
   const suitor = captainName(suitorId({ townIndex: state.visit.townIndex, nationIndex: NATION_ORDER.indexOf(town.nation), governorRelative: relative }));
   const conversation = () => {
     if (!converse({ charm, rng })) {
       showDialog({
-        ...portrait, title: 'A pleasant evening',
+        ...courtship, title: 'A pleasant evening',
         body: `<p>You talk until the candles burn low, but she keeps her own counsel.</p>`,
         actions: [{ label: 'Return to town', run: next }],
       });
@@ -3483,7 +3484,7 @@ function visitGovernorRelative(town, next) {
     state.visit.sneaking = false;
     addLog(`The governor’s ${word} in ${town.name} agreed to gather information for me.`);
     showDialog({
-      ...portrait, title: 'An informant at the governor’s house',
+      ...courtship, title: 'An informant at the governor’s house',
       // CSTR 146 says "daughter" even for a niece, though the code loads the
       // word; the port uses it.
       body: `<p>The governor’s ${word} is overwhelmed by your charm and wit. She agrees to gather information for you at the governor’s house.</p>`,
@@ -3494,7 +3495,7 @@ function visitGovernorRelative(town, next) {
     const answer = proposalAnswer(charm);
     if (answer !== 'duel') {
       showDialog({
-        ...portrait, title: answer === 'scorned' ? '“Well! What cheek!”' : '“Perhaps when you have distinguished yourself”',
+        ...courtship, title: answer === 'scorned' ? '“Well! What cheek!”' : '“Perhaps when you have distinguished yourself”',
         body: answer === 'scorned'
           ? `<p>“Well! What cheek! Hrmmmph! Just what kind of a lady do you take me for? You are but a poor, unknown, ${DIFFICULTY_NAMES[state.difficulty].toLowerCase()} ship’s captain, and I am a lady of beauty and refinement,” she exclaims.</p>`
           : '<p>“Oh! That’s so very nice,” she replies, “but my suitor is a wealthy and very distinguished man. Perhaps when you also have distinguished yourself, we can speak of this again.”</p>',
@@ -3503,7 +3504,7 @@ function visitGovernorRelative(town, next) {
       return;
     }
     showDialog({
-      ...portrait, title: 'A jealous suitor',
+      ...courtship, title: 'A jealous suitor',
       body: `<p>“You have captured my heart, ${RANK_NAMES[state.player.ranks[town.nation]]} ${state.captain}. Would that I could be your bride. My suitor, however, is a very jealous man. He will likely challenge you to a duel!”</p><p>Will you...</p>`,
       actions: [
         { label: 'Fight the duel', risky: true, run: () => duelSuitor(town, suitor, next) },
@@ -3512,7 +3513,7 @@ function visitGovernorRelative(town, next) {
     });
   };
   showDialog({
-    ...portrait, title: `The governor’s young ${word}`,
+    ...courtship, title: `The governor’s young ${word}`,
     body: `<p>The governor introduces you to his young ${word}. She is presently being courted by ${suitor}, but she seems interested in you!</p><p>Do you...</p>`,
     actions: [
       { label: 'Make conversation', run: conversation },
@@ -3530,7 +3531,7 @@ function duelSuitor(town, suitor, next) {
     state.player.married = married;
     addLog(`Beat ${suitor} and married the governor’s ${word} in ${town.name}.`);
     showDialog({
-      vignette: governorPortrait(town), kicker: `${town.name}`, title: 'A wedding',
+      vignette: 'wedding', kicker: `${town.name}`, title: 'A wedding',
       body: '<p>Amid merriment and celebration you and your lovely bride are married.</p>',
       actions: [{ label: 'Return to town', run: next }],
     });
@@ -4250,11 +4251,11 @@ function finishMerchantVisit() {
 // 0x22451: the merchant's daughter. Conversation leads nowhere; a proposal
 // needs a fortune and then her father's debt paid.
 function meetMerchantDaughter(town) {
-  const portrait = { vignette: 'merchant', kicker: `The merchant’s daughter · ${town.name}` };
+  const portrait = { vignette: 'merchant-daughter', kicker: `The merchant’s daughter · ${town.name}` };
   const payDebt = () => {
     if (state.player.partyGold < MERCHANT_DEBT) {
       showDialog({
-        ...portrait, title: '“You are too poor”',
+        ...portrait, vignette: 'merchant', title: '“You are too poor”',
         body: '<p>The merchant sneers at your offer of help. “You are too poor to be of help. Come back when you possess greater wealth!”</p>',
         actions: [{ label: 'Return to town', run: showTownMenu }],
       });
@@ -4265,7 +4266,7 @@ function meetMerchantDaughter(town) {
     town.merchantFamily = (town.merchantFamily ?? 0) | MERCHANT_MARRIED;
     addLog(`Paid the merchant’s debt and married his daughter in ${town.name}.`);
     showDialog({
-      ...portrait, title: 'A wedding',
+      ...portrait, vignette: 'wedding', title: 'A wedding',
       body: '<p>Amid great merriment, you are married. The merchant takes you aside. “My dear boy, I cannot thank you enough for what you have done for my family. If you ever want anything from my shop, just ask. I’ll give it to you wholesale.”</p>',
       actions: [{ label: 'Return to town', run: showTownMenu }],
     });

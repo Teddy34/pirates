@@ -90,6 +90,10 @@ const DESCRIPTIONS = {
   outrun: 'A fast ship pulls away while the pursuer’s last shot falls short',
   nightfall: 'Two ships slip apart in the dark as night ends the chase',
   'title-ship': 'A sloop under full sail, seen from ahead and to one side, off a green island',
+  'governor-daughter': 'The captain bows to the governor’s daughter in a courtyard as her suitor glowers',
+  'governor-niece': 'The governor’s niece laughs with the captain on a lamplit balcony',
+  wedding: 'The captain and his bride come down the church steps to cheers',
+  'merchant-daughter': 'The merchant’s daughter smiles at the captain in her father’s shop',
 };
 
 export function vignetteDescription(id, options = {}) {
@@ -142,6 +146,10 @@ const SCENE_ART_URLS = {
   tavern: new URL('../assets/vignettes/tavern.png', import.meta.url).href,
   'divide-plunder': new URL('../assets/vignettes/divide-plunder.png', import.meta.url).href,
   shipwright: new URL('../assets/vignettes/shipwright.png', import.meta.url).href,
+  'governor-daughter': new URL('../assets/vignettes/governor-daughter.png', import.meta.url).href,
+  'governor-niece': new URL('../assets/vignettes/governor-niece.png', import.meta.url).href,
+  wedding: new URL('../assets/vignettes/wedding.png', import.meta.url).href,
+  'merchant-daughter': new URL('../assets/vignettes/merchant-daughter.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
   bartender: 'A burly, one-eyed tavernkeeper with a black eyepatch and a big grey moustache, in a leather jerkin and stained apron, dries a lidded pewter tankard behind a wooden counter, before casks, stoneware jugs and a chalked tally slate, pixelated from a comic-style illustration.',
@@ -163,6 +171,10 @@ const ART_DESCRIPTIONS = {
   'open-colony': 'Inside a log stockade of thatched huts a red-bearded settler leader in a battered morion, sword drawn, points at the gate and the ship beyond while ragged colonists with pitchforks and spades shout behind him, facing the captain in his blue coat, sword in hand, pixelated from a comic-style illustration.',
   tavern: 'In a smoky, low-beamed waterfront tavern four sailors play cards and dice over pewter tankards while a fiddler plays by the casks, under a parrot, lanterns and a hanging ship model, the open door showing masts at dusk, pixelated from a comic-style illustration.',
   'divide-plunder': 'In a sunlit colonial counting house the captain rests a hand on an open chest of silver while a bald clerk in spectacles writes in a ledger and a quartermaster counts coins into the palm of grinning buccaneers lined up for their share, beside stacks of rough silver coins, gold, pearls and a brass balance, pixelated from a comic-style illustration.',
+  'governor-daughter': 'In a governor’s sunlit courtyard with a fountain and bougainvillea, the captain bows, hat in hand, to a young lady in a rose silk gown with a lace collar and a folding fan, who glances back at him amused, while her suitor, an older nobleman in black with a plumed hat, glowers behind them with his arms crossed, pixelated from a comic-style illustration.',
+  'governor-niece': 'On a lamplit balcony at night a young woman in a green silk gown with a lace collar leans on the balustrade and laughs with the captain, while a duenna in black frowns from a high-backed chair, a rosary in her hands, pixelated from a comic-style illustration.',
+  wedding: 'The captain and his bride, in a crimson silk gown with a lace collar and flowers in her hair, come down the steps of a whitewashed church under a ringing bell, as townsfolk throw petals, a guitarist plays and his sailors toss their caps in the air, pixelated from a comic-style illustration.',
+  'merchant-daughter': 'In a merchant’s warehouse a young woman in a blue bodice, apron and linen coif comes in with a basket of oranges and smiles shyly at the captain, while her father beams from behind his ledger desk under a brass balance, pixelated from a comic-style illustration.',
   'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
 const sceneArt = {};
@@ -1580,6 +1592,20 @@ function drawReunion(p, { female = true } = {}) {
   p.rect(97, 97, 8, 3, female ? '#a89a84' : '#8a7a64');
 }
 
+// The romance scenes' art (assets/vignettes/<id>.png) once loaded; until
+// then a shared placeholder: a wall, the lady in her gown and the captain.
+function drawRomance(p, id, { wall, floor, gown }) {
+  if (sceneArt[id]) {
+    p.image(sceneArt[id], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
+  p.rect(0, 0, 224, 128, wall);
+  p.rect(0, 84, 224, 44, floor);
+  p.outlined([[74, 92, 24, 26, gown], [80, 78, 12, 16, gown]]);
+  p.outlined([[82, 68, 8, 9, SKIN]]);
+  captain(p, 132, 118, { hatInHand: true });
+}
+
 // One culture's marks on the cave wall behind the gold.
 const LOST_CITY_ART = {
   inca(p) {
@@ -2406,6 +2432,10 @@ const SCENES = {
   outrun: { shape: 'landscape', draw: drawOutrun },
   nightfall: { shape: 'landscape', draw: drawNightfall },
   'title-ship': { shape: 'title', draw: drawTitleShip },
+  'governor-daughter': { shape: 'landscape', draw: (p) => drawRomance(p, 'governor-daughter', { wall: '#e8dcc0', floor: '#b8704a', gown: '#d89a90' }) },
+  'governor-niece': { shape: 'landscape', draw: (p) => drawRomance(p, 'governor-niece', { wall: '#2c3a5a', floor: '#6a3a24', gown: '#3f6a44' }) },
+  wedding: { shape: 'landscape', draw: (p) => drawRomance(p, 'wedding', { wall: '#f0ece0', floor: '#c8c0b0', gown: '#a8302c' }) },
+  'merchant-daughter': { shape: 'landscape', draw: (p) => drawRomance(p, 'merchant-daughter', { wall: '#a88a62', floor: '#6b4a2e', gown: '#3a5a8a' }) },
 };
 
 // The shared 8 px carved frame with a brass fillet and corner pieces

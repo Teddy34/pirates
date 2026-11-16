@@ -126,6 +126,25 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await until('the shipwright art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('eyes you suspiciously')`);
     await expectPicture(`${viewport.name} shipwright`, 'eyes you suspiciously');
     await screenshot(`${viewport.name}-shipwright`);
+    // The romance scenes: the governor's daughter and niece at dinner, the
+    // merchant's daughter and the wedding after paying her father's debt.
+    for (const [preview, description] of [['governor-daughter', 'rose silk gown'], ['governor-niece', 'duenna in black']]) {
+      await open(preview);
+      await clickButton('Stay for dinner');
+      await until(`the ${preview} art`, `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes(${JSON.stringify(description)})`);
+      await expectPicture(`${viewport.name} ${preview}`, description);
+      await screenshot(`${viewport.name}-${preview}`);
+    }
+    await open('merchant-daughter');
+    await until('the merchant-daughter art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('basket of oranges')`);
+    await expectPicture(`${viewport.name} merchant-daughter`, 'basket of oranges');
+    await screenshot(`${viewport.name}-merchant-daughter`);
+    await clickButton('Propose marriage');
+    await until('her father\'s debt', `${dialogTitle} === 'Her father’s debt'`);
+    await clickButton('Pay the debt');
+    await until('the wedding art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('church under a ringing bell')`);
+    await expectPicture(`${viewport.name} wedding`, 'church under a ringing bell');
+    await screenshot(`${viewport.name}-wedding`);
     // The harbour arrival shows its art, the fort flying the town's flag.
     await open('arrival');
     // The buttons carry icons; Enter's default is leaving, never the attack,
