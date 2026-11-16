@@ -13,6 +13,13 @@ history.
 
 ### Changed
 
+- Attacking a town now shows real comic-style art. By land, the captain
+  points his cutlass at a town's palisade as his buccaneers and a drummer
+  march out of the jungle under the militia's fire; against a fort,
+  buccaneers come over the ramparts on scaling ladders while the captain
+  fights the fort's commander beside a toppled cannon. Both fly the town's
+  period flag.
+
 - Losing a ship now shows real comic-style art: a ship driven onto a reef
   with her crew clinging to a spar, and, when your last ship is gone, the
   castaway captain fed by islanders on a palm beach while a small ship's

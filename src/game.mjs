@@ -2589,7 +2589,7 @@ function attackTown(town) {
     ? `<p>Your men march on ${town.name} and break through the defenders in the field.</p><p><em>The land battle is not playable yet; it counts as won.</em></p>`
     : `<p>${town.forts ? 'The garrison is too weak to meet you in the field: your men march straight to the walls.' : `${town.name} has no fort. Your men march straight into the town.`}</p>`;
   showDialog({
-    vignette: { id: overland ? 'land-attack' : 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
+    vignette: { id: overland ? 'land-attack' : 'fort-walls', flag: town.nation, era: state.era }, kicker: 'Assault', title: `Attack ${town.name}`,
     body: approachText,
     actions: [
       { label: 'Storm the walls', risky: true, run: () => stormTheWalls(town, { yourMen: state.player.crew, soldiers: before.soldiers }) },
@@ -2621,7 +2621,7 @@ function briefFortBattle(town) {
     run: () => beginFortBattle(town, index),
   }));
   showDialog({
-    vignette: { id: 'fort-walls', flag: town.nation }, kicker: 'Assault from the sea', title: `Attack ${town.name}`,
+    vignette: { id: 'fort-walls', flag: town.nation, era: state.era }, kicker: 'Assault from the sea', title: `Attack ${town.name}`,
     body: `<p>${fortLine}</p>`
       + `<p><strong>Steer past the ${forts === 1 ? 'fort' : 'forts'} and run your flagship ashore by the town itself.</strong> Your men will land there and take the fort from the town side. Run aground anywhere else, under a fort’s walls included, and they will refuse to march; stand too far out to sea and the guns drive you off.</p>`
       + `<p>You start upwind of the town where the coast allows, and ${fire}. Only the flagship’s crew goes ashore. Steer with Left/Right or A/D, fire with Space, and change sail with Up/Down.</p>`
@@ -2679,7 +2679,7 @@ function finishFortBattle(battle) {
   };
   const ending = endings[battle.event] ?? endings.escaped;
   showDialog({
-    vignette: battle.event === 'sunset' ? 'nightfall' : { id: 'fort-walls', flag: town.nation }, kicker: 'The attack fails', title: ending.title,
+    vignette: battle.event === 'sunset' ? 'nightfall' : { id: 'fort-walls', flag: town.nation, era: state.era }, kicker: 'The attack fails', title: ending.title,
     body: `<p>${ending.text}</p>`,
     actions: [{ label: 'Continue', run: () => back(ending.log) }],
   });
@@ -2694,7 +2694,7 @@ function landBelowTheFort(town, { yourMen, fortMenLeft }) {
   const soldiers = garrisonAfterFortBattle({ soldiers: town.soldiers, fortMenLeft });
   addLog(`Landed ${yourMen} men on the shore of ${town.name}.`);
   showDialog({
-    vignette: { id: 'fort-walls', flag: town.nation }, kicker: 'Assault', title: `Attack ${town.name}`,
+    vignette: { id: 'fort-walls', flag: town.nation, era: state.era }, kicker: 'Assault', title: `Attack ${town.name}`,
     body: `<p>Your flagship runs ashore by the town under the fort’s guns, and her ${yourMen} men swarm onto the beach. The fort lies before them.</p>`,
     actions: [
       { label: 'Storm the walls', risky: true, run: () => stormTheWalls(town, { yourMen, soldiers }) },
@@ -2710,7 +2710,7 @@ function stormTheWalls(town, { yourMen, soldiers }) {
     yourMen, crewMorale: state.player.crewMorale ?? 0, roll: rng.int(3), soldiers: town.soldiers, forts: town.forts, nation: town.nation,
   });
   chooseWeapon({
-    vignette: { id: forts ? 'fort-walls' : 'land-attack', flag: town.nation }, kicker: 'Storming the walls',
+    vignette: { id: forts ? 'fort-walls' : 'land-attack', flag: town.nation, era: state.era }, kicker: 'Storming the walls',
     title: forts ? 'The fort’s commander attacks' : 'An armed band of citizens',
     // CSTR 192 / 211.
     body: forts
@@ -2742,7 +2742,7 @@ function resolveAssault(town, outcome) {
     : `Failed to capture ${town.name}: driven back from the walls.${losses}`;
   addLog(message);
   showDialog({
-    vignette: { id: town.forts ? 'fort-walls' : 'land-attack', flag: town.nation }, kicker: 'The assault fails',
+    vignette: { id: town.forts ? 'fort-walls' : 'land-attack', flag: town.nation, era: state.era }, kicker: 'The assault fails',
     title: outcome.result === FIGHT_RESULT.defeated ? 'Your men surrender' : 'Driven back',
     body: `<p>${message}</p>`,
     actions: [{ label: 'Continue', run: () => { departFromApproach(); runFleetCheck({ inTown: true, done: startVoyage }); } }],

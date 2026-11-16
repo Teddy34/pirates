@@ -159,6 +159,8 @@ def fort_flag_variants(quad):
 # box; `fixes` run on the source before reduction. `variants` makes a sheet:
 # one picture per (name, fixes) pair, stacked top to bottom in that order and
 # quantised to one shared palette; the game picks a row (src/vignettes.mjs).
+# `kmeans` refines a sheet's palette with that many k-means passes, for a
+# small flag colour found nowhere else in the picture.
 SCENES = {
     'title-ship': {
         'shape': 'title',
@@ -319,6 +321,23 @@ SCENES = {
     'marooned': {
         'shape': 'landscape',
     },
+    # Plain white flags on the palisade's watchtower and on the fort's
+    # snapped flagpole, painted over with the town's flag; same rows as
+    # harbour-arrival.
+    'land-attack': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+        'variants': fort_flag_variants([(1507, 24), (1624, 35), (1625, 111), (1508, 107)]),
+        # The picture has no other blue: plain median cut folds the Dutch
+        # flags' small blue band into the coats' grey-brown. A few k-means
+        # passes keep it blue.
+        'kmeans': 8,
+    },
+    'fort-walls': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+        'variants': fort_flag_variants([(1460, 116), (1645, 214), (1591, 355), (1376, 247)]),
+    },
 }
 
 
@@ -349,8 +368,8 @@ def reduce(image, size):
     return ImageEnhance.Color(picture).enhance(1.2)
 
 
-def quantise(picture, colours=COLOURS):
-    return picture.quantize(colors=colours, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+def quantise(picture, colours=COLOURS, kmeans=0):
+    return picture.quantize(colors=colours, method=Image.Quantize.MEDIANCUT, kmeans=kmeans, dither=Image.Dither.NONE)
 
 
 def pixelate(image, size, colours=COLOURS):
@@ -382,7 +401,7 @@ def build(scene, source_path, out_path, shape=None):
         for fix in fixes:
             fix(picture)
         sheet.paste(reduce(picture.crop(box), size), (0, row * size[1]))
-    quantise(sheet).save(out_path, optimize=True)
+    quantise(sheet, kmeans=entry.get('kmeans', 0)).save(out_path, optimize=True)
 
 
 def check_box(box, shape, size):

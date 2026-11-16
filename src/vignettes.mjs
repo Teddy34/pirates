@@ -182,6 +182,8 @@ const SCENE_ART_URLS = {
   'lost-city-maya': new URL('../assets/vignettes/lost-city-maya.png', import.meta.url).href,
   'shore-arrival': new URL('../assets/vignettes/shore-arrival.png', import.meta.url).href,
   'town-square': new URL('../assets/vignettes/town-square.png', import.meta.url).href,
+  'land-attack': new URL('../assets/vignettes/land-attack.png', import.meta.url).href,
+  'fort-walls': new URL('../assets/vignettes/fort-walls.png', import.meta.url).href,
   'boarding': new URL('../assets/vignettes/boarding.png', import.meta.url).href,
   'hostage-talks': new URL('../assets/vignettes/hostage-talks.png', import.meta.url).href,
   'prize-plunder': new URL('../assets/vignettes/prize-plunder.png', import.meta.url).href,
@@ -269,6 +271,8 @@ const FORT_FLAG_SCENES = {
   'harbour-arrival': (flag) => `Sailing into a colonial harbour town past a stone fort flying ${flag}, the captain at the rail, pixelated from a comic-style illustration.`,
   'shore-arrival': (flag) => `At the jungle’s edge above an inland valley the captain in his blue coat raises a hand to halt his armed buccaneers, looking down on a palisaded town with a church tower and a stone watchtower flying ${flag}, pixelated from a comic-style illustration.`,
   'town-square': (flag) => `A sunlit inland colonial plaza: a whitewashed church with a bell tower, the governor’s arcaded house flying ${flag}, market stalls of oranges, plantains and cloth, a stone well, an ox cart, chickens and militiamen in the shade, pixelated from a comic-style illustration.`,
+  'land-attack': (flag) => `The captain points his cutlass at a town’s log palisade as his buccaneers and a young drummer march out of the jungle; militiamen in morions fire muskets over the stakes, smoke rises behind the church tower, and the gate’s watchtower flies ${flag}, pixelated from a comic-style illustration.`,
+  'fort-walls': (flag) => `Buccaneers swarm up scaling ladders onto a fort’s stone ramparts through musket smoke as the captain crosses swords with the grey-bearded commander in a morion and steel breastplate, beside a toppled bronze cannon, while a snapped flagpole on the bastion still flies ${flag}, pixelated from a comic-style illustration.`,
   'port-quay': (flag) => `On a busy stone quay stevedores roll barrels and hoist bales beside a warehouse, with two ships at anchor in the bay below a distant headland fort flying ${flag}, pixelated from a comic-style illustration.`,
 };
 
@@ -2464,9 +2468,11 @@ function drawRetireIllustrious(p) {
   for (let row = 0; row < 26; row += 1) p.rect(140 - row * 0.2, 96 + row, 10 + row * 0.6, 1, '#6a1420');
 }
 
-// Smoke over a town's palisade as the buccaneers march out of the jungle,
-// the captain pointing his sword, the drummer beating.
-function drawLandAttack(p, { flag = 'Spain' } = {}) {
+// The art (assets/vignettes/land-attack.png, one row per town flag) once
+// loaded; until then smoke over a town's palisade as the buccaneers march
+// out of the jungle, the captain pointing his sword, the drummer beating.
+function drawLandAttack(p, { flag = 'Spain', era } = {}) {
+  if (drawFortFlagArt(p, 'land-attack', { flag, era })) return;
   sky(p, ['#a8b8b8', '#c0c8b8', '#d4d0b0'], 44);
   p.rect(0, 44, 224, 84, '#7a8a4a');
   for (let x = 120; x < 224; x += 6) { p.rect(x, 34 + (x % 4), 5, 30, '#6b4a2e'); p.rect(x, 34 + (x % 4), 1, 30, '#8a6a42'); }
@@ -2496,9 +2502,12 @@ function drawLandAttack(p, { flag = 'Spain' } = {}) {
   blade(p, 144, 106, 20, 1);
 }
 
-// Over the parapet of a star fort: ladders, musket smoke, a toppled cannon,
-// and the commander charging the captain as the flag comes down.
-function drawFortWalls(p, { flag = 'Spain' } = {}) {
+// The art (assets/vignettes/fort-walls.png, one row per town flag) once
+// loaded; until then over the parapet of a star fort: ladders, musket smoke,
+// a toppled cannon, and the commander charging the captain as the flag
+// comes down.
+function drawFortWalls(p, { flag = 'Spain', era } = {}) {
+  if (drawFortFlagArt(p, 'fort-walls', { flag, era })) return;
   sky(p, ['#6a7a8a', '#8a98a0', '#b4b8a8'], 60);
   sea(p, 60, '#3a5a6a', '#7a9aa0');
   // The rampart walk, with the parapet and its embrasures.

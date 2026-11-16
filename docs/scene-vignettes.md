@@ -1395,6 +1395,38 @@ the battle rages, the fort's commander attacks you with his sword."* (CSTR
 > plumed helmet charges the captain with a sword, past a toppled cannon and
 > a flag about to fall.
 
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024). The art is `assets/vignettes/fort-walls.png`, one row per town
+flag: the source flies a plain white flag on a snapped pole that the
+build paints with the town's flag, as for port-quay (provenance in
+`assets/vignettes/PROVENANCE.md`). Final prompt:
+
+> Wide landscape panel, around 1640, a stormy grey morning. On the stone
+> rampart walk of a bastioned colonial fort above the sea: a thick masonry
+> parapet with wide embrasures, and the sea and a grey sky beyond. Two heavy
+> wooden scaling ladders lean against the parapet at left, and buccaneers in
+> linen shirts, canvas breeches and knitted caps, cutlasses in hand, are
+> climbing over the top through drifting white musket smoke; one fires a
+> long musket. In the centre foreground, the captain, a lean man about
+> thirty, sun-weathered face, dark hair tied back, short beard, faded
+> dark-blue coat with brass buttons, red sash, cutlass at the hip, tall boots,
+> parries with his cutlass as the fort's commander charges him from the
+> right: a moustached, grey-bearded officer in a polished steel breastplate
+> over a buff leather coat, a steel morion helmet with a short white plume,
+> wide falling white linen collar, a long rapier raised to strike. Between
+> them lies an old bronze cannon knocked off its wooden carriage, a wheel in
+> the air, round shot rolling on the stones. At the right edge, behind the
+> commander, a flagpole on the bastion is snapped and leaning over, still
+> carrying one modest-sized plain white flag, spread flat towards the
+> viewer, with no emblem, cross or pattern on it.
+
+Scene negatives: tricorne hats, bicorne, periwig, napoleonic uniform, red
+coats with facings, coloured sash on the commander, skull and crossbones,
+black pirate flag, parrot, hook hand, cartoon pirate, ships in the
+foreground, oversized flag, emblem on the flag, red and yellow striped
+flag, tricolour flag, union jack, more than one flag, telescope, spyglass,
+bayonets, ship's wheel, full plate armour, closed helmet.
+
 **shipdeck-duel** · orig. 0x2A `shipdeck` · fight scenes 3–4: the mutiny
 duel and the boarding melee (`0x1DE7A`, `0xF235`) · CSTR 139, 171
 > The waist of a ship in a swirl of smoke: crews clash with cutlasses
@@ -1408,6 +1440,40 @@ attack on %s has failed."* (CSTR 191, 211)
 > A column of buccaneers with muskets and cutlasses marches out of the jungle
 > towards a town palisade. Smoke rises from the fort, a drummer beats, and
 > the captain points his sword forward. Militia muskets show on the wall.
+
+In the game this is a 224 × 128 landscape (7 : 4, generate at 1792 ×
+1024). The art is `assets/vignettes/land-attack.png`, one row per town
+flag: the source flies a plain white flag on the gate's watchtower that
+the build paints with the town's flag; the sheet's palette gets eight
+k-means passes so the Dutch flags' small blue band stays blue (provenance
+in `assets/vignettes/PROVENANCE.md`). Final prompt:
+
+> Wide landscape panel, around 1640, mid-morning under a hazy sky. In the
+> foreground at left, a column of about a dozen buccaneers in loose linen
+> shirts, canvas breeches, knitted caps and broad-brimmed hats, with very
+> long muskets, cutlasses and powder horns, marches out of the edge of a
+> dense tropical jungle onto open ground. A young drummer in a plain coat
+> beats a wooden side drum with a rope-tensioned head. In front of them, the
+> captain, a lean man about thirty, sun-weathered face, dark hair tied back,
+> short beard, faded dark-blue coat with brass buttons, red sash, cutlass at
+> the hip, tall boots, points his drawn cutlass forward towards the town. On
+> the right, across a trampled clearing, stands the town's wall: a tall
+> palisade of sharpened logs with a closed timber gate. Along its top,
+> colonial militiamen in plain doublets, broad-brimmed hats and a few steel
+> morion helmets level long muskets over the stakes; small puffs of white
+> musket smoke. Behind the palisade, terracotta tile roofs and a church bell
+> tower; beside the gate a small square stone watchtower with a flagpole on
+> top and one modest-sized plain white flag in proportion to the tower (no
+> wider than the tower is tall), flying flat and spread towards the viewer
+> against the sky, with no emblem, cross or pattern on it. A column of grey
+> smoke rises from somewhere inside the town. Palms and banana plants frame
+> the left edge.
+
+Scene negatives: tricorne hats, bicorne, periwig, uniforms with facings,
+skull and crossbones, black pirate flag, parrot, hook hand, cartoon pirate,
+sea, ships, oversized flag, emblem on the flag, red and yellow striped
+flag, tricolour flag, union jack, more than one flag, telescope, spyglass,
+bayonets, cannon in the foreground.
 
 ### 4.9 Treasure and lost relatives
 
