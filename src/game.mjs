@@ -5581,7 +5581,7 @@ const PREVIEWS = {
       gold: 70, food: 4, goods: 11, specialGoods: 6, cannon: 4,
     }, () => {});
   }),
-  // The placeholder vignettes outside the governor and counting-house previews.
+  // The capture and the explosion pictures, outside the governor and counting-house previews.
   ...Object.fromEntries(['prize', 'enemy-destroyed'].map((id) => [id, () => startPreview(() => {
     state.paused = true;
     const enemy = { ship: 'Merchantman', flag: 'Spain', guns: 18, damage: 0, kind: 'merchant' };
@@ -5780,7 +5780,7 @@ function paintTitleScreen() {
     picture.setAttribute('aria-label', vignetteDescription('title-ship'));
   };
   paint();
-  if (vignetteNeedsArt('title-ship')) loadVignetteArt().then(paint);
+  if (vignetteNeedsArt('title-ship')) loadVignetteArt('title-ship').then(paint);
 }
 
 resize();

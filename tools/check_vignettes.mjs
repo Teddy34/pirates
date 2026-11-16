@@ -16,6 +16,14 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     })`);
     if (shown.hidden || !shown.label.includes(description)) throw new Error(`${where}: picture "${description}" not shown: ${shown.label}`);
     if (!shown.fits || !shown.inside) throw new Error(`${where}: the dialog overflows sideways`);
+    // The art arrives: the picture area is no longer the empty dark fill
+    // (#21180f) that stands until it loads.
+    await until(`${where}: the art to load`, `(() => {
+      const canvas = document.querySelector('#dialog-vignette canvas');
+      const { data } = canvas.getContext('2d').getImageData(8, 8, canvas.width - 16, canvas.height - 16);
+      for (let at = 0; at < data.length; at += 4) if (data[at] !== 0x21 || data[at + 1] !== 0x18 || data[at + 2] !== 0x0f) return true;
+      return false;
+    })()`);
   };
 
   const scenes = [
