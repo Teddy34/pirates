@@ -1294,6 +1294,37 @@ and are wounded. You are imprisoned in %s."*, *"The months pass slowly…"*
 > barred window throws a square of light. Tally marks are scratched on the
 > wall, and a guard's shadow is on the door.
 
+**shipwreck** · no original slot of its own; an addition · one of your
+ships strikes a reef and is lost while others sail on (`strikeReef`), and
+the career opening where a hurricane wrecks the emigrants' ship (CSTR 13) ·
+*"With a jarring crash, one of your ships grinds onto a shallow reef and
+rapidly fills with water!"*
+The art is `assets/vignettes/shipwreck.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948) for every era and nation, with no flags (provenance
+in `assets/vignettes/PROVENANCE.md`); no fixes were needed. Accepted: a
+small whitewashed Spanish-style church and wall on the shore at the right
+edge: a reef can lie off any coast, and the career opening's castaways are
+rescued by the Spanish. Final prompt (after the shared style block):
+
+> Wide landscape panel, around 1640, a wild grey afternoon after a squall. A
+> three-masted wooden merchant ship of the 17th century, with a high square
+> stern and a beakhead bow, lies driven hard onto a shallow coral reef in
+> the middle distance, heeled far over on her side: her foremast and
+> mainmast snapped off and hanging over the side in a tangle of rigging and
+> torn canvas, her mizzen leaning, a great hole stove in her planking at the
+> waterline. White surf bursts over the black reef rocks and across her
+> deck. Barrels, crates and planks float in the green water. In the
+> foreground a broken yard floats in the swell with three sailors in linen
+> shirts and knitted caps clinging to it, one reaching out to haul up a
+> fourth swimmer; further off two men swim towards the reef. Low dark
+> clouds, flying spray, a pale gleam of light on the horizon.
+
+Scene negatives: tricorne hats, bicorne, periwig, skull and crossbones,
+black pirate flag, ship's steering wheel, parrot, hook hand, cartoon pirate,
+flags, ensigns, banners, pennants, red and yellow striped flag, tricolour
+flag, union jack, lifebuoys, life jackets, lighthouse, steamship, modern
+lifeboat.
+
 **marooned** · orig. 0x0B `maroon` · you lose your last ship and wash up
 on an island (`0x1F360`) · *"With your last ship gone, you are washed
 ashore on an uncharted island. The local Indians feed you…"*, *"One day, a
@@ -1301,6 +1332,42 @@ small ship arrives…"* (CSTR 161–162, 190)
 > A tiny palm-fringed island beach: the castaway captain in a ragged shirt
 > sits by a driftwood fire with Taíno islanders who offer him fruit and
 > fish. A small sloop anchors offshore in the bay, and its boat rows in.
+
+The art is `assets/vignettes/marooned.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948) shown both when you wash ashore and when a ship
+rescues you; provenance in `assets/vignettes/PROVENANCE.md`; no fixes were
+needed. The islanders are not named Taíno in the prompt: the Taíno of the
+Greater Antilles were nearly gone by the mid-16th century, and an uncharted
+island of 1560–1680 is more likely Kalinago (Island Carib) land, whose exact
+dress the brief does not settle, so the prompt keeps it plain (long black
+hair, cotton loincloths, shell necklaces). The rescue ship is a small
+two-masted, square-rigged pinnace rather than a sloop. The first image showed a
+bare-breasted islander woman and bananas (not native to the Caribbean); it
+was regenerated with two island men and native fruit. Final prompt (after the
+shared style block):
+
+> Wide landscape panel, around 1640, warm late afternoon on a small
+> uncharted tropical island. A white sand beach fringed with leaning coconut
+> palms and green scrub, a turquoise lagoon behind a line of surf on the
+> outer reef. In the foreground, by a small driftwood fire, the castaway
+> captain, a lean man about thirty, sun-weathered face, dark hair tied back,
+> short beard, sits on the sand barefoot in a torn, faded white linen shirt
+> and ragged dark-blue breeches, gaunt and grateful, holding a coconut shell
+> of water. Two Caribbean islanders kneel beside him offering food: an older
+> man with long straight black hair, bare-chested, wearing a small cotton
+> loincloth and a necklace of shells, holds out a split calabash of papaya
+> and guava; a young man with long black hair tied back, in a cotton
+> loincloth, offers grilled fish on a green leaf. A dugout canoe is pulled
+> up on the sand behind them. In the bay offshore a small two-masted wooden
+> pinnace of the 17th century with square sails half furled lies at anchor,
+> and her ship's boat is rowing in towards the beach.
+
+Scene negatives: nudity, bare breasts, women, bananas, tricorne hats,
+bicorne, periwig, skull and crossbones, black pirate flag, ship's steering
+wheel, parrot, hook hand, cartoon pirate, flags, ensigns, banners, pennants,
+red and yellow striped flag, tricolour flag, union jack, feathered war
+bonnet, plains Indian headdress, tipi, totem pole, grass hula skirt,
+Polynesian tiki, modern swimwear, plastic, bottles with labels, telescope.
 
 ### 4.8 Duel backdrops
 
@@ -1985,6 +2052,7 @@ A scene can serve more than one dialog:
 | treasure-fleet, silver-train | each capture's own dialog in a taken town |
 | mutiny | the quarterdeck confrontation |
 | prison | imprisonment and release; an island rescue uses marooned |
+| shipwreck | one of several ships lost on a reef, and the hurricane wreck of career opening 13 |
 | hall-of-fame | the offer and the list of entries |
 | alley-duel | the guard who recognises you and the villain's back entrance; the rival suitor waits for courtship |
 | retire-1 to retire-4 | "Your pirating days are over", by the score's tier (illustrious is retire-4) |

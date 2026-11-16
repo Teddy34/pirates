@@ -55,6 +55,8 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     ['sinking', 'goes down by the stern'],
     ['outrun', 'splash falls short'],
     ['nightfall', 'stern lantern'],
+    ['reef-loss', 'driven onto a coral reef'],
+    ['marooned', 'driftwood fire'],
   ];
   for (const viewport of VIEWPORTS) {
     await setViewport(viewport);
