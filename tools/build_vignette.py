@@ -26,8 +26,9 @@ import argparse
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance
 
 # Art pixels of each vignette shape; keep in step with PICTURE_SIZES in
-# src/vignettes.mjs.
-SHAPES = {'landscape': (224, 128), 'portrait': (96, 128), 'title': (240, 160)}
+# src/vignettes.mjs. `backdrop` is a sword fight's backdrop (BACKDROP in
+# src/fencer-sprites.mjs), its ground line on row 112.
+SHAPES = {'landscape': (224, 128), 'portrait': (96, 128), 'title': (240, 160), 'backdrop': (260, 132)}
 COLOURS = 256
 WHITE, RED, INK = (244, 240, 226), (196, 32, 36), (30, 24, 20)
 ORANGE, BLUE = (232, 118, 28), (34, 64, 140)
@@ -147,6 +148,17 @@ def patch_fix(box, to):
 
 # One row per town flag, in the order of HARBOUR_FLAGS in src/vignettes.mjs.
 FORT_FLAGS = [('Spain', cross_of_burgundy), ('England', st_george), ('France', plain_white), ('Holland', prince_flag), ('Holland 1660', states_flag)]
+
+
+def stretch_floor(top, height):
+    """Stretch the rows from `top` to the bottom to `height` rows, so a floor
+    band drawn too thin reaches the backdrop's ground line. Returns a new image."""
+    def fix(image):
+        stretched = Image.new('RGB', (image.width, top + height))
+        stretched.paste(image.crop((0, 0, image.width, top)), (0, 0))
+        stretched.paste(image.crop((0, top, image.width, image.height)).resize((image.width, height), Image.Resampling.LANCZOS), (0, top))
+        return stretched
+    return fix
 
 
 def fort_flag_variants(quad):
@@ -365,6 +377,29 @@ SCENES = {
         'source': (1659, 948),
         'variants': fort_flag_variants([(1460, 116), (1645, 214), (1591, 355), (1376, 247)]),
     },
+    # Sword fight backdrops (src/sword-renderer.mjs). The floor band came out
+    # thinner than the backdrop's (rows 112-132): stretch it so the fencers'
+    # feet land just before the wall foot, then crop to put it there.
+    'fight-deck': {
+        'shape': 'backdrop',
+        'source': (1774, 887),
+        'fixes': [stretch_floor(750, 150)],
+        'crop': (0, 0, 1773, 900),
+    },
+    'fight-alley': {
+        'shape': 'backdrop',
+        'source': (1774, 887),
+        'fixes': [stretch_floor(785, 149)],
+        'crop': (0, 34, 1773, 934),
+    },
+    # A plain white flag on the parapet, painted over with the town's flag.
+    'fight-walls': {
+        'shape': 'backdrop',
+        'source': (1774, 887),
+        'fixes': [stretch_floor(790, 135)],
+        'crop': (0, 25, 1773, 925),
+        'variants': fort_flag_variants([(828, 33), (1114, 68), (1126, 193), (828, 177)]),
+    },
 }
 
 
@@ -415,7 +450,7 @@ def build(scene, source_path, out_path, shape=None):
     if entry.get('source') and image.size != entry['source']:
         raise SystemExit(f'expected a {entry["source"][0]} x {entry["source"][1]} source for {scene}, got {image.size}')
     for fix in entry.get('fixes', []):
-        fix(image)
+        image = fix(image) or image
     box = entry.get('crop') or centred_crop(image.size, size[0] / size[1])
     check_box(box, shape, size)
     variants = entry.get('variants')
@@ -426,7 +461,7 @@ def build(scene, source_path, out_path, shape=None):
     for row, (_, fixes) in enumerate(variants):
         picture = image.copy()
         for fix in fixes:
-            fix(picture)
+            picture = fix(picture) or picture
         sheet.paste(reduce(picture.crop(box), size), (0, row * size[1]))
     quantise(sheet, kmeans=entry.get('kmeans', 0)).save(out_path, optimize=True)
 

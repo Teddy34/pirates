@@ -13,6 +13,14 @@ history.
 
 ### Changed
 
+- Sword fights now take place before real comic-style backdrops instead of
+  the code-drawn ones: the waist of a galleon at sea with its guns run out
+  (boarding, the mutiny and practice), a moonlit street of a Spanish
+  colonial town (the guard, the villain, the rival suitor and the attack by
+  land), and a fort's stone wall at night flying the town's period flag
+  (storming the walls). The code-drawn backdrops remain until the pictures
+  load.
+
 - The sword fight in a back alley and the Pirate Hall of Fame now show real
   comic-style art: the captain crossing rapiers with an anonymous swordsman
   in a moonlit alley (one picture for the guard, the villain and the rival
