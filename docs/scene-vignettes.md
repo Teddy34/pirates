@@ -294,10 +294,13 @@ In the game this is a 96 × 128 portrait (3 : 4, generate at 768 × 1024),
 one picture for every era and nation. The art is
 `assets/vignettes/villain-news.png` (provenance in
 `assets/vignettes/PROVENANCE.md`); no fixes were needed. The plain
-standing collar is accepted: the golilla of Philip IV's court (from the
-1620s) projects forward under the chin, but the difference does not read
-at 1×. The prompt sets him around 1640 in Spanish dress, since the
-villains stay in Spanish towns (`villains.mjs`).
+standing collar is accepted: Philip IV banned the ruff and brought in the
+stiff golilla collar in the early 1620s (1623 per
+[Artnet News, on the Hispanic Society's *Spanish Style* exhibition](https://news.artnet.com/art-world/hispanic-society-spanish-fashion-2711741);
+Wikipedia's *Ruff* article says 1621), and its exact shape does not read
+at 1×. The prompt sets him around 1640 in Spanish dress because the port's
+villains always move among Spanish towns (`VILLAIN_NATION` in
+`src/villains.mjs`).
 
 > Vertical half-length portrait of a menacing Spanish nobleman, around 1640,
 > a colonial grandee and the villain of the story. A man in his forties with
@@ -550,11 +553,18 @@ one picture for every era and nation. The art is
 `assets/vignettes/crew-recruits.png` (provenance in
 `assets/vignettes/PROVENANCE.md`); no fixes were needed. The captain's
 D-guard sword hilt, which looks later than 1640, is accepted: it is a few
-pixels at 1×. The first brief's tarred pigtails are dropped (usually
-pictured on late 18th-century seamen); the sailors wear loose canvas slops and
-knitted Monmouth-style caps, documented for seamen through the 17th
-century, and the articles follow the buccaneers' written agreements
-described by Exquemelin (1678).
+pixels at 1×. The first brief's tarred pigtails are dropped (their date
+is not checked here). The sailors wear loose canvas slops and knitted
+caps: knitted Monmouth caps were worn by labourers and sailors in the
+16th–18th centuries ([The Historic Dockyard Chatham,
+collection, Monmouth cap](https://collection.thedockyard.co.uk/objects/8924));
+open-kneed slops and wide petticoat breeches for 17th-century seamen,
+[Reconstructing History, "Breeches for Seamen"](https://reconstructinghistory.com/blogs/blog/breeches-for-seamen)
+(a reenactors' source, which notes the evidence is thin). The articles
+follow the written agreement buccaneer crews drew up before sailing, as
+told by Exquemelin, *De Americaensche Zee-rovers*, Amsterdam 1678
+([Library of Congress, The Buccaneers of America](https://www.loc.gov/exhibits/exploring-the-early-americas/interactives/buccaneers-of-america/);
+[Wikipedia, Pirate code](https://en.wikipedia.org/wiki/Pirate_code)).
 
 > Wide horizontal scene inside a smoky, low-beamed Caribbean port tavern,
 > around 1640. On the right, seated at a heavy scarred wooden table, the

@@ -22,6 +22,7 @@ await withBrowser({ name: 'villains', portOffset: 3, screenshotEnv: 'VILLAIN_SCR
     await clickButton('Continue the audience');
     await until('the villain news', `${dialogTitle} === 'News of your long-lost sister'`);
     await expectBody(viewport.name, 'knows the whereabouts of your sister');
+    await until('the villain art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('scarred nobleman')`);
     await screenshot(`${viewport.name}-news`);
     const created = await evaluate(`${S}.villains.filter(Boolean).length`);
     if (created !== 1) throw new Error(`${viewport.name}: ${created} villains after a promotion`);
