@@ -1076,3 +1076,36 @@ dress and ships change little enough to read the same at 1×.
   than the 1670s.
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for `treasure-fleet` and `silver-train`.
+
+## shipwreck.png, marooned.png
+
+Losing a ship, about 1640, each 224 × 128 (7 : 4), one picture for every
+era and nation, with no flags.
+
+- `shipwreck.png`: under a squally sky a three-masted ship lies driven onto
+  a coral reef, masts snapped and sails in rags; sailors cling to a
+  floating spar and haul a swimmer to it. Shown when one of several ships
+  is lost on a reef, and for the hurricane wreck of career opening 13.
+- `marooned.png`: the castaway captain sits by a driftwood fire on a palm
+  beach as two island men offer papaya and grilled fish; a small
+  two-masted pinnace lies at anchor in the bay and her boat rows in. Shown
+  when you wash ashore and when a ship rescues you.
+
+- **Source:** for each, a comic-style illustration (1659 × 948) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the scene's
+  prompt in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Regenerated:** the first `marooned` image showed a bare-breasted
+  islander woman and bananas, which are not native to the Caribbean; the
+  prompt now asks for two island men and papaya and guava, and the second
+  image is the one used.
+- **Process:** `tools/build_vignette.py` reduces each to its shape with a
+  box filter, raises contrast (×1.15) and colour (×1.2), and quantises to
+  256 colours (median cut, no dithering, indexed PNG). No historical fixes
+  were made. Accepted: the small Spanish-style church on the shore in
+  `shipwreck.png`, and the wreck's carved stern ornament, unreadable at 1×.
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for `shipwreck` and `marooned`.

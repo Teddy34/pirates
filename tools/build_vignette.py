@@ -313,6 +313,12 @@ SCENES = {
     'silver-train': {
         'shape': 'landscape',
     },
+    'shipwreck': {
+        'shape': 'landscape',
+    },
+    'marooned': {
+        'shape': 'landscape',
+    },
 }
 
 

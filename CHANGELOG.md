@@ -13,6 +13,12 @@ history.
 
 ### Changed
 
+- Losing a ship now shows real comic-style art: a ship driven onto a reef
+  with her crew clinging to a spar, and, when your last ship is gone, the
+  castaway captain fed by islanders on a palm beach while a small ship's
+  boat rows in to rescue him. Both are flagless, so they serve every era
+  and nation.
+
 - Capturing the treasure fleet or the silver train now shows real
   comic-style art: gold passed hand to hand from a beaten Spanish galleon
   flying the Cross of Burgundy, and buccaneers lifting silver bars from a

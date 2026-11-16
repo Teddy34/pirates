@@ -191,6 +191,8 @@ const SCENE_ART_URLS = {
   'nightfall': new URL('../assets/vignettes/nightfall.png', import.meta.url).href,
   'treasure-fleet': new URL('../assets/vignettes/treasure-fleet.png', import.meta.url).href,
   'silver-train': new URL('../assets/vignettes/silver-train.png', import.meta.url).href,
+  shipwreck: new URL('../assets/vignettes/shipwreck.png', import.meta.url).href,
+  marooned: new URL('../assets/vignettes/marooned.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
   'treasure-fleet': 'In a sunlit harbour below a hilltop fort, barefoot sailors pass gold ingots, chests of coins and strings of pearls across a plank from a beaten royal galleon, shot-holed and flying a white flag with a red ragged saltire, into the glittering hold of the captain’s ship, while the captain in his blue coat holds up an ingot and the disarmed Spanish crew sits under guard, pixelated from a comic-style illustration.',
@@ -202,6 +204,8 @@ const ART_DESCRIPTIONS = {
   'sinking': 'Under a stormy sky a shattered ship goes down by the stern, men leaping from her rail and clinging to spars, while the captain in his blue coat looks back from a crowded boat pulling away, pixelated from a comic-style illustration.',
   'outrun': 'A small ship under full sail heels through the whitecaps, her crew at the rail, while far behind a heavy warship fires a last shot whose splash falls short, pixelated from a comic-style illustration.',
   'nightfall': 'Under a crescent moon and the first stars, two distant ships drift apart on a dark sea, each with one lit stern lantern, the last red of sunset along the horizon, pixelated from a comic-style illustration.',
+  shipwreck: 'Under a squally grey sky a three-masted ship lies driven onto a coral reef, her masts snapped and her sails in rags as the surf breaks over her, while sailors cling to a floating spar and haul a swimmer to it among barrels and crates, pixelated from a comic-style illustration.',
+  marooned: 'On a palm-fringed island beach the castaway captain, barefoot in a torn shirt, sits by a driftwood fire drinking from a coconut shell as two island men in cotton loincloths offer him papaya and grilled fish, while out in the bay a small two-masted ship lies at anchor and her boat rows in, pixelated from a comic-style illustration.',
   'dig-found': 'In a jungle clearing by a strange tall rock, three grinning sailors in a fresh pit of red earth lean over an iron-bound oak chest heaped with gold and silver coins, while the captain in his blue coat stands over them with the old map, pixelated from a comic-style illustration.',
   'dig-nothing': 'At sunset on a beach scarred with empty holes, one exhausted sailor slumps by a pit, another leans on his spade and a third flings down his hat, while the captain in his blue coat glares at a torn map, pixelated from a comic-style illustration.',
   'reunion-female': 'At the open gate of a plantation stockade a thin young woman in a patched bodice and linen coif, in tears of joy, embraces the captain in his blue coat, hat in his hand, as his sailors look on moved and broken chains lie on the ground, pixelated from a comic-style illustration.',
@@ -1111,9 +1115,14 @@ function drawTownSquare(p, { flag = 'Spain', era } = {}) {
   }
 }
 
-// A ship heeled over on a reef, masts gone by the board, the sea breaking
-// over her and her crew in the water and on a spar.
+// The art (assets/vignettes/shipwreck.png) once loaded; until then a ship
+// heeled over on a reef, masts gone by the board, the sea breaking over her
+// and her crew in the water and on a spar.
 function drawShipwreck(p) {
+  if (sceneArt.shipwreck) {
+    p.image(sceneArt.shipwreck, 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#5a6a7a', '#6a7a86', '#7a8a90', '#8a9a98'], 64);
   for (const [cx, cy, w] of [[10, 12, 60], [96, 20, 70], [170, 8, 50]]) { p.rect(cx, cy, w, 6, '#4a5a68'); p.rect(cx + 6, cy - 4, w - 14, 4, '#4a5a68'); }
   sea(p, 64, '#2a5a60', '#5a8a88');
@@ -1139,9 +1148,14 @@ function drawShipwreck(p) {
   p.outlined([[150, 112, 18, 4, WOOD_LIGHT]]);
 }
 
-// A castaway on a palm-fringed beach shares a driftwood fire with island
+// The art (assets/vignettes/marooned.png) once loaded; until then a
+// castaway on a palm-fringed beach shares a driftwood fire with island
 // people who bring him fruit and fish; the wreck lies broken on the reef.
 function drawMarooned(p) {
+  if (sceneArt.marooned) {
+    p.image(sceneArt.marooned, 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, ['#8fc0d0', '#a8d0d4', '#c4dcd0'], 54);
   sea(p, 54, '#3a8a8a', '#7ab8b0');
   // The wreck far out on the reef.

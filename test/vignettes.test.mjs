@@ -101,7 +101,7 @@ test('the harbour arrival and the quay pick their sheet row by the fort flag and
   for (const id of ['dig-found', 'dig-nothing', 'reunion', 'lost-city-inca', 'lost-city-aztec', 'lost-city-olmec', 'lost-city-maya']) assert.match(vignetteDescription(id), /^Placeholder picture/);
   assert.match(vignetteDescription('reunion', { female: false }), /^Placeholder picture/);
   for (const id of ['boarding', 'hostage-talks', 'prize-plunder', 'enemy-destroyed', 'sinking', 'outrun', 'nightfall']) assert.match(vignetteDescription(id), /^Placeholder picture/);
-  for (const id of ['treasure-fleet', 'silver-train']) assert.match(vignetteDescription(id), /^Placeholder picture/);
+  for (const id of ['treasure-fleet', 'silver-train', 'shipwreck', 'marooned']) assert.match(vignetteDescription(id), /^Placeholder picture/);
   for (const id of ['shore-arrival', 'town-square']) assert.match(vignetteDescription(id, { flag: 'Spain', era: '1600' }), /^Placeholder picture/);
 });
 
