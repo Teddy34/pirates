@@ -25,6 +25,13 @@ history.
   the straw of a stone cell, tally marks on the wall and a guard's shadow on
   the door. Both are flagless, so they serve every era and nation.
 
+- The four retirement endings now show real comic-style art of the old,
+  grey captain: mending a net outside a seaside cottage, at ease on a
+  plantation terrace above the cane fields, pointing out his old flagship
+  from a balcony over the harbour with an old shipmate, and honoured by a
+  king on a palace terrace. They are flagless and show no wife or family,
+  so each serves every era, nation and career, married or not.
+
 - Attacking a town now shows real comic-style art. By land, the captain
   points his cutlass at a town's palisade as his buccaneers and a drummer
   march out of the jungle under the militia's fire; against a fort,

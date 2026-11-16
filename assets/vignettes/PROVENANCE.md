@@ -1225,3 +1225,51 @@ for every era and nation, with no flags.
   in `mutiny.png`, shared with his other pictures.
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for `mutiny` and `prison`.
+
+## retire-1.png, retire-2.png, retire-3.png, retire-4.png
+
+The four retirement endings, by the score's tier (humble to illustrious),
+each 224 × 128 (7 : 4), one picture per tier for every era, nation and
+career, married or not, with no flags. The old captain keeps his grey hair
+tied back, short grey beard and red sash in all four.
+
+- `retire-1.png`: at sunset the old captain, in his faded and patched blue
+  coat, mends a net on a bench outside a thatched seaside cottage, pipe in
+  mouth and dog asleep at his feet; a rowing boat lies on the shingle.
+- `retire-2.png`: on the stone terrace of a whitewashed plantation house,
+  under a shade tree, he sits in an armchair in a cream linen coat with a
+  pewter cup and his hound, above sugar cane fields and a distant sail.
+- `retire-3.png`: on a town-house balcony above the harbour he points out
+  his former flagship, a three-masted galleon at anchor with furled sails,
+  while his old bald shipmate laughs beside him with a cup of wine.
+- `retire-4.png`: on a palace terrace above formal gardens and a fountain,
+  a crowned king of no real country, in an ermine-lined blue mantle, rests
+  a hand on the shoulder of the captain, now a nobleman in a crimson
+  doublet, falling collar and gold chain, plumed hat in hand.
+
+- **Source:** for each, a comic-style illustration (1659 × 948) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the scene's
+  prompt in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Companions:** the game knows whether the captain married, but the
+  picture follows the tier only, so the wife (retire-2) and family
+  (retire-3) of the scene brief are left out: he is alone with his dog or
+  hound, and in retire-3 with an old shipmate.
+- **Regenerated:** the first `retire-3` image had a bougainvillea on the
+  wall (a South American plant described by Europeans in the 1760s); the
+  first `retire-4` image put palms, hibiscus and the sea behind a palace
+  with a French mansard roof, with a stout king. Both prompts were
+  corrected and the second images are the ones used.
+- **Process:** `tools/build_vignette.py` reduces each to its shape with a
+  box filter, raises contrast (×1.15) and colour (×1.2), and quantises to
+  256 colours (median cut, no dithering, indexed PNG). No historical fixes
+  were made. Accepted: the recurring captain's long many-buttoned coat
+  (retire-1, retire-3), which reads late in the century; the falling
+  collar of retire-4, worn from the 1540s to the 1670s but most common from
+  about 1640; and the Spanish-looking whitewashed forts in retire-1 and
+  retire-3, flagless.
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for `retire-1` to `retire-4`.

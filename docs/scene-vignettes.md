@@ -1838,10 +1838,76 @@ the jump table, not tested at runtime.
 > sunset, mending a net, with a pipe and a dog at his feet. A modest boat is
 > beached nearby.
 
+The art is `assets/vignettes/retire-1.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948) for every era, nation and career, married or not
+(provenance in `assets/vignettes/PROVENANCE.md`); no fixes were needed. He
+is alone with his dog. Accepted: a whitewashed fort and a passing
+three-masted ship far off, both flagless. Final prompt (after the shared
+style block):
+
+> Wide landscape panel, around 1640, a calm golden sunset on a quiet
+> Caribbean shore. In the foreground left, the old captain, a lean man about
+> sixty, sun-weathered and deeply lined face, grey hair tied back at the
+> nape, short neat grey beard, red sash at the waist, wearing an old faded
+> and patched dark-blue coat with tarnished brass buttons over a plain linen
+> shirt, worn breeches and bare feet, sits on a rough wooden bench outside a
+> small whitewashed cottage with a palm-thatched roof, a low doorway and a
+> wooden shutter. He is mending a brown fishing net spread across his knees
+> with a wooden netting needle, a short white clay pipe in his mouth,
+> content and peaceful. A shaggy old brown dog sleeps at his feet. Beside
+> the bench a clay water jar and a wicker fish basket. On the pebbly beach
+> to the right a small open wooden rowing boat is drawn up on the shingle,
+> oars across the thwarts. Beyond, the calm sea glows orange and gold under
+> a large low setting sun, a few long purple clouds, a palm tree leaning
+> over the cottage.
+
+Scene negatives: tricorne hats, bicorne, periwig, ship's steering wheel,
+parrot, hook hand, peg leg, eye patch, cartoon pirate, skull and crossbones,
+flags, ensigns, banners, lighthouse, glass windows with many panes, rum
+bottles with labels, woman, wife, children.
+
 **retire-2** · orig. 0x56 `sunset2` · comfortable (merchant, planter)
 > A veranda of a sugar plantation house at sunset: the grey-haired captain in
 > a linen coat with his wife, a glass of rum, and the cane fields and a
 > distant sail.
+
+The art is `assets/vignettes/retire-2.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948); no fixes were needed. The game knows at
+retirement whether the captain married (`player.married`), but the picture
+follows the score's tier only, and an unmarried captain can reach any tier,
+so the wife is left out: he sits alone with his hound. A wrap-around
+veranda was avoided because the sources found do not date the Caribbean
+plantation veranda to before 1680 (Je ne sais pas); he sits on a stone
+terrace under a shade tree instead. Sugar was a main export of Hispaniola
+by the late 16th century, and Barbados took up sugar in the 1640s; the
+fields were worked largely by enslaved Africans, which the picture does not
+show: the cane fields are empty ([Wikipedia, "Sugar plantations in the
+Caribbean"](https://en.wikipedia.org/wiki/Sugar_plantations_in_the_Caribbean)).
+He drinks from a pewter cup rather than a glass of rum, so the drink does
+not date the picture. Final prompt (after the shared style block):
+
+> Wide landscape panel, around 1640, a warm amber sunset over a Caribbean
+> sugar estate on a hillside above the sea. In the foreground, on a raised
+> stone terrace in front of a solid two-storey whitewashed stone house with
+> a red clay tile roof and heavy wooden shutters, shaded by a great
+> spreading tree, the old captain, a lean man about sixty, sun-weathered and
+> deeply lined face, grey hair tied back at the nape, short neat grey beard,
+> red sash at the waist, prosperous now, in a loose cream linen coat over a
+> white shirt and brown breeches with low leather shoes, sits at ease in a
+> carved wooden armchair at a small table with a pewter jug and a pewter
+> cup, his old cutlass hanging on the back of the chair. He looks out with
+> quiet satisfaction over his land. A sleek hunting dog lies beside his
+> chair. Below the terrace, rows of tall green sugar cane fall away down the
+> slope in neat fields bordered by low stone walls, with a dirt track
+> winding down to the bay. Far out on the glowing golden sea a single small
+> sailing ship with square sails heads for the horizon under a large setting
+> sun and long rose and violet clouds.
+
+Scene negatives: tricorne hats, bicorne, periwig, ship's steering wheel,
+parrot, hook hand, eye patch, cartoon pirate, skull and crossbones, flags,
+ensigns, banners, pennants, windmill, factory chimney, columned Greek
+portico, wrap-around veranda, verandah, rocking chair, glass bottles with
+labels, cocktail glass, woman, wife, children, workers in the fields.
 
 **retire-3** · orig. 0x57 `sunset3` · respected (council member, admiral,
 lieutenant-governor)
@@ -1849,12 +1915,97 @@ lieutenant-governor)
 > captain in an admiral's or councillor's dress coat with a sash, family
 > around him, and his former flagship anchored below.
 
+The art is `assets/vignettes/retire-3.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948); no fixes were needed. The family is replaced by
+his laughing old shipmate, so the picture fits a married or unmarried
+career. The flagship and the fort are flagless. The first image had a
+bougainvillea on the wall, a South American plant first described by
+Europeans in the 1760s ([Wikipedia, "Bougainvillea"](https://en.wikipedia.org/wiki/Bougainvillea)); it was
+regenerated with bare walls. Accepted: his long coat with many buttons, the
+recurring captain's coat, which reads late in the century. Final prompt
+(after the shared style block):
+
+> Wide landscape panel, around 1640, a rich orange and rose sunset over a
+> busy colonial harbour seen from above. In the foreground, on a stone
+> balcony with a carved stone balustrade at the top of a fine whitewashed
+> town house with plain green wooden shutters and bare walls, the old
+> captain, a lean man about sixty, sun-weathered and deeply lined face, grey
+> hair tied back at the nape, short neat grey beard, red sash at the waist,
+> now a respected man of the town, in a well-cut dark-blue wool coat with
+> gold buttons over a white shirt with a plain flat white linen collar, dark
+> breeches and plain black shoes, stands with one hand on the balustrade,
+> pointing proudly with the other at the harbour below. Beside him, a
+> broad-shouldered old sailor with a bald head, a grey moustache and a
+> weathered
+> brown coat, his former shipmate, leans on the balustrade and laughs,
+> holding a pewter cup of wine. A small table with a pewter jug and a rolled
+> sea chart stands behind them. Below, in the calm harbour, his former
+> flagship rides at anchor, a big three-masted wooden galleon of the early
+> 17th century with a high carved square stern, a beakhead bow and gun
+> ports, her sails neatly furled on the yards, and no flags. Along the quay
+> below, tiled roofs, warehouses and small boats; on a headland a low stone
+> fort. The sea glows gold under a large setting sun.
+
+Scene negatives: bougainvillea, pink or magenta flowers, flowering vines,
+climbing flowers, tricorne hats, bicorne, periwig, powdered wig, ruff,
+ship's steering wheel, parrot, hook hand, eye patch, cartoon pirate, skull
+and crossbones, black pirate flag, flags, ensigns, banners, pennants, red
+and yellow striped flag, tricolour flag, union jack, steamship, lighthouse,
+woman, wife, children.
+
 **retire-4** · orig. 0x58 `sunset4` · illustrious (governor, King's
 advisor, a title)
 > A European palace terrace at sunset: the white-haired captain, now a
 > titled nobleman in court dress with the star of an order, stands beside a
 > king who has a hand on his shoulder, with formal gardens and a fountain
 > below. *"Your exploits become the stuff of legend."*
+
+The art is `assets/vignettes/retire-4.png`, a 224 × 128 landscape (7 : 4,
+generated at 1659 × 948); no fixes were needed. The king is no real
+monarch: a man of about fifty with a short rounded brown beard, a plain
+gold crown and an ermine-lined blue mantle. Court dress avoids both ends of
+the period: no ruff (replaced by the falling band about 1640) and no
+periwig (spread from France in the 1660s); the falling band was worn from
+the 1540s to the 1670s ([Wikipedia, "Bands (neckwear)"](https://en.wikipedia.org/wiki/Bands_%28neckwear%29); [Wikipedia, "Wig"](https://en.wikipedia.org/wiki/Wig)).
+No order star (the Garter star dates from Charles I,
+[Wikipedia, "Order of the Garter"](https://en.wikipedia.org/wiki/Order_of_the_Garter)): a gold chain with a jewel instead.
+The gardens follow 16th-century Italian terraced gardens with fountains
+([Wikipedia, "Italian Renaissance garden"](https://en.wikipedia.org/wiki/Italian_Renaissance_garden)). The first image showed palms,
+hibiscus and the sea behind a European palace with a French mansard roof,
+and a stout king; it was regenerated. Final prompt (after the shared style
+block):
+
+> Wide landscape panel, 17th century, a royal palace in the heart of Europe,
+> far from the sea, at a golden sunset. On a broad stone terrace with a
+> carved stone balustrade above formal geometric gardens, the old captain, a
+> lean man about sixty, sun-weathered and deeply lined face, grey hair tied
+> back at the nape, short neat grey beard, red sash at the waist, now a
+> titled nobleman, stands dressed in rich court dress: a dark crimson silk
+> doublet with gold embroidery, a plain wide falling white linen collar, a
+> short black velvet cloak over one shoulder, dark breeches, silk stockings
+> and plain black shoes, a heavy gold chain collar with a jewelled pendant
+> across his chest, a broad-brimmed black hat with a white plume held in his
+> hand, a dress rapier at his side. He bows his head slightly with quiet
+> pride. Beside him stands a king of no real country, a kindly man of about
+> fifty, of medium build, with an oval face, a short rounded brown beard
+> flecked with grey and shoulder-length wavy brown hair, wearing a simple
+> gold crown, a royal-blue velvet mantle lined with white ermine over a dark
+> green velvet doublet with a plain white falling collar; the king rests one
+> hand on the captain's shoulder in friendship. Below the terrace, formal
+> gardens of clipped box hedges in geometric patterns, gravel paths, a round
+> stone basin with a tall splashing fountain, rows of clipped trees, and the
+> long pale stone facade of a Renaissance palace with tall windows,
+> pilasters and a low tiled roof behind a balustrade on the right. Beyond
+> the gardens, rolling green countryside, oak and poplar woods and a distant
+> river valley. A warm sky of gold and rose.
+
+Scene negatives: palm trees, tropical plants, hibiscus, exotic flowers, sea,
+ocean, ships, mansard roof, dormer windows, stout fat king, tricorne hats,
+bicorne, periwig, full-bottomed wig, powdered wig, ruff, millstone ruff,
+star of an order, breast star, blue sash, long skirted coat, justaucorps,
+cravat, 18th-century dress, Napoleonic uniform, flags, banners, coats of
+arms, heraldry, fleur-de-lis, lions, recognisable real monarch, woman,
+queen, children.
 
 **hall-of-fame** · orig. 0x7D `fame` · *"Do you wish to have your
 exploits recorded in the Pirate Hall of Fame?"* (CSTR 73)
