@@ -1336,11 +1336,13 @@ small ship arrives…"* (CSTR 161–162, 190)
 The art is `assets/vignettes/marooned.png`, a 224 × 128 landscape (7 : 4,
 generated at 1659 × 948) shown both when you wash ashore and when a ship
 rescues you; provenance in `assets/vignettes/PROVENANCE.md`; no fixes were
-needed. The islanders are not named Taíno in the prompt: the Taíno of the
-Greater Antilles were nearly gone by the mid-16th century, and an uncharted
-island of 1560–1680 is more likely Kalinago (Island Carib) land, whose exact
-dress the brief does not settle, so the prompt keeps it plain (long black
-hair, cotton loincloths, shell necklaces). The rescue ship is a small
+needed. The islanders are not named Taíno in the prompt: the Taíno population of
+the Greater Antilles had collapsed within decades of Spanish colonisation
+([Wikipedia, "Taíno genocide", with its references](https://en.wikipedia.org/wiki/Ta%C3%ADno_genocide)),
+and which people would live on an uncharted island of 1560–1680, and how
+they dressed, is not settled here (Je ne sais pas), so the prompt says
+"Caribbean islanders" and keeps their dress plain (long black hair, cotton
+loincloths, shell necklaces). The rescue ship is a small
 two-masted, square-rigged pinnace rather than a sloop. The first image showed a
 bare-breasted islander woman and bananas (not native to the Caribbean); it
 was regenerated with two island men and native fruit. Final prompt (after the
