@@ -4048,9 +4048,14 @@ function showTreasureMaps(back, index = 0) {
 const CANNON_PRICE = 50;
 // The last action at the yard, shown above the fleet (empty on arrival).
 let shipwrightNote = '';
+// Ships sold during this visit keep a "Sold" row where they stood, so the
+// rows below (and their buttons) do not jump up under the pointer. Each entry
+// is the row's position in the table and the ship's name.
+let shipwrightSoldRows = [];
 
 function openShipwright() {
   shipwrightNote = '';
+  shipwrightSoldRows = [];
   showShipwright();
 }
 
@@ -4072,6 +4077,9 @@ const salePriceOf = (ship) => shipSalePrice({ type: statsFor(ship).type, damage:
 // One screen for the whole yard (0x218C2's four-item menu, flattened): every
 // ship with its hold, guns, repair and sale price, and the cannon, all traded
 // in place.
+// The yard redraws itself after every action; its layout stays put (the note
+// line is always there, the Sell-all button always shown) so a button under
+// the pointer is still under it for the next click.
 function showShipwright(preferredTransfer = '', preferredKind = '') {
   const town = state.towns[state.visit.townIndex];
   if (town.nation === 'Spain' && 25 * state.player.ranks.Spain + scenarios[state.era].merchantThreshold < town.growth) {
@@ -4116,7 +4124,16 @@ function showShipwright(preferredTransfer = '', preferredKind = '') {
       <td>${guns[index]} / ${stats.guns}</td>
       <td><div class="shipwright-actions">${repairControl}${button('sell-ship', index, `Sell · ${sale}`, Boolean(saleHint), saleHint)}</div></td>
     </tr>`;
-  }).join('');
+  });
+  // In table order: each recorded row is the Sold row's final place.
+  for (const { row, name } of [...shipwrightSoldRows].sort((a, b) => a.row - b.row)) {
+    shipRows.splice(row, 0, `<tr class="shipwright-sold">
+      <th scope="row">${name}</th>
+      <td>—</td>
+      <td>—</td>
+      <td><div class="shipwright-actions"><span class="shipwright-sound">Sold</span><span class="shipwright-sound" aria-hidden="true"></span></div></td>
+    </tr>`);
+  }
   let cannonHint = 'Hold to keep selling';
   if (cannon < 2) cannonHint = 'The shipwright will not buy your only cannon';
   else if (cannonForSale === 0) cannonHint = 'The yard lacks the cash';
@@ -4124,23 +4141,24 @@ function showShipwright(preferredTransfer = '', preferredKind = '') {
       <th scope="row">Cannon</th>
       <td>${Math.floor(cannon / 2)} t</td>
       <td>${cannon} / ${ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0)}</td>
-      <td><div class="shipwright-actions">${button('sell-cannon', '', `Sell 1 · ${CANNON_PRICE}`, cannonForSale === 0, cannonHint)}${cannonForSale > 1 ? button('sell-cannon-all', '', `Sell ${cannonForSale} · ${cannonForSale * CANNON_PRICE}`, false) : ''}</div></td>
+      <td><div class="shipwright-actions">${button('sell-cannon', '', `Sell 1 · ${CANNON_PRICE}`, cannonForSale === 0, cannonHint)}${button('sell-cannon-all', '', cannonForSale > 1 ? `Sell ${cannonForSale} · ${cannonForSale * CANNON_PRICE}` : 'Sell all', cannonForSale < 2)}</div></td>
     </tr>`;
   const repairAllControl = damaged.length > 1
     ? `<p>${button('repair-all', '', `Repair all ${damaged.length} · ${repairAll}`, !affordable(repairAll), affordable(repairAll) ? '' : 'You cannot afford the work')}</p>`
     : '';
   showDialog({
     vignette: 'shipwright', kicker: `The shipwright · ${town.name}`, title: 'What business brings you to the yard?',
-    body: `${shipwrightNote ? `<p class="shipwright-note" role="status">${shipwrightNote}</p>` : ''}
+    body: `<p class="shipwright-note" role="status">${shipwrightNote || '&nbsp;'}</p>
       <dl class="plunder-summary"><dt>Your gold</dt><dd>${gold}</dd><dt>Shipwright’s cash</dt><dd>${cash}</dd><dt>Hold</dt><dd>${cargoUsed()} / ${cargoCapacity()} tons</dd></dl>
       <table class="plunder-manifest shipwright-manifest">
         <thead><tr><th>Ship</th><th>Hold</th><th>Guns</th><th>Yard</th></tr></thead>
-        <tbody>${shipRows}${cannonRow}</tbody>
+        <tbody>${shipRows.join('')}${cannonRow}</tbody>
       </table>
       ${repairAllControl}
       ${refusals.size ? `<p class="shipwright-refusals">${[...refusals].map((reason) => `${reason}.`).join(' ')}</p>` : ''}
       <p class="shipwright-help">The fleet shares its guns; each ship is shown filled in turn. Cannon fetch ${CANNON_PRICE} gold apiece and take a ton of hold for every two, and one must stay aboard. A sold ship’s crew, cannon and cargo stay with the fleet.</p>`,
     actions: [{ label: 'Part company', secondary: true, run: finishShipwrightVisit }],
+    redraw: true,
   });
   const apply = (transfer, kind) => {
     const index = Number(kind);
@@ -4205,6 +4223,10 @@ function sellShip(index) {
     showShipwright();
     return 0;
   }
+  // The table row the ship held: her fleet index, after the Sold rows above her.
+  let row = index;
+  for (const sold of [...shipwrightSoldRows].sort((a, b) => a.row - b.row)) if (sold.row <= row) row += 1;
+  shipwrightSoldRows.push({ row, name: describeShip(ship) });
   state.player.ships.splice(index, 1);
   state.player.partyGold += price;
   state.portTrade.shipwrightCash -= price;
@@ -4486,7 +4508,13 @@ let dialogShortcuts = new Map();
 // An action with `risky` (attacking a town, deleting a save) never takes the
 // opening focus, so a stray Enter cannot start it; `focus` picks the action
 // that does.
-function showDialog({ kicker, title, body, actions, vignette }) {
+// `redraw` marks an in-place update of the dialog already on screen (a sale
+// at the shipwright's yard): the page keeps its scroll and picture size, so
+// the control under the pointer stays where it was for the next click.
+function showDialog({ kicker, title, body, actions, vignette, redraw = false }) {
+  const kept = redraw && dialog.open
+    ? { dialog: dialog.scrollTop, text: dialogText.scrollTop, dropped: dialog.classList.contains('picture-dropped') }
+    : null;
   if (dialog.open) dialog.close();
   dialogShortcuts = new Map();
   showVignette(vignette);
@@ -4515,15 +4543,16 @@ function showDialog({ kicker, title, body, actions, vignette }) {
     dialogActions.append(button);
   });
   dialog.showModal();
-  fitDialogVignette();
+  if (kept) dialog.classList.toggle('picture-dropped', kept.dropped);
+  else fitDialogVignette();
   padDialogScroll();
-  // Long dialogs (the ship's log, the gazetteer) open at the top.
   const buttons = [...dialogActions.children];
   const opening = actions.findIndex((action) => action.focus);
   const safe = actions.findIndex((action) => !action.risky);
   buttons[opening >= 0 ? opening : safe >= 0 ? safe : 0]?.focus({ preventScroll: true });
-  dialog.scrollTop = 0;
-  dialogText.scrollTop = 0;
+  // Long dialogs (the ship's log, the gazetteer) open at the top.
+  dialog.scrollTop = kept?.dialog ?? 0;
+  dialogText.scrollTop = kept?.text ?? 0;
 }
 
 // The action icons, painted once into image URLs.

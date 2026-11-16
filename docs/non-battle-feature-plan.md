@@ -108,7 +108,9 @@ evidence for each item. This list collects them in one place.
   than picked from a list; the prices and cash rules are the original's. The
   fleet's single cannon count is shown spread over the ships in fleet order,
   which the original does not display. Cannon sold during a visit are logged
-  once, on leaving the yard.
+  once, on leaving the yard. The yard redraws in place without moving its
+  buttons (#118): a ship sold during the visit leaves a "Sold" row until you
+  leave, which the original's list does not have.
 - Coastal towns use the harbour-arrival and port-quay pictures however you
   arrive. Only landlocked towns use shore-arrival and town-square. The original
   picks the arrival picture by how you came.

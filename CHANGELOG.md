@@ -22,6 +22,15 @@ history.
   now gets you through; a fort's shore away from the town is still running
   aground. Check it with `?preview=fort-battle-island`.
 
+- The shipwright's yard no longer shifts under the pointer as you trade
+  (#118): selling a cannon, repairing or selling a ship keeps every button
+  where it was, so repeated clicks on Sell land on the same button. The note
+  of the last action has its line from the start, the Sell-all cannon button
+  stays (greyed out) when no more than one cannon can be sold, "Sound" takes
+  a Repair button's height, a sold ship leaves a "Sold" row in her place
+  until you leave the yard, and the page keeps its scroll position and
+  picture size when it redraws.
+
 ### Removed
 
 - The code-drawn pictures that showed while a scene's real art was still
