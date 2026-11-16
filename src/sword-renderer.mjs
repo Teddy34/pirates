@@ -5,6 +5,7 @@
 import { BACKDROP, FIGHT_UNITS_PER_ART_PIXEL, LOOKS, paintBackdrop, paintFencer, paintSpark } from './fencer-sprites.mjs';
 import { FIGHT_MODE, MOVE, WEAPONS } from './sword-mechanics.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
+import { harbourRow } from './vignettes.mjs';
 
 const SCENE_UNITS = BACKDROP.width * FIGHT_UNITS_PER_ART_PIXEL; // 520 fight x units
 // Narrow screens show at least this much of the fight around the fencers.
@@ -17,6 +18,71 @@ const BODY_OFFSET = 30;
 const CREW_OFFSET = 12;
 const MAX_MORALE = 47;
 const spriteCache = new Map();
+
+// Real art for the backdrops (assets/vignettes/PROVENANCE.md), built by
+// tools/build_vignette.py at the backdrop's size. The walls hold one row per
+// town flag, in the order of the harbour pictures (harbourRow). Until an
+// image loads, or for a flag with no row, the code-drawn backdrop stands in.
+const BACKDROP_ART_URLS = {
+  deck: new URL('../assets/vignettes/fight-deck.png', import.meta.url).href,
+  alley: new URL('../assets/vignettes/fight-alley.png', import.meta.url).href,
+  walls: new URL('../assets/vignettes/fight-walls.png', import.meta.url).href,
+};
+const backdropArt = {};
+let backdropArtLoading = null;
+
+// Starts loading the backdrop art once; the fight's frame loop picks each
+// picture up as it arrives.
+export function loadBackdropArt() {
+  if (backdropArtLoading || typeof Image === 'undefined') return backdropArtLoading ?? Promise.resolve();
+  backdropArtLoading = Promise.all(Object.entries(BACKDROP_ART_URLS).map(([scene, url]) => new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => { backdropArt[scene] = image; resolve(); };
+    image.onerror = () => resolve();
+    image.src = url;
+  }))).then(() => {});
+  return backdropArtLoading;
+}
+
+const backdropArtScene = (scene) => (scene === 'alley' || scene === 'walls' ? scene : 'deck');
+
+// The backdrop as a sprite, with the colours of its top and bottom rows to
+// fill the screen above and below it: the art once loaded, else the
+// code-drawn backdrop.
+function backdropSprite(view) {
+  const scene = backdropArtScene(view.scene);
+  const row = scene === 'walls' ? harbourRow({ flag: view.flag, era: view.era }) : 0;
+  const image = backdropArt[scene];
+  if (image && row !== null) {
+    const art = cachedSprite(spriteCache, `art|${scene}|${row}`, () => {
+      const { width, height, groundY } = BACKDROP;
+      const canvas = typeof document !== 'undefined' ? document.createElement('canvas') : new OffscreenCanvas(width, height);
+      canvas.width = width; canvas.height = height;
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, row * height, width, height, 0, 0, width, height);
+      return { pixels: context.getImageData(0, 0, width, height).data, width, height, anchor: { x: 0, y: groundY } };
+    });
+    if (art) return { sprite: art, sky: edgeColour(art, 0), ground: edgeColour(art, BACKDROP.height - 1) };
+  }
+  const sprite = cachedSprite(spriteCache, `b|${scene}|${view.flag}`, () => paintBackdrop(scene, view.flag));
+  return scene === 'deck' ? { sprite, sky: '#a5d0de', ground: '#86592f' } : { sprite, sky: '#14203a', ground: '#3a3633' };
+}
+
+// The commonest colour of one row of a sprite (the sky, not a mast or a
+// sail crossing it), cached on the sprite.
+function edgeColour(sprite, row) {
+  sprite.edges ??= {};
+  if (!sprite.edges[row]) {
+    const pixels = sprite.image.getContext('2d').getImageData(0, row, sprite.width, 1).data;
+    const counts = new Map();
+    for (let index = 0; index < pixels.length; index += 4) {
+      const colour = `rgb(${pixels[index]},${pixels[index + 1]},${pixels[index + 2]})`;
+      counts.set(colour, (counts.get(colour) ?? 0) + 1);
+    }
+    sprite.edges[row] = [...counts].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0];
+  }
+  return sprite.edges[row];
+}
 
 const lookKey = (look) => Object.values(look).join(',');
 
@@ -50,7 +116,7 @@ export function swordLayout(width, height, centre = SCENE_UNITS / 2) {
   return { pixelScale, unit, left, ground, bottom, panelTop, compact };
 }
 
-// `view` is { fight, scene, flag, yourLook, foeLook, yourName, foeName }.
+// `view` is { fight, scene, flag, era, yourLook, foeLook, yourName, foeName }.
 export function renderSwordFight(context, view, width, height) {
   const { fight } = view;
   const layout = swordLayout(width, height, (fight.you.x + fight.foe.x) / 2);
@@ -58,10 +124,10 @@ export function renderSwordFight(context, view, width, height) {
   const toX = (x) => left + x * unit;
   const art = FIGHT_UNITS_PER_ART_PIXEL * unit;
 
-  context.fillStyle = view.scene === 'deck' ? '#a5d0de' : '#14203a';
+  const { sprite: backdrop, sky, ground: floor } = backdropSprite(view);
+  context.fillStyle = sky;
   context.fillRect(0, 0, width, ground);
-  const backdrop = cachedSprite(spriteCache, `b|${view.scene}|${view.flag}`, () => paintBackdrop(view.scene, view.flag));
-  context.fillStyle = view.scene === 'deck' ? '#86592f' : '#3a3633';
+  context.fillStyle = floor;
   context.fillRect(0, ground, width, height - ground);
   if (backdrop) drawPixelSprite(context, backdrop, left, ground, pixelScale);
 

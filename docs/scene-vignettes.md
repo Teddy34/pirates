@@ -1602,6 +1602,139 @@ sea, ships, oversized flag, emblem on the flag, red and yellow striped
 flag, tricolour flag, union jack, more than one flag, telescope, spyglass,
 bayonets, cannon in the foreground.
 
+**Fight backdrops.** The fight itself is drawn over a 260 × 132 backdrop
+(`BACKDROP` in `src/fencer-sprites.mjs`, ground line on row 112): the deck
+(boarding, mutiny, practice), the alley (guard, villain, rival suitor,
+attack by land) and the fort's walls (storming the walls, one row per town
+flag). The art is `assets/vignettes/fight-deck.png`, `fight-alley.png` and
+`fight-walls.png`, generated at 1774 × 887 (2 : 1) and built with the
+`backdrop` shape; the floor band is stretched to reach the ground line,
+and the walls' plain white flag is painted with the town's flag
+(provenance in `assets/vignettes/PROVENANCE.md`). The prompts ask for an
+empty, side-on stage set with no figures, since the fencers are sprites.
+The deck's guns were first drawn muzzle toward the viewer (pointing
+inboard); the prompt now asks for them seen from behind, run out.
+Final prompts, after the shared style block:
+
+*Deck:*
+
+> This is an EMPTY BACKGROUND for a side-view sword-fighting game, like a
+> theatre stage set: NO people, NO figures, NO animals anywhere. Strictly
+> side-on, flat, frontal view, as if seen from the side of the stage, with
+> almost no perspective depth: the back wall or background runs parallel
+> to the picture plane across the whole width. The floor is a flat
+> horizontal band filling exactly the bottom sixth of the picture, seen
+> slightly from above, running edge to edge with no objects standing on
+> it, so two duellists can be drawn on top later. The picture is a wide
+> panorama that pans left and right: spread interest evenly across the
+> whole width, no single central focal object, nothing large in the
+> foreground, nothing cut by the bottom edge except the floor. Moderate
+> contrast, slightly muted and darker than the figures that will stand in
+> front of it.
+>
+> Scene: the open main deck (the waist) of a 17th-century armed merchant
+> galleon on a bright day at sea, seen side-on across the deck. Behind the
+> deck, the far bulwark runs straight across the whole picture: tarred
+> dark oak planking with a heavy wooden rail on top, two square gunports
+> cut in the bulwark, each with its hinged lid swung up open, and in each
+> a black iron cannon on a red-brown wooden truck carriage run out through
+> the port, so we see the cannon FROM BEHIND: its rounded breech and knob
+> (cascabel) toward the viewer and the barrel pointing away out to sea
+> through the port, held by breeching ropes, coils of rope, a few wooden
+> buckets and a grating. Two thick wooden masts rise out of the picture's
+> top edge, one in the left third, one in the right third, each with its
+> tarred shrouds and ratlines fanning down to the rail and wooden
+> deadeyes, square canvas sails partly visible at the top, cream and
+> patched, with brailed-up lines. Above the rail, a strip of deep sea-
+> green Caribbean sea with small whitecaps, and a light blue sky with a
+> few white cumulus clouds. The floor band: pale weathered deck planks
+> running left to right, with dark seams and treenails. No flags.
+
+Negatives: cannon muzzles facing the viewer, cannons pointing inboard,
+people, figures, sailors, faces, ship's steering wheel, wheel, flags,
+skull and crossbones, metal modern fittings, portholes with glass, pixel
+art, pixelated, dithering, text, letters, captions, logos, signature,
+watermark, border or frame, photorealism, 3D render, blur, depth of field,
+anime style, strong perspective, vanishing point.
+
+*Alley:*
+
+> This is an EMPTY BACKGROUND for a side-view sword-fighting game, like a
+> theatre stage set: NO people, NO figures, NO animals anywhere. Strictly
+> side-on, flat, frontal view, as if seen from the side of the stage, with
+> almost no perspective depth: the back wall or background runs parallel
+> to the picture plane across the whole width. The floor is a flat
+> horizontal band filling exactly the bottom sixth of the picture, seen
+> slightly from above, running edge to edge with no objects standing on
+> it, so two duellists can be drawn on top later. The picture is a wide
+> panorama that pans left and right: spread interest evenly across the
+> whole width, no single central focal object, nothing large in the
+> foreground, nothing cut by the bottom edge except the floor. Moderate
+> contrast, slightly muted and darker than the figures that will stand in
+> front of it.
+>
+> Scene: a narrow street of a 17th-century Spanish colonial Caribbean port
+> town at night under a full moon, seen side-on: a continuous row of two-
+> storey house fronts runs straight across the whole picture, parallel to
+> the picture plane. Thick lime-plastered walls in faded ochre, white and
+> terracotta, partly peeling to show stone; red clay barrel-tile roofs
+> with deep eaves; heavy planked wooden doors with iron studs; small
+> windows with turned wooden bars (rejas) and closed wooden shutters, two
+> or three of them glowing warm orange from candlelight inside; one or two
+> wooden balconies on corbels; a narrow dark archway leading to a
+> courtyard; an iron wall bracket with a small lit lantern; a palm frond
+> showing over one roof. Above the roofs, a deep indigo night sky with a
+> few stars and the moon in the upper right. Cool blue moonlight on the
+> walls, warm pools of candlelight. The floor band: uneven grey-brown
+> cobblestones running edge to edge.
+
+Negatives: people, figures, faces, animals, street lamps on posts, glass
+shop windows, signs with letters, flags, tricorne hats, modern objects,
+pixel art, pixelated, dithering, text, letters, captions, logos,
+signature, watermark, border or frame, photorealism, 3D render, blur,
+depth of field, anime style, strong perspective, vanishing point, receding
+street.
+
+*Walls:*
+
+> This is an EMPTY BACKGROUND for a side-view sword-fighting game, like a
+> theatre stage set: NO people, NO figures, NO animals anywhere. Strictly
+> side-on, flat, frontal view, as if seen from the side of the stage, with
+> almost no perspective depth: the back wall or background runs parallel
+> to the picture plane across the whole width. The floor is a flat
+> horizontal band filling exactly the bottom sixth of the picture, seen
+> slightly from above, running edge to edge with no objects standing on
+> it, so two duellists can be drawn on top later. The picture is a wide
+> panorama that pans left and right: spread interest evenly across the
+> whole width, no single central focal object, nothing large in the
+> foreground, nothing cut by the bottom edge except the floor. Moderate
+> contrast, slightly muted and darker than the figures that will stand in
+> front of it.
+>
+>  Scene: outside the land wall of a 17th-century Spanish-style colonial
+> fortress in the Caribbean at night, seen side-on from the ground before
+> it: a massive sloping curtain wall of coral-grey and ochre limestone
+> blocks runs straight across the whole picture, parallel to the picture
+> plane, filling from about the top fifth down to the floor. On top, a
+> parapet with rounded merlons and embrasures with the black muzzles of
+> two or three iron cannons; one small round stone sentry box (garita)
+> with a domed cap jutting out at a corner; a cordon moulding running
+> along the wall; dark stains and moss at the foot. Near the middle of the
+> wall, a single tall wooden flagpole on the parapet flies one PLAIN WHITE
+> flag with no markings at all, fully spread out sideways in the wind,
+> clearly visible against the sky. A few lit torches in iron brackets on
+> the parapet give warm orange glows. Above the wall, a deep indigo night
+> sky with a few stars and a crescent moon in the upper right; cool blue
+> moonlight on the stone. The floor band: trampled bare earth and sparse
+> dry grass before the wall, running edge to edge.
+
+Negatives: people, figures, soldiers, faces, flags with crosses, flags
+with emblems, coloured flags, more than one flag, gate with modern
+ironwork, electric lights, modern objects, pixel art, pixelated,
+dithering, text, letters, captions, logos, signature, watermark, border or
+frame, photorealism, 3D render, blur, depth of field, anime style, strong
+perspective, vanishing point.
+
 ### 4.9 Treasure and lost relatives
 
 **dig-found** · orig. 0x78 `find-t` · digging finds a chest

@@ -1273,3 +1273,47 @@ tied back, short grey beard and red sash in all four.
   retire-3, flagless.
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for `retire-1` to `retire-4`.
+
+## fight-deck.png, fight-alley.png, fight-walls.png
+
+The sword fights' backdrops, each 260 × 132 (the fight's `BACKDROP`, its
+ground line on row 112), drawn behind the fencers by
+`src/sword-renderer.mjs`; the code-drawn backdrops of
+`src/fencer-sprites.mjs` stand in until they load. Empty stage sets, side-on,
+with no figures: the fencers and crews are sprites drawn over them.
+
+- `fight-deck.png`: the waist of an armed merchant galleon by day, the far
+  bulwark with two iron guns on red truck carriages run out through open
+  gunports (seen from behind, breech toward the viewer), shrouds,
+  ratlines and deadeyes, two masts with patched sails, the sea beyond. For
+  boarding, the mutiny and practice.
+- `fight-alley.png`: a moonlit street of plastered Spanish colonial houses
+  with tile roofs, wooden balconies, barred lit windows, studded doors, a
+  lantern on an iron bracket and an archway into a courtyard, over
+  cobbles. For the guard, the villain, the rival suitor and the attack by
+  land. Flagless.
+- `fight-walls.png`: the land wall of a stone fort at night, a corner
+  sentry box, guns in the embrasures, torches, and one flag on the parapet,
+  over bare trampled earth. One row per town flag (Spain, England, France,
+  the Prince's flag, the States flag), as for `fort-walls.png`.
+
+- **Source:** for each, a comic-style illustration (1774 × 887) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the prompts in
+  `docs/scene-vignettes.md` §4.8 with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Regenerated:** the first deck image showed the guns' muzzles toward
+  the viewer, pointing inboard; the prompt was corrected to show them from
+  behind, run out through open ports, and the second image is the one used.
+- **Fixes:** each source's floor band came out thinner than the backdrop's
+  (20 of 132 rows): `stretch_floor` stretches it vertically and the crop
+  puts the wall's foot just above the fencers' ground line. The walls'
+  plain white flag is painted with each town's flag (`fort_flag_variants`,
+  shaded by the source's folds); the flagpole's finial is cropped off.
+- **Process:** `tools/build_vignette.py` crops each to 260 : 132, reduces it
+  with a box filter, raises contrast (×1.15) and colour (×1.2), and
+  quantises to 256 colours (median cut, no dithering, indexed PNG).
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for `fight-deck`, `fight-alley` and `fight-walls`.

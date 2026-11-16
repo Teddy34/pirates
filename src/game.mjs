@@ -40,7 +40,7 @@ import {
   assaultRecord, boardingRecord, createFight, duelRecord, fightOutcome, garrisonAfterAssault, frameSeconds, practiceAfterBout, practiceRecord, stepFight,
 } from './sword-mechanics.mjs';
 import { LOOKS, lookForOpponent } from './fencer-sprites.mjs';
-import { renderSwordFight } from './sword-renderer.mjs';
+import { loadBackdropArt, renderSwordFight } from './sword-renderer.mjs';
 import { CELL, PIXEL, decodeNavigationMap, gunzip, isNavigableAt, pixelClassAt } from './world-map.mjs';
 import { TERRAIN_CHUNK_CELLS, TERRAIN_PIXELS_PER_CELL } from './terrain.mjs';
 import {
@@ -1900,13 +1900,14 @@ function beginSwordFight({ record, weapon = DEFAULT_WEAPON, scene = 'deck', onEn
   const crewColor = NATIONS[opponent.nation]?.color;
   swordView = {
     fight: createFight({ record, difficulty: state.difficulty, hasFencing: state.ability === 'fencing', practice: state.player.fencingPractice ?? 0, weapon, rng }),
-    scene, flag: opponent.nation, onEnd, returnMode: state.mode, returnPaused: state.paused, endPause: SWORD_END_PAUSE_SECONDS,
+    scene, flag: opponent.nation, era: state.era, onEnd, returnMode: state.mode, returnPaused: state.paused, endPause: SWORD_END_PAUSE_SECONDS,
     yourLook: LOOKS.player,
     foeLook: lookForOpponent(opponent.title, opponent.nation, NATIONS),
     foeCrewLook: scene === 'walls' ? lookForOpponent('Guard', opponent.nation, NATIONS) : { ...LOOKS.sailor, hatColor: crewColor ?? LOOKS.sailor.hatColor },
     yourName: `Captain ${state.captain}`,
     foeName: opponentName(opponent),
   };
+  loadBackdropArt();
   state.mode = 'sword';
   state.paused = false;
   swordAccumulator = 0;
