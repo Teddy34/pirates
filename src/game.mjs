@@ -4751,7 +4751,7 @@ function updateInterface() {
   document.body.classList.toggle('sword-fight', state.mode === 'sword');
   document.body.classList.toggle('sea-battle', state.mode === 'battle');
   if (state.mode === 'sword' && swordView) {
-    updateSwordInterface(swordView);
+    updateSwordInterface();
     return;
   }
   const inBattle = state.mode === 'battle' && state.battle;
@@ -4823,7 +4823,7 @@ function updateSailingInterface(player, onFoot) {
 // The sailing buttons become the fight's controls: the steering pair attack
 // and back off, the sail pair pick the high and low lines, and the dock
 // button holds the quick thrust.
-function updateSwordInterface({ fight, foeName }) {
+function updateSwordInterface() {
   setControl(turnLeftButton, 'swords', 'Attack (hold)', '← or A');
   setControl(turnRightButton, 'back', 'Back off (hold)', '→ or D');
   setControl(raiseSailsButton, 'up', 'Fight on the high line (hold)', '↑ or W');
@@ -4835,16 +4835,6 @@ function updateSwordInterface({ fight, foeName }) {
   zoomInButton.disabled = true;
   logbookButton.disabled = true;
   chartButton.disabled = true;
-  const battle = fight.mode === FIGHT_MODE.battle;
-  labels.captain.textContent = `Captain ${state.captain} · Fight`;
-  labels.date.textContent = `Against the ${foeName}`;
-  labels.wind.textContent = `↔ ${fight.you.x - fight.foe.x}`;
-  labels.sails.textContent = ['Mid', 'Low', 'High'][fight.you.move >= 0 && fight.you.move < 12 ? fight.you.move % 3 : 0];
-  labels.food.textContent = 'Clock stopped';
-  labels.crew.textContent = battle ? String(fight.you.men) : 'Alone';
-  labels.mood.textContent = crewMoodLabel();
-  labels.gold.textContent = `Morale ${fight.you.morale}`;
-  labels.nearest.textContent = battle ? `${fight.foe.men} foes` : `Foe ${fight.foe.morale}`;
 }
 
 function render() {
