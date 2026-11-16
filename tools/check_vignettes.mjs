@@ -66,6 +66,28 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     ['reef-loss', 'driven onto a coral reef'],
     ['marooned', 'driftwood fire'],
   ];
+  // Each button's left and right arrows land on its nearest neighbour on the
+  // same line, judged from the page's own layout, and stop at the line's end.
+  const checkMenuArrows = async (where) => {
+    const menuSize = await evaluate(`document.querySelectorAll('#dialog-actions button').length`);
+    for (let index = 0; index < menuSize; index += 1) {
+      for (const key of ['ArrowRight', 'ArrowLeft']) {
+        const expected = await evaluate(`(() => {
+          const buttons = [...document.querySelectorAll('#dialog-actions button')];
+          const from = buttons[${index}].getBoundingClientRect();
+          const sign = ${key === 'ArrowRight' ? 1 : -1};
+          const inLine = buttons.filter((b) => { const r = b.getBoundingClientRect(); return Math.min(r.bottom, from.bottom) > Math.max(r.top, from.top) && (r.left - from.left) * sign > 1; });
+          inLine.sort((a, b) => (a.getBoundingClientRect().left - b.getBoundingClientRect().left) * sign);
+          buttons[${index}].focus();
+          // At the line's end the focus stays where it is.
+          return (inLine[0] ?? buttons[${index}]).textContent;
+        })()`);
+        await press(key);
+        const landed = await evaluate(`document.activeElement?.textContent`);
+        if (landed !== expected) throw new Error(`${where}: ${key} from button ${index + 1} of the town menu went to ${landed}, not ${expected}`);
+      }
+    }
+  };
   for (const viewport of VIEWPORTS) {
     await setViewport(viewport);
     // The title screen: the pixel "Retro" and the ship artwork (once loaded) are painted,
@@ -200,6 +222,15 @@ await withBrowser({ name: 'vignettes', portOffset: 4, screenshotEnv: 'VIGNETTE_S
     await until('the quay art', `document.querySelector('#dialog-vignette canvas').getAttribute('aria-label').includes('headland fort flying')`);
     await expectPicture(`${viewport.name} quay`, 'headland fort flying');
     await screenshot(`${viewport.name}-port-quay`);
+    // Left and right stay on a button's own line of the wrapped menu (#108);
+    // at 1440 px its second line holds three wide buttons under six.
+    await checkMenuArrows(viewport.name);
+    if (viewport.name === 'desktop') {
+      await setViewport({ width: 1440, height: 900, mobile: false });
+      await open('in-port');
+      await checkMenuArrows('1440 px');
+      await setViewport(viewport);
+    }
     // The governor's portrait follows the era and the town's nation: the
     // 1680 French preview career's governor, then the gallery of all 24.
     await open('governor-promotion');

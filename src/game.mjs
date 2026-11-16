@@ -1,4 +1,5 @@
 import { actionIconName, paintActionIcon } from './action-icons.mjs';
+import { ARROW_STEPS, spatialNeighbour } from './spatial-focus.mjs';
 import {
   WORLD, NATIONS, SHIPS, LAND_SHAPES, MONTHS,
 } from './data.mjs';
@@ -4570,32 +4571,17 @@ function actionIconUrl(name) {
 }
 
 // The arrow keys move the focus between the dialog's buttons by screen
-// position, so a two-column menu goes up, down, left and right as it looks.
-const ARROW_STEPS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+// position, so a two-column menu goes up, down, left and right as it looks
+// (`spatialNeighbour`).
 function moveDialogFocus(key) {
-  const [dx, dy] = ARROW_STEPS[key];
-  const centre = (element) => {
-    const r = element.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-  };
   const buttons = [...dialog.querySelectorAll('button:not(:disabled)')].filter((button) => button.offsetParent);
   const current = buttons.includes(document.activeElement) ? document.activeElement : null;
   if (!current) {
     buttons[0]?.focus();
     return Boolean(buttons[0]);
   }
-  const from = centre(current);
-  let best = null;
-  let bestScore = Infinity;
-  for (const button of buttons) {
-    if (button === current) continue;
-    const to = centre(button);
-    const along = (to.x - from.x) * dx + (to.y - from.y) * dy;
-    if (along <= 1) continue;
-    const across = Math.abs((to.x - from.x) * dy) + Math.abs((to.y - from.y) * dx);
-    const score = along + across * 3;
-    if (score < bestScore) { best = button; bestScore = score; }
-  }
+  const rects = buttons.map((button) => button.getBoundingClientRect());
+  const best = buttons[spatialNeighbour(rects[buttons.indexOf(current)], rects, key)];
   best?.focus();
   return Boolean(best);
 }
