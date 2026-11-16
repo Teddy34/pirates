@@ -131,7 +131,7 @@ named captain (`0xF207`). Fort battles reuse the naval engine (§7).
   bays and islands are the ones you sail past. The forts stand on the shore
   of the town's own landmass beside the town (`fortPlaces`; on an island too
   small for them outside the landing zone, on its shore at least 18 px from
-  the town, with their ground taken out of the zone by `settleForts`; on
+  the town, where their ground stays part of the zone; on
   other land only when the town's has no room, as at Nevis), drawn as small
   pixel-art forts in the style of the town markers (`src/fort-sprites.mjs`).
 - **You land on the shore by the town, not at the fort.** The original
@@ -139,8 +139,11 @@ named captain (`0xF207`). Fort battles reuse the naval engine (§7).
   ashore next to it (`0x8269`, event 5); any other shore is event 13. In the
   port the flagship's centre reaching the town's own landmass near the town
   (within its nearest water plus two cells, at least three cells) lands the
-  crew; any other land, a fort's shore or a neighbouring island included, is
-  running aground. Nothing on the
+  crew, the shore of a fort standing there included, as running ashore next
+  to the fort does in the original; any other land, a fort's shore away from
+  the town or a neighbouring island included, is running aground. (Taking
+  the forts' ground out of the zone made the north shore of St. Eustatius,
+  right beside the town, run aground: issue #120.) Nothing on the
   field marks the landing: the town itself is the goal.
 - **The attacker starts from a favourable position.** You start in open
   water as near straight upwind of the town as the coast allows, 230 px out

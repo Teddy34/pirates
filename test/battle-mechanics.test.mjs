@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SPEED_TABLE_1560 } from '../src/data.mjs';
+import { readFile } from 'node:fs/promises';
+import { gunzipSync } from 'node:zlib';
+import { SPEED_TABLE_1560, WORLD } from '../src/data.mjs';
 import {
   BATTLE_EVENT, BATTLE_SAIL_TRANSITION_FRAMES, BATTLE_SHOT_SPLASH_END, BATTLE_WIND_SHIFT_FRAMES,
   PLAYER_RUDDER_INTERVAL, PLAYER_RUDDER_STEP, SMOKE_DRIFT, SMOKE_LIFE_FRAMES, driftSmoke,
@@ -10,7 +12,8 @@ import {
   shipsTouch, shotHitsShip, sinScaled, stepBattle, stepPlayerSailsAndReload,
   FORT_FIELD, bearingByte, createFortBattle, fortTargetIndex, fortDamageLevel, fortFieldGround, garrisonAfterFortBattle, signedAngleDifference,
 } from '../src/battle-mechanics.mjs';
-import { CELL, PIXEL, pixelClassAt } from '../src/world-map.mjs';
+import { CELL, PIXEL, decodeNavigationMap, pixelClassAt } from '../src/world-map.mjs';
+import { isLandlocked } from '../src/mechanics.mjs';
 import { renderBattle } from '../src/battle-renderer.mjs';
 
 const zeroRng = { int: () => 0 };
@@ -548,7 +551,7 @@ test('each fort is a type-8 battery of 12 guns on the shore beside the town, sha
   assert.doesNotThrow(() => JSON.stringify(battle));
 });
 
-test('on a small island the forts and the landing keep to the town’s own island', () => {
+test('on a small island the forts and the landing keep to the town’s own island, a fort’s shore by the town included', () => {
   // A 5 × 5 cell island round the town at (40, 30), and another island two
   // cells of water to the east.
   const width = 80;
@@ -571,9 +574,113 @@ test('on a small island the forts and the landing keep to the town’s own islan
   assert.equal(fortFieldGround(field, field.landing), 'landing');
   assert.equal(forts.length, 2);
   for (const fort of forts) {
-    assert.equal(fortFieldGround(field, fort), 'land', 'a fort is not a landing place');
+    // As in the original, running ashore next to a fort that stands by the
+    // town lands the crew (issue #120).
+    assert.equal(fortFieldGround(field, fort), 'landing', 'a fort in the landing zone is ashore by the town');
     const cell = { x: field.left + fort.x / field.cellPixels, y: field.top + fort.y / field.cellPixels };
     assert.ok(Math.abs(cell.x - 40.5) <= 3 && Math.abs(cell.y - 30.5) <= 3, 'on the town’s island');
+  }
+});
+
+// The real navigation maps and scenarios, for the fort-field sweeps.
+const SCENARIOS = JSON.parse(await readFile(new URL('../assets/scenarios.json', import.meta.url), 'utf8')).eras;
+const realMaps = new Map();
+async function realMap(era) {
+  if (!realMaps.has(era)) {
+    const bytes = new Uint8Array(gunzipSync(await readFile(new URL(`../assets/world-${era}.bin`, import.meta.url))));
+    realMaps.set(era, decodeNavigationMap(bytes, WORLD.width, WORLD.height));
+  }
+  return realMaps.get(era);
+}
+const realFortBattle = async (era, town, wind = 0) => createFortBattle({
+  player: { ships: ['Frigate'], crew: 100, cannon: 20, wind },
+  town, map: await realMap(era),
+  speedRows: SCENARIOS[era].speeds, difficulty: 1, ability: 'navigation', crewMorale: 4, rng: zeroRng,
+});
+
+// Sails the flagship from `from`, steered straight at the town every frame,
+// with the forts holding their fire, until the battle ends.
+function sailAtTheTown(battle, from) {
+  const { town } = battle.field;
+  let next = {
+    ...battle,
+    forts: battle.forts.map((fort) => ({ ...fort, reload: 1e9 })),
+    player: { ...battle.player, ...from },
+  };
+  for (let frame = 0; frame < 3000 && !next.event; frame += 1) {
+    next = { ...next, player: { ...next.player, heading: bearingByte(town.x - next.player.x, town.y - next.player.y) } };
+    next = stepBattle(next, {}, zeroRng);
+  }
+  return next;
+}
+
+test('issue #120: at St. Eustatius, running ashore by the town from any side lands the crew', async () => {
+  for (const era of ['1640', '1660', '1680']) {
+    const town = SCENARIOS[era].towns.find((candidate) => candidate.name === 'St. Eustatius');
+    assert.ok(town?.forts > 0, `${era}: St. Eustatius is fortified`);
+    const battle = await realFortBattle(era, town);
+    const { field } = battle;
+    let landings = 0;
+    for (let bearing = 0; bearing < 256; bearing += 8) {
+      const radians = bearing * Math.PI / 128;
+      const from = { x: field.town.x + Math.sin(radians) * 80, y: field.town.y - Math.cos(radians) * 80 };
+      if (fortFieldGround(field, from) !== 'water') continue;
+      const { event, player } = sailAtTheTown(battle, { ...from, heading: bearingByte(field.town.x - from.x, field.town.y - from.y) });
+      // Only a run that meets other land on the way in may end aground,
+      // never one that reaches the shore by the town, wherever the forts stand.
+      const reached = Math.hypot(player.x - field.town.x, player.y - field.town.y);
+      if (event === 'beached') assert.ok(reached > field.landingRadius + 2, `${era}: aground by the town from bearing ${bearing}`);
+      else assert.equal(event, 'landed', `${era}: from bearing ${bearing}`);
+      if (event === 'landed') landings += 1;
+    }
+    assert.ok(landings >= 24, `${era}: the island is approached from most sides (${landings})`);
+  }
+});
+
+test('every fortified coastal town keeps its landing by the town whole and reachable by sea', async () => {
+  for (const era of Object.keys(SCENARIOS)) {
+    for (const town of SCENARIOS[era].towns) {
+      if (!town.forts || isLandlocked(town)) continue;
+      for (const wind of [0, 128]) {
+        const { field, player } = await realFortBattle(era, town, wind);
+        const label = `${era} ${town.name}, wind ${wind}`;
+        const { width, height, town: centre, landingRadius } = field;
+        const ground = (x, y) => fortFieldGround(field, { x, y });
+        const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        assert.equal(ground(centre.x, centre.y), 'landing', `${label}: the town stands in its landing zone`);
+        // No shore of the town's land within the zone runs aground: a land
+        // pixel there never touches the landing zone.
+        for (let y = Math.floor(centre.y - landingRadius); y <= centre.y + landingRadius; y += 1) {
+          for (let x = Math.floor(centre.x - landingRadius); x <= centre.x + landingRadius; x += 1) {
+            if (Math.hypot(x - centre.x, y - centre.y) > landingRadius - 1 || ground(x, y) !== 'land') continue;
+            assert.ok(!sides.some(([dx, dy]) => ground(x + dx, y + dy) === 'landing'), `${label}: ${x}, ${y} is aground beside the landing`);
+          }
+        }
+        // Open water joins the start to the landing zone's shore.
+        const { margin } = FORT_FIELD;
+        const seen = new Uint8Array(width * height);
+        const queue = [Math.floor(player.y) * width + Math.floor(player.x)];
+        seen[queue[0]] = 1;
+        let reached = false;
+        while (queue.length && !reached) {
+          const index = queue.pop();
+          const x = index % width;
+          const y = Math.floor(index / width);
+          for (const [dx, dy] of sides) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < margin || ny < margin || nx >= width - margin || ny >= height - margin) continue;
+            const kind = ground(nx, ny);
+            if (kind === 'landing') { reached = true; break; }
+            const next = ny * width + nx;
+            if (kind !== 'water' || seen[next]) continue;
+            seen[next] = 1;
+            queue.push(next);
+          }
+        }
+        assert.ok(reached, `${label}: the landing can be reached by sea`);
+      }
+    }
   }
 });
 
