@@ -1,15 +1,17 @@
 // Browser smoke check for the fort battle: the briefing names the shore by
 // the town as the landing place, the battle draws the coast round the town
 // with one battery per fort (the preview town has several), landing by the
-// town leads to storming the walls, and running aground under a fort or
-// being driven off ends the attack. Runs at a desktop and a narrow size (?preview=fort-battle). Set
+// town leads to storming the walls, and running aground under a fort away
+// from the town or being driven off ends the attack. Runs at a desktop and a
+// narrow size (?preview=fort-battle, and fort-battle-island for a small
+// island whose fort stands by the town). Set
 // FORT_SCREENSHOTS to a directory to keep screenshots.
 import { S, VIEWPORTS, delay, dialogTitle, withBrowser } from './browser-harness.mjs';
 
 await withBrowser({ name: 'fort', portOffset: 8, screenshotEnv: 'FORT_SCREENSHOTS' }, async ({ evaluate, until, clickButton, screenshot, open, setViewport }) => {
   const inBattle = `${S}?.mode === 'battle' && Boolean(${S}.battle?.fort)`;
-  const startBattle = async (where) => {
-    await open('fort-battle');
+  const startBattle = async (where, preview = 'fort-battle') => {
+    await open(preview);
     const body = await evaluate("document.querySelector('#event-dialog[open] #dialog-body').textContent");
     if (!/ashore by the town/.test(body) || !/fort’s walls/.test(body)) throw new Error(`${where}: the briefing does not point to the town instead of the forts`);
     await screenshot(`${where}-briefing`);
@@ -46,7 +48,7 @@ await withBrowser({ name: 'fort', portOffset: 8, screenshotEnv: 'FORT_SCREENSHOT
     await clickButton('Storm the walls');
     await until(`${where}: the weapon choice`, `document.querySelector('#event-dialog[open] #dialog-actions')?.textContent.includes('Cutlass')`);
 
-    // A fort's shore is not a landing place.
+    // A fort's shore away from the town is not a landing place.
     await startBattle(`${where}-aground`);
     await placeShipAt('forts[0]');
     await until(`${where}: aground`, `${dialogTitle} === 'Aground'`);
@@ -62,6 +64,14 @@ await withBrowser({ name: 'fort', portOffset: 8, screenshotEnv: 'FORT_SCREENSHOT
     if (await evaluate(`${S}.alert`) <= alertBefore) throw new Error(`${where}: being driven off by the fort does not alert the town`);
     await clickButton('Continue');
     await until(`${where}: back at sea`, `${S}.mode === 'sailing' && !document.querySelector('#event-dialog[open]')`);
-    console.log(`${where}: the fort battle briefs, draws, lands by the town, runs aground and is driven off.`);
+
+    // Issue #120: on a small island the fort stands by the town, and running
+    // ashore beside it lands the crew.
+    await startBattle(`${where}-island`, 'fort-battle-island');
+    if (await evaluate(`${S}.towns[${S}.battle.townIndex].name`) !== 'St. Eustatius') throw new Error(`${where}: the island preview is not St. Eustatius`);
+    await placeShipAt('forts[0]');
+    await until(`${where}: landed beside the island's fort`, `${dialogTitle}?.startsWith('Attack ') && document.querySelector('#dialog-actions').textContent.includes('Storm the walls')`);
+    await screenshot(`${where}-island-landed`);
+    console.log(`${where}: the fort battle briefs, draws, lands by the town, runs aground, is driven off and lands beside a small island's fort.`);
   }
 });

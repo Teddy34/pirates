@@ -11,6 +11,17 @@ history.
 
 ## Unreleased
 
+### Fixed
+
+- Fort battles at small island towns such as St. Eustatius: running your
+  flagship ashore by the town now lands your men even where a fort stands
+  right beside the town. The shore round such a fort used to count as
+  running aground, so on an island too small to keep its forts away from the
+  town, much of the shore by the town ended the attack with "your men refuse
+  to march". As in the original, running ashore next to a fort by the town
+  now gets you through; a fort's shore away from the town is still running
+  aground. Check it with `?preview=fort-battle-island`.
+
 ### Removed
 
 - The code-drawn pictures that showed while a scene's real art was still

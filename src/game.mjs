@@ -2607,13 +2607,13 @@ function withdrawFromAssault(town, { alert = 16 } = {}) {
 
 // sea_battles.md §8: by sea, a fortified town is attacked through a battle
 // against its forts. The briefing names the goal: the port's field puts the
-// landing on the shore by the town itself, not under a fort (FORT_FIELD in
-// battle-mechanics.mjs).
+// landing on the shore by the town itself, a fort standing there included,
+// not under a fort away from it (FORT_FIELD in battle-mechanics.mjs).
 function briefFortBattle(town) {
   const forts = Math.min(town.forts & 7, MAX_FORT_BATTERIES);
   const fortLine = forts === 1
-    ? `One fort guards the harbor of ${town.name} with 12 guns. It stands on the shore beside the town: there is nowhere to land beneath its walls.`
-    : `${forts} forts guard the harbor of ${town.name}, with 12 guns each. They stand on the shore around the town: there is nowhere to land beneath their walls.`;
+    ? `One fort guards the harbor of ${town.name} with 12 guns. It stands on the shore beside the town.`
+    : `${forts} forts guard the harbor of ${town.name}, with 12 guns each. They stand on the shore around the town.`;
   const fire = forts === 1
     ? 'the fort fires whenever its guns bear'
     : 'each fort fires whenever its guns bear. Your broadside bears on the nearest fort still firing, and a fort whose guns are all dismounted falls silent';
@@ -2624,7 +2624,7 @@ function briefFortBattle(town) {
   showDialog({
     vignette: { id: 'fort-walls', flag: town.nation, era: state.era }, kicker: 'Assault from the sea', title: `Attack ${town.name}`,
     body: `<p>${fortLine}</p>`
-      + `<p><strong>Steer past the ${forts === 1 ? 'fort' : 'forts'} and run your flagship ashore by the town itself.</strong> Your men will land there and take the fort from the town side. Run aground anywhere else, under a fort’s walls included, and they will refuse to march; stand too far out to sea and the guns drive you off.</p>`
+      + `<p><strong>Steer past the ${forts === 1 ? 'fort' : 'forts'} and run your flagship ashore by the town itself.</strong> Your men will land there and take the fort from the town side. Where a fort stands right by the town, running ashore beside it lands them too. Run aground anywhere else, under a fort’s walls away from the town included, and they will refuse to march; stand too far out to sea and the guns drive you off.</p>`
       + `<p>You start upwind of the town where the coast allows, and ${fire}. Only the flagship’s crew goes ashore. Steer with Left/Right or A/D, fire with Space, and change sail with Up/Down.</p>`
       + `<p>Choose the ship you will command. Eight hands remain aboard every reserve ship.</p>`,
     actions: [...choices, withdrawFromAssault(town)],
@@ -5492,6 +5492,11 @@ const SCENE_PREVIEWS = {
   'fort-battle': () => {
     state.approach = { overland: false };
     attackTown(state.towns.reduce((best, town) => (town.forts > best.forts ? town : best)));
+  },
+  // A small island whose fort stands by the town (issue #120).
+  'fort-battle-island': () => {
+    state.approach = { overland: false };
+    attackTown(state.towns[previewTownIndex('St. Eustatius')]);
   },
   'fort-walls': () => {
     state.approach = { overland: false };

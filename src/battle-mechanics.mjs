@@ -721,9 +721,11 @@ function stepBattleWind(battle, rng) {
 // pixels to a map cell, and paints it like the sailing map; the forts stand
 // on the shore beside the town. In the original you get through by touching
 // the fort or running ashore next to it (event 5); here you land by bringing
-// the flagship's centre onto the shore near the town (the landing zone). Any
-// other shore, the forts' included, is running aground (event 13, CSTR 173),
-// and leaving the field is being driven off (event 6, CSTR 196).
+// the flagship's centre onto the shore near the town (the landing zone),
+// a fort standing in the zone included, as running ashore next to the fort
+// is in the original. Any other shore, a fort's outside the zone included,
+// is running aground (event 13, CSTR 173), and leaving the field is being
+// driven off (event 6, CSTR 196).
 export const FORT_FIELD = Object.freeze({ width: 600, height: 400, margin: 10, cellPixels: 10 });
 // `home` is land joined to the town's own; it reads as 'land'.
 const GROUND = Object.freeze({ water: 0, land: 1, landing: 2, home: 3 });
@@ -848,7 +850,8 @@ function openWater(field, x, y, radius) {
 // each next one well apart from the others while staying close to the town.
 // A short coast packs them closer; on an island too small to hold them
 // outside the landing zone they stand on its shore within the zone, at least
-// 18 px from the town (settleForts then takes their ground out of the zone).
+// 18 px from the town. Their ground stays in the zone: carving it out made
+// the shore right beside a small island's town run aground (issue #120).
 // Only when the town's land has no room at all do they stand on other land.
 export function fortPlaces(field, count) {
   const { width, height, town, landingRadius, cells } = field;
@@ -892,31 +895,6 @@ export function fortPlaces(field, count) {
   // No shore left at all (never on the real maps): the rest stand at the town.
   while (places.length < count) places.push({ x: Math.round(town.x), y: Math.round(town.y) });
   return places;
-}
-
-// Takes the ground within 14 px of each fort out of the landing zone, so
-// running onto a fort is running aground, and moves `landing` to the
-// remaining zone's shore point nearest the town. Mutates `field`.
-export function settleForts(field, places) {
-  const { width, height, town, landingRadius, cells } = field;
-  for (const place of places) {
-    for (let y = Math.max(0, place.y - 14); y <= Math.min(height - 1, place.y + 14); y += 1) {
-      for (let x = Math.max(0, place.x - 14); x <= Math.min(width - 1, place.x + 14); x += 1) {
-        if (cells[y * width + x] === GROUND.landing && Math.hypot(x - place.x, y - place.y) <= 14) cells[y * width + x] = GROUND.home;
-      }
-    }
-  }
-  const at = (x, y) => (x < 0 || y < 0 || x >= width || y >= height ? GROUND.water : cells[y * width + x]);
-  let best = Infinity;
-  for (let y = Math.max(0, Math.floor(town.y - landingRadius)); y < Math.min(height, town.y + landingRadius); y += 1) {
-    for (let x = Math.max(0, Math.floor(town.x - landingRadius)); x < Math.min(width, town.x + landingRadius); x += 1) {
-      if (at(x, y) !== GROUND.landing) continue;
-      const distance = Math.hypot(x - town.x, y - town.y);
-      const shore = [[2, 0], [-2, 0], [0, 2], [0, -2]].some(([dx, dy]) => at(x + dx, y + dy) === GROUND.water);
-      if (shore && distance < best) { field.landing = { x, y }; best = distance; }
-    }
-  }
-  return field;
 }
 
 // The fort's damage display: min(3, hits/20) (0xECF0).
@@ -1027,7 +1005,6 @@ export function createFortBattle({ player, town, map, flagshipIndex = 0, speedRo
   const fortMen = 4 * ((town.soldiers + 1) >> 1);
   const count = Math.min(town.forts & 7, MAX_FORT_BATTERIES);
   const places = fortPlaces(field, count);
-  settleForts(field, places);
   const start = fortStart(field, player.wind);
   const forts = createFortBatteries({ forts: town.forts, men: fortMen, flag: town.nation, places });
   return {
