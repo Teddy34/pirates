@@ -199,6 +199,10 @@ const SCENE_ART_URLS = {
   'hall-of-fame': new URL('../assets/vignettes/hall-of-fame.png', import.meta.url).href,
   mutiny: new URL('../assets/vignettes/mutiny.png', import.meta.url).href,
   prison: new URL('../assets/vignettes/prison.png', import.meta.url).href,
+  'retire-1': new URL('../assets/vignettes/retire-1.png', import.meta.url).href,
+  'retire-2': new URL('../assets/vignettes/retire-2.png', import.meta.url).href,
+  'retire-3': new URL('../assets/vignettes/retire-3.png', import.meta.url).href,
+  'retire-4': new URL('../assets/vignettes/retire-4.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
   'treasure-fleet': 'In a sunlit harbour below a hilltop fort, barefoot sailors pass gold ingots, chests of coins and strings of pearls across a plank from a beaten royal galleon, shot-holed and flying a white flag with a red ragged saltire, into the glittering hold of the captain’s ship, while the captain in his blue coat holds up an ingot and the disarmed Spanish crew sits under guard, pixelated from a comic-style illustration.',
@@ -215,6 +219,10 @@ const ART_DESCRIPTIONS = {
   'hall-of-fame': 'In a wood-panelled hall hung with portraits of sea captains in breastplates and white collars, an empty gilded frame waits among them above a carved desk where a record book lies open beside a quill, an inkwell and a lit candle, pixelated from a comic-style illustration.',
   mutiny: 'At dawn on a ship’s quarterdeck the captain in his blue coat draws his cutlass alone at the rail as a huge bare-chested ringleader points a cutlass at him from the top of the ladder, an armed crew with an axe, knives and handspikes snarling behind him, pixelated from a comic-style illustration.',
   prison: 'In a vaulted stone cell lit by a barred window, the wounded captain, unshaven, a bloodied bandage on his arm, sits on straw beside his blue coat, a jug and a crust of bread, rows of tally marks scratched on the wall and a guard’s shadow with a pike on the iron-bound door, pixelated from a comic-style illustration.',
+  'retire-1': 'At sunset outside a whitewashed, palm-thatched seaside cottage, the old grey captain in his faded, patched blue coat and red sash mends a fishing net on a bench, a clay pipe in his mouth and his old dog asleep at his feet, while a small rowing boat lies drawn up on the shingle and a ship sails past a distant fort, pixelated from a comic-style illustration.',
+  'retire-2': 'Under a great shade tree on the stone terrace of a whitewashed plantation house, the old grey captain in a cream linen coat and red sash sits back in a carved armchair with a pewter cup, his hound beside him and his old cutlass hung on the chair, looking out over sugar cane fields falling to the bay and a lone sail on the sunset sea, pixelated from a comic-style illustration.',
+  'retire-3': 'On the balcony of a whitewashed town house above a busy harbour at sunset, the old grey captain in a blue coat with gold buttons and a red sash points out his former flagship, a great three-masted galleon riding at anchor with her sails furled, while his laughing bald old shipmate raises a cup of wine beside him, pixelated from a comic-style illustration.',
+  'retire-4': 'On a palace terrace above formal box-hedge gardens and a fountain at sunset, a crowned king in an ermine-lined blue mantle rests his hand on the shoulder of the old grey captain, now a nobleman in a crimson embroidered doublet with a gold chain and red sash, his plumed hat in his hand, pixelated from a comic-style illustration.',
   marooned: 'On a palm-fringed island beach the castaway captain, barefoot in a torn shirt, sits by a driftwood fire drinking from a coconut shell as two island men in cotton loincloths offer him papaya and grilled fish, while out in the bay a small two-masted ship lies at anchor and her boat rows in, pixelated from a comic-style illustration.',
   'dig-found': 'In a jungle clearing by a strange tall rock, three grinning sailors in a fresh pit of red earth lean over an iron-bound oak chest heaped with gold and silver coins, while the captain in his blue coat stands over them with the old map, pixelated from a comic-style illustration.',
   'dig-nothing': 'At sunset on a beach scarred with empty holes, one exhausted sailor slumps by a pit, another leans on his spade and a third flings down his hat, while the captain in his blue coat glares at a torn map, pixelated from a comic-style illustration.',
@@ -2403,9 +2411,14 @@ function sunsetSea(p, horizon) {
   for (let row = horizon + 2; row < horizon + 20; row += 3) p.rect(162, row, 16, 1, '#f4cf80');
 }
 
-// Humble: a bench outside a seaside cottage, a net to mend, a pipe, the dog
+// The art (assets/vignettes/retire-1.png) once loaded; until then
+// humble: a bench outside a seaside cottage, a net to mend, a pipe, the dog
 // and a small boat drawn up on the shingle.
 function drawRetireHumble(p) {
+  if (sceneArt['retire-1']) {
+    p.image(sceneArt['retire-1'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sunsetSea(p, 60);
   p.rect(0, 84, 224, 44, '#b89a6a');
   for (let x = 4; x < 224; x += 9) p.rect(x, 90 + (x * 5) % 34, 4, 1, '#a08458');
@@ -2425,9 +2438,14 @@ function drawRetireHumble(p) {
   p.outlined([[136, 112, 14, 6, '#8a6a42'], [148, 106, 6, 6, '#8a6a42'], [137, 118, 2, 4, '#8a6a42'], [146, 118, 2, 4, '#8a6a42']]);
 }
 
-// Comfortable: the veranda of a plantation house, the captain and his wife
+// The art (assets/vignettes/retire-2.png) once loaded; until then
+// comfortable: the veranda of a plantation house, the captain and his wife
 // with a glass of rum above the cane, a sail on the evening sea.
 function drawRetireComfortable(p) {
+  if (sceneArt['retire-2']) {
+    p.image(sceneArt['retire-2'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sunsetSea(p, 52);
   p.rect(0, 58, 224, 70, '#5a7a3a');
   caneRows(p, 66, ['#7a9a44', '#6a8a3a', '#8aa84a']);
@@ -2448,9 +2466,14 @@ function drawRetireComfortable(p) {
   p.outlined([[150, 102, 4, 6, '#a85a2a']]);
 }
 
-// Respected: a mansion balcony over the harbour, the captain in a
+// The art (assets/vignettes/retire-3.png) once loaded; until then
+// respected: a mansion balcony over the harbour, the captain in a
 // councillor's coat and sash with his family, his old flagship below.
 function drawRetireRespected(p) {
+  if (sceneArt['retire-3']) {
+    p.image(sceneArt['retire-3'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sunsetSea(p, 48);
   p.rect(0, 48, 60, 30, '#5a7a4a');
   for (const [x, y, w] of [[4, 52, 12], [20, 56, 10], [36, 54, 12]]) house(p, x, y, w, 6);
@@ -2471,9 +2494,14 @@ function drawRetireRespected(p) {
   p.rect(150, 108, 12, 14, '#d8a8a0');
 }
 
-// Illustrious: a palace terrace at sunset, a titled captain in court dress
+// The art (assets/vignettes/retire-4.png) once loaded; until then
+// illustrious: a palace terrace at sunset, a titled captain in court dress
 // beside the king, formal gardens and a fountain below.
 function drawRetireIllustrious(p) {
+  if (sceneArt['retire-4']) {
+    p.image(sceneArt['retire-4'], 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(p, SUNSET, 56);
   p.disc(40, 56, 10, '#fff0b0');
   p.rect(0, 56, 224, 72, '#4a7a3a');

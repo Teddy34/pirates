@@ -336,6 +336,18 @@ SCENES = {
         'source': (1659, 948),
         'crop': (6, 4, 1653, 945),
     },
+    'retire-1': {
+        'shape': 'landscape',
+    },
+    'retire-2': {
+        'shape': 'landscape',
+    },
+    'retire-3': {
+        'shape': 'landscape',
+    },
+    'retire-4': {
+        'shape': 'landscape',
+    },
     # Plain white flags on the palisade's watchtower and on the fort's
     # snapped flagpole, painted over with the town's flag; same rows as
     # harbour-arrival.
