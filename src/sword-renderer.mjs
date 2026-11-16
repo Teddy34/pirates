@@ -2,7 +2,7 @@
 // morale panel, all from cached pixel sprites (fencer-sprites.mjs). Reads the
 // fight record of sword-mechanics.mjs and never changes it.
 
-import { BACKDROP, FIGHT_UNITS_PER_ART_PIXEL, LOOKS, paintBackdrop, paintFencer, paintSpark } from './fencer-sprites.mjs';
+import { BACKDROP, FIGHT_UNITS_PER_ART_PIXEL, LOOKS, paintFencer, paintSpark } from './fencer-sprites.mjs';
 import { FIGHT_MODE, MOVE, WEAPONS } from './sword-mechanics.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 import { harbourRow } from './vignettes.mjs';
@@ -21,8 +21,9 @@ const spriteCache = new Map();
 
 // Real art for the backdrops (assets/vignettes/PROVENANCE.md), built by
 // tools/build_vignette.py at the backdrop's size. The walls hold one row per
-// town flag, in the order of the harbour pictures (harbourRow). Until an
-// image loads, or for a flag with no row, the code-drawn backdrop stands in.
+// town flag, in the order of the harbour pictures (harbourRow). There is no
+// code-drawn stand-in: until an image loads, the fight plays over plain sky
+// and ground.
 const BACKDROP_ART_URLS = {
   deck: new URL('../assets/vignettes/fight-deck.png', import.meta.url).href,
   alley: new URL('../assets/vignettes/fight-alley.png', import.meta.url).href,
@@ -47,8 +48,8 @@ export function loadBackdropArt() {
 const backdropArtScene = (scene) => (scene === 'alley' || scene === 'walls' ? scene : 'deck');
 
 // The backdrop as a sprite, with the colours of its top and bottom rows to
-// fill the screen above and below it: the art once loaded, else the
-// code-drawn backdrop.
+// fill the screen above and below it; until the art has loaded, no sprite
+// and the plain colours of its sky and ground.
 function backdropSprite(view) {
   const scene = backdropArtScene(view.scene);
   const row = scene === 'walls' ? harbourRow({ flag: view.flag, era: view.era }) : 0;
@@ -64,8 +65,7 @@ function backdropSprite(view) {
     });
     if (art) return { sprite: art, sky: edgeColour(art, 0), ground: edgeColour(art, BACKDROP.height - 1) };
   }
-  const sprite = cachedSprite(spriteCache, `b|${scene}|${view.flag}`, () => paintBackdrop(scene, view.flag));
-  return scene === 'deck' ? { sprite, sky: '#a5d0de', ground: '#86592f' } : { sprite, sky: '#14203a', ground: '#3a3633' };
+  return scene === 'deck' ? { sprite: null, sky: '#a5d0de', ground: '#86592f' } : { sprite: null, sky: '#14203a', ground: '#3a3633' };
 }
 
 // The commonest colour of one row of a sprite (the sky, not a mast or a

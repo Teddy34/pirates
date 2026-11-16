@@ -1,4 +1,4 @@
-// Pixel-art fencers and fight backdrops for sword fights, in the style of the
+// Pixel-art fencers for sword fights, and the fight backdrop's size, in the style of the
 // ship and town sprites. DOM-free: each paint returns RGBA pixels plus the
 // anchor pixel (between the feet for a fencer). Presentation only; no rule
 // depends on anything in this module. Original art: nothing here comes from
@@ -6,7 +6,6 @@
 
 import { createArt, rasterize } from './pixel-art.mjs';
 import { MOVE, MOVE_FRAMES } from './sword-mechanics.mjs';
-import { FLAGS } from './vignettes.mjs';
 
 export const FENCER_ART = { width: 64, height: 52, anchorX: 26, groundY: 49 };
 // Fight x units per art pixel: a blade at full stretch reaches about one
@@ -262,89 +261,6 @@ export function paintSpark(kind = 'hit') {
   return { pixels: rasterize(art, { shadow: false }), width: 9, height: 9, anchor: { x: 4, y: 4 } };
 }
 
-// Backdrops are wide enough for the whole fight (0-520 fight units) and
-// bottom-aligned on the ground line.
+// The backdrop art (sword-renderer.mjs) is wide enough for the whole fight
+// (0-520 fight units) and bottom-aligned on the ground line.
 export const BACKDROP = { width: 260, height: 132, groundY: 112 };
-
-// Horizontal bands of `colors` filling rows top to bottom.
-function bands(art, colors, top, bottom) {
-  const step = (bottom - top) / colors.length;
-  colors.forEach((color, index) => art.rect(0, Math.round(top + index * step), BACKDROP.width, Math.ceil(step) + 1, color));
-}
-
-// A starry night with the moon, over the town scenes.
-function paintNightSky(art) {
-  bands(art, ['#14203a', '#1a2847', '#223258', '#2b3c66'], 0, 70);
-  for (let index = 0; index < 28; index += 1) art.set((index * 89) % BACKDROP.width, (index * 37) % 50, '#f1ead2');
-  art.rect(200, 10, 6, 6, '#efe6c4'); art.rect(201, 9, 4, 8, '#efe6c4');
-}
-
-// A day sky over open sea, behind a ship's deck.
-function paintDaySea(art) {
-  bands(art, ['#8fc3d8', '#a5d0de', '#bcdbe1', '#d3e5e0'], 0, 56);
-  bands(art, ['#2d7189', '#25657c', '#1f5a70'], 56, 78);
-  for (let index = 0; index < 18; index += 1) art.rect((index * 53) % BACKDROP.width, 60 + ((index * 7) % 16), 4, 1, '#8ac2cf');
-}
-
-// House fronts with lit windows and doors, then the cobbles.
-function paintAlley(art) {
-  const { width, height, groundY } = BACKDROP;
-  const houses = [[0, 22, 58, '#6f5a45'], [58, 32, 52, '#7d6750'], [110, 14, 46, '#665241'], [156, 28, 54, '#76604b'], [210, 18, 50, '#6a5544']];
-  for (const [x, top, w, color] of houses) {
-    art.rect(x, top, w, groundY - top, color);
-    art.rect(x, top - 4, w, 4, '#4a3a2c');
-    for (let wx = x + 6; wx < x + w - 8; wx += 16) {
-      art.rect(wx, top + 10, 6, 8, (wx + top) % 3 ? '#f0c55f' : '#2a2a2f');
-      art.rect(wx, top + 10, 6, 1, '#3a2c20');
-    }
-    art.rect(x + Math.floor(w / 2) - 4, groundY - 18, 9, 18, '#3e2b1c');
-    art.rect(x + Math.floor(w / 2) - 4, groundY - 18, 9, 1, '#2a1c12');
-  }
-  art.rect(0, groundY, width, height - groundY, '#5d5550');
-  for (let row = groundY + 1; row < height; row += 4) {
-    for (let col = (row % 8) * 2; col < width; col += 9) art.rect(col, row, 6, 2, '#6f6660');
-  }
-}
-
-// Battlements under `flag`'s colours, then the beaten earth before them.
-function paintWalls(art, flag) {
-  const { width, height, groundY } = BACKDROP;
-  art.rect(0, 30, width, groundY - 30, '#8b8577');
-  for (let x = 0; x < width; x += 16) art.rect(x, 22, 9, 8, '#8b8577');
-  for (let row = 34; row < groundY; row += 8) for (let col = (row % 16); col < width; col += 16) art.rect(col, row, 14, 1, '#6f6a5e');
-  art.rect(120, 2, 2, 22, '#3a2a1a');
-  const [field, mark] = FLAGS[flag] ?? FLAGS.pirate;
-  art.rect(122, 3, 14, 9, field); art.rect(122, 6, 14, 3, mark);
-  art.rect(0, groundY, width, height - groundY, '#7a6648');
-  for (let col = 0; col < width; col += 7) art.set(col, groundY + 3 + (col % 5), '#5e4e36');
-}
-
-// A ship's waist: masts, shrouds and the bulwark, then the deck planks.
-function paintDeck(art) {
-  const { width, height, groundY } = BACKDROP;
-  for (const mast of [70, 190]) {
-    art.rect(mast, 0, 5, groundY - 30, '#5a3d24');
-    art.rect(mast - 30, 8, 65, 3, '#5a3d24');
-    art.rect(mast - 26, 11, 57, 18, '#efe2bc');
-    art.rect(mast - 26, 27, 57, 2, '#c9b27c');
-    for (let line = -24; line <= 24; line += 8) art.line([mast + 2, 2], [mast + 2 + line * 1.4, groundY - 30], '#3a2a1a');
-  }
-  art.rect(0, groundY - 30, width, 4, '#8a5a32');
-  art.rect(0, groundY - 26, width, 18, '#6b4226');
-  for (let x = 4; x < width; x += 12) art.rect(x, groundY - 24, 3, 14, '#4f301b');
-  art.rect(0, groundY - 8, width, 8, '#7a4c2b');
-  art.rect(0, groundY, width, height - groundY, '#a0703f');
-  for (let row = groundY + 3; row < height; row += 4) art.rect(0, row, width, 1, '#86592f');
-  for (let row = groundY; row < height; row += 4) for (let col = (row * 7) % 40; col < width; col += 40) art.set(col, row + 1, '#6b4426');
-}
-
-// `flag` is the nation whose flag flies over the walls. Any scene other than
-// the alley and the walls is a ship's deck.
-export function paintBackdrop(scene, flag = 'Spain') {
-  const { width, height, groundY } = BACKDROP;
-  const art = createArt(width, height);
-  if (scene === 'alley') { paintNightSky(art); paintAlley(art); }
-  else if (scene === 'walls') { paintNightSky(art); paintWalls(art, flag); }
-  else { paintDaySea(art); paintDeck(art); }
-  return { pixels: rasterize(art, { outline: null, shadow: false }), width, height, anchor: { x: 0, y: groundY } };
-}

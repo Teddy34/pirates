@@ -11,6 +11,14 @@ history.
 
 ## Unreleased
 
+### Removed
+
+- The code-drawn pictures that showed while a scene's real art was still
+  loading, and then flickered into the art, are gone, in the dialogs and
+  behind sword fights alike. Until a picture arrives its frame stays empty
+  (a sword fight shows plain sky and ground), and each dialog repaints as
+  soon as its own picture has loaded rather than after every picture.
+
 ### Changed
 
 - Sword fights now take place before real comic-style backdrops instead of

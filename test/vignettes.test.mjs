@@ -2,49 +2,56 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { drawVignette, vignetteDescription, vignetteShape, vignetteSize, VIGNETTE_FRAME_WIDTH } from '../src/vignettes.mjs';
 
+// Every scene the dialogs show (SCENE_ART_URLS, plus the governor, the
+// reunion and the sighted ship's two pictures).
 const SCENES = [
+  'governor', 'villain-news', 'prize-plunder', 'enemy-destroyed', 'divide-plunder', 'tavern', 'merchant', 'shipwright',
+  'barmaid', 'bartender', 'traveller', 'map-seller', 'harbour-arrival', 'shore-arrival', 'port-quay', 'town-square',
+  'shipwreck', 'marooned', 'open-court', 'open-plantation', 'open-quarterdeck', 'open-boarded', 'open-landfall',
+  'open-prison', 'open-night-raid', 'open-buccaneers', 'open-colony', 'open-swords', 'open-chart', 'sailing-master',
+  'dig-found', 'dig-nothing', 'reunion', 'lost-city-inca', 'lost-city-aztec', 'lost-city-olmec', 'lost-city-maya',
   'sail-ho', 'sail-nearer', 'sail-colours', 'boarding', 'hostage-talks', 'crew-recruits', 'treasure-fleet',
-  'silver-train', 'mutiny', 'prison', 'hall-of-fame', 'alley-duel',
-  'retire-1', 'retire-2', 'retire-3', 'retire-4', 'land-attack', 'fort-walls',
-  'sinking', 'outrun', 'nightfall', 'title-ship',
+  'silver-train', 'mutiny', 'prison', 'hall-of-fame', 'alley-duel', 'retire-1', 'retire-2', 'retire-3', 'retire-4',
+  'land-attack', 'fort-walls', 'sinking', 'outrun', 'nightfall', 'title-ship',
   'governor-daughter', 'governor-niece', 'wedding', 'merchant-daughter',
 ];
+const OPTIONS = { flag: 'Spain', era: '1600', nation: 'Spain', ship: 'Galleon' };
 
-// A context that records which art pixels were painted, after the clip the
-// vignette sets on its picture area.
+// A context that records the colour of each art pixel painted.
 function paintedPixels(id) {
   const { width, height } = vignetteSize(id);
-  const painted = new Set();
-  let offset = [0, 0];
-  const saved = [];
+  const painted = new Map();
+  let colour = '';
   drawVignette({
-    save() { saved.push(offset); }, restore() { offset = saved.pop(); },
-    translate(x, y) { offset = [offset[0] + x, offset[1] + y]; },
-    clearRect() {}, beginPath() {}, rect() {}, clip() {},
+    clearRect() {},
+    set fillStyle(value) { colour = value; },
     fillRect(x, y, w, h) {
       for (let row = 0; row < h; row += 1) {
-        for (let column = 0; column < w; column += 1) painted.add((y + offset[1] + row) * width + x + offset[0] + column);
+        for (let column = 0; column < w; column += 1) painted.set((y + row) * width + x + column, colour);
       }
     },
-  }, id);
+  }, id, OPTIONS);
   return { painted, width, height };
 }
 
-test('each new scene is a described landscape picture', () => {
+test('every scene has a picture shape and describes its art', () => {
   for (const id of SCENES) {
-    assert.equal(vignetteShape(id), id === 'title-ship' ? 'title' : 'landscape');
-    assert.notEqual(vignetteDescription(id), `Placeholder picture: ${id}.`);
+    assert.ok(['landscape', 'portrait', 'title'].includes(vignetteShape(id)), id);
+    assert.match(vignetteDescription(id, OPTIONS), /\S/, `${id} has no description`);
   }
 });
 
-test('each new scene paints its whole picture, with no transparent gaps', () => {
+test('until its art loads, a picture is an empty dark area in its frame, with no code-drawn stand-in', () => {
   for (const id of SCENES) {
     const { painted, width, height } = paintedPixels(id);
+    const inside = new Set();
     for (let y = VIGNETTE_FRAME_WIDTH; y < height - VIGNETTE_FRAME_WIDTH; y += 1) {
       for (let x = VIGNETTE_FRAME_WIDTH; x < width - VIGNETTE_FRAME_WIDTH; x += 1) {
         assert.ok(painted.has(y * width + x), `${id} leaves (${x}, ${y}) unpainted`);
+        inside.add(painted.get(y * width + x));
       }
     }
+    assert.deepEqual([...inside], ['#21180f'], `${id} draws more than an empty picture`);
   }
 });
 
@@ -57,13 +64,12 @@ test('the governor portrait cell follows the era and the nation', async () => {
   assert.equal(governorCell({ era: '1680', nation: 'pirate' }), null);
   assert.equal(governorCell({ era: '1700', nation: 'Spain' }), null);
   assert.equal(governorCell(), null);
-  // Without a DOM the art never loads and the placeholder stands in.
-  await loadVignetteArt();
+  // Without a DOM the art never loads.
+  await loadVignetteArt('governor');
   assert.equal(vignetteNeedsArt('governor'), true);
-  assert.equal(vignetteNeedsArt('prize'), false);
   assert.equal(vignetteNeedsArt('traveller'), true);
   assert.equal(vignetteNeedsArt('tavern'), true);
-  assert.match(vignetteDescription('governor', { era: '1680', nation: 'France' }), /^Placeholder picture/);
+  assert.match(vignetteDescription('governor', { era: '1680', nation: 'France' }), /^Portrait of the French governor in the dress of the 1680s/);
 });
 
 test('the harbour arrival and the quay pick their sheet row by the fort flag and era', async () => {
@@ -74,35 +80,10 @@ test('the harbour arrival and the quay pick their sheet row by the fort flag and
   assert.equal(harbourRow({ flag: 'Holland', era: '1640' }), 3);
   assert.equal(harbourRow({ flag: 'Holland', era: 1660 }), 4);
   assert.equal(harbourRow({ flag: 'pirate', era: '1660' }), null);
-  // Without a DOM the art never loads and the placeholder stands in.
-  assert.match(vignetteDescription('harbour-arrival', { flag: 'Spain', era: '1600' }), /^Placeholder picture/);
-  assert.match(vignetteDescription('port-quay', { flag: 'Spain', era: '1600' }), /^Placeholder picture/);
-  assert.match(vignetteDescription('merchant'), /^Placeholder picture/);
-  assert.match(vignetteDescription('barmaid'), /^Placeholder picture/);
-  assert.match(vignetteDescription('bartender'), /^Placeholder picture/);
-  assert.match(vignetteDescription('sail-ho'), /^Placeholder picture/);
-  assert.match(vignetteDescription('sailing-master'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-swords'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-chart'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-buccaneers'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-quarterdeck'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-court'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-plantation'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-boarded'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-landfall'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-prison'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-night-raid'), /^Placeholder picture/);
-  assert.match(vignetteDescription('open-colony'), /^Placeholder picture/);
-  assert.match(vignetteDescription('tavern'), /^Placeholder picture/);
-  assert.match(vignetteDescription('shipwright'), /^Placeholder picture/);
-  assert.match(vignetteDescription('divide-plunder'), /^Placeholder picture/);
-  for (const id of ['governor-daughter', 'governor-niece', 'wedding', 'merchant-daughter']) assert.match(vignetteDescription(id), /^Placeholder picture/);
-  for (const id of ['crew-recruits', 'traveller', 'map-seller', 'villain-news']) assert.match(vignetteDescription(id), /^Placeholder picture/);
-  for (const id of ['dig-found', 'dig-nothing', 'reunion', 'lost-city-inca', 'lost-city-aztec', 'lost-city-olmec', 'lost-city-maya']) assert.match(vignetteDescription(id), /^Placeholder picture/);
-  assert.match(vignetteDescription('reunion', { female: false }), /^Placeholder picture/);
-  for (const id of ['boarding', 'hostage-talks', 'prize-plunder', 'enemy-destroyed', 'sinking', 'outrun', 'nightfall']) assert.match(vignetteDescription(id), /^Placeholder picture/);
-  for (const id of ['treasure-fleet', 'silver-train', 'shipwreck', 'marooned', 'alley-duel', 'hall-of-fame', 'mutiny', 'prison', 'retire-1', 'retire-2', 'retire-3', 'retire-4']) assert.match(vignetteDescription(id), /^Placeholder picture/);
-  for (const id of ['shore-arrival', 'town-square', 'land-attack', 'fort-walls']) assert.match(vignetteDescription(id, { flag: 'Spain', era: '1600' }), /^Placeholder picture/);
+  // The fort-flag scenes describe the town's flag.
+  assert.match(vignetteDescription('harbour-arrival', { flag: 'England', era: '1600' }), /St George’s red cross/);
+  assert.match(vignetteDescription('fort-walls', { flag: 'Holland', era: '1660' }), /States flag/);
+  assert.match(vignetteDescription('reunion', { female: false }), /grey-bearded old man/);
 });
 
 test('the title logo spells Retro in outlined pixel letters inside its canvas', async () => {
@@ -164,10 +145,9 @@ test('the sighted ship\'s picture follows her type and the era band', async () =
   assert.equal(sightedShipArt({ ship: 'Barque', era: '1560' }), 'barque');
   assert.equal(sightedShipArt({ ship: 'Canoe', era: '1600' }), null);
   assert.equal(sightedShipArt({ ship: 'Galleon' }), null);
-  // Without a DOM the art never loads and the placeholder stands in.
+  // Without a DOM the art never loads.
   assert.equal(vignetteNeedsArt('sail-nearer', { ship: 'Galleon', era: '1620' }), true);
-  assert.equal(vignetteNeedsArt('sail-nearer', { ship: 'Canoe', era: '1620' }), false);
-  assert.match(describe('sail-nearer', { ship: 'Galleon', era: '1620' }), /^Placeholder picture.*colours/);
+  assert.match(describe('sail-nearer', { ship: 'Galleon', era: '1620' }), /^A towering, gilded Spanish treasure galleon.*no colours/);
 });
 
 test('every sighted ship\'s picture is in the repository', async () => {
@@ -210,9 +190,9 @@ test('the ship\'s colours follow the nation, the era and her role', async () => 
   assert.equal(colourStern({ ship: 'Galleon', era: '1600' }), 'stern-early');
   assert.equal(colourStern({ ship: 'Frigate', era: '1640' }), 'stern-mid');
   assert.equal(colourStern({ ship: 'Merchantman', era: '1660' }), 'stern-late');
-  // Without a DOM the art never loads and the placeholder stands in.
+  // Without a DOM the art never loads.
   assert.equal(vignetteNeedsArt('sail-colours', { flag: 'Spain', era: '1600' }), true);
-  assert.match(describe('sail-colours', { flag: 'Spain', era: '1600' }), /^Placeholder picture.*colours/);
+  assert.match(describe('sail-colours', { flag: 'Spain', era: '1600' }), /colours: the Cross of Burgundy/);
 });
 
 test('every name a pirate can carry has its own colours', async () => {

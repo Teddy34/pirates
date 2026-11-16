@@ -2209,7 +2209,7 @@ The art is `assets/vignettes/title-ship.png`, built by
 sail flying St George's cross, seen from ahead and to one side, off a
 palm-fringed island with a Spanish stone fort flying the Cross of
 Burgundy (the build repaints the source's anachronistic 1785 flag). Until the image loads, the
-code-drawn sloop placeholder stands in.
+frame is empty.
 
 Picked by a script for each era and nationality, and shown before play
 begins (CSTR 1–44, `src/opening.mjs`). These strings have no pictures in the
@@ -2217,7 +2217,7 @@ original, so these vignettes are additions. `STORY_VIGNETTES` gives each
 string one picture, reusing a scene where it fits (tavern, shipwreck,
 governor, merchant, bartender, port-quay, town-square, harbour-arrival), and a
 story never repeats a picture on consecutive screens. Every opening picture is
-real art; each keeps its code-drawn placeholder as the fallback:
+real art:
 
 | id | text cue | prompt |
 |---|---|---|
@@ -2566,9 +2566,9 @@ portrait of a 17th-century* `<type>` *under sail on a calm sea, full
 rigging detail, neutral sky."* Our ships are drawn procedurally
 (`ship-sprites.mjs`). If you add these, make them match the sprite colours.
 
-### 4.13 Where the placeholders appear
+### 4.13 Where these scenes appear
 
-`src/vignettes.mjs` draws a placeholder for these scenes from §4.4 to §4.10.
+`src/vignettes.mjs` draws the art of these scenes from §4.4 to §4.10.
 A scene can serve more than one dialog:
 
 | id | dialogs |
