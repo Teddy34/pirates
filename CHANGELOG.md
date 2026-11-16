@@ -11,6 +11,17 @@ history.
 
 ## Unreleased
 
+### Changed
+
+- In sword fights you now look like the captain in the scene pictures:
+  bareheaded with dark hair tied back and a short beard, in a dark-blue coat
+  with brass buttons and a red sash. You used to wear a red coat, which
+  clashed with the blue-coated hero of the pictures. Your opponents keep a
+  different colour. Their default captain's coat is now red, and French
+  captains and guards wear red rather than France's blue, so you are the
+  only fencer in blue. Every opponent wears a hat, helmet or bandana, so the
+  two fencers also differ in outline, not only in colour.
+
 ### Fixed
 
 - Fort battles at small island towns such as St. Eustatius: running your
