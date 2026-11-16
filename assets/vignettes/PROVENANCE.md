@@ -1109,3 +1109,49 @@ era and nation, with no flags.
   `shipwreck.png`, and the wreck's carved stern ornament, unreadable at 1×.
 - **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
   (Pillow), for `shipwreck` and `marooned`.
+
+## land-attack.png, fort-walls.png
+
+The two town assaults, about 1640, each a sheet of five 224 × 128 rows
+(7 : 4), one per town flag in the order of `HARBOUR_FLAGS` (Spain,
+England, France, Holland's Prince's flag, Holland's States flag from
+1660), as for `harbour-arrival.png`:
+
+- `land-attack.png`, attacking a town by land: the captain points his
+  cutlass at a log palisade as his buccaneers and a young drummer march
+  out of the jungle; militiamen in morions fire over the stakes, smoke
+  rises in the town, and the gate's stone watchtower flies the town's
+  flag.
+- `fort-walls.png`, storming a fort: buccaneers climb scaling ladders over
+  a stone rampart through musket smoke while the captain crosses swords
+  with the fort's grey-bearded commander (morion, steel breastplate over a
+  buff coat, falling collar) beside a toppled bronze cannon; a snapped
+  flagpole on the bastion still flies the town's flag.
+
+- **Source:** for each, a comic-style illustration (1659 × 948) generated
+  on 2026-11-16 with the built-in image generation tool of the OpenAI
+  Codex CLI (codex-cli 0.169.0, `image_gen`; model not reported), run
+  under the user's own account at the user's request, from the scene's
+  prompt in `docs/scene-vignettes.md` with the shared style block and
+  negatives. The user holds the rights to them. The source files are not
+  kept in the repository. No material from the original game was used.
+- **Fixes:** each source flies a plain white flag, as asked; the build
+  warps each town flag onto its four corners with the source's folds as
+  shading (`fort_flag_variants`), one row per flag. The land-attack
+  picture has no other blue, so plain median cut folded the Dutch flags'
+  blue band into the coats' grey-brown; its sheet's palette gets eight
+  k-means passes (`kmeans` in `SCENES`), which keep the band blue at
+  256 colours.
+- **Accepted:** the commander's morion and breastplate are most at home
+  before about 1650 but were still worn by garrison officers later; the
+  militia's morions likewise. The ladders follow Exquemelin's account of
+  Morgan's storming of Portobelo's castle in 1668. The fort's round
+  sentry box (garita) is typical of Spanish forts and left for every
+  nation. The flags fold with the wind, so the flat-flag warp is a close
+  but not exact fit at the fly; invisible at 1×.
+- **Process:** `tools/build_vignette.py` reduces each row to its shape with
+  a box filter, raises contrast (×1.15) and colour (×1.2), and quantises
+  the sheet to one shared 256-colour palette (median cut, no dithering,
+  indexed PNG).
+- **Rebuild:** `python3 tools/build_vignette.py --scene <id> --source <image>`
+  (Pillow), for `land-attack` and `fort-walls`.
