@@ -19,6 +19,12 @@ history.
   suitor), and a panelled hall of sea captains' portraits with an empty
   frame waiting above the open record book.
 
+- A mutiny and imprisonment now show real comic-style art: the captain
+  drawing his cutlass alone at the rail as a bare-chested ringleader and
+  his armed crew come up the quarterdeck ladder, and the wounded captain on
+  the straw of a stone cell, tally marks on the wall and a guard's shadow on
+  the door. Both are flagless, so they serve every era and nation.
+
 - Attacking a town now shows real comic-style art. By land, the captain
   points his cutlass at a town's palisade as his buccaneers and a drummer
   march out of the jungle under the militia's fire; against a fort,

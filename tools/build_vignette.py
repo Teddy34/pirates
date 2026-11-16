@@ -327,6 +327,15 @@ SCENES = {
     'hall-of-fame': {
         'shape': 'landscape',
     },
+    'mutiny': {
+        'shape': 'landscape',
+    },
+    # The source has a thin dark baked-in border, 3 px wide: crop inside it.
+    'prison': {
+        'shape': 'landscape',
+        'source': (1659, 948),
+        'crop': (6, 4, 1653, 945),
+    },
     # Plain white flags on the palisade's watchtower and on the fort's
     # snapped flagpole, painted over with the town's flag; same rows as
     # harbour-arrival.

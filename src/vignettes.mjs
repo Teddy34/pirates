@@ -197,6 +197,8 @@ const SCENE_ART_URLS = {
   marooned: new URL('../assets/vignettes/marooned.png', import.meta.url).href,
   'alley-duel': new URL('../assets/vignettes/alley-duel.png', import.meta.url).href,
   'hall-of-fame': new URL('../assets/vignettes/hall-of-fame.png', import.meta.url).href,
+  mutiny: new URL('../assets/vignettes/mutiny.png', import.meta.url).href,
+  prison: new URL('../assets/vignettes/prison.png', import.meta.url).href,
 };
 const ART_DESCRIPTIONS = {
   'treasure-fleet': 'In a sunlit harbour below a hilltop fort, barefoot sailors pass gold ingots, chests of coins and strings of pearls across a plank from a beaten royal galleon, shot-holed and flying a white flag with a red ragged saltire, into the glittering hold of the captain’s ship, while the captain in his blue coat holds up an ingot and the disarmed Spanish crew sits under guard, pixelated from a comic-style illustration.',
@@ -211,6 +213,8 @@ const ART_DESCRIPTIONS = {
   shipwreck: 'Under a squally grey sky a three-masted ship lies driven onto a coral reef, her masts snapped and her sails in rags as the surf breaks over her, while sailors cling to a floating spar and haul a swimmer to it among barrels and crates, pixelated from a comic-style illustration.',
   'alley-duel': 'In a moonlit alley of whitewashed houses with wooden balconies and laundry lines, the captain in his blue coat crosses rapiers with a swordsman in a leather jerkin and broad black hat, as an old woman with a candle leans from a shutter and a cat bolts past a spilled bucket, pixelated from a comic-style illustration.',
   'hall-of-fame': 'In a wood-panelled hall hung with portraits of sea captains in breastplates and white collars, an empty gilded frame waits among them above a carved desk where a record book lies open beside a quill, an inkwell and a lit candle, pixelated from a comic-style illustration.',
+  mutiny: 'At dawn on a ship’s quarterdeck the captain in his blue coat draws his cutlass alone at the rail as a huge bare-chested ringleader points a cutlass at him from the top of the ladder, an armed crew with an axe, knives and handspikes snarling behind him, pixelated from a comic-style illustration.',
+  prison: 'In a vaulted stone cell lit by a barred window, the wounded captain, unshaven, a bloodied bandage on his arm, sits on straw beside his blue coat, a jug and a crust of bread, rows of tally marks scratched on the wall and a guard’s shadow with a pike on the iron-bound door, pixelated from a comic-style illustration.',
   marooned: 'On a palm-fringed island beach the castaway captain, barefoot in a torn shirt, sits by a driftwood fire drinking from a coconut shell as two island men in cotton loincloths offer him papaya and grilled fish, while out in the bay a small two-masted ship lies at anchor and her boat rows in, pixelated from a comic-style illustration.',
   'dig-found': 'In a jungle clearing by a strange tall rock, three grinning sailors in a fresh pit of red earth lean over an iron-bound oak chest heaped with gold and silver coins, while the captain in his blue coat stands over them with the old map, pixelated from a comic-style illustration.',
   'dig-nothing': 'At sunset on a beach scarred with empty holes, one exhausted sailor slumps by a pit, another leans on his spade and a third flings down his hat, while the captain in his blue coat glares at a torn map, pixelated from a comic-style illustration.',
@@ -2245,9 +2249,14 @@ function drawSilverTrain(p) {
   blade(p, 69, 112, 12, 1);
 }
 
-// Dawn on the quarterdeck: a huge bare-chested ringleader points his cutlass
-// at the captain, alone at the rail, with the crew armed behind him.
+// The art (assets/vignettes/mutiny.png) once loaded; until then dawn on the
+// quarterdeck: a huge bare-chested ringleader points his cutlass at the
+// captain, alone at the rail, with the crew armed behind him.
 function drawMutiny(picture) {
+  if (sceneArt.mutiny) {
+    picture.image(sceneArt.mutiny, 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   sky(picture, ['#4a4a70', '#a86a70', '#e8a070', '#f4d090'], 66);
   picture.disc(36, 66, 8, '#fff0b0');
   sea(picture, 66, '#4a5a70', '#c89878');
@@ -2270,9 +2279,14 @@ function drawMutiny(picture) {
   blade(picture, 126, 106, 44, -1);
 }
 
-// A stone cell by day, the same room as the opening's night prison; the
-// captain, wounded, has been counting the months on the wall.
+// The art (assets/vignettes/prison.png) once loaded; until then a stone
+// cell by day, the same room as the opening's night prison; the captain,
+// wounded, has been counting the months on the wall.
 function drawImprisoned(p) {
+  if (sceneArt.prison) {
+    p.image(sceneArt.prison, 0, 0, PICTURE_SIZES.landscape.width, PICTURE_SIZES.landscape.height, 0, 0);
+    return;
+  }
   stoneCell(p);
   p.rect(36, 12, 34, 26, OUTLINE);
   p.rect(38, 14, 30, 22, '#d8e8e4');
