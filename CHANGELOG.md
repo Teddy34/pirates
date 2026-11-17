@@ -21,6 +21,10 @@ history.
 
 ### Changed
 
+- The courtship buttons no longer share one heart: proposing marriage shows a
+  gold ring and making conversation a red rose (retracting a proposal keeps the
+  heart).
+
 - Sword fights no longer show the voyage status bar (wind, sails, food,
   gold, nearest town), whose fields meant nothing in a fight. The fight's
   panel moves to the top in a chunky pixel frame, and its two morale bars
