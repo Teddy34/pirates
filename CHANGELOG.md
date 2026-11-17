@@ -11,6 +11,20 @@ history.
 
 ## Unreleased
 
+### Added
+
+- The logbook has a "Your fleet" page, also opened with F at sea: every ship
+  with a pixel picture of her type, her crew, guns and hold against her
+  maximum, her condition, and the fleet's totals (ships out of eight, crew,
+  cannon, hold, food and goods). Crew and cannon still belong to the whole
+  fleet, as in the original; the page shows them spread over the ships
+  (eight hands each, then each ship filled in turn) for reading only.
+- Ships can be renamed from the fleet page. A named ship is called by her
+  name in the shipwright's yard, the battle and abandon choices and the
+  division, keeps it through battles, saves and the refit after dividing the
+  plunder, and goes by her type again when the name is cleared. The original's
+  ships have no names. Saves without names load unchanged.
+
 ### Changed
 
 - The sword fight's fencers have real bodies: comic-style pose sheets

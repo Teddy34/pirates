@@ -60,8 +60,13 @@ const TACTICS = [
 export function shipName(ship) {
   return typeof ship === 'string' ? ship : ship.type;
 }
+// A ship record: her type, battle damage and, when the captain has named
+// her, her name (a port addition: the original's ships have no names).
 export function shipRecord(ship) {
-  return typeof ship === 'string' ? { type: ship, damage: 0 } : { type: ship.type, damage: ship.damage ?? 0 };
+  if (typeof ship === 'string') return { type: ship, damage: 0 };
+  const record = { type: ship.type, damage: ship.damage ?? 0 };
+  if (ship.name) record.name = ship.name;
+  return record;
 }
 
 export function embarkedForBattle({ crew, cannon, ships, flagshipIndex = 0 }) {

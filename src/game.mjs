@@ -25,7 +25,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, merchantStock, advanceDate,
   NATION_ORDER, monthlyWorldUpdate, initialWorldNews, randomTownRange, worldNewsMessage, newGameTowns,
   townInfoStatus, learnTownInfo, TOWN_INFO_CURRENT,
-  fleetIsUndermanned, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS, isLandlocked,
+  fleetIsUndermanned, spreadOverShips, cleanShipName, SHIP_NAME_MAX_LENGTH, CREW_PER_SHIP, MAX_FLEET_SHIPS, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS, isLandlocked,
   escapeCostsShip,
   monthEndCrewEvent, mutinyOutcome,
   CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
@@ -67,6 +67,7 @@ import { RETRO_LOGO_SIZE, drawRetroLogo } from './title-logo.mjs';
 import { COLOUR_FLAGS, GOVERNOR_ERAS, GOVERNOR_NATIONS, dialogPictureLayout, drawVignette, loadVignetteArt, vignetteDescription, vignetteNeedsArt, vignetteShape, vignetteSize } from './vignettes.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
+import { paintBattleShipSprite } from './battle-ship-sprites.mjs';
 import { paintPartySprite } from './party-sprites.mjs';
 import { CLOUD_ART_PIXEL, paintCloudSprite } from './cloud-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
@@ -210,10 +211,13 @@ function interpolatedSailingClouds() {
 }
 
 const statsFor = (ship) => SHIPS[shipName(ship)];
+// Plain text: escape it before it goes into HTML (a ship's name is typed by
+// the player).
 const describeShip = (ship) => {
   const record = shipRecord(ship);
   const condition = damageLevel(record.damage);
-  return `${record.type}${condition ? ` (${condition.toLowerCase()})` : ''}`;
+  const details = [record.name ? record.type : '', condition.toLowerCase()].filter(Boolean).join(', ');
+  return `${record.name ?? record.type}${details ? ` (${details})` : ''}`;
 };
 
 function newState(options) {
@@ -2029,7 +2033,7 @@ function beginShipCapture(enemy) {
 
 function keepPrizeShip(enemy) {
   const prize = { type: enemy.ship, damage: enemy.damage ?? 0 };
-  if (state.player.ships.length < 8) {
+  if (state.player.ships.length < MAX_FLEET_SHIPS) {
     state.player = keepPrize(state.player, prize).player;
     addLog(`Sent a prize crew aboard the captured ${enemy.ship}.`);
     finishPrizeDecision(enemy, true);
@@ -3113,7 +3117,7 @@ function showPlunderDivision() {
 
   showDialog({
     vignette: 'divide-plunder', kicker: 'The counting house', title: 'Divide the plunder?',
-    body: `<p>Ending this expedition will disperse the crew and divide every ship, cannon, and cargo except your flagship.</p>${poorHealth ? '<p>Your health is poor: once the crew is paid off, your career will end.</p>' : ''}<dl><dt>Each crew member receives</dt><dd>${division.crewShare.toLocaleString()} gold</dd><dt>Crew reaction</dt><dd>${satisfaction}</dd><dt>Your share (${division.officerShares} portions)</dt><dd>${division.captainTake.toLocaleString()} gold</dd><dt>Funds for the next voyage</dt><dd>${division.expeditionGold.toLocaleString()} gold</dd><dt>Flagship retained</dt><dd>${describeShip(flagship)}</dd></dl>`,
+    body: `<p>Ending this expedition will disperse the crew and divide every ship, cannon, and cargo except your flagship.</p>${poorHealth ? '<p>Your health is poor: once the crew is paid off, your career will end.</p>' : ''}<dl><dt>Each crew member receives</dt><dd>${division.crewShare.toLocaleString()} gold</dd><dt>Crew reaction</dt><dd>${satisfaction}</dd><dt>Your share (${division.officerShares} portions)</dt><dd>${division.captainTake.toLocaleString()} gold</dd><dt>Funds for the next voyage</dt><dd>${division.expeditionGold.toLocaleString()} gold</dd><dt>Flagship retained</dt><dd>${escapeHtml(describeShip(flagship))}</dd></dl>`,
     actions,
   });
 }
@@ -3163,7 +3167,7 @@ function refitAfterDivision(division, nextDifficulty) {
   // 0x1852D: then the fresh fleet with the party gold, which the division
   // has not touched: a tenth of it, the flagship repaired, a new crew of
   // reputation + 16. Zero party gold takes 0x1EF87's restart branch.
-  state.player = freshFleet(state.player, { gold: state.player.partyGold, flagshipType: shipName(flagship), shipStats: SHIPS });
+  state.player = freshFleet(state.player, { gold: state.player.partyGold, flagshipType: shipName(flagship), flagshipName: shipRecord(flagship).name, shipStats: SHIPS });
   const player = state.player;
   addLog(`The ${shipName(flagship)} was careened and refitted, ${DIVISION_REFIT_STEPS * DIVISION_REFIT_STEP_DAYS} days ashore from ${formatDate(refitStart)}.`);
   addLog(`A new expedition begins aboard the ${shipName(flagship)} with ${player.crew} loyal hands.`);
@@ -3695,12 +3699,129 @@ function showLogbook(close) {
     body: '<p>Your log records the news of the Caribbean as it reaches you, and the gazetteer holds what you know of each city.</p>',
     actions: [
       { label: 'Personal status', run: () => showPersonalStatus(close) },
+      { label: 'Your fleet', run: () => showFleet(() => showLogbook(close)) },
       { label: 'Ship’s log', run: () => showShipsLog(close) },
       { label: 'City information', run: () => showCityInformation(close) },
       { label: 'Sea chart', run: () => showSeaChart(() => showLogbook(close)) },
       { label: 'Close the logbook', secondary: true, run: close },
     ],
   });
+}
+
+// Your fleet: every ship with her type's picture, name, crew, guns and hold,
+// and the fleet's totals. A port addition: the original shows the fleet only
+// as counts on its status screens. Crew and cannon are fleet-wide (ships.md
+// §5); the split per ship is for display only (crewByShip, gunsByShip).
+// Each ship can be given a name of the captain's choosing.
+function showFleet(back) {
+  const { ships, crew, cannon } = state.player;
+  const crews = crewByShip();
+  const guns = gunsByShip();
+  const maxCrew = fleetCapacity();
+  const maxGuns = ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0);
+  const rows = ships.map((ship, index) => {
+    const record = shipRecord(ship);
+    const stats = statsFor(ship);
+    const condition = damageLevel(record.damage);
+    const role = index === 0 ? 'Flagship' : `Ship ${index + 1}`;
+    const type = record.name ? `${role} · ${record.type}` : role;
+    return `<tr>
+      <td class="fleet-icon"><img src="${shipIconUrl(stats.type)}" alt="${record.type}" width="${SHIP_ICON_SIZE.width * SHIP_ICON_SCALE}" height="${SHIP_ICON_SIZE.height * SHIP_ICON_SCALE}"></td>
+      <th scope="row"><span class="fleet-name">${escapeHtml(record.name ?? record.type)}</span><small>${type} · ${condition || 'Sound'}</small></th>
+      <td><span class="fleet-label">Crew</span> ${crews[index]} / ${stats.capacity}</td>
+      <td><span class="fleet-label">Guns</span> ${guns[index]} / ${stats.guns}</td>
+      <td><span class="fleet-label">Hold</span> ${stats.cargo} t</td>
+      <td><button type="button" class="plunder-take-all" data-transfer="rename" data-kind="${index}" aria-label="Rename ${escapeHtml(describeShip(ship))}">Rename</button></td>
+    </tr>`;
+  }).join('');
+  const food = Math.floor(state.player.foodFixed / 256);
+  showDialog({
+    kicker: 'The captain’s logbook', title: 'Your fleet',
+    body: `<dl class="plunder-summary"><dt>Ships</dt><dd>${ships.length} / ${MAX_FLEET_SHIPS}</dd><dt>Crew</dt><dd>${crew} / ${maxCrew}</dd><dt>Cannon</dt><dd>${cannon} / ${maxGuns}</dd><dt>Hold</dt><dd>${cargoUsed()} / ${cargoCapacity()} tons</dd><dt>Food</dt><dd>${food} tons</dd><dt>Goods</dt><dd>${state.player.goods} tons</dd></dl>
+      <table class="plunder-manifest fleet-manifest">
+        <thead><tr><th><span class="visually-hidden">Picture</span></th><th>Ship</th><th>Crew</th><th>Guns</th><th>Hold</th><th><span class="visually-hidden">Name</span></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="shipwright-help">Crew and cannon serve the whole fleet; each ship is shown with eight hands, then filled in turn. Every ship needs eight hands to sail.</p>`,
+    actions: [{ label: 'Done', secondary: true, run: back }],
+  });
+  bindTransferButtons((transfer, kind) => {
+    if (transfer !== 'rename') return 0;
+    dialog.close();
+    showRenameShip(Number(kind), back);
+    return 1;
+  }, { repeatable: [], preferredTransfer: 'rename', preferredKind: '0', defaultTransfer: 'rename' });
+}
+
+function showRenameShip(index, back) {
+  const record = shipRecord(state.player.ships[index]);
+  const actions = [
+    { label: 'Name her', run: () => renameShip(index, nameField?.value, back) },
+  ];
+  if (record.name) actions.push({ label: 'Clear the name', run: () => renameShip(index, '', back) });
+  actions.push({ label: 'Back to the fleet', secondary: true, run: () => showFleet(back) });
+  showDialog({
+    kicker: 'Your fleet', title: `Name the ${record.type}`,
+    body: `<p>Give her a name of your choosing, up to ${SHIP_NAME_MAX_LENGTH} letters. Clear it and she goes by her type again.</p>
+      <label class="ship-name-field">Ship’s name<input id="ship-name" maxlength="${SHIP_NAME_MAX_LENGTH}" autocomplete="off" spellcheck="false" value="${escapeHtml(record.name ?? '')}" placeholder="${record.type}"></label>`,
+    actions,
+  });
+  const nameField = dialogBody.querySelector('#ship-name');
+  nameField.focus();
+  nameField.select();
+  nameField.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || event.isComposing) return;
+    event.preventDefault();
+    dialogActions.querySelector('button').click();
+  });
+}
+
+function renameShip(index, text, back) {
+  const ship = shipRecord(state.player.ships[index]);
+  const name = cleanShipName(text);
+  if ((ship.name ?? null) !== name) {
+    const { name: _old, ...rest } = ship;
+    state.player.ships[index] = name ? { ...rest, name } : rest;
+    addLog(name ? `The ${ship.type} was named ${name}.` : `The ${ship.type} goes by her type again.`);
+    saveGame(false);
+  }
+  showFleet(back);
+}
+
+function openFleetAtSea() {
+  if (!state || state.mode !== 'sailing' || dialog.open || chartView.isOpen()) return false;
+  const wasPaused = state.paused;
+  state.paused = true;
+  showFleet(() => {
+    state.paused = wasPaused;
+    if (!wasPaused) resetSailingInterpolation();
+  });
+  return true;
+}
+
+// Each type's battle ship seen side-on under the captain's flag, painted
+// once into an image URL for the fleet view.
+const SHIP_ICON_SIZE = { width: 40, height: 34 };
+const SHIP_ICON_SCALE = 2;
+const shipIconUrls = new Map();
+function shipIconUrl(type) {
+  const key = NATIONS[state.nationality] ? state.nationality : 'pirate';
+  const id = `${type}|${key}`;
+  if (!shipIconUrls.has(id)) {
+    const sprite = paintBattleShipSprite({ type, heading: 64, nation: { key, ...NATIONS[key] }, wind: 0 });
+    const iconCanvas = document.createElement('canvas');
+    iconCanvas.width = SHIP_ICON_SIZE.width;
+    iconCanvas.height = SHIP_ICON_SIZE.height;
+    const spriteCanvas = document.createElement('canvas');
+    spriteCanvas.width = sprite.width;
+    spriteCanvas.height = sprite.height;
+    spriteCanvas.getContext('2d').putImageData(new ImageData(sprite.pixels, sprite.width, sprite.height), 0, 0);
+    // Centred, waterline towards the bottom, whole art pixels.
+    iconCanvas.getContext('2d').drawImage(spriteCanvas,
+      Math.round((SHIP_ICON_SIZE.width - sprite.width) / 2), Math.max(0, SHIP_ICON_SIZE.height - sprite.height - 1));
+    shipIconUrls.set(id, iconCanvas.toDataURL());
+  }
+  return shipIconUrls.get(id);
 }
 
 // The Personal Status page (0xA5A7, CSTR 105): age, health, wealth, land
@@ -4066,12 +4187,13 @@ function openShipwright() {
 // shows them spread over the ships in fleet order, each filled to its gun
 // ports (any excess on the last ship); that split is for display only.
 function gunsByShip() {
-  let left = state.player.cannon;
-  return state.player.ships.map((ship, index, ships) => {
-    const guns = index === ships.length - 1 ? left : Math.min(left, statsFor(ship).guns);
-    left -= guns;
-    return guns;
-  });
+  return spreadOverShips(state.player.cannon, state.player.ships.map((ship) => statsFor(ship).guns));
+}
+
+// The crew shown aboard each ship: the eight hands every ship needs first,
+// then each ship filled in turn (display only, like the guns).
+function crewByShip() {
+  return spreadOverShips(state.player.crew, state.player.ships.map((ship) => statsFor(ship).capacity), { floor: CREW_PER_SHIP });
 }
 
 const repairPriceOf = (ship) => shipRepairPrice({ type: statsFor(ship).type, damage: shipRecord(ship).damage });
@@ -4122,7 +4244,7 @@ function showShipwright(preferredTransfer = '', preferredKind = '') {
       ? button('repair', index, `Repair · ${repair}`, !affordable(repair), affordable(repair) ? '' : 'You cannot afford the work')
       : '<span class="shipwright-sound">Sound</span>';
     return `<tr>
-      <th scope="row">${describeShip(ship)}</th>
+      <th scope="row">${escapeHtml(describeShip(ship))}</th>
       <td>${stats.cargo} t</td>
       <td>${guns[index]} / ${stats.guns}</td>
       <td><div class="shipwright-actions">${repairControl}${button('sell-ship', index, `Sell · ${sale}`, Boolean(saleHint), saleHint)}</div></td>
@@ -4131,7 +4253,7 @@ function showShipwright(preferredTransfer = '', preferredKind = '') {
   // In table order: each recorded row is the Sold row's final place.
   for (const { row, name } of [...shipwrightSoldRows].sort((a, b) => a.row - b.row)) {
     shipRows.splice(row, 0, `<tr class="shipwright-sold">
-      <th scope="row">${name}</th>
+      <th scope="row">${escapeHtml(name)}</th>
       <td>—</td>
       <td>—</td>
       <td><div class="shipwright-actions"><span class="shipwright-sound">Sold</span><span class="shipwright-sound" aria-hidden="true"></span></div></td>
@@ -4209,7 +4331,7 @@ function confirmShipSale(index) {
   if (state.player.ships.length < 2 || excess <= 0) return sellShip(index);
   showDialog({
     vignette: 'shipwright', kicker: 'The shipwright', title: 'Not enough hold',
-    body: `<p>Without the ${describeShip(ship)}, your fleet holds ${capacityAfter} tons but carries ${cargoUsed()} tons of food, goods and cannon. You would have to throw ${excess} tons overboard.</p>`,
+    body: `<p>Without the ${escapeHtml(describeShip(ship))}, your fleet holds ${capacityAfter} tons but carries ${cargoUsed()} tons of food, goods and cannon. You would have to throw ${excess} tons overboard.</p>`,
     actions: [
       { label: `Sell her and lose ${excess} tons`, risky: true, run: () => sellShip(index) },
       { label: 'Keep her', secondary: true, run: () => showShipwright('sell-ship', String(index)) },
@@ -5128,6 +5250,7 @@ dialog.addEventListener('keydown', (event) => {
     if (moveDialogFocus(event.key)) event.preventDefault();
     return;
   }
+  if (event.target.closest?.('input, select, textarea')) return;
   const button = dialogShortcuts.get(event.key.toLowerCase());
   if (!button) return;
   event.preventDefault();
@@ -5286,6 +5409,7 @@ function handleCommandKey(event, key) {
   // Kept from typing into the field the logbook or chart focuses.
   if (key === 'l' && openLogbookAtSea()) event.preventDefault();
   if (key === 'c' && openSeaChartAtSea()) event.preventDefault();
+  if (key === 'f' && openFleetAtSea()) event.preventDefault();
 }
 
 const PAGE_SCROLL_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Escape'];
@@ -5727,6 +5851,14 @@ const PREVIEWS = {
       actions: [{ label: 'Return to the tavern', run: () => {} }],
     });
   }),
+  // Four ships, one named, then the fleet view at sea.
+  fleet: () => startPreview(() => {
+    state.player.ships = [{ type: 'Frigate', damage: 0, name: 'Revenge' }, { type: 'Sloop', damage: 16 }, { type: 'Cargo fluyt', damage: 0 }, { type: 'Galleon', damage: 32 }];
+    state.player.crew = 260;
+    state.player.cannon = 50;
+    updateInterface();
+    openFleetAtSea();
+  }, { era: '1660', nationality: 'England' }),
   // Half a year of the monthly world, then the sea chart at sea.
   chart: () => startPreview(() => {
     passDays(180);

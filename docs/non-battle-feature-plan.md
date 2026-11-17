@@ -119,6 +119,12 @@ evidence for each item. This list collects them in one place.
   once, on leaving the yard. The yard redraws in place without moving its
   buttons (#118): a ship sold during the visit leaves a "Sold" row until you
   leave, which the original's list does not have.
+- The logbook's "Your fleet" page (F at sea) lists every ship with her type's
+  picture, crew, guns and hold, and the fleet's totals; the original shows the
+  fleet only as counts. The fleet-wide crew and cannon are shown spread over
+  the ships (eight hands each, then each ship filled in turn) for display
+  only. Ships can be given names of the captain's choosing, which the
+  original does not have; a name survives battles, saves and the refit.
 - Coastal towns use the harbour-arrival and port-quay pictures however you
   arrive. Only landlocked towns use shore-arrival and town-square. The original
   picks the arrival picture by how you came.

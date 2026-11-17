@@ -697,7 +697,8 @@ export function beginDivisionRefit(player, division) {
 // after a division (the original's value at exactly -16) and RESTART_MIN_CREW
 // after captivity. ships.md's "kept as is if <= 0" reading is not what the
 // code does: the store comes before the test.
-export function freshFleet(player, { gold, flagshipType, shipStats, minCrew = 1 }) {
+// `flagshipName` keeps the name the captain gave the flagship.
+export function freshFleet(player, { gold, flagshipType, flagshipName, shipStats, minCrew = 1 }) {
   let personalWealth = player.personalWealth ?? 0;
   let funds = gold;
   if (funds === 0) {
@@ -710,7 +711,7 @@ export function freshFleet(player, { gold, flagshipType, shipStats, minCrew = 1 
     ...player,
     personalWealth,
     partyGold: Math.trunc(funds / 10),
-    ships: [{ type: flagshipType, damage: 0 }],
+    ships: [{ type: flagshipType, damage: 0, ...(flagshipName ? { name: flagshipName } : {}) }],
     cannon: 2 * typeIndex + 6,
     foodFixed: 15 * 256,
     goods: 0,
@@ -1277,9 +1278,42 @@ export function advanceDate(calendar) {
 
 // Fleet check (0x1F65F, ships.md §5): every ship needs eight men.
 export const CREW_PER_SHIP = 8;
+// The fleet holds at most eight ships (0x45F98, ships.md §3).
+export const MAX_FLEET_SHIPS = 8;
 
 export function fleetIsUndermanned({ crew, shipCount }) {
   return CREW_PER_SHIP * shipCount > crew;
+}
+
+// Crew and cannon belong to the whole fleet, not to one ship (ships.md §5).
+// For display only, the fleet view spreads a fleet-wide `total` over the
+// ships: first `floor` each in fleet order (the eight hands every ship
+// needs), then each ship filled to her `capacities` entry in turn; anything
+// beyond the fleet's capacity is shown on the last ship.
+export function spreadOverShips(total, capacities, { floor = 0 } = {}) {
+  let left = Math.max(0, total);
+  const shares = capacities.map((capacity) => {
+    const share = Math.min(left, floor, capacity);
+    left -= share;
+    return share;
+  });
+  capacities.forEach((capacity, index) => {
+    const more = Math.min(left, capacity - shares[index]);
+    shares[index] += more;
+    left -= more;
+  });
+  if (shares.length) shares[shares.length - 1] += left;
+  return shares;
+}
+
+// A ship's name as the captain types it: spaces collapsed, at most
+// SHIP_NAME_MAX_LENGTH characters. An empty name (null) means the ship goes
+// by her type again.
+export const SHIP_NAME_MAX_LENGTH = 24;
+
+export function cleanShipName(text) {
+  const name = String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, SHIP_NAME_MAX_LENGTH).trim();
+  return name || null;
 }
 
 // Abandoning a ship for lack of crew keeps the whole cargo (0x1F748 calls
@@ -1295,7 +1329,7 @@ export function abandonShip(player, slot) {
 // at most 48 since level 4 sinks her). Then, on either path, if 8·slot is
 // more than the crew, the crew is raised to 8·slot (quirk 14, kept: free men).
 export function keepPrize(player, prize, slot = player.ships.length) {
-  if (slot > player.ships.length || slot >= 8) throw new Error('no slot for the prize');
+  if (slot > player.ships.length || slot >= MAX_FLEET_SHIPS) throw new Error('no slot for the prize');
   const ship = { type: prize.type, damage: Math.min(48, (prize.damage ?? 0) & 0xf0) };
   const ships = [...player.ships];
   const replaced = slot < ships.length ? ships[slot] : null;
