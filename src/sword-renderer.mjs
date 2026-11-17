@@ -42,17 +42,32 @@ const BACKDROP_ART_URLS = {
 };
 const backdropArt = {};
 let backdropArtLoading = null;
+// The fencers' generated bodies (fencer-sprites.mjs), decoded once loaded.
+const FENCER_BODIES_URL = new URL('../assets/sprites/fencers.png', import.meta.url).href;
+let fencerBodies = null;
 
-// Starts loading the backdrop art once; the fight's frame loop picks each
-// picture up as it arrives.
+function decodeImage(image) {
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  context.drawImage(image, 0, 0);
+  return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
+}
+
+// Starts loading the backdrop art and the fencers' bodies once; the fight's
+// frame loop picks each picture up as it arrives.
 export function loadBackdropArt() {
   if (backdropArtLoading || typeof Image === 'undefined') return backdropArtLoading ?? Promise.resolve();
-  backdropArtLoading = Promise.all(Object.entries(BACKDROP_ART_URLS).map(([scene, url]) => new Promise((resolve) => {
+  const load = (url, onload) => new Promise((resolve) => {
     const image = new Image();
-    image.onload = () => { backdropArt[scene] = image; resolve(); };
+    image.onload = () => { onload(image); resolve(); };
     image.onerror = () => resolve();
     image.src = url;
-  }))).then(() => {});
+  });
+  backdropArtLoading = Promise.all([
+    ...Object.entries(BACKDROP_ART_URLS).map(([scene, url]) => load(url, (image) => { backdropArt[scene] = image; })),
+    load(FENCER_BODIES_URL, (image) => { fencerBodies = decodeImage(image); }),
+  ]).then(() => {});
   return backdropArtLoading;
 }
 
@@ -99,7 +114,8 @@ const lookKey = (look) => Object.values(look).join(',');
 
 function fencerSprite({ move, frame, look, weapon, mirror, shade = 0 }) {
   const safeMove = move < 0 ? 0 : move;
-  return cachedSprite(spriteCache, `f|${safeMove}|${frame}|${lookKey(look)}|${weapon}|${mirror}|${shade}`, () => paintFencer({ move: safeMove, frame, look, weapon, mirror, shade }));
+  const bodies = fencerBodies;
+  return cachedSprite(spriteCache, `f|${safeMove}|${frame}|${lookKey(look)}|${weapon}|${mirror}|${shade}|${bodies ? 'art' : 'code'}`, () => paintFencer({ move: safeMove, frame, look, weapon, mirror, shade, bodies }));
 }
 
 // Height of a blow above the ground, in art pixels, by line (middle, low, high).

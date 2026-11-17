@@ -11,6 +11,15 @@ history.
 
 ## Unreleased
 
+### Changed
+
+- The sword fight's fencers have real bodies: comic-style pose sheets
+  generated for your captain, enemy captains, guards, the villain and
+  sailors, pixelated to the old size, with the sword arm and blade still
+  drawn by the game so every weapon, line and strike keeps its pose. Coats
+  and headscarves still take each nation's or crew's colour. Enemy captains
+  now wear a broad-brimmed hat instead of an anachronistic tricorne.
+
 ### Fixed
 
 - In sword fights the crews no longer spill past the edge of the deck,
