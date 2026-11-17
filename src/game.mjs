@@ -211,8 +211,14 @@ function interpolatedSailingClouds() {
 }
 
 const statsFor = (ship) => SHIPS[shipName(ship)];
-// Plain text: escape it before it goes into HTML (a ship's name is typed by
-// the player).
+// One of the captain's ships in a sentence: "Frigate" or, once named,
+// "Frigate Revenge". Plain text, like describeShip: escape it before it goes
+// into HTML (a ship's name is typed by the player).
+const ownShipTitle = (ship) => {
+  const record = shipRecord(ship);
+  return record.name ? `${record.type} ${record.name}` : record.type;
+};
+// Plain text: escape it before it goes into HTML.
 const describeShip = (ship) => {
   const record = shipRecord(ship);
   const condition = damageLevel(record.damage);
@@ -934,7 +940,7 @@ function runFleetCheck({ inTown = false, done }) {
         run: () => {
           const result = abandonShip(state.player, slot);
           state.player = result.player;
-          addLog(`Abandoned the ${shipName(result.lost)}: too few hands to sail her.`);
+          addLog(`Abandoned the ${ownShipTitle(result.lost)}: too few hands to sail her.`);
           runFleetCheck({ inTown, done });
         },
       })),
@@ -1806,7 +1812,7 @@ function finishTacticalBattle() {
       vignette: 'sinking', kicker: 'Defeat at sea', title: 'Your ship goes down',
       body: '<p>Your ship is holed in a dozen places, and gradually sinks beneath the waves.</p>',
       actions: [{ label: 'Continue', run: () => loseShip(0, { done: (lost) => endBattleToSailing(lost
-        ? `Your ${shipName(lost)} was holed and sank, taking her share of the cargo.`
+        ? `Your ${ownShipTitle(lost)} was holed and sank, taking her share of the cargo.`
         : 'Your last ship was holed and sank.') }) }],
     });
     return;
@@ -1824,7 +1830,7 @@ function finishTacticalBattle() {
     for (let index = 2; index < state.player.ships.length; index += 1) {
       if (statsFor(state.player.ships[index]).type > statsFor(state.player.ships[slowest]).type) slowest = index;
     }
-    loseShip(slowest, { done: (lost) => endBattleToSailing(`The enemy overtook and captured your reserve ${shipName(lost)} and her cargo during the escape.`) });
+    loseShip(slowest, { done: (lost) => endBattleToSailing(`The enemy overtook and captured your reserve ${ownShipTitle(lost)} and her cargo during the escape.`) });
     return;
   }
   const messages = {
@@ -2046,7 +2052,7 @@ function keepPrizeShip(enemy) {
       label: `Abandon ${describeShip(ship)} (${index + 1})`,
       run: () => {
         state.player = keepPrize(state.player, prize, index).player;
-        addLog(`Abandoned a ${shipName(ship)} and kept the captured ${enemy.ship}.`);
+        addLog(`Abandoned the ${ownShipTitle(ship)} and kept the captured ${enemy.ship}.`);
         finishPrizeDecision(enemy, true);
       },
     })),
@@ -2510,7 +2516,7 @@ function strikeReef(slot) {
   state.paused = true;
   const wrecked = state.player.ships[slot];
   if (state.player.ships.length === 1) {
-    addLog(`The ${shipName(wrecked)} was wrecked on a reef.`);
+    addLog(`The ${ownShipTitle(wrecked)} was wrecked on a reef.`);
     loseShip(slot, { cause: REEF_TEXT, done: () => resumeSailing() });
     return;
   }
@@ -2518,9 +2524,9 @@ function strikeReef(slot) {
     const before = state.player.crew;
     state.player.crew = crewAfterReef(state.player.crew, state.player.ships, SHIPS);
     const drowned = before - state.player.crew;
-    addLog(`The ${shipName(lost)} sank on a reef${drowned ? ` with ${drowned} men` : ''}.`);
+    addLog(`The ${ownShipTitle(lost)} sank on a reef${drowned ? ` with ${drowned} men` : ''}.`);
     showDialog({
-      vignette: 'shipwreck', kicker: 'Shallows', title: `The ${shipName(lost)} is lost`,
+      vignette: 'shipwreck', kicker: 'Shallows', title: `The ${ownShipTitle(lost)} is lost`,
       body: `${REEF_TEXT}<p>Her share of the cargo goes down with her.${drowned ? ` ${drowned} men who cannot fit aboard the remaining ships are lost.` : ''}</p><p>Pinnaces and sloops cross shallows safely; bigger ships risk the reefs.</p>`,
       actions: [{ label: 'Continue', run: resumeSailing }],
     });
@@ -2672,7 +2678,7 @@ function finishFortBattle(battle) {
       vignette: 'sinking', kicker: 'Defeat at sea', title: 'Your ship goes down',
       body: '<p>Your ship is holed in a dozen places, and gradually sinks beneath the waves.</p>',
       actions: [{ label: 'Continue', run: () => loseShip(0, { done: (lost) => {
-        if (lost) { back(`The fort at ${town.name} sank your ${shipName(lost)}, and she took her share of the cargo down with her.`); return; }
+        if (lost) { back(`The fort at ${town.name} sank your ${ownShipTitle(lost)}, and she took her share of the cargo down with her.`); return; }
         addLog(`The fort at ${town.name} sank your last ship.`);
         saveGame(false);
         resumeSailing();
@@ -2877,8 +2883,8 @@ function tryHarbor(town) {
     // 0x1F2A1(rnd(ship_count), 0, 1): cargo share lost; the last ship means prison.
     loseShip(rng.int(state.player.ships.length), { inTown: true, cause: '<p>As you approach the town, the fort opens fire! One of your ships is sunk!</p>', done: (lost) => {
       if (!lost) { resumeSailing(); return; }
-      addLog(`The fort at ${town.name} sank your ${shipName(lost)} and her cargo.`);
-      returnToApproach('The fort opens fire', 'One of your ships is sunk!', `An accurate salvo sinks your ${shipName(lost)} and her cargo.`);
+      addLog(`The fort at ${town.name} sank your ${ownShipTitle(lost)} and her cargo.`);
+      returnToApproach('The fort opens fire', 'One of your ships is sunk!', `An accurate salvo sinks your ${escapeHtml(ownShipTitle(lost))} and her cargo.`);
     } });
   } else {
     returnToApproach('The fort opens fire', 'The fort opens fire!', 'Cannon fire throws up columns of water and the fleet stands off beyond range.');
@@ -3169,8 +3175,8 @@ function refitAfterDivision(division, nextDifficulty) {
   // reputation + 16. Zero party gold takes 0x1EF87's restart branch.
   state.player = freshFleet(state.player, { gold: state.player.partyGold, flagshipType: shipName(flagship), flagshipName: shipRecord(flagship).name, shipStats: SHIPS });
   const player = state.player;
-  addLog(`The ${shipName(flagship)} was careened and refitted, ${DIVISION_REFIT_STEPS * DIVISION_REFIT_STEP_DAYS} days ashore from ${formatDate(refitStart)}.`);
-  addLog(`A new expedition begins aboard the ${shipName(flagship)} with ${player.crew} loyal hands.`);
+  addLog(`The ${ownShipTitle(flagship)} was careened and refitted, ${DIVISION_REFIT_STEPS * DIVISION_REFIT_STEP_DAYS} days ashore from ${formatDate(refitStart)}.`);
+  addLog(`A new expedition begins aboard the ${ownShipTitle(flagship)} with ${player.crew} loyal hands.`);
   saveGame(false);
   showDialog({
     kicker: 'A new account', title: 'The company disperses',

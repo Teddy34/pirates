@@ -159,7 +159,7 @@ form .wide-field { grid-column:span 2; }
   /* Each ship a card: picture and name, then crew, guns and hold in a row, then Rename. */
   .fleet-manifest thead { display:none; }
   .fleet-manifest tbody tr { display:grid; grid-template-columns:auto repeat(3,minmax(0,1fr)); align-items:center; gap:4px 8px; padding:8px 0; border-bottom:1px solid rgba(114,95,67,.3); }
-  .fleet-manifest tbody :is(th,td) { border-bottom:0; padding:0; }
+  .fleet-manifest tbody :is(th,td) { border-bottom:0; padding:0; white-space:normal; }
   .fleet-manifest .fleet-icon { grid-row:span 2; }
   .fleet-manifest tbody th { grid-column:2 / -1; }
   .fleet-manifest td:last-child { grid-column:1 / -1; }

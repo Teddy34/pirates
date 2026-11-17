@@ -35,6 +35,14 @@ await withBrowser({ name: 'fleet', portOffset: 13, screenshotEnv: 'FLEET_SCREENS
     const overflow = await evaluate(`(() => { const text = document.querySelector('.dialog-text') ?? document.querySelector('#event-dialog'); return text.scrollWidth - text.clientWidth; })()`);
     if (overflow > 1) throw new Error(`${viewport.name}: the fleet view scrolls sideways by ${overflow}px`);
     await screenshot(`${viewport.name}-fleet`);
+    // The smallest phones: still no sideways scrolling.
+    if (viewport.mobile) {
+      await setViewport({ ...viewport, width: 320 });
+      const tight = await evaluate(`(() => { const text = document.querySelector('.dialog-text') ?? document.querySelector('#event-dialog'); return text.scrollWidth - text.clientWidth; })()`);
+      if (tight > 1) throw new Error(`320px: the fleet view scrolls sideways by ${tight}px`);
+      await screenshot('small-fleet');
+      await setViewport(viewport);
+    }
 
     // Name the Sloop; spaces round the name are trimmed.
     await rename(1);
@@ -47,7 +55,8 @@ await withBrowser({ name: 'fleet', portOffset: 13, screenshotEnv: 'FLEET_SCREENS
     if (named !== 'Fair <Wind>') throw new Error(`${viewport.name}: the Sloop was named ${JSON.stringify(named)}`);
     const shown = await evaluate(rows);
     if (shown[1].name !== 'Fair <Wind>') throw new Error(`${viewport.name}: the name shows as ${JSON.stringify(shown[1].name)}`);
-    if (!(await evaluate(`localStorage.length > 0`))) throw new Error(`${viewport.name}: the new name was not saved`);
+    const saved = await evaluate(`Object.keys(localStorage).some((key) => localStorage.getItem(key).includes(${JSON.stringify(JSON.stringify({ name: 'Fair <Wind>' }).slice(1, -1))}))`);
+    if (!saved) throw new Error(`${viewport.name}: the new name was not saved`);
 
     // Clear the flagship's name: she goes by her type again.
     await rename(0);

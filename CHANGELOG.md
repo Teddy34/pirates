@@ -20,8 +20,9 @@ history.
   fleet, as in the original; the page shows them spread over the ships
   (eight hands each, then each ship filled in turn) for reading only.
 - Ships can be renamed from the fleet page. A named ship is called by her
-  name in the shipwright's yard, the battle and abandon choices and the
-  division, keeps it through battles, saves and the refit after dividing the
+  name in the shipwright's yard, the battle and abandon choices, the
+  division and refit, and the news of her loss ("Your Frigate Revenge was
+  holed and sank"), keeps it through battles, saves and the refit after dividing the
   plunder, and goes by her type again when the name is cleared. The original's
   ships have no names. Saves without names load unchanged.
 
