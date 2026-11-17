@@ -16,6 +16,7 @@ const PALETTE = {
   B: [74, 44, 20], // dark wood
   r: [176, 48, 42], // red
   u: [47, 93, 138], // sea blue
+  v: [74, 128, 62], // leaf green
 };
 
 const ICONS = {
@@ -95,6 +96,16 @@ const ICONS = {
     '............', '............', '..kk...kk...', '.krrk.krrk..', '.krrrkrrrk..', '.krrrrrrrk..',
     '..krrrrrk...', '...krrrk....', '....krk.....', '.....k......', '............', '............',
   ],
+  // A gold ring with a stone: propose marriage.
+  ring: [
+    '............', '.....kk.....', '....kwsk....', '.....kk.....', '...kkggkk...', '..kggkkggk..',
+    '.kgk....kgk.', '.kgk....kgk.', '.kGk....kGk.', '..kGk..kGk..', '...kkGGkk...', '.....kk.....',
+  ],
+  // A red rose on a stem: make conversation.
+  rose: [
+    '....kkkk....', '...krrrrk...', '..krrkkkrk..', '..krkrrkrk..', '..krkkrrrk..', '...krrrrk...',
+    '....kvvk....', '.kkk.kvk....', 'kvvvkkvk....', '.kvvvvvk....', '..kkkkvk....', '.....kk.....',
+  ],
   cross: [
     '............', '.kk......kk.', 'krrk....krrk', '.krrk..krrk.', '..krrkkrrk..', '...krrrrk...',
     '...krrrrk...', '..krrkkrrk..', '.krrk..krrk.', 'krrk....krrk', '.kk......kk.', '............',
@@ -168,7 +179,9 @@ const LABEL_ICONS = [
   [/^keep walking/i, 'boot'],
   [/sword|duel|fencing|storm/i, 'swords'],
   [/governor|audience|mission/i, 'crown'],
-  [/propose|conversation|marriage|retract/i, 'heart'],
+  [/propose|marriage/i, 'ring'],
+  [/conversation/i, 'rose'],
+  [/retract/i, 'heart'],
   [/sneak/i, 'mask'],
   [/map|chart|dig/i, 'map'],
   [/logbook|log\b|personal status|city information/i, 'book'],
