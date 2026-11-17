@@ -112,7 +112,7 @@ The project has no build step or third-party dependency:
 - `src/shot-sprites.mjs` paints the sea battle's cannonballs: one, two or three balls by the shooter's gun count.
 - `src/sword-mechanics.mjs` contains the DOM-free sword-fight engine (`sword_fights.md`): fight records, frame tables, the opponent AI and outcomes. `src/fencer-sprites.mjs` paints the pixel-art fencers: generated bodies from `assets/sprites/fencers.png` (one row per character, one cell per body pose, coats and headscarves recoloured per nation or crew; built by `tools/build_fencers.py` from Codex-generated pose sheets) with the sword arm and blade drawn in code, and a code-drawn body until the sheet loads, and `src/sword-renderer.mjs` draws the fight over the real backdrop art (plain sky and ground until it loads) (`assets/vignettes/fight-deck.png`, `fight-alley.png`, `fight-walls.png` with one row per town flag, 260×132, built by `tools/build_vignette.py` from the user's diffusion-generated illustrations); check it with `?preview=sword-duel`, `sword-boarding` and `sword-practice`, and storming the walls with `?preview=fort-walls` (a fortified town, by sea, after the fort battle) or `land-attack` (overland) and "Storm the walls". `?preview=fort-battle` opens the attack from the sea on the town with the most forts: the briefing, then the fort battle, one battery per fort on the coast cut from the navigation map round the town (`createFortBattle` in `src/battle-mechanics.mjs`, forts painted by `src/fort-sprites.mjs`), where running ashore by the town leads to the walls (`?preview=fort-battle-island` attacks St. Eustatius, a small island whose fort stands by the town).
 - `src/sea-chart.mjs` paints the full-screen sea chart (DOM-free): the old-map base image from the navigation map, town and ship markers, the gazetteer filter and the label layout. `src/chart-view.mjs` draws it, pans and zooms it, and runs the gazetteer and the town panel; open it with C or the Chart control at sea, or from the logbook, and check it with `?preview=chart`.
-- `src/game.mjs` owns state, input, modes, canvas rendering, and browser saves.
+- `src/game.mjs` owns state, input, modes, canvas rendering, and browser saves. The logbook's "Your fleet" page (F at sea) lists each ship with her type's battle sprite as its picture, her crew, guns and hold, and renames her; check it with `?preview=fleet` and `node tools/check_fleet.mjs`.
 - `style.css` makes the canvas fill the viewport.
 - `server.js` serves the directory at `http://localhost:8000`.
 
@@ -136,7 +136,7 @@ make syntax
 
 Run `make test` for the deterministic mechanics suite and `make test-browser`
 for the browser interaction smoke tests (transfer windows; the shipwright's yard; landing,
-walking, digging and reefs; retirement; the family quest; the scene pictures; sword fights; the sea chart; the fort battle; courtship and marriage; the save slots; the captain's health; and the sea battle's ships, through the local `?preview=` states). `make check` runs the complete
+walking, digging and reefs; retirement; the family quest; the scene pictures; sword fights; the sea chart; the fort battle; courtship and marriage; the save slots; the captain's health; the sea battle's ships; and the fleet page with renaming, through the local `?preview=` states). `make check` runs the complete
 automated set; `make syntax` checks every `src/`, `tools/` and server file. The
 browser checks share `tools/browser-harness.mjs`, which starts the server and
 a headless Chromium and provides the DevTools helpers; build new checks on it.

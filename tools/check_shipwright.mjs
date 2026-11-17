@@ -19,7 +19,7 @@ await withBrowser({ name: 'shipwright', portOffset: 8, screenshotEnv: 'SHIPWRIGH
   for (const viewport of VIEWPORTS) {
     await setViewport(viewport);
     await open('sell-ship', inYard);
-    await evaluate(`Object.assign(${S}.player, { partyGold: 5000, cannon: 30 }), true`);
+    await evaluate(`Object.assign(${S}.player, { partyGold: 5000, cannon: 30, crew: 100 }), true`);
     // Re-render with the new purse: any in-place action redraws the yard.
     await evaluate(`document.querySelector('#dialog-actions button').click(), true`);
     await until('the town menu', `${dialogTitle} !== ${JSON.stringify(yardTitle)}`);
@@ -29,7 +29,11 @@ await withBrowser({ name: 'shipwright', portOffset: 8, screenshotEnv: 'SHIPWRIGH
     if (fleet.length !== 3) throw new Error(`${viewport.name}: expected two ships and the cannon row, got ${JSON.stringify(fleet)}`);
     const [flagship, merchantman, cannonRow] = fleet;
     if (!merchantman[0].startsWith('Merchantman') || merchantman[1] !== '100 t') throw new Error(`${viewport.name}: the Merchantman's hold is not shown: ${merchantman}`);
-    if (flagship[2] !== `${Math.min(30, Number(flagship[2].split(' / ')[1]))} / ${flagship[2].split(' / ')[1]}`) throw new Error(`${viewport.name}: the flagship's guns are not filled first: ${flagship}`);
+    // The flagship shows the guns she takes into battle: eight hands stay on
+    // the Merchantman, and a gun needs four men (embarkedForBattle).
+    const flagshipPorts = Number(flagship[2].split(' / ')[1]);
+    const flagshipMen = Math.min(100 - 8, 8 * flagshipPorts);
+    if (flagship[2] !== `${Math.min(30, Math.floor(flagshipMen / 4), flagshipPorts)} / ${flagshipPorts}`) throw new Error(`${viewport.name}: the flagship does not show her battle guns: ${flagship}`);
     if (cannonRow[0] !== 'Cannon' || cannonRow[2] !== `30 / ${Number(flagship[2].split(' / ')[1]) + 24}`) throw new Error(`${viewport.name}: wrong cannon row: ${cannonRow}`);
     await screenshot(`${viewport.name}-yard`);
 

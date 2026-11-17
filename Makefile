@@ -35,6 +35,7 @@ test-browser:
 	node tools/check_health.mjs
 	node tools/check_shipwright.mjs
 	node tools/check_sea_battle.mjs
+	node tools/check_fleet.mjs
 
 check: test test-browser
 	git diff --check

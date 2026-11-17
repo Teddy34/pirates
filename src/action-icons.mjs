@@ -173,7 +173,7 @@ ICONS.down = turnLeft(ICONS.back);
 // First match wins, so the specific actions come before the generic ones.
 const LABEL_ICONS = [
   [/attack|prepare for battle|close for battle|plunder and sink/i, 'cannon'],
-  [/^delete|^overwrite/i, 'cross'],
+  [/^delete|^overwrite|^clear the name/i, 'cross'],
   [/^(return|back|close|decline|no\b|nothing|withdraw|part company|remain)/i, 'back'],
   [/^wait/i, 'hourglass'],
   [/^keep walking/i, 'boot'],
@@ -186,6 +186,7 @@ const LABEL_ICONS = [
   [/map|chart|dig/i, 'map'],
   [/logbook|log\b|personal status|city information/i, 'book'],
   [/save/i, 'quill'],
+  [/^rename|^name her/i, 'quill'],
   [/shipwright|repair/i, 'hammer'],
   [/plunder|looting/i, 'chest'],
   [/merchant|gold|ransom|offer|^food$|^goods$|jettison/i, 'coins'],
@@ -193,7 +194,7 @@ const LABEL_ICONS = [
   [/investigate|hail|follow|traveller/i, 'spyglass'],
   [/sail into|march into|harbor/i, 'anchor'],
   [/on foot/i, 'boot'],
-  [/put to sea|sail away|leave town|voyage|keep sailing|prize crew|keep her|pirating/i, 'ship'],
+  [/^your fleet$|put to sea|sail away|leave town|voyage|keep sailing|prize crew|keep her|pirating/i, 'ship'],
   [/^leave/i, 'back'],
   [/^(continue|next|yes|done|welcome|take|finish)/i, 'tick'],
 ];

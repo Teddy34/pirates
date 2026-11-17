@@ -114,11 +114,18 @@ evidence for each item. This list collects them in one place.
   guns, and Repair and Sell buttons, plus the cannon, traded in place. Ships
   are repaired one at a time or all at once and sold one at a time, rather
   than picked from a list; the prices and cash rules are the original's. The
-  fleet's single cannon count is shown spread over the ships in fleet order,
-  which the original does not display. Cannon sold during a visit are logged
+  fleet's single cannon count is shown ship by ship as on the fleet page (the
+  flagship's battle guns first), which the original does not display. Cannon sold during a visit are logged
   once, on leaving the yard. The yard redraws in place without moving its
   buttons (#118): a ship sold during the visit leaves a "Sold" row until you
   leave, which the original's list does not have.
+- The logbook's "Your fleet" page (F at sea) lists every ship with her type's
+  picture, crew, guns and hold, and the fleet's totals; the original shows the
+  fleet only as counts. The fleet-wide crew and cannon are shown ship by
+  ship for display only: the flagship with the men and guns she takes into a
+  sea battle (`embarkedForBattle`), eight hands on every other ship, then the
+  rest over them in fleet order. Ships can be given names of the captain's choosing, which the
+  original does not have; a name survives battles, saves and the refit.
 - Coastal towns use the harbour-arrival and port-quay pictures however you
   arrive. Only landlocked towns use shore-arrival and town-square. The original
   picks the arrival picture by how you came.

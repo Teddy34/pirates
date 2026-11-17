@@ -133,3 +133,51 @@ test('release from captivity frees every prisoner and lowers the difficulty', ()
   assert.equal(released.difficulty, 1);
   assert.equal(releaseFromCaptivity({}, 0).difficulty, 0);
 });
+
+test('the fleet view spreads crew and guns over the ships in fleet order', async () => {
+  const { spreadOverShips } = await import('../src/mechanics.mjs');
+  // Eight hands each first, then each ship filled in turn.
+  assert.deepEqual(spreadOverShips(40, [224, 96, 160], { floor: 8 }), [24, 8, 8]);
+  assert.deepEqual(spreadOverShips(300, [224, 96, 160], { floor: 8 }), [224, 68, 8]);
+  // Fewer men than ships need: the first ships get theirs.
+  assert.deepEqual(spreadOverShips(12, [64, 64], { floor: 8 }), [8, 4]);
+  // Guns fill in order; beyond every gun port the excess shows on the last ship.
+  assert.deepEqual(spreadOverShips(30, [28, 12]), [28, 2]);
+  assert.deepEqual(spreadOverShips(50, [28, 12]), [28, 22]);
+  assert.deepEqual(spreadOverShips(5, []), []);
+});
+
+test('a ship name is trimmed, collapsed and capped; an empty one clears it', async () => {
+  const { cleanShipName, SHIP_NAME_MAX_LENGTH } = await import('../src/mechanics.mjs');
+  assert.equal(cleanShipName('  Queen   Anne’s  Revenge '), 'Queen Anne’s Revenge');
+  assert.equal(cleanShipName('   '), null);
+  assert.equal(cleanShipName(undefined), null);
+  assert.equal(cleanShipName('x'.repeat(40)).length, SHIP_NAME_MAX_LENGTH);
+});
+
+test('a ship keeps her name through records and the refit', async () => {
+  const { shipRecord } = await import('../src/battle-mechanics.mjs');
+  const { freshFleet } = await import('../src/mechanics.mjs');
+  assert.deepEqual(shipRecord({ type: 'Sloop', damage: 16, name: 'Swift' }), { type: 'Sloop', damage: 16, name: 'Swift' });
+  assert.deepEqual(shipRecord({ type: 'Sloop' }), { type: 'Sloop', damage: 0 });
+  const refit = freshFleet(player(), { gold: 1000, flagshipType: 'Frigate', flagshipName: 'Revenge', shipStats: SHIPS });
+  assert.deepEqual(refit.ships, [{ type: 'Frigate', damage: 0, name: 'Revenge' }]);
+  assert.deepEqual(freshFleet(player(), { gold: 1000, flagshipType: 'Frigate', shipStats: SHIPS }).ships, [{ type: 'Frigate', damage: 0 }]);
+});
+
+test('the fleet page shows the flagship with what she takes into battle', async () => {
+  const { fleetStations, embarkedForBattle } = await import('../src/battle-mechanics.mjs');
+  const ships = [{ type: 'Frigate', damage: 0 }, { type: 'Sloop', damage: 0 }, { type: 'Cargo fluyt', damage: 0 }, { type: 'Galleon', damage: 0 }];
+  // 60 men: eight stay on each of the three other ships, 36 sail the
+  // Frigate and serve nine guns (one per four men); the rest of the cannon
+  // fill the Sloop, then the fluyt.
+  const lean = fleetStations({ crew: 60, cannon: 50, ships });
+  assert.deepEqual(lean, { crew: [36, 8, 8, 8], guns: [9, 12, 20, 9], spareGuns: 0 });
+  const embarked = embarkedForBattle({ crew: 60, cannon: 50, ships });
+  assert.equal(lean.crew[0], embarked.men);
+  assert.equal(lean.guns[0], embarked.guns);
+  // A full crew fills the Frigate first, then the Sloop.
+  assert.deepEqual(fleetStations({ crew: 260, cannon: 50, ships }), { crew: [224, 20, 8, 8], guns: [28, 12, 10, 0], spareGuns: 0 });
+  // A lone ship: cannon she cannot serve stay in the hold.
+  assert.deepEqual(fleetStations({ crew: 20, cannon: 12, ships: [{ type: 'Sloop', damage: 0 }] }), { crew: [20], guns: [5], spareGuns: 7 });
+});

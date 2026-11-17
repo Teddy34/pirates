@@ -11,6 +11,26 @@ history.
 
 ## Unreleased
 
+### Added
+
+- The logbook has a "Your fleet" page, also opened with F at sea: every ship
+  with a pixel picture of her type, her crew, guns and hold against her
+  maximum, her condition, and the fleet's totals (ships out of eight, crew,
+  cannon, hold, food and goods). Crew and cannon still belong to the whole
+  fleet, as in the original; the page shows them ship by ship for reading
+  only: eight hands stay on every other ship, the flagship shows exactly the
+  men and guns she takes into a sea battle (one gun per four men), and the
+  rest are spread over the other ships in fleet order. The shipwright's yard
+  shows the guns the same way. A "How crew and guns work" button opens a
+  short box with these rules, among them the original's limit of one gun
+  per four men in a sea battle.
+- Ships can be renamed from the fleet page. A named ship is called by her
+  name in the shipwright's yard, the battle and abandon choices, the
+  division and refit, and the news of her loss ("Your Frigate Revenge was
+  holed and sank"), keeps it through battles, saves and the refit after dividing the
+  plunder, and goes by her type again when the name is cleared. The original's
+  ships have no names. Saves without names load unchanged.
+
 ### Changed
 
 - The sword fight's fencers have real bodies: comic-style pose sheets
