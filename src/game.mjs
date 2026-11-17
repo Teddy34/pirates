@@ -25,7 +25,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, merchantStock, advanceDate,
   NATION_ORDER, monthlyWorldUpdate, initialWorldNews, randomTownRange, worldNewsMessage, newGameTowns,
   townInfoStatus, learnTownInfo, TOWN_INFO_CURRENT,
-  fleetIsUndermanned, spreadOverShips, cleanShipName, SHIP_NAME_MAX_LENGTH, CREW_PER_SHIP, MAX_FLEET_SHIPS, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS, isLandlocked,
+  fleetIsUndermanned, cleanShipName, SHIP_NAME_MAX_LENGTH, MAX_FLEET_SHIPS, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS, isLandlocked,
   escapeCostsShip,
   monthEndCrewEvent, mutinyOutcome,
   CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
@@ -33,7 +33,7 @@ import {
 } from './mechanics.mjs';
 import {
   BATTLE_FRAME_SECONDS, BATTLE_SAIL_TRANSITION_FRAMES,
-  MAX_FORT_BATTERIES, broadsideState, createBattle, createFortBattle, damageLevel, embarkedForBattle, garrisonAfterFortBattle, playerOpenedRange, shipName, shipRecord, stepBattle,
+  MAX_FORT_BATTERIES, broadsideState, createBattle, createFortBattle, damageLevel, embarkedForBattle, fleetStations, garrisonAfterFortBattle, playerOpenedRange, shipName, shipRecord, stepBattle,
 } from './battle-mechanics.mjs';
 import { renderBattle } from './battle-renderer.mjs';
 import {
@@ -3717,12 +3717,12 @@ function showLogbook(close) {
 // Your fleet: every ship with her type's picture, name, crew, guns and hold,
 // and the fleet's totals. A port addition: the original shows the fleet only
 // as counts on its status screens. Crew and cannon are fleet-wide (ships.md
-// §5); the split per ship is for display only (crewByShip, gunsByShip).
+// §5); the split per ship is for display only and gives the flagship what
+// she takes into a sea battle (fleetStations).
 // Each ship can be given a name of the captain's choosing.
 function showFleet(back) {
   const { ships, crew, cannon } = state.player;
-  const crews = crewByShip();
-  const guns = gunsByShip();
+  const { crew: crews, guns, spareGuns } = fleetStations(state.player);
   const maxCrew = fleetCapacity();
   const maxGuns = ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0);
   const rows = ships.map((ship, index) => {
@@ -3748,7 +3748,7 @@ function showFleet(back) {
         <thead><tr><th><span class="visually-hidden">Picture</span></th><th>Ship</th><th>Crew</th><th>Guns</th><th>Hold</th><th><span class="visually-hidden">Name</span></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <p class="shipwright-help">Crew and cannon serve the whole fleet; each ship is shown with eight hands, then filled in turn. Every ship needs eight hands to sail.</p>`,
+      <p class="shipwright-help">Crew and cannon serve the whole fleet. Every ship keeps eight hands; the flagship shows the men and guns she takes into a sea battle (a gun needs four men), and the rest are spread over the other ships in turn.${spareGuns ? ` ${spareGuns} more cannon lie in the hold.` : ''}</p>`,
     actions: [{ label: 'Done', secondary: true, run: back }],
   });
   bindTransferButtons((transfer, kind) => {
@@ -4190,16 +4190,10 @@ function openShipwright() {
 }
 
 // Cannon are one count for the whole fleet, as in the original. The yard
-// shows them spread over the ships in fleet order, each filled to its gun
-// ports (any excess on the last ship); that split is for display only.
+// shows them ship by ship as the fleet page does (fleetStations: the
+// flagship's battle guns first); that split is for display only.
 function gunsByShip() {
-  return spreadOverShips(state.player.cannon, state.player.ships.map((ship) => statsFor(ship).guns));
-}
-
-// The crew shown aboard each ship: the eight hands every ship needs first,
-// then each ship filled in turn (display only, like the guns).
-function crewByShip() {
-  return spreadOverShips(state.player.crew, state.player.ships.map((ship) => statsFor(ship).capacity), { floor: CREW_PER_SHIP });
+  return fleetStations(state.player).guns;
 }
 
 const repairPriceOf = (ship) => shipRepairPrice({ type: statsFor(ship).type, damage: shipRecord(ship).damage });
@@ -4287,7 +4281,7 @@ function showShipwright(preferredTransfer = '', preferredKind = '') {
       </table>
       ${repairAllControl}
       ${refusals.size ? `<p class="shipwright-refusals">${[...refusals].map((reason) => `${reason}.`).join(' ')}</p>` : ''}
-      <p class="shipwright-help">The fleet shares its guns; each ship is shown filled in turn. Cannon fetch ${CANNON_PRICE} gold apiece and take a ton of hold for every two, and one must stay aboard. A sold ship’s crew, cannon and cargo stay with the fleet.</p>`,
+      <p class="shipwright-help">The fleet shares its guns; the flagship shows those she takes into battle, the rest are spread over the other ships. Cannon fetch ${CANNON_PRICE} gold apiece and take a ton of hold for every two, and one must stay aboard. A sold ship’s crew, cannon and cargo stay with the fleet.</p>`,
     actions: [{ label: 'Part company', secondary: true, run: finishShipwrightVisit }],
     redraw: true,
   });

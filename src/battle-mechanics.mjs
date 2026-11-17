@@ -1,5 +1,5 @@
 import { SHIPS } from './data.mjs';
-import { clamp, relativeHeadingSector } from './mechanics.mjs';
+import { CREW_PER_SHIP, clamp, relativeHeadingSector, spreadOverShips } from './mechanics.mjs';
 import { PIXEL, pixelClassAt } from './world-map.mjs';
 
 export const BATTLE_FRAME_SECONDS = 1 / 30; // ASSUMED: original wall-clock frame duration is untraced.
@@ -81,6 +81,26 @@ export function embarkedForBattle({ crew, cannon, ships, flagshipIndex = 0 }) {
     reserveMen: Math.max(0, crew - men),
     guns,
     reserveGuns: Math.max(0, cannon - guns),
+  };
+}
+
+// The fleet-wide crew and cannon shown ship by ship (display only): the
+// flagship with exactly the men and guns she takes into a sea battle
+// (embarkedForBattle: eight hands kept on every other ship, then the
+// flagship filled; guns up to one per four men and her gun ports), then the
+// rest over the other ships in fleet order, eight hands each first, each
+// filled in turn, any excess on the last. A lone flagship's cannon beyond
+// what she fights with stay in the hold (`spareGuns`).
+export function fleetStations({ crew, cannon, ships }) {
+  if (!ships.length) return { crew: [], guns: [], spareGuns: 0 };
+  const { men, reserveMen, guns, reserveGuns } = embarkedForBattle({ crew, cannon, ships });
+  const others = ships.slice(1).map((ship) => SHIPS[shipName(ship)]);
+  const otherCrew = spreadOverShips(reserveMen, others.map((stats) => stats.capacity), { floor: CREW_PER_SHIP });
+  const otherGuns = spreadOverShips(reserveGuns, others.map((stats) => stats.guns));
+  return {
+    crew: [men, ...otherCrew],
+    guns: [guns, ...otherGuns],
+    spareGuns: others.length ? 0 : reserveGuns,
   };
 }
 
