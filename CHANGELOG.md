@@ -21,7 +21,9 @@ history.
   only: eight hands stay on every other ship, the flagship shows exactly the
   men and guns she takes into a sea battle (one gun per four men), and the
   rest are spread over the other ships in fleet order. The shipwright's yard
-  shows the guns the same way.
+  shows the guns the same way. A "How crew and guns work" button opens a
+  short box with these rules, among them the original's limit of one gun
+  per four men in a sea battle.
 - Ships can be renamed from the fleet page. A named ship is called by her
   name in the shipwright's yard, the battle and abandon choices, the
   division and refit, and the news of her loss ("Your Frigate Revenge was

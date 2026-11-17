@@ -35,6 +35,16 @@ await withBrowser({ name: 'fleet', portOffset: 13, screenshotEnv: 'FLEET_SCREENS
     const overflow = await evaluate(`(() => { const text = document.querySelector('.dialog-text') ?? document.querySelector('#event-dialog'); return text.scrollWidth - text.clientWidth; })()`);
     if (overflow > 1) throw new Error(`${viewport.name}: the fleet view scrolls sideways by ${overflow}px`);
     await screenshot(`${viewport.name}-fleet`);
+    // The help box opens and closes in place and explains the gunners' rule.
+    const toggleHelp = () => evaluate(`document.querySelector('.fleet-help-toggle').click(), true`);
+    const helpShown = `!document.querySelector('#fleet-help').hidden && document.querySelector('.fleet-help-toggle').getAttribute('aria-expanded') === 'true'`;
+    if (await evaluate(helpShown)) throw new Error(`${viewport.name}: the help box starts open`);
+    await toggleHelp();
+    await until('the help box', helpShown);
+    if (!(await evaluate(`document.querySelector('#fleet-help').textContent.includes('A gun needs four men')`))) throw new Error(`${viewport.name}: the help box lacks the gunners' rule`);
+    await screenshot(`${viewport.name}-help`);
+    await toggleHelp();
+    await until('the help box closed', `!(${helpShown})`);
     // The smallest phones: still no sideways scrolling.
     if (viewport.mobile) {
       await setViewport({ ...viewport, width: 320 });

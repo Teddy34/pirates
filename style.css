@@ -132,6 +132,12 @@ form .wide-field { grid-column:span 2; }
 .fleet-manifest small { display:block; margin-top:2px; color:#725f43; font-size:13px; font-weight:400; }
 .fleet-label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 .fleet-manifest .plunder-take-all { width:100%; min-width:0; }
+.fleet-help-toggle { display:inline-flex; align-items:center; gap:8px; margin:14px 0 10px; padding:6px 10px; border:2px solid #8f713e; border-radius:0; background:#f3e6c4; color:#3d2f1c; font:700 13px/1.2 "Source Sans 3",sans-serif; cursor:pointer; }
+.fleet-help-toggle span { display:inline-grid; place-items:center; width:20px; height:20px; background:#8f713e; color:#fbf3df; font-family:var(--mono, monospace); }
+.fleet-help-toggle[aria-expanded="true"] { background:#e2cf9f; }
+.fleet-help { max-width:62ch; margin:0 0 14px; padding:10px 14px; border:2px solid #8f713e; background:#fbf3df; box-shadow:3px 3px 0 rgba(0,0,0,.35); font-family:"Source Sans 3",sans-serif; font-size:15px; line-height:1.35; }
+.fleet-help ul { margin:0; padding-left:18px; }
+.fleet-help li + li { margin-top:4px; }
 .ship-name-field { display:block; margin-top:14px; color:#725f43; font-family:"Source Sans 3",sans-serif; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
 .ship-name-field input { background:#fbf3df; color:#1d1710; border:2px solid #8f713e; border-radius:0; font-size:17px; letter-spacing:normal; text-transform:none; }
 .plunder-cell { display:flex; align-items:center; justify-content:space-between; gap:8px; }

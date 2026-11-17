@@ -3744,12 +3744,29 @@ function showFleet(back) {
   showDialog({
     kicker: 'The captain’s logbook', title: 'Your fleet',
     body: `<dl class="plunder-summary"><dt>Ships</dt><dd>${ships.length} / ${MAX_FLEET_SHIPS}</dd><dt>Crew</dt><dd>${crew} / ${maxCrew}</dd><dt>Cannon</dt><dd>${cannon} / ${maxGuns}</dd><dt>Hold</dt><dd>${cargoUsed()} / ${cargoCapacity()} tons</dd><dt>Food</dt><dd>${food} tons</dd><dt>Goods</dt><dd>${state.player.goods} tons</dd></dl>
+      <button type="button" class="fleet-help-toggle" aria-expanded="false" aria-controls="fleet-help"><span aria-hidden="true">?</span> How crew and guns work</button>
+      <div id="fleet-help" class="fleet-help" hidden>
+        <ul>
+          <li>Crew and cannon belong to the whole fleet; this page shows them ship by ship.</li>
+          <li>Every ship needs eight hands to sail. With fewer men, you must abandon ships.</li>
+          <li>In a sea battle you command one ship, the flagship unless you choose another. Eight hands stay aboard each other ship; the rest board her, up to her maximum.</li>
+          <li><b>A gun needs four men.</b> She fires as many guns as her men can serve, up to her gun ports. A short crew leaves cannon silent.</li>
+          <li>The other men and cannon wait in reserve on the other ships.</li>
+          <li>Every two cannon take a ton of hold.</li>
+        </ul>
+      </div>
       <table class="plunder-manifest fleet-manifest">
         <thead><tr><th><span class="visually-hidden">Picture</span></th><th>Ship</th><th>Crew</th><th>Guns</th><th>Hold</th><th><span class="visually-hidden">Name</span></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <p class="shipwright-help">Crew and cannon serve the whole fleet. Every ship keeps eight hands; the flagship shows the men and guns she takes into a sea battle (a gun needs four men), and the rest are spread over the other ships in turn.${spareGuns ? ` ${spareGuns} more cannon lie in the hold.` : ''}</p>`,
+      ${spareGuns ? `<p class="shipwright-help">${spareGuns} more cannon lie in the hold: the crew cannot serve them.</p>` : ''}`,
     actions: [{ label: 'Done', secondary: true, run: back }],
+  });
+  const helpToggle = dialogBody.querySelector('.fleet-help-toggle');
+  helpToggle.addEventListener('click', () => {
+    const open = helpToggle.getAttribute('aria-expanded') !== 'true';
+    helpToggle.setAttribute('aria-expanded', String(open));
+    dialogBody.querySelector('#fleet-help').hidden = !open;
   });
   bindTransferButtons((transfer, kind) => {
     if (transfer !== 'rename') return 0;
