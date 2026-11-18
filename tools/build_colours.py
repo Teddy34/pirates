@@ -32,13 +32,13 @@ import os
 
 from PIL import Image, ImageDraw
 
-from build_vignette import (BLUE, INK, ORANGE, RED, SHAPES, WHITE, centred_crop, cross_of_burgundy,
+from build_vignette import (BLUE, GOLD, INK, ORANGE, RED, SHAPES, WHITE, banniere_de_france, centred_crop, cross_of_burgundy,
                             perspective_coefficients, pixelate, prince_flag, st_george, states_flag)
 
 OUT = 'assets/vignettes/colours'
 FLAG_W, FLAG_H = 72, 48
 DRAW_W, DRAW_H = 360, 240
-GOLD, BLACK, BLOOD = (226, 178, 52), (28, 24, 22), (168, 26, 30)
+BLACK, BLOOD = (28, 24, 22), (168, 26, 30)
 PURPLE = (110, 40, 110)
 
 
@@ -58,6 +58,20 @@ def england_red_ensign():
     """England from the 1620s: red with St George's cross in the canton."""
     flag, draw = field(RED)
     canton = st_george(DRAW_W // 2, DRAW_H // 2)
+    flag.paste(canton, (0, 0))
+    return outlined(flag)
+
+
+def england_striped_ensign():
+    """England to about 1625: an Elizabethan striped ensign with St George's
+    cross in the canton. Stripe colours varied from ship to ship; seven
+    red, white and blue stripes are one recorded scheme (Perrin, British
+    Flags, 1922, plate IX)."""
+    flag, draw = field(WHITE)
+    for index in range(7):
+        colour = (RED, WHITE, BLUE)[index % 3]
+        draw.rectangle([0, DRAW_H * index / 7, DRAW_W, DRAW_H * (index + 1) / 7], fill=colour)
+    canton = st_george(DRAW_W // 2, DRAW_H * 4 // 7)
     flag.paste(canton, (0, 0))
     return outlined(flag)
 
@@ -362,7 +376,10 @@ FLAGS = [
     ('holland-prince', lambda: prince_flag().resize((DRAW_W, DRAW_H))),
     ('holland-states', lambda: states_flag().resize((DRAW_W, DRAW_H))),
     ('pirate-red', plain_red),
-] + [(f'pirate-{index}', make) for index, make in enumerate(PIRATE_FLAGS)]
+] + [(f'pirate-{index}', make) for index, make in enumerate(PIRATE_FLAGS)] + [
+    ('england-striped', england_striped_ensign),
+    ('france-lilies', lambda: banniere_de_france(DRAW_W, DRAW_H)),
+]
 
 COLUMNS = 9
 

@@ -64,8 +64,9 @@ Notes:
 - **Flags in pictures** follow the period, not the game's map colours
   (`FLAG_DARK`): Spain the Cross of Burgundy (red ragged saltire on white),
   England St George's cross (and the 1606 Union Flag, on royal ships from 1634), France
-  white, Holland the Prince's flag or the later red-white-blue, buccaneers their
-  commission's colours or a plain red flag. Describe
+  white (the blue banner with gold fleurs-de-lis to about 1600), Holland the Prince's flag or the later red-white-blue, buccaneers their
+  commission's colours or a plain red flag. Era by era, ship role and
+  sources: `docs/flags-1560-1680.md`. Describe
   the flag's look in the prompt rather than naming it. The checklist of
   period traps is in `.claude/skills/vignette-art/SKILL.md`.
 
@@ -939,9 +940,9 @@ warships, "navy"):
 
 | nation | flag | sources |
 |---|---|---|
-| Spain | the Cross of Burgundy (red ragged saltire on white); in 1680, navy ships fly white with the crowned royal arms | FOTW es_brgdy (ensign to the 1670s, then jack to 1785), es1701 (Charles II's royal arms ensign, 1670s) |
-| England | 1560–1600: St George's cross; from 1620: the red ensign with St George's canton | Wikipedia "Red Ensign" (canton by 1620, merchants confirmed 1674) |
-| France | merchants, and every ship before 1640: a white cross on blue; from 1640, navy: plain white | Wikipedia "French ensigns" (1661 ordinance); white cross on blue on Champlain's 1612 map; FOTW cites a white ensign "1638–1790" |
+| Spain | the Cross of Burgundy (red ragged saltire on white); in 1680, navy ships fly white with the crowned royal arms | `docs/flags-1560-1680.md`: both FOTW and O'Donnell (2002) give the royal arms by 1680; before, they disagree, and the cross was flown in either reading |
+| England | 1560: St George's cross; 1600–1620: a striped ensign with St George's canton; from 1640: the red ensign with St George's canton | `docs/flags-1560-1680.md` (Perrin, *British Flags*, 1922: ensigns from 1574, striped; the first red ensign 1621, the navy's from 1625; merchants legalised 1674) |
+| France | merchants: a white cross on blue; navy: in 1560 the blue banner with gold fleurs-de-lis, from 1600 plain white | `docs/flags-1560-1680.md` (Fournier, *Hydrographie*, 1643; the 1661 ordinance; white at sea from 1606) |
 | Holland | 1600–1640: the Prince's flag (orange, white, blue); from 1660: red, white, blue. None in 1560: the encounter tables hold no Dutch ship before the Revolt | Wikipedia "Flag of the Netherlands" (navy 1588–1630 orange, both 1630–1662, red from 1663) |
 | pirate | an unnamed pirate: a plain red flag (the "bloody flag", no quarter); a named pirate: his own colours | buccaneers' "bloody flag" reported in 1681 (secondary sources); skull and crossbones only from about 1700 |
 

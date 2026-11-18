@@ -206,10 +206,10 @@ something new.
 
 | Subject | Right for the period | Anachronisms to catch |
 |---|---|---|
-| Spain | Cross of Burgundy: red ragged saltire on white; naval ensign to about the 1670s, then jack to 1785 ([FOTW](https://fotw.info/FLAGS/es_brgdy.html)) | Red-yellow-red stripes (1785) |
-| England | St George's cross, red on white; red ensign with a St George canton from about the 1620s. The 1606 Union Flag (St George over St Andrew's white saltire on blue) at the maintop; royal ships only from 1634; not used 1649–1660 (Commonwealth flags with the Irish harp) | St Patrick's red saltire in the Union Flag (1801) |
-| France | Royal ships and forts: white, made official in 1661 (plain or with gold fleurs-de-lis: sources differ). 1560s ships flew various flags, often a white cross | Tricolour (1790s) |
-| Holland | From the Revolt (about 1570): Prince's flag, orange-white-blue, to about 1630; both versions 1630–1662; red-white-blue from 1663 ([Wikipedia](https://en.wikipedia.org/wiki/Prince%27s_Flag)). Before the Revolt, Habsburg colours | — |
+| Spain | Cross of Burgundy: red ragged saltire on white; navy ensign white with the royal arms by 1680 ([FOTW](https://fotw.info/FLAGS/es_brgdy.html); `docs/flags-1560-1680.md`) | Red-yellow-red stripes (1785) |
+| England | St George's cross, red on white; striped stern ensigns with a St George canton from 1574, the red ensign with a St George canton from about 1625. The 1606 Union Flag (St George over St Andrew's white saltire on blue) at the maintop; royal ships only from 1634; not used 1649–1660 (Commonwealth flags with the Irish harp) | St Patrick's red saltire in the Union Flag (1801) |
+| France | Royal ships and forts: white, at sea from about 1600, made official in 1661. Before about 1620, forts and royal ships: blue with gold fleurs-de-lis. Merchants: a white cross on blue | Tricolour (1790s) |
+| Holland | From the Revolt (about 1570): Prince's flag, orange-white-blue, to about 1630; both versions 1630–1662; red-white-blue from 1663 ([Wikipedia](https://en.wikipedia.org/wiki/Prince%27s_Flag)). Before the Revolt, the Cross of Burgundy | — |
 | Pirates | Buccaneers mostly sailed under their commission's colours; a plain red flag meant no quarter | Plain black flags mainly from the 1690s; skull and crossbones about 1700–1725 |
 | Ships | Galleons, carracks, pinnaces; fluyts from about 1595; steered by tiller and whipstaff | Ship's wheel (about 1700 onward); a fluyt before 1595 |
 | Optics | Telescopes after 1608 | A spyglass in a 1560–1600 scene |
