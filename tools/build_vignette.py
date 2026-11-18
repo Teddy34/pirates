@@ -18,6 +18,13 @@ The tool:
 
 Usage:
   python3 tools/build_vignette.py --scene <id> --source <image> [--shape S] [--out <png>]
+  python3 tools/build_vignette.py --scene <id> --extend-sheet [--out <png>]
+  python3 tools/build_vignette.py --scene <id> --retouch [--out <png>]
+
+--extend-sheet adds the town-flag rows a built sheet lacks (FORT_FLAGS)
+without its source, from the sheet's plain white flag row. --retouch
+repaints the scene's `retouch` flags on the built picture, without its
+source.
 
 --shape is needed only for a scene not yet listed in SCENES. Needs Pillow.
 """
@@ -32,6 +39,7 @@ SHAPES = {'landscape': (224, 128), 'portrait': (96, 128), 'title': (240, 160), '
 COLOURS = 256
 WHITE, RED, INK = (244, 240, 226), (196, 32, 36), (30, 24, 20)
 ORANGE, BLUE = (232, 118, 28), (34, 64, 140)
+GOLD = (226, 178, 52)
 
 
 def cross_of_burgundy(width=180, height=120):
@@ -66,6 +74,46 @@ def plain_white(width=180, height=120):
     colonies from 1661 (plain; some sources add gold fleurs-de-lis)."""
     flag = Image.new('RGB', (width, height), WHITE)
     ImageDraw.Draw(flag).rectangle([0, 0, width - 1, height - 1], outline=INK, width=3)
+    return flag
+
+
+def fleur_de_lis(draw, cx, cy, r, colour):
+    """A heraldic lily about 2r tall, centred on (cx, cy)."""
+    def shape(points, side=1):
+        draw.polygon([(cx + side * x * r, cy + y * r) for x, y in points], fill=colour)
+    # The upright middle petal, the band, and the foot below it.
+    shape([(0, -1), (0.3, -0.45), (0.17, 0.25), (-0.17, 0.25), (-0.3, -0.45)])
+    shape([(-0.55, 0.22), (0.55, 0.22), (0.55, 0.4), (-0.55, 0.4)])
+    shape([(-0.14, 0.4), (0.14, 0.4), (0, 0.95)])
+    for side in (-1, 1):
+        # The outer petal rising from the band and curling down at its tip.
+        shape([(0.12, 0.25), (0.3, -0.25), (0.6, -0.5), (0.88, -0.38), (0.98, -0.05), (0.85, 0.22),
+               (0.78, -0.08), (0.6, -0.18), (0.42, 0.0), (0.32, 0.25)], side)
+        shape([(0.14, 0.4), (0.5, 0.62), (0.55, 0.85), (0.3, 0.72), (0.08, 0.5)], side)
+
+
+def banniere_de_france(width=180, height=120):
+    """France to about 1620: the bannière de France, three gold
+    fleurs-de-lis on blue (docs/flags-1560-1680.md, forts and towns)."""
+    flag = Image.new('RGB', (width, height), BLUE)
+    draw = ImageDraw.Draw(flag)
+    r = height * 0.2
+    for x, y in ((0.3, 0.3), (0.7, 0.3), (0.5, 0.7)):
+        fleur_de_lis(draw, width * x, height * y, r, GOLD)
+    draw.rectangle([0, 0, width - 1, height - 1], outline=INK, width=3)
+    return flag
+
+
+def red_ensign(width=180, height=120):
+    """England from about 1625: red, with St George's cross in the canton.
+    No ink border: it is painted only a few art pixels wide."""
+    flag = Image.new('RGB', (width, height), RED)
+    canton = Image.new('RGB', (width // 2, height // 2), WHITE)
+    draw = ImageDraw.Draw(canton)
+    bar = round(height / 9)
+    draw.rectangle([width / 4 - bar / 2, 0, width / 4 + bar / 2, height / 2], fill=RED)
+    draw.rectangle([0, height / 4 - bar / 2, width / 2, height / 4 + bar / 2], fill=RED)
+    flag.paste(canton, (0, 0))
     return flag
 
 
@@ -147,7 +195,8 @@ def patch_fix(box, to):
 
 
 # One row per town flag, in the order of HARBOUR_FLAGS in src/vignettes.mjs.
-FORT_FLAGS = [('Spain', cross_of_burgundy), ('England', st_george), ('France', plain_white), ('Holland', prince_flag), ('Holland 1660', states_flag)]
+FORT_FLAGS = [('Spain', cross_of_burgundy), ('England', st_george), ('France', plain_white), ('Holland', prince_flag),
+              ('Holland 1660', states_flag), ('France 1560', banniere_de_france)]
 
 
 def stretch_floor(top, height):
@@ -159,6 +208,19 @@ def stretch_floor(top, height):
         stretched.paste(image.crop((0, top, image.width, image.height)).resize((image.width, height), Image.Resampling.LANCZOS), (0, top))
         return stretched
     return fix
+
+
+# Where each sheet scene's source flies its plain white fort flag (source
+# pixels: hoist top, fly top, fly bottom, hoist bottom).
+FORT_QUADS = {
+    'harbour-arrival': [(646, 138), (763, 168), (777, 240), (648, 230)],
+    'port-quay': [(1565, 237), (1595, 242), (1595, 262), (1565, 259)],
+    'shore-arrival': [(1474, 305), (1523, 308), (1523, 342), (1475, 341)],
+    'town-square': [(1092, 36), (1205, 39), (1206, 109), (1092, 105)],
+    'land-attack': [(1507, 24), (1624, 35), (1625, 111), (1508, 107)],
+    'fort-walls': [(1460, 116), (1645, 214), (1591, 355), (1376, 247)],
+    'fight-walls': [(828, 33), (1114, 68), (1126, 193), (828, 177)],
+}
 
 
 def fort_flag_variants(quad):
@@ -179,6 +241,12 @@ SCENES = {
         'source': (1536, 1024),
         # The source drew Spain's red-yellow-red flag of 1785 on the fort.
         'fixes': [flag_fix(cross_of_burgundy, [(1252, 551), (1306, 563), (1309, 605), (1252, 596)])],
+        # Applied to the built picture (--retouch; the source is not at
+        # hand): the three-decker's stern flag, a plain St George's cross in
+        # the source, becomes the red ensign the navy flew from about 1625
+        # (docs/flags-1560-1680.md). Corners in art pixels; the flag streams
+        # left from its staff, so the hoist is on the right.
+        'retouch': [(red_ensign, [(48.5, 75.5), (32.5, 81.5), (32.5, 93.5), (48.5, 92)])],
     },
     'merchant': {
         'shape': 'portrait',
@@ -197,13 +265,13 @@ SCENES = {
     'harbour-arrival': {
         'shape': 'landscape',
         'source': (1659, 948),
-        'variants': fort_flag_variants([(646, 138), (763, 168), (777, 240), (648, 230)]),
+        'variants': fort_flag_variants(FORT_QUADS['harbour-arrival']),
     },
     # Same plain white fort flag on the far headland, same rows.
     'port-quay': {
         'shape': 'landscape',
         'source': (1659, 948),
-        'variants': fort_flag_variants([(1565, 237), (1595, 242), (1595, 262), (1565, 259)]),
+        'variants': fort_flag_variants(FORT_QUADS['port-quay']),
     },
     'crew-recruits': {
         'shape': 'landscape',
@@ -293,12 +361,12 @@ SCENES = {
     'shore-arrival': {
         'shape': 'landscape',
         'source': (1659, 948),
-        'variants': fort_flag_variants([(1474, 305), (1523, 308), (1523, 342), (1475, 341)]),
+        'variants': fort_flag_variants(FORT_QUADS['shore-arrival']),
     },
     'town-square': {
         'shape': 'landscape',
         'source': (1659, 948),
-        'variants': fort_flag_variants([(1092, 36), (1205, 39), (1206, 109), (1092, 105)]),
+        'variants': fort_flag_variants(FORT_QUADS['town-square']),
     },
     'boarding': {
         'shape': 'landscape',
@@ -366,7 +434,7 @@ SCENES = {
     'land-attack': {
         'shape': 'landscape',
         'source': (1659, 948),
-        'variants': fort_flag_variants([(1507, 24), (1624, 35), (1625, 111), (1508, 107)]),
+        'variants': fort_flag_variants(FORT_QUADS['land-attack']),
         # The picture has no other blue: plain median cut folds the Dutch
         # flags' small blue band into the coats' grey-brown. A few k-means
         # passes keep it blue.
@@ -375,7 +443,7 @@ SCENES = {
     'fort-walls': {
         'shape': 'landscape',
         'source': (1659, 948),
-        'variants': fort_flag_variants([(1460, 116), (1645, 214), (1591, 355), (1376, 247)]),
+        'variants': fort_flag_variants(FORT_QUADS['fort-walls']),
     },
     # Sword fight backdrops (src/sword-renderer.mjs). The floor band came out
     # thinner than the backdrop's (rows 112-132): stretch it so the fencers'
@@ -398,7 +466,7 @@ SCENES = {
         'source': (1774, 887),
         'fixes': [stretch_floor(790, 135)],
         'crop': (0, 25, 1773, 925),
-        'variants': fort_flag_variants([(828, 33), (1114, 68), (1126, 193), (828, 177)]),
+        'variants': fort_flag_variants(FORT_QUADS['fight-walls']),
     },
 }
 
@@ -436,6 +504,75 @@ def quantise(picture, colours=COLOURS, kmeans=0):
 
 def pixelate(image, size, colours=COLOURS):
     return quantise(reduce(image, size), colours)
+
+
+def extend_sheet(scene, sheet_path):
+    """Add the missing town-flag rows to a built sheet whose source is no
+    longer at hand: each new flag is warped onto the plain white French row
+    (row 2), at 8x the art pixels, shaded by that flag's own light and
+    shadow, reduced, enhanced like the build and mapped onto the sheet's
+    palette, so the existing rows stay byte for byte."""
+    entry = SCENES[scene]
+    size = SHAPES[entry['shape']]
+    sheet = Image.open(sheet_path)
+    rows = sheet.height // size[1]
+    if rows >= len(FORT_FLAGS):
+        raise SystemExit(f'{sheet_path} already has {rows} rows')
+    source_w, source_h = entry['source']
+    left, top, right, bottom = entry.get('crop') or centred_crop(entry['source'], size[0] / size[1])
+    zoom = 8
+    scale = zoom * size[0] / (right - left)
+    quad = [((x - left) * scale, (y - top) * scale) for x, y in FORT_QUADS[scene]]
+    white = sheet.convert('RGB').crop((0, 2 * size[1], size[0], 3 * size[1]))
+    mask = Image.new('L', size)
+    ImageDraw.Draw(mask).polygon([(x / zoom, y / zoom) for x, y in quad], fill=255)
+    out = Image.new('P', (size[0], size[1] * len(FORT_FLAGS)))
+    out.putpalette(sheet.getpalette())
+    out.paste(sheet, (0, 0))
+    for row in range(rows, len(FORT_FLAGS)):
+        big = white.resize((size[0] * zoom, size[1] * zoom), Image.Resampling.NEAREST)
+        paste_flag(big, FORT_FLAGS[row][1](), quad, shade=True)
+        flagged = ImageEnhance.Color(ImageEnhance.Contrast(big.resize(size, Image.Resampling.BOX)).enhance(1.15)).enhance(1.2)
+        picture = white.copy()
+        picture.paste(flagged, (0, 0), mask)
+        out.paste(picture.quantize(palette=sheet, dither=Image.Dither.NONE), (0, row * size[1]))
+    out.save(sheet_path, optimize=True)
+
+
+def retouch(scene, path):
+    """Repaint flags on a built picture whose source is no longer at hand
+    (the scene's `retouch`: flat flag maker and its corners in art pixels).
+    The old flag's light (each pixel's brightest channel, so a red cross
+    reads as lit cloth) shades the new one at 8x the art pixels; the result
+    is reduced, enhanced like the build and mapped onto the picture's
+    palette."""
+    picture = Image.open(path)
+    rgb = picture.convert('RGB')
+    zoom = 8
+    for make_flag, quad in SCENES[scene]['retouch']:
+        big_quad = [(x * zoom, y * zoom) for x, y in quad]
+        light = rgb.resize((rgb.width * zoom, rgb.height * zoom), Image.Resampling.NEAREST)
+        light = Image.merge('RGB', [ImageChops.lighter(ImageChops.lighter(*light.split()[:2]), light.split()[2])] * 3)
+        flat = Image.new('RGB', light.size, WHITE)
+        paste_flag(flat, make_flag(), big_quad)
+        cloth = Image.new('L', light.size)
+        ImageDraw.Draw(cloth).polygon(big_quad, fill=255)
+        brightest = max(1, ImageChops.multiply(light.convert('L'), cloth).getextrema()[1])
+        shaded = ImageChops.multiply(flat, light.point(lambda value: min(255, round(value * 255 / brightest))))
+        small = ImageEnhance.Color(ImageEnhance.Contrast(shaded.resize(rgb.size, Image.Resampling.BOX)).enhance(1.15)).enhance(1.2)
+        mask = Image.new('L', rgb.size)
+        ImageDraw.Draw(mask).polygon(quad, fill=255)
+        # Map only the repainted pixels onto the palette's nearest colours, so
+        # every other pixel keeps its index.
+        palette = picture.getpalette()
+        colours = [tuple(palette[i:i + 3]) for i in range(0, len(palette), 3)]
+        indices = picture.load()
+        for y in range(rgb.height):
+            for x in range(rgb.width):
+                if mask.getpixel((x, y)):
+                    r, g, b = small.getpixel((x, y))
+                    indices[x, y] = min(range(len(colours)), key=lambda i: (colours[i][0] - r) ** 2 + (colours[i][1] - g) ** 2 + (colours[i][2] - b) ** 2)
+    picture.save(path, optimize=True)
 
 
 def build(scene, source_path, out_path, shape=None):
@@ -477,8 +614,19 @@ def check_box(box, shape, size):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--scene', required=True, help='the vignette id, e.g. title-ship')
-    parser.add_argument('--source', required=True, help='the supplied illustration')
+    parser.add_argument('--source', help='the supplied illustration')
+    parser.add_argument('--extend-sheet', action='store_true',
+                        help='add the missing town-flag rows to the built sheet, without its source')
+    parser.add_argument('--retouch', action='store_true',
+                        help="repaint the scene's `retouch` flags on the built picture, without its source")
     parser.add_argument('--shape', choices=SHAPES, help='needed only for a scene not in SCENES')
     parser.add_argument('--out', help='defaults to assets/vignettes/<scene>.png')
     args = parser.parse_args()
-    build(args.scene, args.source, args.out or f'assets/vignettes/{args.scene}.png', args.shape)
+    if args.extend_sheet:
+        extend_sheet(args.scene, args.out or f'assets/vignettes/{args.scene}.png')
+    elif args.retouch:
+        retouch(args.scene, args.out or f'assets/vignettes/{args.scene}.png')
+    elif not args.source:
+        parser.error('--source is required unless --extend-sheet or --retouch')
+    else:
+        build(args.scene, args.source, args.out or f'assets/vignettes/{args.scene}.png', args.shape)

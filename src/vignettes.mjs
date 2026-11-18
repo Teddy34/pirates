@@ -183,7 +183,7 @@ const ART_DESCRIPTIONS = {
   'governor-niece': 'On a lamplit balcony at night a young woman in a green silk gown with a lace collar leans on the balustrade and laughs with the captain, while a duenna in black frowns from a high-backed chair, a rosary in her hands, pixelated from a comic-style illustration.',
   wedding: 'The captain and his bride, in a crimson silk gown with a lace collar and flowers in her hair, come down the steps of a whitewashed church under a ringing bell, as townsfolk throw petals, a guitarist plays and his sailors toss their caps in the air, pixelated from a comic-style illustration.',
   'merchant-daughter': 'In a merchant’s warehouse a young woman in a blue bodice, apron and linen coif comes in with a basket of oranges and smiles shyly at the captain, while her father beams from behind his ledger desk under a brass balance, pixelated from a comic-style illustration.',
-  'title-ship': 'A three-masted English warship flying St George’s cross, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
+  'title-ship': 'A three-masted English warship flying St George’s cross at her mastheads and the red ensign at her stern, under full sail off a palm-fringed island with a Spanish stone fort, pixelated from a comic-style illustration.',
 };
 const sceneArt = {};
 
@@ -191,17 +191,22 @@ const sceneArt = {};
 // per fort flag, each built by tools/build_vignette.py from one illustration
 // (rows in this order, its FORT_FLAGS). The Dutch flag follows the era: the
 // orange Prince's flag to the 1640s, the red States flag from 1660 (both
-// flew 1630-1662).
+// flew 1630-1662); the French flag too: the blue banner with gold lilies to
+// 1600, white from 1620. Sources in docs/flags-1560-1680.md.
 const HARBOUR_FLAGS = [
   ['Spain', 'the Cross of Burgundy, a red ragged saltire on white'],
   ['England', 'St George’s red cross on white'],
   ['France', 'the plain white royal flag'],
   ['Holland', 'the orange, white and blue Prince’s flag'],
   ['Holland', 'the red, white and blue States flag'],
+  ['France', 'the blue banner of France with gold fleurs-de-lis'],
 ];
 
 export function harbourRow({ flag, era } = {}) {
   if (flag === 'Holland') return Number(era) >= 1660 ? 4 : 3;
+  // French forts flew the blue banner with gold lilies to about 1620, then
+  // white (docs/flags-1560-1680.md).
+  if (flag === 'France') return Number(era) >= 1620 ? 2 : 5;
   const row = HARBOUR_FLAGS.findIndex(([nation]) => nation === flag);
   return row < 0 ? null : row;
 }
@@ -281,6 +286,7 @@ export function sightedShipArt({ ship, era } = {}) {
 export const COLOUR_FLAGS = [
   'spain-burgundy', 'spain-arms', 'england-george', 'england-red-ensign', 'france-blue-cross', 'france-white',
   'holland-prince', 'holland-states', 'pirate-red', ...Array.from({ length: 32 }, (_, index) => `pirate-${index}`),
+  'england-striped', 'france-lilies',
 ];
 const COLOUR_CELL = { width: 72, height: 48, columns: 9 };
 const PIRATE_EMBLEMS = [
@@ -297,8 +303,10 @@ const COLOUR_DESCRIPTIONS = {
   'spain-arms': 'white with the crowned royal arms of Spain',
   'england-george': 'St George’s red cross on white',
   'england-red-ensign': 'a red ensign with St George’s cross in the canton',
+  'england-striped': 'a striped red, white and blue ensign with St George’s cross in the canton',
   'france-blue-cross': 'a white cross on blue',
   'france-white': 'the plain white flag of the French king’s ships',
+  'france-lilies': 'the blue banner of France with gold fleurs-de-lis',
   'holland-prince': 'the orange, white and blue Prince’s flag',
   'holland-states': 'the red, white and blue States flag',
   'pirate-red': 'a plain red flag: no quarter',
@@ -311,16 +319,20 @@ export function colourFlag({ flag, era, kind = 0, captainId, colours } = {}) {
   const year = Number(era);
   const navy = kind >= 6;
   switch (flag) {
-    // The royal arms on white replaced the Cross of Burgundy as the navy's
-    // ensign under Charles II, in the 1670s; the cross stayed the jack and
-    // the merchants' flag.
+    // Sources in docs/flags-1560-1680.md. Spain: the navy's ensign is white
+    // with the royal arms by 1680 in every source; before that the sources
+    // disagree (FOTW: the Cross of Burgundy; O'Donnell: the royal arms from
+    // the late 16th century), so the cross, flown on every Spanish ship and
+    // fort in either reading, stays.
     case 'Spain': return year >= 1680 && navy ? 'spain-arms' : 'spain-burgundy';
-    // The red ensign with St George's canton is recorded by 1620.
-    case 'England': return year >= 1620 ? 'england-red-ensign' : 'england-george';
-    // White for the king's ships (from 1638 on charts, the navy's alone
-    // from 1661); merchants, and every French ship before, a white cross on
-    // blue.
-    case 'France': return year >= 1640 && navy ? 'france-white' : 'france-blue-cross';
+    // England: St George's cross in 1560 (stern ensigns appear from 1574),
+    // striped ensigns with a St George canton to about 1625, the red ensign
+    // after (the navy's from 1625, the merchants' legalised in 1674).
+    case 'England': return year >= 1640 ? 'england-red-ensign' : year >= 1600 ? 'england-striped' : 'england-george';
+    // France: the king's ships under the blue banner with gold lilies in
+    // 1560, plain white from about 1600 (attested at sea from 1606, the
+    // navy's by 1643, its alone from 1661); merchants a white cross on blue.
+    case 'France': return !navy ? 'france-blue-cross' : year >= 1600 ? 'france-white' : 'france-lilies';
     // Orange to about 1630, both 1630-1662 (kept orange, as the forts),
     // red from 1663.
     case 'Holland': return year >= 1660 ? 'holland-states' : 'holland-prince';
