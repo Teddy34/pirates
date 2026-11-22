@@ -21,7 +21,8 @@ game recolours them to an opponent's nation or a crew's colour.
   finds the six figures, picks 16 colours per sheet (k-means, contrast
   ×1.15, no colour boost), and reduces each figure at one scale per sheet
   (the upright walking figure 37–41 art pixels tall): each art pixel takes
-  the colour covering most of its block, the dark outline weighted ×1.8,
+  the colour covering most of its block, the darkest colour (the ink
+  outline) weighted ×1.8,
   lone pixels take their neighbours' colour, and a blank face gets an eye
   pixel. Each body is placed on the cell's anchor.
 - **Second round (2026-11-22):** the first sheets, reduced by averaging,

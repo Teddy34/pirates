@@ -12,7 +12,8 @@ tool, for each sheet:
 3. picks 16 colours for the sheet (k-means), then reduces each figure at
    one scale per sheet, chosen so the upright walking figure is the
    character's `height` art pixels tall: each art pixel takes the colour
-   that covers most of its block, the dark ink outline weighted up, so flat
+   that covers most of its block, the darkest colour (the ink outline in
+   these sheets) weighted up, so flat
    colours and outlines stay crisp; lone pixels take their neighbours'
    colour, pixels less than half covered are dropped, and a face the
    reduction left blank gets an eye pixel;
@@ -230,6 +231,9 @@ def build_row(path, spec):
     rgb = np.asarray(Image.open(path).convert('RGB'))
     mask = ~background(rgb)
     labels = figures(mask, len(BODY_POSES))
+    found = [int((labels == index + 1).sum()) for index in range(len(BODY_POSES))]
+    if min(found) < 1000:
+        raise SystemExit(f'{path}: expected {len(BODY_POSES)} figures on a flat green background, found pixel counts {found}')
     centres = palette_for(rgb, mask, COLOURS_PER_CHARACTER)
     walk = labels == 1 + BODY_POSES.index('walk-a')
     ys = np.nonzero(walk.any(1))[0]
