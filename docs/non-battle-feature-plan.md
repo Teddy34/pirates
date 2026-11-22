@@ -132,6 +132,10 @@ evidence for each item. This list collects them in one place.
   sea battle (`embarkedForBattle`), eight hands on every other ship, then the
   rest over them in fleet order. Ships can be given names of the captain's choosing, which the
   original does not have; a name survives battles, saves and the refit.
+  Any ship can be made the flagship from this page: she moves to slot 0 and
+  the others keep their order. The original changes the flagship only by
+  picking the ship to command before a sea battle (`flagship_choice.asm`);
+  the effect on the fleet is the same.
 - Coastal towns use the harbour-arrival and port-quay pictures however you
   arrive. Only landlocked towns use shore-arrival and town-square. The original
   picks the arrival picture by how you came.

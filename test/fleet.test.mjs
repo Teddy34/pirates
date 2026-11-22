@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  fleetIsUndermanned, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
+  fleetIsUndermanned, abandonShip, chooseFlagship, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS,
   CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
 } from '../src/mechanics.mjs';
 import { SHIPS } from '../src/data.mjs';
@@ -180,4 +180,14 @@ test('the fleet page shows the flagship with what she takes into battle', async 
   assert.deepEqual(fleetStations({ crew: 260, cannon: 50, ships }), { crew: [224, 20, 8, 8], guns: [28, 12, 10, 0], spareGuns: 0 });
   // A lone ship: cannon she cannot serve stay in the hold.
   assert.deepEqual(fleetStations({ crew: 20, cannon: 12, ships: [{ type: 'Sloop', damage: 0 }] }), { crew: [20], guns: [5], spareGuns: 7 });
+});
+
+test('choosing a flagship moves her to slot 0 and keeps the others in order', () => {
+  const before = player({ ships: [{ type: 'Frigate', damage: 32, name: 'Revenge' }, { type: 'Sloop', damage: 0 }, { type: 'Galleon', damage: 16 }] });
+  const after = chooseFlagship(before, 2);
+  assert.deepEqual(after.ships, [{ type: 'Galleon', damage: 16 }, { type: 'Frigate', damage: 32, name: 'Revenge' }, { type: 'Sloop', damage: 0 }]);
+  for (const key of ['crew', 'cannon', 'foodFixed', 'goods', 'specialGoods', 'partyGold']) assert.equal(after[key], before[key]);
+  assert.equal(before.ships[0].type, 'Frigate');
+  assert.equal(chooseFlagship(before, 0), before);
+  assert.throws(() => chooseFlagship(before, 3));
 });
