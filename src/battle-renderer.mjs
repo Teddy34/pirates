@@ -3,7 +3,9 @@ import { BATTLE_SAIL_TRANSITION_FRAMES, SMOKE_LIFE_FRAMES, broadsideState, damag
 import { FORT_SPRITE_ANCHOR, FORT_SPRITE_HEIGHT, FORT_SPRITE_WIDTH, paintFortSprite } from './fort-sprites.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite } from './town-sprites.mjs';
 import { headingSector } from './ship-sprites.mjs';
-import { battleShipPixelScale, paintBattleShipSprite } from './battle-ship-sprites.mjs';
+import { FLAT_BATTLE_PIXELS_PER_ART_PIXEL, battleShipPixelScale, paintBattleShipSprite } from './battle-ship-sprites.mjs';
+import { shipStackAtlas } from './ship-stack-images.mjs';
+import { paintStackedShip, shipStackTurn } from './ship-stacks.mjs';
 import { SEA_FRAMES, WIND_DIAL_SIZE, paintSea, paintWindDial } from './sea-sprites.mjs';
 import { paintShotSprite, volleyTier } from './shot-sprites.mjs';
 import { SMOKE_STAGES, paintSmokeSprite } from './smoke-sprites.mjs';
@@ -11,23 +13,26 @@ import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas
 
 const shipSpriteCache = new Map();
 
-// The pixel-art ship (battle-ship-sprites.mjs): one design per ship type,
-// one sprite per heading sector, sail state (darker while changing), flag,
-// wind and damage level. The art has a fixed, coarse resolution and is drawn
-// at a whole number of device pixels per art pixel, so it stays chunky on
-// every screen.
+// The pixel-art ship: the sprite-stacked ship of its type (ship-stacks.mjs),
+// one sprite per heading step, sail state (darker while changing), flag,
+// wind and damage level; until the stacks have loaded, the flat design of
+// battle-ship-sprites.mjs per heading sector. The art has a fixed, coarse
+// resolution and is drawn at a whole number of device pixels per art pixel,
+// so it stays chunky on every screen.
 function drawShip(context, ship, wind, scale) {
   const key = NATIONS[ship.flag] ? ship.flag : 'pirate';
-  const sector = headingSector(ship.heading);
   const windSector = headingSector(wind);
   const level = Math.min(4, ship.damage >> 4);
   const changing = ship.sailTransition > 0;
-  const sprite = cachedSprite(shipSpriteCache, `${ship.type}|${sector}|${ship.sails}|${changing}|${key}|${windSector}|${level}`, () => paintBattleShipSprite({
-    type: ship.type, heading: sector * 16, sails: ship.sails, changing, nation: { key, ...NATIONS[key] },
-    wind: windSector * 16, damage: level * 16,
-  }));
+  const options = { type: ship.type, sails: ship.sails, changing, nation: { key, ...NATIONS[key] }, wind: windSector * 16, damage: level * 16 };
+  const atlas = shipStackAtlas('battle');
+  const sprite = atlas
+    ? cachedSprite(shipSpriteCache, `stack|${ship.type}|${shipStackTurn(ship.heading)}|${ship.sails}|${changing}|${key}|${windSector}|${level}`,
+      () => paintStackedShip(atlas, { ...options, size: 'battle', heading: shipStackTurn(ship.heading) * 4 }))
+    : cachedSprite(shipSpriteCache, `${ship.type}|${headingSector(ship.heading)}|${ship.sails}|${changing}|${key}|${windSector}|${level}`,
+      () => paintBattleShipSprite({ ...options, heading: headingSector(ship.heading) * 16 }));
   if (!sprite) return;
-  drawPixelSprite(context, sprite, ship.x, ship.y, battleShipPixelScale(scale, devicePixelScale()));
+  drawPixelSprite(context, sprite, ship.x, ship.y, battleShipPixelScale(scale, devicePixelScale(), atlas ? undefined : FLAT_BATTLE_PIXELS_PER_ART_PIXEL));
 }
 
 // Shots and smoke are painted at `detail` art pixels per battle pixel on

@@ -17,8 +17,12 @@ import { headingSector } from './ship-sprites.mjs';
 const SLANT = .6;
 
 // Battle pixels per art pixel the renderer aims for; the drawn size is
-// then rounded to whole device pixels (battleShipPixelScale).
-export const BATTLE_PIXELS_PER_ART_PIXEL = 2;
+// then rounded to whole device pixels (battleShipPixelScale). The
+// sprite-stacked ships (ship-stacks.mjs) are drawn at one art pixel per
+// battle pixel; these flat designs, half their resolution and the stand-in
+// until the stacks load, at two.
+export const BATTLE_PIXELS_PER_ART_PIXEL = 1;
+export const FLAT_BATTLE_PIXELS_PER_ART_PIXEL = 2;
 
 const HULLS = {
   // Merchant timber: warm brown sides, light deck.
@@ -86,10 +90,11 @@ export function battleShipDesign(type) {
 }
 
 // Device pixels per art pixel for a battle drawn at `scale` CSS pixels per
-// battle pixel on a screen of `deviceRatio` device pixels per CSS pixel:
-// always a whole number, at least one.
-export function battleShipPixelScale(scale, deviceRatio = 1) {
-  return Math.max(1, Math.round(scale * deviceRatio * BATTLE_PIXELS_PER_ART_PIXEL));
+// battle pixel on a screen of `deviceRatio` device pixels per CSS pixel, for
+// art of `perArtPixel` battle pixels per art pixel: always a whole number,
+// at least one.
+export function battleShipPixelScale(scale, deviceRatio = 1, perArtPixel = BATTLE_PIXELS_PER_ART_PIXEL) {
+  return Math.max(1, Math.round(scale * deviceRatio * perArtPixel));
 }
 
 // The deck outline as [u, v] fractions of (half-length, half-beam).

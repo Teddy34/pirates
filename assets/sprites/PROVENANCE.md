@@ -1,5 +1,28 @@
 # Sprite art provenance
 
+## ship-stacks-battle.png, ship-stacks-map.png
+
+The sprite-stacked ships of the sea battle and the sailing map
+(`src/ship-stacks.mjs`): one row per ship type and rig state (sails full,
+battle or furled; whole rig or foremast lost), each row a strip of top-down
+slices, ground slice first, the bow pointing down the cell. Cell sizes, rows
+and mastheads are in `src/ship-stack-data.mjs`.
+
+- **Source:** original art drawn in code by Claude Code: for every ship type
+  `tools/build_ship_stacks.py` draws four orthographic pixel-art views (top,
+  side, front, back) of each part (hull, bowsprit, each mast with its sails,
+  the jibs) after the battle designs of `src/battle-ship-sprites.mjs`, with
+  the same palette. No image generator and no material from the original
+  game was used.
+- **Process:** each part is carved into slices with the visual-hull `carve`
+  of the sprite-stacking skill (`tools/sprite-stacking/`, copied from
+  github.com/danielwh2/sprite-stacking at 6fecdfd, by Daniel White, MIT
+  licence, `tools/sprite-stacking/LICENSE`), and the parts' volumes are
+  joined.
+- **Rebuild:** `python3 tools/build_ship_stacks.py` (Pillow, numpy);
+  `--check DIR` also writes each row's four views and the skill's check
+  sheet for review.
+
 ## fencers.png
 
 The sword fight's fencer bodies: 384 × 320, one row per character (your

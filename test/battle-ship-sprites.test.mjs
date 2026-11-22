@@ -53,8 +53,11 @@ test('battle ship sprites are anchored on the hull and drawn at whole device pix
       assert.ok(Number.isInteger(pixels) && pixels >= 1, `${scale} × ${ratio}`);
     }
   }
-  assert.equal(battleShipPixelScale(1.72, 1), 3);
-  assert.equal(battleShipPixelScale(.76, 1), 2);
+  // Stacked ships: one art pixel per battle pixel; the flat stand-in: two.
+  assert.equal(battleShipPixelScale(1.72, 1), 2);
+  assert.equal(battleShipPixelScale(1.72, 2), 3);
+  assert.equal(battleShipPixelScale(1.72, 1, 2), 3);
+  assert.equal(battleShipPixelScale(.76, 1, 2), 2);
 });
 
 test('battle sprites follow the heading sectors, sails, flag and damage', () => {
