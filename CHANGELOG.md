@@ -19,8 +19,14 @@ history.
   headings instead of 16 and shows her real rig from every side (square sails
   edge-on when seen broadside, lateen and gaff sails along the hull). Sails,
   flag, sail changes and battle damage show as before. The flat ships are
-  still drawn until the new pictures have loaded. The sprite-stacking skill
+  still drawn until the new pictures have loaded. Battle ships are drawn at
+  twice the old resolution (one art pixel per battle pixel), so they keep
+  their size and hit boxes with finer pixels and more detail. The sprite-stacking skill
   (Daniel White, MIT) is copied into the tools for rebuilding them.
+- On the sailing map, holding a turn key swings the drawn ship round
+  smoothly. The rudder still acts as in the original (a quarter turn, then a
+  short pause, while the key is held); only the picture no longer stops and
+  starts.
 - The logbook has a "Your fleet" page, also opened with F at sea: every ship
   with a pixel picture of her type, her crew, guns and hold against her
   maximum, her condition, and the fleet's totals (ships out of eight, crew,

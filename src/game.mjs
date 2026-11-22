@@ -172,6 +172,7 @@ function sailingPose() {
 
 function resetSailingInterpolation() {
   previousSailingPose = sailingPose();
+  drawnHeading = null;
   previousSailingClouds = state?.clouds?.map((cloud) => ({ ...cloud })) ?? null;
   accumulator = 0;
 }
@@ -186,13 +187,38 @@ function interpolatedSailingPose() {
   const current = sailingPose();
   if (!current || !previousSailingPose) return current;
   const progress = sailingInterpolationProgress();
-  const headingDelta = ((current.heading - previousSailingPose.heading + 128) & 0xff) - 128;
   return {
     x: previousSailingPose.x + (current.x - previousSailingPose.x) * progress,
     y: previousSailingPose.y + (current.y - previousSailingPose.y) * progress,
-    heading: (previousSailingPose.heading + headingDelta * progress + 256) % 256,
+    heading: drawnSailingHeading(current.heading),
     sails: current.sails,
   };
+}
+
+// The heading the flagship is drawn at. The rudder acts only on ticks
+// where tick & 4 is 0 (acceptsRudderInput), so a held turn key swings the
+// ship a quarter turn in four ticks and then holds her for four. Presentation
+// only: the drawn ship turns at the held key's average of 8 units per tick
+// (SMOOTH_TURN_PER_TICK), faster in proportion when more than 32 units
+// behind, so she keeps swinging through the pause and settles on the real
+// heading within about four ticks of the key being let go. A jump of more than a quarter turn (a new voyage, a load) snaps,
+// and so does a paused or covered map.
+const SMOOTH_TURN_PER_TICK = 8;
+let drawnHeading = null;
+let drawnHeadingTime = 0;
+function drawnSailingHeading(heading) {
+  const now = performance.now();
+  const seconds = Math.min(.25, (now - drawnHeadingTime) / 1000);
+  drawnHeadingTime = now;
+  const delta = drawnHeading === null ? 999 : ((heading - drawnHeading + 128 + 256) % 256) - 128;
+  const running = !state.paused && state.mode === 'sailing' && !dialog.open;
+  if (Math.abs(delta) > 64 || !running) {
+    drawnHeading = heading;
+    return drawnHeading;
+  }
+  const step = SMOOTH_TURN_PER_TICK * Math.max(1, Math.abs(delta) / 32) * seconds / tickSeconds();
+  drawnHeading = (drawnHeading + Math.sign(delta) * Math.min(Math.abs(delta), step) + 256) % 256;
+  return drawnHeading;
 }
 
 function interpolatedSailingClouds() {
@@ -3826,8 +3852,11 @@ function openFleetAtSea() {
 
 // Each type's battle ship seen side-on under the captain's flag, painted
 // once into an image URL for the fleet view.
-const SHIP_ICON_SIZE = { width: 40, height: 34 };
-const SHIP_ICON_SCALE = 2;
+// The picture is SHIP_ICON_SIZE pixels shown at SHIP_ICON_SCALE: the stacked
+// battle ship at one art pixel per picture pixel, the flat stand-in (half its
+// resolution) at two.
+const SHIP_ICON_SIZE = { width: 80, height: 68 };
+const SHIP_ICON_SCALE = 1;
 const shipIconUrls = new Map();
 function shipIconUrl(type) {
   const key = NATIONS[state.nationality] ? state.nationality : 'pirate';
@@ -3836,6 +3865,7 @@ function shipIconUrl(type) {
   if (!shipIconUrls.has(id)) {
     const options = { type, heading: 64, nation: { key, ...NATIONS[key] }, wind: 0 };
     const sprite = atlas ? paintStackedShip(atlas, { ...options, size: 'battle' }) : paintBattleShipSprite(options);
+    const zoom = atlas ? 1 : 2;
     const iconCanvas = document.createElement('canvas');
     iconCanvas.width = SHIP_ICON_SIZE.width;
     iconCanvas.height = SHIP_ICON_SIZE.height;
@@ -3843,9 +3873,14 @@ function shipIconUrl(type) {
     spriteCanvas.width = sprite.width;
     spriteCanvas.height = sprite.height;
     spriteCanvas.getContext('2d').putImageData(new ImageData(sprite.pixels, sprite.width, sprite.height), 0, 0);
-    // Centred, waterline towards the bottom, whole art pixels.
-    iconCanvas.getContext('2d').drawImage(spriteCanvas,
-      Math.round((SHIP_ICON_SIZE.width - sprite.width) / 2), Math.max(0, SHIP_ICON_SIZE.height - sprite.height - 1));
+    // Centred, waterline towards the bottom, whole art pixels. A tall
+    // sprite gives up its empty top margin row (the outline starts on the
+    // second row) rather than its hull.
+    const context = iconCanvas.getContext('2d');
+    context.imageSmoothingEnabled = false;
+    context.drawImage(spriteCanvas,
+      Math.round((SHIP_ICON_SIZE.width - sprite.width * zoom) / 2), Math.max(-zoom, SHIP_ICON_SIZE.height - (sprite.height + 1) * zoom),
+      sprite.width * zoom, sprite.height * zoom);
     shipIconUrls.set(id, iconCanvas.toDataURL());
   }
   return shipIconUrls.get(id);
@@ -5956,6 +5991,8 @@ function openPreview(preview) {
   // Local previews expose the live state to the browser smoke checks.
   globalThis.piratesPreview = {
     get state() { return state; },
+    // The heading the flagship was last drawn at (smoothed turns).
+    get drawnHeading() { return drawnHeading; },
     // The running sword fight's backdrop scene (deck, alley or walls).
     get swordScene() { return swordView?.scene ?? null; },
     // Ends the current sword fight with `result`, for checks of its callers.

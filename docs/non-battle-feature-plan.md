@@ -101,6 +101,12 @@ evidence for each item. This list collects them in one place.
 
 ### Deliberate
 
+- The flagship on the sailing map is a sprite-stacked model drawn at 64
+  heading steps (`src/ship-stacks.mjs`) instead of 16 sectors. The rudder
+  keeps the original's rule (±16 only on ticks where `tick & 4` is 0, so a
+  held key turns a quarter turn, then pauses), but the drawn ship turns at a
+  steady rate through the pause and catches up shortly after the key is
+  released; the heading that steers the ship is unchanged.
 - Fast travel (T) runs time twice as fast; the original's fast mode runs it
   five times faster.
 - The manual-based copy protection in the opening is left out, with its penalty

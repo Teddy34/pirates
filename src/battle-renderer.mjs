@@ -3,7 +3,7 @@ import { BATTLE_SAIL_TRANSITION_FRAMES, SMOKE_LIFE_FRAMES, broadsideState, damag
 import { FORT_SPRITE_ANCHOR, FORT_SPRITE_HEIGHT, FORT_SPRITE_WIDTH, paintFortSprite } from './fort-sprites.mjs';
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite } from './town-sprites.mjs';
 import { headingSector } from './ship-sprites.mjs';
-import { battleShipPixelScale, paintBattleShipSprite } from './battle-ship-sprites.mjs';
+import { FLAT_BATTLE_PIXELS_PER_ART_PIXEL, battleShipPixelScale, paintBattleShipSprite } from './battle-ship-sprites.mjs';
 import { shipStackAtlas } from './ship-stack-images.mjs';
 import { paintStackedShip, shipStackTurn } from './ship-stacks.mjs';
 import { SEA_FRAMES, WIND_DIAL_SIZE, paintSea, paintWindDial } from './sea-sprites.mjs';
@@ -32,7 +32,7 @@ function drawShip(context, ship, wind, scale) {
     : cachedSprite(shipSpriteCache, `${ship.type}|${headingSector(ship.heading)}|${ship.sails}|${changing}|${key}|${windSector}|${level}`,
       () => paintBattleShipSprite({ ...options, heading: headingSector(ship.heading) * 16 }));
   if (!sprite) return;
-  drawPixelSprite(context, sprite, ship.x, ship.y, battleShipPixelScale(scale, devicePixelScale()));
+  drawPixelSprite(context, sprite, ship.x, ship.y, battleShipPixelScale(scale, devicePixelScale(), atlas ? undefined : FLAT_BATTLE_PIXELS_PER_ART_PIXEL));
 }
 
 // Shots and smoke are painted at `detail` art pixels per battle pixel on

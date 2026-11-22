@@ -58,6 +58,7 @@ export function paintStackedShip(atlas, { size = 'battle', type, heading, sails 
   const rowIndex = shipStackRow(size, type, sails, level >= 2);
   const row = cell.rows[rowIndex];
   const { width: W, length: L, slices } = cell;
+  const detail = cell.detail ?? 1;
   if (atlas.width !== W * slices || atlas.height % L !== 0) throw new Error('ship stack atlas does not match its data');
   const turn = (shipStackTurn(heading) / SHIP_STACK_TURNS) * Math.PI * 2 + Math.PI;
   const cos = Math.cos(turn), sin = Math.sin(turn);
@@ -66,7 +67,7 @@ export function paintStackedShip(atlas, { size = 'battle', type, heading, sails 
 
   // A buffer big enough for any heading, with room for the pennant.
   const radius = Math.ceil(Math.hypot(W, L) / 2) + 1;
-  const ax = radius + 8, ay = Math.ceil(radius * SHIP_STACK_SQUASH) + slices + 6;
+  const ax = radius + 8 * detail, ay = Math.ceil(radius * SHIP_STACK_SQUASH) + slices + 6 * detail;
   const bw = 2 * ax + 1, bh = ay + Math.ceil(radius * SHIP_STACK_SQUASH) + 4;
   const colours = new Array(bw * bh).fill(null);
   const sail = new Uint8Array(bw * bh);
@@ -96,13 +97,22 @@ export function paintStackedShip(atlas, { size = 'battle', type, heading, sails 
   }
 
   // Shot holes in the canvas, and scorched planks on a battered hull,
-  // spread evenly over the visible pixels.
+  // spread evenly over the visible pixels, `detail` pixels square.
   const pick = (mask, count, colour) => {
     const spots = [];
     for (let index = 0; index < mask.length; index += 1) if (mask[index] && colours[index]) spots.push(index);
     if (!spots.length || !count) return;
     const step = spots.length / count;
-    for (let n = 0; n < count; n += 1) colours[spots[Math.floor(n * step + step / 2)]] = colour;
+    for (let n = 0; n < count; n += 1) {
+      const spot = spots[Math.floor(n * step + step / 2)];
+      const x = spot % bw, y = Math.floor(spot / bw);
+      for (let dy = 0; dy < detail; dy += 1) {
+        for (let dx = 0; dx < detail; dx += 1) {
+          const index = (y + dy) * bw + x + dx;
+          if (x + dx < bw && y + dy < bh && mask[index] && colours[index]) colours[index] = colour;
+        }
+      }
+    }
   };
   if (level >= 1) pick(sail, Math.min(12, 2 + 3 * level), HOLE);
   if (level >= 3) pick(low, 2 * (level - 2), SCORCH);
@@ -112,9 +122,16 @@ export function paintStackedShip(atlas, { size = 'battle', type, heading, sails 
     const [mw, ml, mz] = row.masthead;
     const x = mw - cx, y = ml - cy;
     const u = x * cos - y * sin, v = (x * sin + y * cos) * SHIP_STACK_SQUASH - mz * SPACING;
+    // The pennant is drawn in `detail`-pixel blocks from the masthead.
+    const headX = Math.round(ax + u), headY = Math.round(ay + v);
     paintPennant((px, py, colour) => {
-      if (px >= 0 && py >= 0 && px < bw && py < bh) colours[py * bw + px] = colour;
-    }, nation, Math.round(ax + u), Math.round(ay + v), wind);
+      for (let dy = 0; dy < detail; dy += 1) {
+        for (let dx = 0; dx < detail; dx += 1) {
+          const x = headX + (px - headX) * detail + dx - (detail >> 1), y = headY + (py - headY) * detail + dy;
+          if (x >= 0 && y >= 0 && x < bw && y < bh) colours[y * bw + x] = colour;
+        }
+      }
+    }, nation, headX, headY, wind);
   }
 
   // Crop to what was painted, with room for the outline and shadow.

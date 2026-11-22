@@ -100,10 +100,13 @@ OUTLINES = {
 }
 
 SIZES = {
-    # The sea battle: the designs' own sizes.
-    "battle": dict(scale=1.0),
+    # The sea battle: twice the designs' sizes, one art pixel per battle
+    # pixel (BATTLE_PIXELS_PER_ART_PIXEL), so the ships keep the size of
+    # their hit boxes with finer pixels. `detail` scales the small parts
+    # (ports, lantern, pennant, shot holes) with the resolution.
+    "battle": dict(scale=2.0, detail=2),
     # The sailing map: smaller ships at the towns' scale.
-    "map": dict(scale=.72),
+    "map": dict(scale=.72, detail=1),
 }
 
 SAIL_STATES = ("full", "battle", "furled")
@@ -164,9 +167,10 @@ def scaled(design: dict, scale: float) -> dict:
         # A touch slimmer than the flat sprites: a stack shows its beam
         # from every side, so the old proportions read as a box.
         half_beam=max(2.0, length * design["beam"] * .85),
-        depth=max(2, round(design["depth"] * (1 if scale >= 1 else .75))),
+        depth=max(2, round(design["depth"] * (scale if scale >= 1 else .75))),
         mast_top=round(length * design["mastHeight"]),
-        castle=lambda pixels: max(1, round(pixels * (1 if scale >= 1 else .75))),
+        castle=lambda pixels: max(1, round(pixels * (scale if scale >= 1 else .75))),
+        k=max(1, round(scale)),
     )
 
 
@@ -177,9 +181,9 @@ def cell_size(scale: float) -> tuple[int, int, int]:
         dims = scaled(design, scale)
         reach = dims["length"] / 2 + dims["length"] * design["sprit"] + 2
         L = max(L, 2 * math.ceil(reach) + 2)
-        yard = (dims["half_beam"] + 1.5) * design.get("yard", 1)
+        yard = (dims["half_beam"] + 1.5 * dims["k"]) * design.get("yard", 1)
         W = max(W, 2 * math.ceil(max(yard, dims["half_beam"])) + 4)
-        H = max(H, dims["depth"] + dims["mast_top"] + 3)
+        H = max(H, dims["depth"] + dims["mast_top"] + 3 * dims["k"])
     return L, W, H
 
 
@@ -187,7 +191,7 @@ def build_ship(design: dict, scale: float, cell: tuple[int, int, int], sails: st
     L, W, H = cell
     dims = scaled(design, scale)
     hull = HULLS[design["hull"]]
-    length, half_beam, depth = dims["length"], dims["half_beam"], dims["depth"]
+    length, half_beam, depth, k = dims["length"], dims["half_beam"], dims["depth"], dims["k"]
     half = length / 2
     lc = (L - 1) / 2          # hull centre along the cell
     wc = (W - 1) / 2          # centreline across the cell
@@ -246,7 +250,7 @@ def build_ship(design: dict, scale: float, cell: tuple[int, int, int], sails: st
             elif z == deck_top[l]:
                 colour = hull["rail"]
             elif design.get("gunRows") and depth - design["gunRows"] <= z < depth:
-                colour = hull["port"] if (l - stern_l) % 2 == 1 and stern_l + 1 < l < bow_l - 1 else hull["wale"]
+                colour = hull["port"] if ((l - stern_l) // k) % 2 == 1 and stern_l + 1 < l < bow_l - 1 else hull["wale"]
             elif z > depth:
                 colour = hull["sideLight"]
             else:
@@ -273,40 +277,42 @@ def build_ship(design: dict, scale: float, cell: tuple[int, int, int], sails: st
                 stern_colour = hull["sideDark"]
             elif z == max_top:
                 stern_colour = hull["rail"]
-            elif z == max_top - 1 and max_top > depth and w % 2 == 0:
+            elif max_top - k <= z < max_top and max_top > depth and (w // k) % 2 == 0:
                 stern_colour = WOOD["glow"] if design.get("lantern") else WOOD["window"]
             hv.b(w, z, stern_colour)
     parts.append(hv)
 
-    # The galleon's stern lantern, a 2x2x2 block above the taffrail.
+    # The galleon's stern lantern above the taffrail: a post, then the light.
     masthead = None
     if design.get("lantern"):
         lv = Views(L, W, H)
-        for l in (stern_l, stern_l + 1):
+        heights = range(max_top + 1, max_top + 1 + 2 * k)
+        lit = lambda z: z >= max_top + 1 + k
+        for l in range(stern_l, stern_l + 2):
             for w in centre:
                 lv.t(l, w, WOOD["glow"])
-            for z in (max_top + 1, max_top + 2):
-                lv.s(l, z, WOOD["glow"] if z == max_top + 2 else WOOD["mast"])
+            for z in heights:
+                lv.s(l, z, WOOD["glow"] if lit(z) else WOOD["mast"])
         for w in centre:
-            for z in (max_top + 1, max_top + 2):
-                lv.f(w, z, WOOD["glow"] if z == max_top + 2 else WOOD["mast"])
-                lv.b(w, z, WOOD["glow"] if z == max_top + 2 else WOOD["mast"])
+            for z in heights:
+                lv.f(w, z, WOOD["glow"] if lit(z) else WOOD["mast"])
+                lv.b(w, z, WOOD["glow"] if lit(z) else WOOD["mast"])
         parts.append(lv)
 
     # ---- The bowsprit: a 2 px spar rising ahead of the bow.
     sprit_base = bow_l + (1 if design["shape"] == "beak" else 0)
     sprit_len = max(2, round(length * design["sprit"]))
-    sprit_tip = (sprit_base + sprit_len, depth + 2)
+    sprit_tip = (sprit_base + sprit_len, depth + 2 * k)
     sv = Views(L, W, H)
     for step in range(sprit_len + 1):
         l = sprit_base + step
-        z = depth + round(2 * step / sprit_len)
+        z = depth + round(2 * k * step / sprit_len)
         for w in centre:
             sv.t(l, w, WOOD["yard"])
         sv.s(l, z, WOOD["yard"])
         sv.s(l, z - 1, WOOD["yard"])
     for w in centre:
-        for z in range(depth - 1, depth + 3):
+        for z in range(depth - 1, depth + 2 * k + 1):
             sv.f(w, z, WOOD["yard"])
             sv.b(w, z, WOOD["yard"])
     parts.append(sv)
@@ -317,7 +323,7 @@ def build_ship(design: dict, scale: float, cell: tuple[int, int, int], sails: st
         masts = masts[1:] if len(masts) > 1 else [dict(masts[0], top=round(masts[0]["top"] * .45), stump=True)]
     mainmast = max(masts, key=lambda m: m["top"])
     foremast = max(masts, key=lambda m: m["l"])
-    yard_half = (half_beam + 1.5) * design.get("yard", 1)
+    yard_half = (half_beam + 1.5 * k) * design.get("yard", 1)
 
     for mast in masts:
         mv = Views(L, W, H)
@@ -450,7 +456,7 @@ def build_ship(design: dict, scale: float, cell: tuple[int, int, int], sails: st
             mv_saved = mv
             mv = jv  # centre_sail draws into `mv`
             tip = sprit_tip
-            stem = (sprit_base + sprit_len * .45, depth + 1)
+            stem = (sprit_base + sprit_len * .45, depth + k)
             jibs = [[tip, (l0 + 1, z_at(.92)), (l0 + 2 + length * .06, z_at(.2))],
                     [stem, (l0 + 1, z_at(.7)), (l0 + 2 + length * .04, z_at(.16))]][:design["jibs"]]
             for jib in jibs:
@@ -526,7 +532,7 @@ def main() -> None:
         path = ROOT / "assets" / "sprites" / f"ship-stacks-{size}.png"
         Image.fromarray(atlas).save(path, optimize=True)
         print(f"{size}: {len(rows)} rows of {H} slices, {W} x {L} px -> {path.relative_to(ROOT)} ({atlas.shape[1]} x {atlas.shape[0]})")
-        data["sizes"][size] = dict(width=W, length=L, slices=H, rows=rows)
+        data["sizes"][size] = dict(width=W, length=L, slices=H, detail=spec["detail"], rows=rows)
 
     module = ROOT / "src" / "ship-stack-data.mjs"
     module.write_text(
@@ -534,7 +540,8 @@ def main() -> None:
         "// The sprite-stacked ships' atlases (assets/sprites/ship-stacks-<size>.png):\n"
         "// per size, the cell (`width` across, `length` along the hull, bow at the\n"
         "// cell's bottom), the slice count and one row per ship type and rig state,\n"
-        "// with the mainmast's head [w, l, z] in the cell, where the flag flies.\n"
+        "// with the mainmast's head [w, l, z] in the cell, where the flag flies;\n"
+        "// `detail` is the size of the small parts' pixels (pennant, shot holes).\n"
         "// `sails` lists the canvas colours (recoloured while sails are changed).\n"
         f"export const SHIP_STACK_DATA = Object.freeze({json.dumps(data, separators=(',', ':'))});\n"
     )

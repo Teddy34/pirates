@@ -193,7 +193,12 @@ named captain (`0xF207`). Fort battles reuse the naval engine (§7).
 - The arena size and camera scale, the placement's centre, and sprite
   dimensions are presentation-compatible approximations until verified. Ship silhouettes are
   drawn at about their hit box's size; the box is not drawn. Each ship type
-  has its own pixel-art design (`src/battle-ship-sprites.mjs`): the pinnace a
+  is a sprite-stacked model (`src/ship-stacks.mjs`, built by
+  `tools/build_ship_stacks.py` from code-drawn views carved with the
+  sprite-stacking skill in `tools/sprite-stacking/`), drawn at 64 heading
+  steps rather than the original's 16 sectors; until its atlas loads, the
+  flat design of `src/battle-ship-sprites.mjs` stands in. Both follow the
+  same per-type designs: the pinnace a
   small square-rigged two-master, the sloop one gaff-rigged mast with jibs on
   a long bowsprit, the barque a three-master with a lateen mizzen, the cargo
   fluyt a bluff bow and a tall narrow stern, the merchantman forecastle,
@@ -203,8 +208,12 @@ named captain (`0xF207`). Fort battles reuse the naval engine (§7).
   sterncastle and lantern. The designs are original and presentation only;
   the original's battle sprites are not reproduced. They are painted at a
   fixed coarse resolution and drawn at a whole number of device pixels per
-  art pixel (about two battle pixels per art pixel), one sprite per heading
-  sector; sail state, a darker canvas while sails change, shot holes, a lost
+  art pixel (one battle pixel per art pixel for the stacks, built at twice
+  the flat designs' resolution so ships keep their hit box's size; two for
+  the flat stand-in; the hit boxes are the original's), one sprite per heading
+  step (sector for the flat stand-in); square sails are seen edge-on from
+  the beam, as the stacks are true 3D, where the flat sprites turned them to
+  the viewer; sail state, a darker canvas while sails change, shot holes, a lost
   foremast and scorched planks at heavy damage, and the masthead flag stay
   on the sprite. The cannonball
   sprite shows one, two or three balls by the shooter's gun count (≤8, ≤20,
@@ -239,8 +248,9 @@ Add these modules:
 
 - `src/battle-mechanics.mjs`: pure formulas and one-frame state transition.
 - `src/battle-renderer.mjs`: battle camera and original ship, shot, wake,
-  smoke, wind, and status rendering (pixel-art ships from
-  `src/battle-ship-sprites.mjs`).
+  smoke, wind, and status rendering (sprite-stacked ships from
+  `src/ship-stacks.mjs`, the flat `src/battle-ship-sprites.mjs` until they
+  load).
 - `test/battle-mechanics.test.mjs`: deterministic formula, transition, AI, and
   outcome tests.
 

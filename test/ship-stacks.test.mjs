@@ -111,8 +111,12 @@ test('stacked ships show sails, flag and damage', () => {
     assert.ok(opaque(paint({ type, damage: 32 })) < opaque(paint({ type })), `type ${type} mast`);
   }
   assert.ok(opaque(paint({ sails: 'full' })) > opaque(paint({ sails: 'battle' })));
-  // Allegiance shows only in the pennant.
-  const english = paint({}), spanish = paint({ nation: nation('Spain') });
-  const differing = english.pixels.filter((value, index) => value !== spanish.pixels[index]).length;
-  assert.ok(differing > 0 && differing <= 15 * 4);
+  // Allegiance shows only in the pennant (at most 15 pixels, each `detail`
+  // art pixels square).
+  for (const size of ['battle', 'map']) {
+    const { detail } = SHIP_STACK_DATA.sizes[size];
+    const english = paint({ size }), spanish = paint({ size, nation: nation('Spain') });
+    const differing = english.pixels.filter((value, index) => value !== spanish.pixels[index]).length;
+    assert.ok(differing > 0 && differing <= 15 * 4 * detail * detail, `${size}: ${differing}`);
+  }
 });
