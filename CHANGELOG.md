@@ -11,6 +11,18 @@ history.
 
 ## Unreleased
 
+### Fixed
+
+- Losing a boarding fight or the storming of a town's walls by yielding no
+  longer costs a tenth of your gold as ransom: as in the original, you are
+  captured (pirate or not). You are wounded and imprisoned in the town whose
+  nation you fought, or aboard the enemy ship, and months later your former
+  comrades trade a nobleman for you: you return with a fresh fleet of your
+  flagship's type, held prisoners are freed, any mission is dropped and the
+  difficulty drops one level. Being driven back still just ends the fight.
+  Departure from the original: while held aboard an enemy ship there is no
+  monthly mutiny check.
+
 ### Changed
 
 - The sword fight's fencers are sharper: their bodies were regenerated with
