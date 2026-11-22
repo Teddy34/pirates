@@ -246,7 +246,7 @@ SCENES = {
         # the source, becomes the red ensign the navy flew from about 1625
         # (docs/flags-1560-1680.md). Corners in art pixels; the flag streams
         # left from its staff, so the hoist is on the right.
-        'retouch': [(red_ensign, [(48.5, 75.5), (32.5, 81.5), (32.5, 93.5), (48.5, 92)])],
+        'retouch': [(red_ensign, [(48.5, 74.5), (32.8, 80.8), (32.8, 93.6), (48.5, 91.4)])],
     },
     'merchant': {
         'shape': 'portrait',
@@ -541,37 +541,37 @@ def extend_sheet(scene, sheet_path):
 
 def retouch(scene, path):
     """Repaint flags on a built picture whose source is no longer at hand
-    (the scene's `retouch`: flat flag maker and its corners in art pixels).
-    The old flag's light (each pixel's brightest channel, so a red cross
-    reads as lit cloth) shades the new one at 8x the art pixels; the result
-    is reduced, enhanced like the build and mapped onto the picture's
-    palette."""
+    (the scene's `retouch`: a flat flag maker and the flag's corners in art
+    pixels: hoist top, fly top, fly bottom, hoist bottom). Every pixel of
+    the old cloth inside the corners is repainted, and nothing else (sky
+    and the dark staff stay): the flat flag is warped at 8x the art pixels
+    and reduced, shaded softly by the old cloth's light (each pixel's
+    brightest channel, so the old red cross reads as lit cloth), enhanced
+    like the build and mapped onto the picture's nearest palette colours;
+    every other pixel keeps its palette index."""
     picture = Image.open(path)
     rgb = picture.convert('RGB')
+    palette = picture.getpalette()
+    colours = [tuple(palette[i:i + 3]) for i in range(0, len(palette), 3)]
+    indices = picture.load()
     zoom = 8
     for make_flag, quad in SCENES[scene]['retouch']:
-        big_quad = [(x * zoom, y * zoom) for x, y in quad]
-        light = rgb.resize((rgb.width * zoom, rgb.height * zoom), Image.Resampling.NEAREST)
-        light = Image.merge('RGB', [ImageChops.lighter(ImageChops.lighter(*light.split()[:2]), light.split()[2])] * 3)
-        flat = Image.new('RGB', light.size, WHITE)
-        paste_flag(flat, make_flag(), big_quad)
-        cloth = Image.new('L', light.size)
-        ImageDraw.Draw(cloth).polygon(big_quad, fill=255)
-        brightest = max(1, ImageChops.multiply(light.convert('L'), cloth).getextrema()[1])
-        shaded = ImageChops.multiply(flat, light.point(lambda value: min(255, round(value * 255 / brightest))))
-        small = ImageEnhance.Color(ImageEnhance.Contrast(shaded.resize(rgb.size, Image.Resampling.BOX)).enhance(1.15)).enhance(1.2)
-        mask = Image.new('L', rgb.size)
-        ImageDraw.Draw(mask).polygon(quad, fill=255)
-        # Map only the repainted pixels onto the palette's nearest colours, so
-        # every other pixel keeps its index.
-        palette = picture.getpalette()
-        colours = [tuple(palette[i:i + 3]) for i in range(0, len(palette), 3)]
-        indices = picture.load()
+        flat = Image.new('RGB', (rgb.width * zoom, rgb.height * zoom), WHITE)
+        paste_flag(flat, make_flag(), [(x * zoom, y * zoom) for x, y in quad])
+        flat = ImageEnhance.Color(ImageEnhance.Contrast(flat.resize(rgb.size, Image.Resampling.BOX)).enhance(1.15)).enhance(1.2)
+        inside = Image.new('L', rgb.size)
+        ImageDraw.Draw(inside).polygon(quad, fill=255)
+        cloth = []
         for y in range(rgb.height):
             for x in range(rgb.width):
-                if mask.getpixel((x, y)):
-                    r, g, b = small.getpixel((x, y))
-                    indices[x, y] = min(range(len(colours)), key=lambda i: (colours[i][0] - r) ** 2 + (colours[i][1] - g) ** 2 + (colours[i][2] - b) ** 2)
+                r, g, b = rgb.getpixel((x, y))
+                if inside.getpixel((x, y)) and b <= r + 40 and max(r, g, b) >= 90:
+                    cloth.append((x, y, max(r, g, b)))
+        brightest = max(light for _, _, light in cloth)
+        for x, y, light in cloth:
+            shade = 0.7 + 0.3 * light / brightest
+            r, g, b = (channel * shade for channel in flat.getpixel((x, y)))
+            indices[x, y] = min(range(len(colours)), key=lambda i: (colours[i][0] - r) ** 2 + (colours[i][1] - g) ** 2 + (colours[i][2] - b) ** 2)
     picture.save(path, optimize=True)
 
 

@@ -69,10 +69,11 @@ Spanish stone fort.
   (striped ensigns before about 1625, the red ensign after:
   `docs/flags-1560-1680.md`). With the source no longer at hand,
   `python3 tools/build_vignette.py --scene title-ship --retouch` paints the
-  red ensign with a St George canton onto the built picture's stern flag,
-  shaded by the old flag's light, and maps it onto the picture's palette;
-  the rest of the picture is unchanged. The masthead flags and the long
-  St George pendant are period-correct and stay.
+  red ensign with a St George canton onto the old flag's cloth pixels
+  only (sky and staff stay), softly shaded by the old cloth's light, and
+  maps them onto the picture's palette; every other pixel is unchanged.
+  The masthead flags and the long St George pendant are period-correct
+  and stay.
 - **Rebuild:** `python3 tools/build_vignette.py --scene title-ship --source <image>`
   then `--retouch` (Pillow).
 
@@ -280,8 +281,9 @@ of flat flags painted onto them in the game (`flags.png`, order in
   Spain, the Cross of Burgundy, and white with the royal arms on navy ships
   in 1680 (simplified to a crowned shield quartered with castles and
   lions); England, St George's cross in 1560, a striped ensign with a
-  St George canton in 1600 and 1620 (seven red, white and blue stripes,
-  one recorded scheme: Perrin, *British Flags*, 1922, plate IX), the red
+  St George canton in 1600 and 1620 (five green and white stripes, the
+  Tudor colours, recorded on a Cadiz squadron ensign of 1596: Perrin,
+  *British Flags*, 1922; stripe colours varied from ship to ship), the red
   ensign from 1640; France, the blue banner with three gold fleurs-de-lis
   on navy ships in 1560, plain white on navy ships from 1600, a white
   cross on blue for merchants; Holland, the Prince's flag to 1640 and the
@@ -290,14 +292,24 @@ of flat flags painted onto them in the game (`flags.png`, order in
   at sea in 1700).
 - **Review:** the sterns show no flag but the white one, no lettering, no
   people; the late stern's carved figures are generic, with no coat of
-  arms. No fixes were needed.
+  arms. No fixes were needed in the pictures.
+- **Cloth map fix (2026-11-22):** the bright glass of the stern lanterns
+  passed for white cloth, so the flag's colours were painted on the
+  lanterns (stern-mid, stern-late), and those pixels skewed the flag's
+  measured corners and so its perspective (stern-early, stern-mid,
+  stern-late). The flag is now only the largest connected patch of cloth
+  pixels, and each cloth pixel's place on the flag comes from the cloth's
+  own outline (v down its column, u from the hoist end to the fly end) rather
+  than a perspective from four corners, which left the wave-shaped edges
+  painted with the flag's dark border. The four maps were rebuilt from the
+  same sources.
 - **Process:** `python3 tools/build_colours.py flags` draws the flag sheet.
   `python3 tools/build_colours.py stern --key <stern> --source <image>`
   pixelates the stern like `tools/build_vignette.py` (box reduction,
   contrast ×1.15, colour ×1.2, 256 colours, no dithering) and measures the
-  white flag (its bright, unsaturated pixels inside the stern's box, and
-  their four extreme corners) into the cloth map: the flag's (u, v)
-  through the perspective of those corners, and the folds' light.
+  white flag (the largest connected patch of bright, unsaturated pixels
+  inside the stern's box) into the cloth map: the flag's (u, v) from the
+  cloth's outline, and the folds' light.
 
 ## sail-ho.png
 

@@ -19,9 +19,10 @@ Two commands:
       colours/<key>.png, and writes colours/<key>-map.png: for each art
       pixel of the white flag, red and green hold the flag's (u, v)
       coordinates (0-255 across the cloth) and blue its light (1-255, the
-      folds' shading; 0 = not flag). The flag is found as the bright,
-      unsaturated pixels inside the box SCENES gives, and its four corners
-      are the extreme points of that area.
+      folds' shading; 0 = not flag). The flag is the largest connected
+      patch of bright, unsaturated pixels inside the box STERNS gives; v
+      runs down each column of that cloth, so the flag follows the waves of
+      its edges, and u from its hoist (right) end to its fly (left) end.
 
 Needs Pillow.
 """
@@ -33,13 +34,14 @@ import os
 from PIL import Image, ImageDraw
 
 from build_vignette import (BLUE, GOLD, INK, ORANGE, RED, SHAPES, WHITE, banniere_de_france, centred_crop, cross_of_burgundy,
-                            perspective_coefficients, pixelate, prince_flag, st_george, states_flag)
+                            pixelate, prince_flag, st_george, states_flag)
 
 OUT = 'assets/vignettes/colours'
 FLAG_W, FLAG_H = 72, 48
 DRAW_W, DRAW_H = 360, 240
 BLACK, BLOOD = (28, 24, 22), (168, 26, 30)
 PURPLE = (110, 40, 110)
+TUDOR_GREEN = (40, 110, 60)
 
 
 def field(colour):
@@ -64,14 +66,14 @@ def england_red_ensign():
 
 def england_striped_ensign():
     """England to about 1625: an Elizabethan striped ensign with St George's
-    cross in the canton. Stripe colours varied from ship to ship; seven
-    red, white and blue stripes are one recorded scheme (Perrin, British
-    Flags, 1922, plate IX)."""
+    cross in the canton. Stripe colours varied from ship to ship; green and
+    white, the Tudor colours, are recorded on an ensign of the Cadiz
+    squadron of 1596 (Perrin, British Flags, 1922). Five broad stripes keep
+    it readable at the cell's size."""
     flag, draw = field(WHITE)
-    for index in range(7):
-        colour = (RED, WHITE, BLUE)[index % 3]
-        draw.rectangle([0, DRAW_H * index / 7, DRAW_W, DRAW_H * (index + 1) / 7], fill=colour)
-    canton = st_george(DRAW_W // 2, DRAW_H * 4 // 7)
+    for index in range(5):
+        draw.rectangle([0, DRAW_H * index / 5, DRAW_W, DRAW_H * (index + 1) / 5], fill=TUDOR_GREEN if index % 2 == 0 else WHITE)
+    canton = st_george(DRAW_W // 2, DRAW_H * 3 // 5)
     flag.paste(canton, (0, 0))
     return outlined(flag)
 
@@ -413,20 +415,32 @@ def is_cloth(pixel):
 
 
 def flag_area(image, box):
+    """The white flag's pixels: the largest connected patch of bright,
+    unsaturated pixels in the box. Smaller patches (a lantern's glass, a
+    highlight on the carvings) are not cloth: painted, they showed the flag
+    in front of the ship, and they skewed the flag's corners."""
     pixels = image.load()
-    area = set()
+    cloth = set()
     for y in range(box[1], box[3]):
         for x in range(box[0], box[2]):
             if is_cloth(pixels[x, y]):
-                area.add((x, y))
-    return area
-
-
-def corners(area):
-    """Hoist top, fly top, fly bottom, hoist bottom: the flag streams to
-    the left, so the hoist is on the right."""
-    return [max(area, key=lambda p: p[0] - p[1]), min(area, key=lambda p: p[0] + p[1]),
-            min(area, key=lambda p: p[0] - p[1]), max(area, key=lambda p: p[0] + p[1])]
+                cloth.add((x, y))
+    largest, seen = set(), set()
+    for start in cloth:
+        if start in seen:
+            continue
+        patch, queue = set(), [start]
+        seen.add(start)
+        while queue:
+            x, y = queue.pop()
+            patch.add((x, y))
+            for near in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if near in cloth and near not in seen:
+                    seen.add(near)
+                    queue.append(near)
+        if len(patch) > len(largest):
+            largest = patch
+    return largest
 
 
 def build_stern(key, source_path):
@@ -437,10 +451,22 @@ def build_stern(key, source_path):
     size = SHAPES['landscape']
     box = centred_crop(image.size, size[0] / size[1])
     area = flag_area(image, entry['flag_box'])
-    quad = corners(area)
-    # (u, v) of each source pixel: the inverse of the perspective that puts
-    # the flat flag (0..1 x 0..1) on the quad.
-    a, b, c, d, e, f, g, h = perspective_coefficients(quad, [(0, 0), (1, 0), (1, 1), (0, 1)])
+    # (u, v) of each cloth pixel, from the cloth's own outline: v runs from
+    # the top to the bottom of the cloth in its column, so the flag follows
+    # the waves of its edges, and u from the hoist (the cloth's right end)
+    # to the fly (its left end). A four-corner perspective left the
+    # wave-shaped edges outside the flag, painted with its border.
+    tops, bottoms = {}, {}
+    for x, y in area:
+        tops[x] = min(tops.get(x, y), y)
+        bottoms[x] = max(bottoms.get(x, y), y)
+    hoist, fly = max(tops), min(tops)
+    # The slanted fly and hoist edges leave short end columns: take each
+    # column's top and bottom over its neighbours too, or those slivers
+    # would squeeze the whole flag's height into a few pixels.
+    reach = 30
+    tops = {x: min(tops[n] for n in range(x - reach, x + reach + 1) if n in tops) for x in tops}
+    bottoms = {x: max(bottoms[n] for n in range(x - reach, x + reach + 1) if n in bottoms) for x in bottoms}
     light = sorted(sum(image.getpixel(p)) / 3 for p in area)
     white = light[int(len(light) * 0.95)]
     scale_x, scale_y = (box[2] - box[0]) / size[0], (box[3] - box[1]) / size[1]
@@ -450,8 +476,8 @@ def build_stern(key, source_path):
         if not (box[0] <= x < box[2] and box[1] <= y < box[3]):
             continue
         cell = (int((x - box[0]) / scale_x), int((y - box[1]) / scale_y))
-        w = g * x + h * y + 1
-        u, v = (a * x + b * y + c) / w, (d * x + e * y + f) / w
+        u = (hoist - x + 0.5) / (hoist - fly + 1)
+        v = (y - tops[x] + 0.5) / (bottoms[x] - tops[x] + 1)
         shade = sum(image.getpixel((x, y))) / 3 / white
         total = sums.setdefault(cell, [0, 0, 0, 0])
         total[0] += u
@@ -471,7 +497,7 @@ def build_stern(key, source_path):
     os.makedirs(OUT, exist_ok=True)
     pixelate(image.crop(box), size).save(f'{OUT}/{key}.png', optimize=True)
     flag_map.save(f'{OUT}/{key}-map.png', optimize=True)
-    print(key, 'flag corners', quad)
+    print(key, 'flag pixels', len(area))
 
 
 if __name__ == '__main__':

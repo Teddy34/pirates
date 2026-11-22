@@ -23,6 +23,9 @@ history.
   The title picture's English warship now flies the red ensign at her stern
   instead of a plain St George's cross, which fit no era for a ship of her
   size.
+- A ship's colours seen close up no longer spill onto the stern lanterns,
+  and the flag's perspective follows the painted flag. The lanterns' bright
+  glass had been taken for white cloth.
 - The logbook has a "Your fleet" page, also opened with F at sea: every ship
   with a pixel picture of her type, her crew, guns and hold against her
   maximum, her condition, and the fleet's totals (ships out of eight, crew,

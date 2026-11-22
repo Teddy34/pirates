@@ -303,7 +303,7 @@ const COLOUR_DESCRIPTIONS = {
   'spain-arms': 'white with the crowned royal arms of Spain',
   'england-george': 'St George’s red cross on white',
   'england-red-ensign': 'a red ensign with St George’s cross in the canton',
-  'england-striped': 'a striped red, white and blue ensign with St George’s cross in the canton',
+  'england-striped': 'a green and white striped ensign with St George’s cross in the canton',
   'france-blue-cross': 'a white cross on blue',
   'france-white': 'the plain white flag of the French king’s ships',
   'france-lilies': 'the blue banner of France with gold fleurs-de-lis',
