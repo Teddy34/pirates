@@ -68,6 +68,8 @@ import { COLOUR_FLAGS, GOVERNOR_ERAS, GOVERNOR_NATIONS, dialogPictureLayout, dra
 import { TOWN_SPRITE_ANCHOR, TOWN_SPRITE_HEIGHT, TOWN_SPRITE_WIDTH, paintTownSprite, prosperityLevel } from './town-sprites.mjs';
 import { headingSector, paintShipSprite } from './ship-sprites.mjs';
 import { paintBattleShipSprite } from './battle-ship-sprites.mjs';
+import { shipStackAtlas } from './ship-stack-images.mjs';
+import { paintStackedShip, shipStackTurn } from './ship-stacks.mjs';
 import { paintPartySprite } from './party-sprites.mjs';
 import { CLOUD_ART_PIXEL, paintCloudSprite } from './cloud-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
@@ -3829,9 +3831,11 @@ const SHIP_ICON_SCALE = 2;
 const shipIconUrls = new Map();
 function shipIconUrl(type) {
   const key = NATIONS[state.nationality] ? state.nationality : 'pirate';
-  const id = `${type}|${key}`;
+  const atlas = shipStackAtlas('battle');
+  const id = `${type}|${key}|${atlas ? 'stack' : 'flat'}`;
   if (!shipIconUrls.has(id)) {
-    const sprite = paintBattleShipSprite({ type, heading: 64, nation: { key, ...NATIONS[key] }, wind: 0 });
+    const options = { type, heading: 64, nation: { key, ...NATIONS[key] }, wind: 0 };
+    const sprite = atlas ? paintStackedShip(atlas, { ...options, size: 'battle' }) : paintBattleShipSprite(options);
     const iconCanvas = document.createElement('canvas');
     iconCanvas.width = SHIP_ICON_SIZE.width;
     iconCanvas.height = SHIP_ICON_SIZE.height;
@@ -5130,18 +5134,26 @@ function drawTownSprite(town, x, y, spriteScale) {
   if (sprite) drawPixelSprite(ctx, sprite, x, y, spriteScale * devicePixelScale());
 }
 
-// The flagship as a pixel-art sprite at the towns' scale, one per heading
-// sector, sail state and wind (for the flag).
+// The flagship as a pixel-art sprite at the towns' scale: the
+// sprite-stacked ship of its type (ship-stacks.mjs, map size), one per
+// heading step, sail state and wind (for the flag); until the stacks have
+// loaded, the flat sprite of ship-sprites.mjs per heading sector.
 const shipSpriteCache = new Map();
 
 function drawShip(zoom, player) {
   const type = statsFor(state.player.ships[0]).type;
   const key = NATIONS[state.nationality] ? state.nationality : 'pirate';
-  const sector = headingSector(player.heading);
   const windSector = headingSector(state.player.wind);
-  const sprite = cachedSprite(shipSpriteCache, `${type}|${sector}|${player.sails}|${key}|${windSector}`, () => paintShipSprite({
-    type, heading: sector * 16, sails: player.sails, nation: { key, ...NATIONS[key] }, wind: windSector * 16,
-  }));
+  const nation = { key, ...NATIONS[key] };
+  const atlas = shipStackAtlas('map');
+  const turn = shipStackTurn(player.heading);
+  const sprite = atlas
+    ? cachedSprite(shipSpriteCache, `stack|${type}|${turn}|${player.sails}|${key}|${windSector}`, () => paintStackedShip(atlas, {
+      size: 'map', type, heading: turn * 4, sails: player.sails, nation, wind: windSector * 16,
+    }))
+    : cachedSprite(shipSpriteCache, `${type}|${headingSector(player.heading)}|${player.sails}|${key}|${windSector}`, () => paintShipSprite({
+      type, heading: headingSector(player.heading) * 16, sails: player.sails, nation, wind: windSector * 16,
+    }));
   if (sprite) drawPixelSprite(ctx, sprite, player.x, player.y, townSpriteScale(zoom) * devicePixelScale());
 }
 

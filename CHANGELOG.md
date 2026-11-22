@@ -13,6 +13,14 @@ history.
 
 ### Added
 
+- Ships in the sea battle and on the sailing map are sprite-stacked: each
+  ship type is a small 3D model of pixel slices, drawn as four views in code
+  and carved by the sprite-stacking method, so she turns smoothly through 64
+  headings instead of 16 and shows her real rig from every side (square sails
+  edge-on when seen broadside, lateen and gaff sails along the hull). Sails,
+  flag, sail changes and battle damage show as before. The flat ships are
+  still drawn until the new pictures have loaded. The sprite-stacking skill
+  (Daniel White, MIT) is copied into the tools for rebuilding them.
 - The logbook has a "Your fleet" page, also opened with F at sea: every ship
   with a pixel picture of her type, her crew, guns and hold against her
   maximum, her condition, and the fleet's totals (ships out of eight, crew,
