@@ -9,14 +9,18 @@ tool, for each sheet:
 1. keys out the green background;
 2. finds the six figures (the six largest connected shapes, left to right;
    stray bits join the nearest figure);
-3. reduces each figure with a box filter at one scale per sheet, chosen so
-   the upright walking figure is the character's `height` art pixels tall,
-   and drops pixels less than half covered;
+3. picks 16 colours for the sheet (k-means), then reduces each figure at
+   one scale per sheet, chosen so the upright walking figure is the
+   character's `height` art pixels tall: each art pixel takes the colour
+   that covers most of its block, the dark ink outline weighted up, so flat
+   colours and outlines stay crisp; lone pixels take their neighbours'
+   colour, pixels less than half covered are dropped, and a face the
+   reduction left blank gets an eye pixel;
 4. places it in a FENCER_ART cell (64x64, src/fencer-sprites.mjs) with the
    midpoint of its feet on the cell's anchor (26, 61).
 
-Then the whole sheet gets the vignette pipeline's contrast (x1.15) and colour
-(x1.2) and one shared palette (median cut, no dithering). Rows follow
+Each palette gets the vignette pipeline's contrast (x1.15), but not its
+colour boost, which turned the skin orange. Rows follow
 CHARACTERS, columns BODY_POSES. A character with `coat` marks its coat:
 those pixels get alpha 254 instead of 255, so the game can recolour the coat
 to an opponent's nation (fencer-sprites.mjs); a `cap` (the sailor's
@@ -50,7 +54,8 @@ CHARACTERS = {
     'villain': {'height': 41},
     'sailor': {'height': 37, 'cap': ((340, 12), .55)},
 }
-COLOURS = 128
+COLOURS_PER_CHARACTER = 16
+INK_WEIGHT = 1.8
 COAT_ALPHA = 254
 CAP_ALPHA = 253
 
@@ -125,16 +130,57 @@ def figures(mask, count, step=4, thin=3):
     return np.where(mask, out, 0)
 
 
-def reduce_figure(rgb, mask, scale):
-    """Box-reduce one figure (premultiplied by its mask) by `scale`."""
+def palette_for(rgb, mask, count, seed=1, rounds=20):
+    """`count` colours for one sheet: k-means over its figures' inner pixels
+    (the mask shrunk, so the green fringe does not get a colour)."""
+    inner = mask
+    for _ in range(3):
+        inner = erode(inner)
+    pixels = rgb[inner][::11].astype(float)
+    centres = pixels[np.random.default_rng(seed).choice(len(pixels), count, replace=False)]
+    for _ in range(rounds):
+        nearest = nearest_colour(pixels, centres)
+        centres = np.array([pixels[nearest == k].mean(0) if (nearest == k).any() else centres[k] for k in range(count)])
+    return centres
+
+
+def nearest_colour(pixels, centres, chunk=200000):
+    out = np.empty(len(pixels), int)
+    for start in range(0, len(pixels), chunk):
+        part = pixels[start:start + chunk].astype(float)
+        out[start:start + chunk] = ((part[:, None] - centres[None]) ** 2).sum(-1).argmin(1)
+    return out
+
+
+def reduce_figure(rgb, mask, scale, centres):
+    """Reduce one figure by `scale`: each art pixel takes the palette colour
+    that covers most of its block (the ink outline counts INK_WEIGHT times),
+    so flat colours and outlines stay crisp instead of averaging to mud.
+    Returns the palette index per art pixel and whether it is solid."""
     ys, xs = np.nonzero(mask)
-    top, bottom, left, right = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
-    size = (max(1, round((right - left) / scale)), max(1, round((bottom - top) / scale)))
-    alpha = mask[top:bottom, left:right].astype(np.float32)
-    channels = [Image.fromarray(rgb[top:bottom, left:right, index].astype(np.float32) * alpha, 'F').resize(size, Image.BOX) for index in range(3)]
-    cover = np.asarray(Image.fromarray(alpha, 'F').resize(size, Image.BOX))
-    colour = np.dstack([np.asarray(channel) / np.maximum(cover, 1e-3) for channel in channels])
-    return np.clip(colour, 0, 255), cover >= .5
+    top, left = ys.min(), xs.min()
+    height, width = int((ys.max() - top) / scale) + 1, int((xs.max() - left) / scale) + 1
+    colour = nearest_colour(rgb[ys, xs], centres)
+    cell = ((ys - top) / scale).astype(int) * width + ((xs - left) / scale).astype(int)
+    count = len(centres)
+    votes = np.bincount(cell * count + colour, minlength=height * width * count).reshape(height, width, count).astype(float)
+    solid = votes.sum(-1) >= .5 * scale * scale
+    ink = int((centres @ [.299, .587, .114]).argmin())
+    votes[..., ink] *= INK_WEIGHT
+    return despeckle(votes.argmax(-1), solid), solid
+
+
+def despeckle(index, solid):
+    """An art pixel unlike all four neighbours, three of which agree, takes
+    their colour: drops the lone pixels the reduction leaves in flat areas."""
+    padded = np.pad(np.where(solid, index, -1), 1, constant_values=-1)
+    near = np.stack([padded[:-2, 1:-1], padded[2:, 1:-1], padded[1:-1, :-2], padded[1:-1, 2:]])
+    out = index.copy()
+    for candidate in near:
+        agree = (near == candidate).sum(0)
+        lone = solid & (candidate >= 0) & (agree >= 3) & (near != index).all(0)
+        out = np.where(lone, candidate, out)
+    return out
 
 
 def feet_x(solid):
@@ -154,17 +200,47 @@ def coat_mask(colour, solid, band, saturation):
     return solid & in_band & (hsv[..., 1] >= saturation) & (hsv[..., 2] > .2)
 
 
+def add_eye(index, solid, palette):
+    """Put an eye on a face the reduction left blank: the face is the
+    frontmost run of skin in the head's rows; the eye goes one pixel in from
+    its front edge, a third of the way down, in the darkest colour."""
+    hsv = np.array([colorsys.rgb_to_hsv(*(colour / 255)) for colour in palette])
+    skin = (hsv[:, 0] * 360 >= 12) & (hsv[:, 0] * 360 <= 40) & (hsv[:, 1] > .25) & (hsv[:, 1] < .75) & (hsv[:, 2] > .6)
+    ink = int((palette @ [.299, .587, .114]).argmin())
+    rows = np.nonzero(solid.any(1))[0]
+    if not len(rows):
+        return index
+    top = rows.min()
+    face = [(y, x) for y in range(top, min(top + 12, index.shape[0])) for x in range(index.shape[1]) if solid[y, x] and skin[index[y, x]]]
+    if len(face) < 6:
+        return index
+    front = max(x for _, x in face)
+    face = [(y, x) for y, x in face if x >= front - 5]
+    face_top, face_bottom = min(y for y, _ in face), max(y for y, _ in face)
+    eye_y = face_top + max(1, (face_bottom - face_top) // 3)
+    xs = [x for y, x in face if y == eye_y]
+    if not xs or max(xs) - min(xs) < 2:
+        return index
+    out = index.copy()
+    out[eye_y, max(xs) - 1] = ink
+    return out
+
+
 def build_row(path, spec):
     rgb = np.asarray(Image.open(path).convert('RGB'))
     mask = ~background(rgb)
     labels = figures(mask, len(BODY_POSES))
+    centres = palette_for(rgb, mask, COLOURS_PER_CHARACTER)
     walk = labels == 1 + BODY_POSES.index('walk-a')
     ys = np.nonzero(walk.any(1))[0]
     scale = (ys.max() + 1 - ys.min()) / spec['height']
-    row_rgb = np.zeros((CELL[1], CELL[0] * len(BODY_POSES), 3))
+    swatch = Image.fromarray(centres.reshape(1, -1, 3).clip(0, 255).astype(np.uint8))
+    palette = np.asarray(ImageEnhance.Contrast(swatch).enhance(1.15)).reshape(-1, 3).astype(float)
+    row_index = np.zeros((CELL[1], CELL[0] * len(BODY_POSES)), int)
     row_solid = np.zeros((CELL[1], CELL[0] * len(BODY_POSES)), bool)
     for index in range(len(BODY_POSES)):
-        colour, solid = reduce_figure(rgb, labels == index + 1, scale)
+        colour, solid = reduce_figure(rgb, labels == index + 1, scale, centres)
+        colour = add_eye(colour, solid, palette)
         fx, fy = feet_x(solid)
         x0, y0 = round(ANCHOR[0] - fx) + index * CELL[0], ANCHOR[1] - fy
         h, w = solid.shape
@@ -174,33 +250,23 @@ def build_row(path, spec):
             print(f'warning: {path} {BODY_POSES[index]} clipped to the cell')
         region = (slice(y0 + sy, y0 + ey), slice(x0 + sx, x0 + ex))
         keep = solid[sy:ey, sx:ex]
-        row_rgb[region] = np.where(keep[..., None], colour[sy:ey, sx:ex], row_rgb[region])
+        row_index[region] = np.where(keep, colour[sy:ey, sx:ex], row_index[region])
         row_solid[region] |= keep
-    return row_rgb, row_solid
+    # The palette has the vignette pipeline's contrast, but no colour boost,
+    # which turned the skin orange.
+    palette = palette.astype(int)
+    marks = np.full(len(palette), 255)
+    for key, alpha in (('coat', COAT_ALPHA), ('cap', CAP_ALPHA)):
+        if key in spec:
+            marks = np.where(coat_mask(palette.reshape(1, -1, 3).astype(float), np.ones((1, len(palette)), bool), *spec[key])[0], alpha, marks)
+    return palette[row_index], np.where(row_solid, marks[row_index], 0)
 
 
 def build(sources, out_path, preview_path=None):
     rows = [build_row(sources[name], spec) for name, spec in CHARACTERS.items()]
-    rgb = np.vstack([row[0] for row in rows]).astype(np.uint8)
-    solid = np.vstack([row[1] for row in rows])
-    picture = ImageEnhance.Contrast(Image.fromarray(rgb)).enhance(1.15)
-    picture = ImageEnhance.Color(picture).enhance(1.2)
-    # Quantise the figures only, so the empty cells take no palette entry.
-    pixels = np.asarray(picture)[solid]
-    strip = Image.fromarray(pixels.reshape(1, -1, 3))
-    palette_image = strip.quantize(colors=COLOURS, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
-    indices = np.asarray(picture.quantize(palette=palette_image, dither=Image.Dither.NONE))
-    palette = np.array(palette_image.getpalette()[:COLOURS * 3]).reshape(-1, 3)
-    colours = palette[indices]
-    alpha = np.where(solid, 255, 0)
-    for row, (name, spec) in enumerate(CHARACTERS.items()):
-        rows_slice = slice(row * CELL[1], (row + 1) * CELL[1])
-        if 'coat' in spec:
-            coat = coat_mask(colours[rows_slice].astype(float), solid[rows_slice], *spec['coat'])
-            alpha[rows_slice] = np.where(coat, COAT_ALPHA, alpha[rows_slice])
-        if 'cap' in spec:
-            cap = coat_mask(colours[rows_slice].astype(float), solid[rows_slice], *spec['cap'])
-            alpha[rows_slice] = np.where(cap, CAP_ALPHA, alpha[rows_slice])
+    colours = np.vstack([row[0] for row in rows])
+    alpha = np.vstack([row[1] for row in rows])
+    solid = alpha > 0
     out = Image.fromarray(np.dstack([colours, alpha]).astype(np.uint8), 'RGBA')
     out.save(out_path, optimize=True)
     print(f'{out_path}: {out.width}x{out.height}, {len(np.unique(colours[solid], axis=0))} colours')
