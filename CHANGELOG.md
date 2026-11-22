@@ -11,6 +11,14 @@ history.
 
 ## Unreleased
 
+### Changed
+
+- The sword fight's fencers are sharper: their bodies were regenerated with
+  flat colours and clearer faces, and are now pixelated by keeping each
+  area's main colour and its outline instead of averaging, which had blurred
+  them into the backdrop. The sword arm has its own outline, shading and
+  cuff, so it stands out from the coat.
+
 ### Added
 
 - Ships in the sea battle and on the sailing map are sprite-stacked: each
