@@ -219,9 +219,18 @@ evidence for each item. This list collects them in one place.
   the menu only for mode 0xFF (`0x1622F`), which then fights with the rapier
   (`0x16563`): town practice (0xFE) chooses, and the opening's bout (0xFF)
   uses the rapier. The port follows the code; the archive should be corrected.
-- A lost boarding fight costs a tenth of the party's gold as ransom, because
-  capture (`0x16647`) is not ported. As in the original, its crew losses are
-  not deducted (`0x1660E` skips the deduction).
+- A lost boarding fight (yielding, not being driven back) is a capture
+  (`0x16647`, `sword_fights.md` §7a), as is a defeat at the walls: wounds +1,
+  prison in the current town when you fought its nation (else aboard "the
+  ship", where you stay), then the prison of `0x1F803` shared with the
+  last-ship path: months pass, a fresh fleet of the flagship's type, prisoners
+  freed, difficulty −1, the mission dropped, and the CSTR 190 exchange. The
+  binary has no pirate test: every captain is captured. The fight's own
+  penalties (boarding: reputation −2 and alert +16; walls: reputation −1 and
+  favour −1) follow the release, as `0x16205` returns to its caller only
+  then. Crew losses are not deducted (`0x1660E`). Departure: a captain held
+  aboard ship is spared the captivity's monthly crew check (no mutiny while
+  held by the enemy).
 - Quality is held at 1 or more when hull damage would make it zero or less
   (the original would divide by zero when both are zero).
 - The duel-defeat scene (`0x159DF`) has no text yet; each caller's dialog
@@ -233,8 +242,6 @@ evidence for each item. This list collects them in one place.
   and 10+ soldiers) still counts as won without losses: it leaves the
   garrison as it was and adds no march alert. You may still withdraw before
   storming, for alert +16.
-- A defeat at the walls also costs a tenth of the party's gold as ransom
-  instead of capture (`0x16647`), as for a lost boarding.
 
 ### Provisional until the real system exists
 

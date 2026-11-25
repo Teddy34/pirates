@@ -8,7 +8,7 @@ import {
   clamp, createRng, startFromRecord, targetSailingSpeed, stepSailingSpeed,
   shiftWind, cloudCountForMonth, navigationSkill, turnHeadingDownwind,
   createVoyageClouds, driftClouds, nearestCloudDistancePixels, cloudWrapOpacity,
-  applyBoardingOutcome,
+  applyBoardingOutcome, capturedInTown,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits, seaVictoryTownEffect,
   acceptsRudderInput,
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
@@ -985,7 +985,17 @@ function runFleetCheck({ inTown = false, done }) {
 function loseLastShip({ inTown, done, cause = '' }) {
   const town = state.visit ? state.towns[state.visit.townIndex] : nearestTown();
   const lost = state.player.ships[0];
-  const release = inTown ? releaseFromTown(town) : shoreNear(state.player.x, state.player.y);
+  placeAtRelease(inTown ? releaseFromTown(town) : shoreNear(state.player.x, state.player.y));
+  showDialog({
+    vignette: inTown ? 'prison' : 'marooned', kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
+    body: inTown
+      ? `${cause}<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${town.name}.</p>`
+      : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p>`,
+    actions: [{ label: 'Continue', run: () => serveCaptivity({ inTown, town, lost, done }) }],
+  });
+}
+
+function placeAtRelease(release) {
   if (release) {
     state.player.x = release.x + .5;
     state.player.y = release.y + .5;
@@ -995,12 +1005,27 @@ function loseLastShip({ inTown, done, cause = '' }) {
   // 0x33A50: any landing party is gone with its ship; the new voyage starts
   // aboard at the release point.
   clearLandingParty();
+}
+
+// Capture (0x16647, sword_fights.md §7a): a battle fight with crews lost by
+// yielding sends every captain to prison, pirates included. Wounds +1, CSTR
+// 175, release at the town's departure cell when held there, then prison
+// (0x1F803), which also ends the expedition and refits a fresh fleet from
+// the flagship's type exactly as after the last ship is lost. `done` runs
+// after the release; the fight's own penalties come after it (0x16205
+// returns 0 to the caller once the capture is over).
+// `town` is the current town 0x46F82: the one under attack, or at sea the
+// nearest.
+function beginCapture({ nation, town = nearestTown(), done }) {
+  const inTown = capturedInTown(nation, town.nation);
+  state.player.wounds = (state.player.wounds ?? 0) + 1;
+  // Held aboard "the ship", the captain stays where he is (0x16738).
+  placeAtRelease(inTown ? releaseFromTown(town) : null);
+  addLog(inTown ? `Captured and imprisoned in ${town.name}.` : 'Captured and imprisoned aboard the enemy ship.');
   showDialog({
-    vignette: inTown ? 'prison' : 'marooned', kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
-    body: inTown
-      ? `${cause}<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${town.name}.</p>`
-      : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p>`,
-    actions: [{ label: 'Continue', run: () => serveCaptivity({ inTown, town, lost, done }) }],
+    vignette: 'prison', kicker: 'Captured', title: inTown ? `Imprisoned in ${town.name}` : 'Imprisoned aboard ship',
+    body: `<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${inTown ? town.name : 'the ship'}.</p>`,
+    actions: [{ label: 'Continue', run: () => serveCaptivity({ inTown, town, lost: state.player.ships[0], done, captured: true }) }],
   });
 }
 
@@ -1053,12 +1078,12 @@ function healthNotice() {
 // original then jumps to the division refit (0x1D899 -> 0x184A8) with no
 // ship left. ASSUMED: the port serves the captivity instead, which ends in
 // the decoded fresh fleet.
-function serveCaptivity({ inTown, town, lost, done }) {
+function serveCaptivity({ inTown, town, lost, done, captured = false }) {
   if (captainHealth() < 3) {
-    beginCaptivity({ inTown, town, lost, done });
+    beginCaptivity({ inTown, town, lost, done, captured });
     return;
   }
-  forcedRetirement({ inTown, onReturn: () => beginCaptivity({ inTown, town, lost, done }) });
+  forcedRetirement({ inTown, onReturn: () => beginCaptivity({ inTown, town, lost, done, captured }) });
 }
 
 // CSTR 160, shown by 0x1F1D7 before the retirement driver.
@@ -1186,25 +1211,28 @@ function offerAnotherGame() {
   });
 }
 
-function beginCaptivity({ inTown, town, lost, done }) {
+function beginCaptivity({ inTown, town, lost, done, captured = false }) {
   const player = state.player;
   player.monthsAtSea = -16;
   const before = { ...state.calendar };
   // Each step is one 0x1DD0E call, so on the island its crew check can raise
-  // a mutiny; reputation is re-read before every step.
+  // a mutiny; reputation is re-read before every step. ASSUMED: a captain
+  // captured at sea after a sword fight (held aboard "the ship") is spared
+  // that check, though 0x47ACA is presumably still 0 there: a mutiny against
+  // a captain held by the enemy has no playable meaning.
   const serveStep = (step) => {
     if (!captivityContinues(state.player.reputation, step)) {
-      endCaptivity({ inTown, town, lost, done, before });
+      endCaptivity({ inTown, town, lost, done, before, captured });
       return;
     }
     const monthsCrossed = passCalendarDays(CAPTIVITY_STEP_DAYS);
-    if (inTown) { serveStep(step + 1); return; }
+    if (inTown || captured) { serveStep(step + 1); return; }
     monthEndCrewCheck({ monthsCrossed, aboard: true }, () => serveStep(step + 1));
   };
   serveStep(0);
 }
 
-function endCaptivity({ inTown, town, lost, done, before }) {
+function endCaptivity({ inTown, town, lost, done, before, captured = false }) {
   const months = (state.calendar.year - before.year) * 12 + state.calendar.month - before.month;
   state.player = restartAfterLastShip(state.player, lost, SHIPS);
   // 0x1F803 also abandons any governor mission (0x1F87C).
@@ -1214,12 +1242,15 @@ function endCaptivity({ inTown, town, lost, done, before }) {
   state.difficulty = released.difficulty;
   const health = captainHealth();
   const captainKind = DIFFICULTY_ARTICLES[state.difficulty];
+  // CSTR 190, the exchange, ends every capture and every town prison.
+  const exchanged = inTown || captured;
   addLog(inTown
     ? `Released from prison in ${town.name} after ${months} months; back at sea as ${captainKind} captain.`
-    : `Rescued from an uncharted island after ${months} months; back at sea as ${captainKind} captain.`);
+    : captured ? `Exchanged by your captors after ${months} months; back at sea as ${captainKind} captain.`
+      : `Rescued from an uncharted island after ${months} months; back at sea as ${captainKind} captain.`);
   showDialog({
-    vignette: inTown ? 'prison' : 'marooned', kicker: inTown ? 'Released' : 'Rescued', title: `${months} months pass`,
-    body: `<p>${CAPTIVITY_TEXT[health]}</p><p>${inTown
+    vignette: exchanged ? 'prison' : 'marooned', kicker: exchanged ? 'Released' : 'Rescued', title: `${months} months pass`,
+    body: `<p>${CAPTIVITY_TEXT[health]}</p><p>${exchanged
       ? `Your former comrades take pity on you and trade a captured nobleman for your freedom. They agree to take you back as ${captainKind} captain.`
       : `One day a small ship puts in at the island to resupply, and you recognize some of your former crew. They agree to take you back as ${captainKind} captain.`}</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
     actions: [{ label: 'Continue', run: () => {
@@ -2028,10 +2059,20 @@ function offerBoarding(enemy) {
 }
 
 function resolveBoarding(enemy, outcome) {
-  const { player, ransom } = applyBoardingOutcome(state.player, outcome);
-  state.player = player;
-  // A defeat goes to capture, which does not count the fallen (0x1660E).
-  const losses = outcome.casualties && outcome.result !== FIGHT_RESULT.defeated ? ` We lost ${outcome.casualties} men.` : '';
+  if (outcome.result === FIGHT_RESULT.defeated) {
+    // Capture runs inside the fight (0x16610); the boarding's reputation -2
+    // and alert +16 follow the release. Capture does not count the fallen
+    // (0x1660E).
+    addLog(`Beaten in the boarding fight with the ${enemy.ship}: our men threw down their arms.`);
+    beginCapture({ nation: enemy.flag, done: () => {
+      state.player = applyBoardingOutcome(state.player, outcome);
+      state.alert += 16;
+      endBattleToSailing(`Released after the failed boarding of the ${enemy.ship}.`);
+    } });
+    return;
+  }
+  state.player = applyBoardingOutcome(state.player, outcome);
+  const losses = outcome.casualties ? ` We lost ${outcome.casualties} men.` : '';
   if (outcome.result === FIGHT_RESULT.won) {
     state.battle = null;
     state.mode = 'sailing';
@@ -2041,12 +2082,9 @@ function resolveBoarding(enemy, outcome) {
     return;
   }
   state.alert += 16;
-  const message = outcome.result === FIGHT_RESULT.defeated
-    ? `Beaten in the boarding fight: our men threw down their arms, and we paid ${ransom} gold in ransom.${losses}`
-    : `The boarding party was driven back and broke away.${losses}`;
+  const message = `The boarding party was driven back and broke away.${losses}`;
   showDialog({
-    vignette: { id: 'boarding', flag: enemy.flag }, kicker: 'The boarding fails',
-    title: outcome.result === FIGHT_RESULT.defeated ? 'Your men surrender' : 'Driven back',
+    vignette: { id: 'boarding', flag: enemy.flag }, kicker: 'The boarding fails', title: 'Driven back',
     body: `<p>${message}</p>`,
     actions: [{ label: 'Continue', run: () => endBattleToSailing(message) }],
   });
@@ -2764,29 +2802,35 @@ function stormTheWalls(town, { yourMen, soldiers }) {
 }
 
 function resolveAssault(town, outcome) {
-  // A defeat goes to capture, which does not count the fallen (0x1660E).
-  if (outcome.result !== FIGHT_RESULT.defeated) state.player.crew = Math.max(1, state.player.crew - outcome.casualties);
-  const losses = outcome.casualties && outcome.result !== FIGHT_RESULT.defeated ? ` We lost ${outcome.casualties} men.` : '';
+  // 0x18F57: reputation -1 and favour -1 with the town's nation on any loss.
+  const repulsed = () => {
+    state.player.reputation -= 1;
+    propagateFavour(town.nation, -1);
+  };
+  if (outcome.result === FIGHT_RESULT.defeated) {
+    // Capture runs inside the fight (0x16205 from 0x18F4B), which does not
+    // count the fallen (0x1660E); the repulse penalty follows the release.
+    addLog(`Failed to capture ${town.name}: our men threw down their arms.`);
+    beginCapture({ nation: town.nation, town, done: () => {
+      repulsed();
+      startVoyage();
+    } });
+    return;
+  }
+  state.player.crew = Math.max(1, state.player.crew - outcome.casualties);
+  const losses = outcome.casualties ? ` We lost ${outcome.casualties} men.` : '';
   if (outcome.result === FIGHT_RESULT.won) {
     town.soldiers = garrisonAfterAssault(outcome.theirMen);
     addLog(`Stormed the walls of ${town.name}.${losses}`);
     captureTown(town);
     return;
   }
-  // 0x18F57: reputation -1 and favour -1 with the town's nation.
-  state.player.reputation -= 1;
-  propagateFavour(town.nation, -1);
-  // ASSUMED: capture (0x16647) is not ported; as for a lost boarding, a
-  // defeat costs a tenth of the party's gold in ransom instead.
-  const ransom = outcome.result === FIGHT_RESULT.defeated ? Math.floor(state.player.partyGold / 10) : 0;
-  state.player.partyGold -= ransom;
-  const message = outcome.result === FIGHT_RESULT.defeated
-    ? `Failed to capture ${town.name}: our men threw down their arms, and we paid ${ransom} gold in ransom.`
-    : `Failed to capture ${town.name}: driven back from the walls.${losses}`;
+  repulsed();
+  const message = `Failed to capture ${town.name}: driven back from the walls.${losses}`;
   addLog(message);
   showDialog({
     vignette: { id: town.forts ? 'fort-walls' : 'land-attack', flag: town.nation, era: state.era }, kicker: 'The assault fails',
-    title: outcome.result === FIGHT_RESULT.defeated ? 'Your men surrender' : 'Driven back',
+    title: 'Driven back',
     body: `<p>${message}</p>`,
     actions: [{ label: 'Continue', run: () => { departFromApproach(); runFleetCheck({ inTown: true, done: startVoyage }); } }],
   });
