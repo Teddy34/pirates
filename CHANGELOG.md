@@ -11,6 +11,18 @@ history.
 
 ## Unreleased
 
+### Added
+
+- Title music: Praetorius's "Spagnoletta" (*Terpsichore*, 1612) plays on the
+  start screen from the first click or key press, on period instruments
+  (recorders, tenor viols, harpsichord, bass viol) through a SoundFont
+  synthesizer with reverb and chorus (SpessaSynth, vendored, Apache-2.0, with
+  FluidR3 samples, MIT). It fades out when a voyage begins. Departure from the
+  original: its own soundtrack is not used.
+- Settings on the start screen, with a music volume kept per browser.
+- Credits on the start screen, naming every outside source of music, samples,
+  code and fonts, with their licences.
+
 ### Fixed
 
 - Losing a boarding fight or the storming of a town's walls by yielding no
