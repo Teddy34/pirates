@@ -72,6 +72,9 @@ form .wide-field { grid-column:span 2; }
 #controls button:focus-visible { background:var(--brass-light); outline:4px solid var(--paper); outline-offset:2px; }
 #controls button:active,#controls button.pressed { background:var(--brass-light); transform:translate(3px,3px); box-shadow:inset -4px -4px 0 var(--brass-dark),inset 4px 4px 0 var(--brass-light),1px 1px 0 #000; }
 #controls button:disabled { cursor:default; opacity:.45; transform:none; }
+#controls button.ready { outline:4px solid var(--paper); outline-offset:2px; animation:control-ready 1s steps(2) infinite; }
+@keyframes control-ready { 50% { background:var(--brass-light); } }
+@media (prefers-reduced-motion:reduce) { #controls button.ready { animation:none; } }
 #dialog-body p { margin:8px 0; }
 #dialog-body dl { display:grid; grid-template-columns:1fr auto; gap:5px 20px; margin:16px 0 0; font-family:"Source Sans 3",sans-serif; font-size:14px; }
 #dialog-body dt { color:#725f43; }
