@@ -2291,10 +2291,18 @@ function beginPlunderTransfer(title, loot, done) {
   };
 
   // Cannon the fleet can still mount: free gun ports, and two guns per ton of hold.
-  const cannonRoom = () => {
+  const cannonRoom = (room = cargoRoom()) => {
     const gunRoom = Math.max(0, state.player.ships.reduce((sum, ship) => sum + statsFor(ship).guns, 0) - state.player.cannon);
-    const cannonByHold = cargoRoom() * 2 + (state.player.cannon % 2 === 0 ? 1 : 0);
+    const cannonByHold = room * 2 + (state.player.cannon % 2 === 0 ? 1 : 0);
     return Math.min(gunRoom, cannonByHold);
+  };
+
+  // Whether all the remaining loot fits: the cargo in the hold, then the
+  // cannon in what hold and gun ports are left.
+  const everythingFits = () => {
+    const cargo = remaining.food + remaining.goods + remaining.specialGoods;
+    const room = cargoRoom();
+    return cargo <= room && remaining.cannon <= cannonRoom(room - cargo);
   };
 
   const mountCannon = (requested) => {
@@ -2317,8 +2325,10 @@ function beginPlunderTransfer(title, loot, done) {
     return moved + mountCannon(Number.MAX_SAFE_INTEGER);
   };
 
-  // The first window opens on "Take all" (take everything that fits and
-  // finish); after a transfer the focus stays on the transfer buttons.
+  // The first window opens on "Take all" (take everything and finish); after
+  // a transfer the focus stays on the transfer buttons. When the loot does not
+  // all fit, "Take all" is disabled but keeps the opening focus, so a hasty
+  // Enter does nothing rather than leave the spoils behind.
   function showTransfer(preferredTransfer = '', preferredKind = '', opening = false) {
     const food = Math.floor(state.player.foodFixed / 256);
     const room = cargoRoom();
@@ -2361,7 +2371,7 @@ function beginPlunderTransfer(title, loot, done) {
         </table>
         <button type="button" class="plunder-take-everything" data-transfer="take-everything"${canTakeAnything ? '' : ' disabled'}>Take everything that fits</button>`,
       actions: [
-        { label: 'Take all', icon: 'chest', focus: true, run: () => { takeEverything(); finish(); } },
+        { label: 'Take all', icon: 'chest', focus: true, disabled: !everythingFits(), run: () => { takeEverything(); finish(); } },
         { label: 'Finish looting', secondary: true, run: finish },
       ],
     });
@@ -4787,7 +4797,10 @@ function showDialog({ kicker, title, body, actions, vignette, redraw = false }) 
       button.prepend(image);
     }
     if (action.secondary) button.classList.add('secondary');
-    button.addEventListener('click', () => { dialog.close(); action.run(); }, { once: true });
+    // A disabled action stays focusable (aria-disabled, not `disabled`) so it
+    // can hold the opening focus and swallow a hasty Enter.
+    if (action.disabled) button.setAttribute('aria-disabled', 'true');
+    else button.addEventListener('click', () => { dialog.close(); action.run(); }, { once: true });
     if (action.key) {
       dialogShortcuts.set(action.key, button);
       button.dataset.key = action.key.toUpperCase();
@@ -5874,6 +5887,13 @@ const PREVIEWS = {
     state.paused = true;
     beginPlunderTransfer('Spoils from the Cargo fluyt', {
       gold: 70, food: 4, goods: 11, specialGoods: 6, cannon: 4,
+    }, () => {});
+  }),
+  // More loot than the hold takes: "Take all" is disabled but keeps the focus.
+  'plunder-overflow': () => startPreview(() => {
+    state.paused = true;
+    beginPlunderTransfer('Spoils from the Treasure galleon', {
+      gold: 900, food: 40, goods: 400, specialGoods: 60, cannon: 30,
     }, () => {});
   }),
   // The capture and the explosion pictures, outside the governor and counting-house previews.
