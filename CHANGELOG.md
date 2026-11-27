@@ -11,6 +11,13 @@ history.
 
 ## Unreleased
 
+### Changed
+
+- The plunder window now opens with the focus on a new "Take all" button,
+  which takes everything that fits in the hold and on the gun decks and
+  finishes looting, so pressing Enter takes the spoils instead of leaving
+  them behind. "Finish looting" still leaves the rest by choice.
+
 ### Fixed
 
 - Losing a boarding fight or the storming of a town's walls by yielding no
