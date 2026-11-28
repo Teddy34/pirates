@@ -1,7 +1,7 @@
 // Browser smoke check for the fleet view: every ship with her type's
 // picture, crew, guns and hold, and renaming a ship (Enter names her, a
 // name is shown as typed, clearing it restores the type), at a desktop and
-// a narrow viewport. Uses the local ?preview=fleet state (four ships, the
+// a narrow viewport, and choosing another flagship. Uses the local ?preview=fleet state (four ships, the
 // flagship named Revenge).
 import { S, VIEWPORTS, dialogTitle, withBrowser } from './browser-harness.mjs';
 
@@ -74,6 +74,17 @@ await withBrowser({ name: 'fleet', portOffset: 13, screenshotEnv: 'FLEET_SCREENS
     await clickButton('Clear the name');
     await until('the fleet again', inFleet);
     if (await evaluate(`'name' in ${S}.player.ships[0]`)) throw new Error(`${viewport.name}: the flagship kept a name`);
+
+    // Make the Galleon (ship 4) the flagship: she moves to the head of the
+    // fleet, the others keep their order, and the flagship has no button.
+    if (await evaluate(`Boolean(document.querySelector('[data-transfer="flagship"][data-kind="0"]'))`)) throw new Error(`${viewport.name}: the flagship offers itself`);
+    await evaluate(`document.querySelector('[data-transfer="flagship"][data-kind="3"]').click(), true`);
+    await until('the new flagship', `${inFleet} && ${S}.player.ships[0].type === 'Galleon'`);
+    const order = await evaluate(`${S}.player.ships.map((ship) => ship.type).join(',')`);
+    if (order !== 'Galleon,Frigate,Sloop,Cargo fluyt') throw new Error(`${viewport.name}: fleet order ${order}`);
+    const lead = (await evaluate(rows))[0];
+    if (!lead.cells.join(' ').includes('Crew 236 / 288')) throw new Error(`${viewport.name}: the new flagship shows ${JSON.stringify(lead)}`);
+    await screenshot(`${viewport.name}-flagship`);
 
     // Back to the sea, and F opens the fleet again.
     await clickButton('Done');

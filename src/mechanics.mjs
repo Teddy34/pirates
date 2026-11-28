@@ -1346,6 +1346,19 @@ export function cleanShipName(text) {
   return name || null;
 }
 
+// Choosing the flagship outside a battle (a port addition): the chosen ship
+// moves to slot 0 and the others keep their order, as when a ship is picked
+// to command before a sea battle (sea_battles.md §1, "the ship you pick
+// becomes the flagship"). Crew, cannon and cargo belong to the fleet and
+// do not move.
+export function chooseFlagship(player, slot) {
+  if (!Number.isInteger(slot) || slot < 0 || slot >= player.ships.length) throw new Error('no such ship');
+  if (slot === 0) return player;
+  const ships = [...player.ships];
+  const [chosen] = ships.splice(slot, 1);
+  return { ...player, ships: [chosen, ...ships] };
+}
+
 // Abandoning a ship for lack of crew keeps the whole cargo (0x1F748 calls
 // 0x1F2A1 with keep_cargo set). The last ship takes the last-ship path instead.
 export function abandonShip(player, slot) {

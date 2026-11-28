@@ -13,6 +13,12 @@ history.
 
 ### Added
 
+- The fleet page has a "Make flagship" button on every ship but the
+  flagship. The chosen ship leads the fleet: she is drawn on the sailing
+  map, offered first when a sea battle begins, and kept when the plunder is
+  divided. The other ships keep their order, and crew, cannon and cargo stay
+  with the fleet. The original changes the flagship only when you pick the
+  ship to command before a battle; the result is the same.
 - Title music: Praetorius's "Spagnoletta" (*Terpsichore*, 1612) plays on the
   start screen from the first click or key press, on period instruments
   (recorders, tenor viols, harpsichord, bass viol) through a SoundFont

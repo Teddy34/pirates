@@ -25,7 +25,7 @@ import {
   merchantCommodityPrice, merchantFoodPrice, merchantStock, advanceDate,
   NATION_ORDER, monthlyWorldUpdate, initialWorldNews, randomTownRange, worldNewsMessage, newGameTowns,
   townInfoStatus, learnTownInfo, TOWN_INFO_CURRENT,
-  fleetIsUndermanned, cleanShipName, SHIP_NAME_MAX_LENGTH, MAX_FLEET_SHIPS, abandonShip, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS, isLandlocked,
+  fleetIsUndermanned, cleanShipName, SHIP_NAME_MAX_LENGTH, MAX_FLEET_SHIPS, abandonShip, chooseFlagship, keepPrize, removeShipWithCargo, restartAfterLastShip, findShore, INLAND_RELEASE_OFFSETS, isLandlocked,
   escapeCostsShip,
   monthEndCrewEvent, mutinyOutcome,
   CAPTIVITY_STEP_DAYS, captivityContinues, healthLevel, releaseFromCaptivity,
@@ -3829,7 +3829,7 @@ function showFleet(back) {
       <td><span class="fleet-label">Crew</span> ${crews[index]} / ${stats.capacity}</td>
       <td><span class="fleet-label">Guns</span> ${guns[index]} / ${stats.guns}</td>
       <td><span class="fleet-label">Hold</span> ${stats.cargo} t</td>
-      <td><button type="button" class="plunder-take-all" data-transfer="rename" data-kind="${index}" aria-label="Rename ${escapeHtml(describeShip(ship))}">Rename</button></td>
+      <td><div class="fleet-buttons"><button type="button" class="plunder-take-all" data-transfer="rename" data-kind="${index}" aria-label="Rename ${escapeHtml(describeShip(ship))}">Rename</button>${index === 0 ? '' : `<button type="button" class="plunder-take-all" data-transfer="flagship" data-kind="${index}" aria-label="Make ${escapeHtml(describeShip(ship))} the flagship">Make flagship</button>`}</div></td>
     </tr>`;
   }).join('');
   const food = Math.floor(state.player.foodFixed / 256);
@@ -3842,6 +3842,7 @@ function showFleet(back) {
           <li>Crew and cannon belong to the whole fleet; this page shows them ship by ship.</li>
           <li>Every ship needs eight hands to sail. With fewer men, you must abandon ships.</li>
           <li>In a sea battle you command one ship, the flagship unless you choose another. Eight hands stay aboard each other ship; the rest board her, up to her maximum.</li>
+          <li>“Make flagship” puts a ship at the head of the fleet. The flagship is the ship you keep when the plunder is divided.</li>
           <li><b>A gun needs four men.</b> She fires as many guns as her men can serve, up to her gun ports. A short crew leaves cannon silent.</li>
           <li>The other men and cannon wait in reserve on the other ships.</li>
           <li>Every two cannon take a ton of hold.</li>
@@ -3861,11 +3862,25 @@ function showFleet(back) {
     dialogBody.querySelector('#fleet-help').hidden = !open;
   });
   bindTransferButtons((transfer, kind) => {
+    if (transfer === 'flagship') {
+      makeFlagship(Number(kind), back);
+      return 1;
+    }
     if (transfer !== 'rename') return 0;
     dialog.close();
     showRenameShip(Number(kind), back);
     return 1;
   }, { repeatable: [], preferredTransfer: 'rename', preferredKind: '0', defaultTransfer: 'rename' });
+}
+
+// A port addition: the chosen ship leads the fleet (chooseFlagship).
+function makeFlagship(index, back) {
+  const ship = state.player.ships[index];
+  if (!ship || index === 0) return;
+  state.player = chooseFlagship(state.player, index);
+  addLog(`The ${ownShipTitle(ship)} became the flagship.`);
+  saveGame(false);
+  showFleet(back);
 }
 
 function showRenameShip(index, back) {
