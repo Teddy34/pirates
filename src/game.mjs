@@ -107,6 +107,7 @@ const continueButton = document.querySelector('#continue-button');
 const loadSlotButton = document.querySelector('#load-slot-button');
 const settingsButton = document.querySelector('#settings-button');
 const creditsButton = document.querySelector('#credits-button');
+const soundToggle = document.querySelector('#sound-toggle');
 const dialog = document.querySelector('#event-dialog');
 const dialogKicker = document.querySelector('#dialog-kicker');
 const dialogTitle = document.querySelector('#dialog-title');
@@ -6151,9 +6152,10 @@ function openPreview(preview) {
 }
 
 // Player settings, kept per browser: only the music volume for now.
+const DEFAULT_SETTINGS = { musicVolume: 0.6, musicMuted: false };
 function loadSettings() {
-  try { return { musicVolume: 0.6, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') }; }
-  catch { return { musicVolume: 0.6 }; }
+  try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') }; }
+  catch { return { ...DEFAULT_SETTINGS }; }
 }
 
 function saveSettings(settings) {
@@ -6161,6 +6163,7 @@ function saveSettings(settings) {
 }
 
 const music = createMusicPlayer({ volume: loadSettings().musicVolume });
+let musicMuted = loadSettings().musicMuted;
 
 // The title music starts on the first click or key press: browsers keep
 // audio silent until the player interacts with the page, and some keys
@@ -6168,12 +6171,29 @@ const music = createMusicPlayer({ volume: loadSettings().musicVolume });
 let titleMusicFailed = false;
 function startTitleMusic() {
   if (music.unlock()) for (const type of ['pointerdown', 'keydown']) removeEventListener(type, startTitleMusic, { capture: true });
-  if (titleMusicFailed || startScreen.classList.contains('hidden')) return;
+  if (musicMuted || titleMusicFailed || startScreen.classList.contains('hidden')) return;
   music.play('title').catch((error) => {
     titleMusicFailed = true;
     console.warn('Title music unavailable:', error);
   });
 }
+
+// The start screen's quick sound toggle, top right: mutes or restores the
+// music at once and remembers the choice per browser.
+function updateSoundToggle() {
+  soundToggle.setAttribute('aria-pressed', String(!musicMuted));
+  soundToggle.querySelector('.action-icon').src = actionIconUrl(musicMuted ? 'sound-off' : 'sound-on');
+  soundToggle.title = musicMuted ? 'Music off' : 'Music on';
+}
+
+soundToggle.addEventListener('click', () => {
+  musicMuted = !musicMuted;
+  saveSettings({ ...loadSettings(), musicMuted });
+  updateSoundToggle();
+  if (musicMuted) music.stop(0.3);
+  else startTitleMusic();
+});
+updateSoundToggle();
 
 function showSettings() {
   const volume = Math.round(music.volume * 100);

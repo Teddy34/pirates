@@ -11,6 +11,11 @@ history.
 
 ## Unreleased
 
+### Added
+
+- A sound button in the start screen's top right corner turns the music off
+  and on at once; the choice is kept per browser.
+
 ### Changed
 
 - The plunder window now opens with the focus on a new "Take all" button,

@@ -2,7 +2,8 @@
 // interacts with the page; Shift alone (not a user activation) leaves audio
 // suspended but a later click starts the title song, measured as sound at
 // the music's output; the Settings dialog's volume slider changes and
-// remembers the volume; the Credits name the music and sample sources; and
+// remembers the volume; the sound toggle in the top right corner silences
+// the music, remembers it and brings it back; the Credits name the music and sample sources; and
 // beginning a voyage fades the music to silence.
 import { delay, dialogTitle, withBrowser } from './browser-harness.mjs';
 
@@ -62,6 +63,22 @@ await withBrowser({ name: 'music', portOffset: 14 }, async ({ evaluate, until, p
   if ((await evaluate(`document.querySelector('#music-volume-value').textContent`)) !== '25%') throw new Error('volume label did not follow the slider');
   await clickButton('Done');
 
+  // The quick sound toggle: off silences at once and is remembered, on plays again.
+  const toggle = `document.querySelector('#sound-toggle')`;
+  if ((await evaluate(`${toggle}.getAttribute('aria-pressed')`)) !== 'true') throw new Error('the sound toggle should start on');
+  const corner = await evaluate(`(() => { const r = ${toggle}.getBoundingClientRect(); return [r.right, innerWidth, r.top]; })()`);
+  if (corner[1] - corner[0] > 60 || corner[2] > 60) throw new Error(`the sound toggle is not in the top right corner (${corner})`);
+  await evaluate(`${toggle}.click(), true`);
+  await until('silence after the sound toggle', 'musicPeak() < 0.0005', 6000);
+  if ((await evaluate(`${toggle}.getAttribute('aria-pressed')`)) !== 'false') throw new Error('the sound toggle did not turn off');
+  if ((await evaluate(`JSON.parse(localStorage.getItem('retropirates-settings')).musicMuted`)) !== true) throw new Error('the muted music was not saved');
+  await click(...lede);
+  await delay(1500);
+  if ((await evaluate('musicPeak()')) >= 0.0005) throw new Error('a click restarted muted music');
+  await evaluate(`${toggle}.click(), true`);
+  await until('the music back on', 'musicPeak() > 0.005', 30000);
+  if ((await evaluate(`JSON.parse(localStorage.getItem('retropirates-settings')).musicMuted`)) !== false) throw new Error('the music turned on was not saved');
+
   await evaluate(`document.querySelector('#credits-button').click(), true`);
   await until('the credits', `${dialogTitle} === 'Credits'`);
   const credits = await evaluate(`document.querySelector('#dialog-body').textContent`);
@@ -73,5 +90,5 @@ await withBrowser({ name: 'music', portOffset: 14 }, async ({ evaluate, until, p
   await delay(1000);
   const after = await evaluate('musicPeak()');
   if (after >= 0.0005) throw new Error(`music kept playing after the voyage began (peak ${after})`);
-  console.log('music: the title song sounded after a click, volume saved, credits shown, silent on Begin');
+  console.log('music: the title song sounded after a click, volume saved, sound toggle off and on, credits shown, silent on Begin');
 });
