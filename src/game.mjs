@@ -74,10 +74,13 @@ import { paintPartySprite } from './party-sprites.mjs';
 import { CLOUD_ART_PIXEL, paintCloudSprite } from './cloud-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 import { createChartView } from './chart-view.mjs';
+import { createMusicPlayer } from './music.mjs';
+import { creditsHtml } from './credits.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
 const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
+const SETTINGS_KEY = 'retropirates-settings';
 const HALL_OF_FAME_KEY = 'fortune-and-freedom-hall-of-fame';
 const SAVE_VERSION = 10;
 const SAVE_SLOT_COUNT = 10;
@@ -102,6 +105,8 @@ const startScreen = document.querySelector('#start-screen');
 const form = document.querySelector('#new-game-form');
 const continueButton = document.querySelector('#continue-button');
 const loadSlotButton = document.querySelector('#load-slot-button');
+const settingsButton = document.querySelector('#settings-button');
+const creditsButton = document.querySelector('#credits-button');
 const dialog = document.querySelector('#event-dialog');
 const dialogKicker = document.querySelector('#dialog-kicker');
 const dialogTitle = document.querySelector('#dialog-title');
@@ -362,6 +367,7 @@ function initialDiplomacyNews(diplomacy, calendar) {
 // loop with 1 for every start except a famous expedition, and 0x15B97 sets the
 // location byte to "in a town, arrived by sea". `startTownIndex` asks for that.
 async function startGame(nextState, { startTownIndex = null } = {}) {
+  music.stop(1.5);
   state = nextState;
   state.clouds ??= [];
   // State becomes visible to animation frames before the asynchronous map
@@ -5348,6 +5354,10 @@ form.addEventListener('submit', async (event) => {
 
 continueButton.addEventListener('click', async () => { const saved = loadGame(); if (saved && scenarios) await startGame(saved); });
 loadSlotButton.addEventListener('click', () => { if (scenarios) showLoadSlots(); });
+settingsButton.addEventListener('click', showSettings);
+creditsButton.addEventListener('click', () => showDialog({
+  kicker: 'RetroPirates!', title: 'Credits', body: creditsHtml(), actions: [{ label: 'Done', run: () => {} }],
+}));
 function updatePauseControl() {
   if (state?.paused) setControl(pauseButton, 'play', 'Resume', 'P');
   else setControl(pauseButton, 'pause', 'Pause', 'P');
@@ -6090,6 +6100,47 @@ function openPreview(preview) {
   return true;
 }
 
+// Player settings, kept per browser: only the music volume for now.
+function loadSettings() {
+  try { return { musicVolume: 0.6, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') }; }
+  catch { return { musicVolume: 0.6 }; }
+}
+
+function saveSettings(settings) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* storage unavailable */ }
+}
+
+const music = createMusicPlayer({ volume: loadSettings().musicVolume });
+
+// The title music starts on the first click or key press: browsers keep
+// audio silent until the player interacts with the page, and some keys
+// (Shift, Escape) do not count, so every press tries until audio runs.
+let titleMusicFailed = false;
+function startTitleMusic() {
+  if (music.unlock()) for (const type of ['pointerdown', 'keydown']) removeEventListener(type, startTitleMusic, { capture: true });
+  if (titleMusicFailed || startScreen.classList.contains('hidden')) return;
+  music.play('title').catch((error) => {
+    titleMusicFailed = true;
+    console.warn('Title music unavailable:', error);
+  });
+}
+
+function showSettings() {
+  const volume = Math.round(music.volume * 100);
+  showDialog({
+    kicker: 'RetroPirates!', title: 'Settings',
+    body: `<label class="setting-range">Music volume <output id="music-volume-value">${volume}%</output><input id="music-volume" type="range" min="0" max="100" step="5" value="${volume}"></label>`,
+    actions: [{ label: 'Done', run: () => {} }],
+  });
+  const input = dialogBody.querySelector('#music-volume');
+  input.addEventListener('input', () => {
+    music.volume = input.value / 100;
+    dialogBody.querySelector('#music-volume-value').textContent = `${input.value}%`;
+    saveSettings({ ...loadSettings(), musicVolume: music.volume });
+    startTitleMusic();
+  });
+}
+
 // The title: "Retro" in pixel letters beside the script "Pirates!", over the
 // sloop vignette.
 function paintTitleScreen() {
@@ -6124,6 +6175,7 @@ loadScenarios().then(() => {
   beginButton.disabled = false;
   if (openPreview(new URLSearchParams(location.search).get('preview'))) return;
   refreshSaveButtons();
+  for (const type of ['pointerdown', 'keydown']) addEventListener(type, startTitleMusic, { capture: true });
 }).catch((error) => {
   console.error('Scenario data unavailable:', error);
   beginButton.textContent = 'Scenario data failed to load';
