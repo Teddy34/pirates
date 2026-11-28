@@ -173,9 +173,15 @@ test('the ship\'s colours follow the nation, the era and her role', async () => 
   // The royal arms became the Spanish navy's ensign in the 1670s.
   assert.equal(colourFlag({ flag: 'Spain', era: '1680', kind: 8 }), 'spain-arms');
   assert.equal(colourFlag({ flag: 'Spain', era: '1680', kind: 4 }), 'spain-burgundy');
-  assert.equal(colourFlag({ flag: 'England', era: 1600, kind: 8 }), 'england-george');
-  assert.equal(colourFlag({ flag: 'England', era: '1620', kind: 3 }), 'england-red-ensign');
-  assert.equal(colourFlag({ flag: 'France', era: '1620', kind: 8 }), 'france-blue-cross');
+  // England: St George's cross before the stern ensign, striped ensigns to
+  // about 1625, the red ensign after.
+  assert.equal(colourFlag({ flag: 'England', era: '1560', kind: 8 }), 'england-george');
+  assert.equal(colourFlag({ flag: 'England', era: 1600, kind: 8 }), 'england-striped');
+  assert.equal(colourFlag({ flag: 'England', era: '1620', kind: 3 }), 'england-striped');
+  assert.equal(colourFlag({ flag: 'England', era: '1640', kind: 3 }), 'england-red-ensign');
+  assert.equal(colourFlag({ flag: 'France', era: '1560', kind: 8 }), 'france-lilies');
+  assert.equal(colourFlag({ flag: 'France', era: '1620', kind: 8 }), 'france-white');
+  assert.equal(colourFlag({ flag: 'France', era: '1620', kind: 3 }), 'france-blue-cross');
   assert.equal(colourFlag({ flag: 'France', era: '1640', kind: 6 }), 'france-white');
   assert.equal(colourFlag({ flag: 'France', era: '1680', kind: 5 }), 'france-blue-cross');
   assert.equal(colourFlag({ flag: 'Holland', era: '1640', kind: 8 }), 'holland-prince');
