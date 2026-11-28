@@ -33,8 +33,10 @@ for future work.
 - Sail on the original 640×480 world-tile grid: 307,200 logical tiles.
 - Load a separate coastline and navigation mask for every era.
 - Test land per map pixel with the original colour classes, so coastal tiles
-  have their drawn shoreline. Sailing onto a land pixel stops the ship and
-  asks "Disembark?" (Y/N); No turns the ship round (landing_and_overland.md §2).
+  have their drawn shoreline. Sailing onto a land pixel stops the ship against
+  the shore; the Land control (G) puts a party ashore and turning away sails
+  on (departure from the original's "Disembark (Y/N)", landing_and_overland.md
+  §2). Land touching a coastal town's trigger cells enters the town.
 - Walk a landing party overland (`src/overland.mjs`): two cells a day on each
   axis in any terrain, a persistent walk direction set by the arrows (two held
   arrows or Home/PgUp/End/PgDn walk diagonally), food, wind and time running,

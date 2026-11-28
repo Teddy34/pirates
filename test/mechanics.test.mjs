@@ -15,7 +15,7 @@ import {
   applyBoardingOutcome,
   capturedInTown,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits, seaVictoryTownEffect,
-  triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
+  triggerTownAt, nearestTriggerTown, shoreTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
   assaultBeforeTheWalls,
 } from '../src/mechanics.mjs';
 import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
@@ -689,4 +689,16 @@ test('tavern description is prose: atmosphere by prosperity, then any special ch
   assert.match(busy[3], /parchment/);
   // No counters or bookkeeping in the room's description (issue #117).
   for (const line of busy) assert.doesNotMatch(line, /\d|pieces|approached/);
+});
+
+test('land beside a town\'s trigger cells enters that town', () => {
+  // Port Royale 1660: trigger cells (340..341, 266..268), land at (339, 267).
+  const triggers = [[340, 266, 24], [341, 266, 24], [341, 267, 24], [340, 267, 24], [340, 268, 24], [341, 268, 24], [350, 266, 7]];
+  assert.equal(shoreTriggerTown(triggers, 339, 267), 24);
+  assert.equal(shoreTriggerTown(triggers, 339, 269), 24);
+  assert.equal(shoreTriggerTown(triggers, 338, 267), -1);
+  assert.equal(shoreTriggerTown(triggers, 343, 266), -1);
+  assert.equal(shoreTriggerTown(triggers, 349, 267), 7);
+  // A landlocked town is not entered from the sea.
+  assert.equal(shoreTriggerTown(triggers, 339, 267, (index) => index !== 24), -1);
 });

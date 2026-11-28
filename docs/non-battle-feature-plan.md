@@ -102,6 +102,11 @@ evidence for each item. This list collects them in one place.
 
 ### Deliberate
 
+- Sailing onto land stops the ship against the shore instead of asking
+  "Disembark (Y/N)"; the Land control (G) puts the party ashore, and turning
+  away sails on.
+- Running onto land that touches a coastal town's trigger cells enters the
+  town (`shoreTriggerTown`); the original enters only on the trigger cells.
 - The flagship on the sailing map is a sprite-stacked model drawn at 64
   heading steps (`src/ship-stacks.mjs`) instead of 16 sectors. The rudder
   keeps the original's rule (±16 only on ticks where `tick & 4` is 0, so a

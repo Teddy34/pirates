@@ -25,6 +25,13 @@ history.
 
 ### Fixed
 
+- A ship that runs onto the shore right beside a harbour town now enters
+  that town. Some towns are entered only through a strip of coast two cells
+  wide (Port Royale from the south-west), so a ship aimed at the town often
+  beached a few pixels off it. Departure from the original, which enters a
+  town only on its exact trigger cells: land touching one of a coastal
+  town's trigger cells (8 neighbours) counts too. Landlocked towns are still
+  reached only on foot.
 - Losing a boarding fight or the storming of a town's walls by yielding no
   longer costs a tenth of your gold as ransom: as in the original, you are
   captured (pirate or not). You are wounded and imprisoned in the town whose
@@ -37,6 +44,12 @@ history.
 
 ### Changed
 
+- Sailing onto land no longer stops the voyage with a "Disembark?" prompt.
+  The shore simply stops the ship, a notice says so, and the brass control
+  next to the chart becomes a Land button (key G) that puts a party ashore
+  on the spot; turning away sails on. Departure from the original's
+  "Disembark (Y/N)" prompt; the landing itself (half a day, the party
+  walking on inland) is unchanged.
 - The sword fight's fencers are sharper: their bodies were regenerated with
   flat colours and clearer faces, and are now pixelated by keeping each
   area's main colour and its outline instead of averaging, which had blurred
