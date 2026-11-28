@@ -23,6 +23,19 @@ history.
 
 ### Added
 
+- Period flags follow the new flag reference (`docs/flags-1560-1680.md`).
+  French towns in 1560 and 1600 now fly the blue banner of France with gold
+  fleurs-de-lis over their forts, in every town picture, instead of the
+  white flag of later years. A ship's colours now change with the era:
+  - English ships fly a striped ensign with St George's cross in the corner
+    in 1600 and 1620. The red ensign is only adopted in about 1625.
+  - French warships fly the blue banner in 1560 and plain white from 1600.
+  The title picture's English warship now flies the red ensign at her stern
+  instead of a plain St George's cross, which fit no era for a ship of her
+  size.
+- A ship's colours seen close up no longer spill onto the stern lanterns,
+  and the flag's perspective follows the painted flag. The lanterns' bright
+  glass had been taken for white cloth.
 - The fleet page has a "Make flagship" button on every ship but the
   flagship. The chosen ship leads the fleet: she is drawn on the sailing
   map, offered first when a sea battle begins, and kept when the plunder is
