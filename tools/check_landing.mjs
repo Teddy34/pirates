@@ -61,21 +61,32 @@ await withBrowser({ name: 'landing', portOffset: 1, screenshotEnv: 'LANDING_SCRE
     if (pauseNames.join() !== 'Resume,true,Pause,true') throw new Error(`${viewport.name}: the pause control does not swap its icon (${pauseNames})`);
     await screenshot(`${viewport.name}-controls`);
 
-    // Declining to disembark turns the ship round and puts it back aboard.
+    // The shore stops the ship without a prompt; turning away sails on.
     await open('landing');
-    await until('the disembark prompt', `${dialogTitle} === 'Disembark?'`);
-    await press('n');
-    await until('the ship turned round', `!${S}.player.onFoot && ${S}.player.heading === 128 && !${S}.paused`);
+    await until('the ship stopped by the shore', `${S}.player.aground && !${S}.paused && !document.querySelector('#event-dialog[open]')`);
+    const landControl = await evaluate(`({ label: document.querySelector('#dock-button').getAttribute('aria-label'), disabled: document.querySelector('#dock-button').disabled })`);
+    if (landControl.label !== 'Land a party ashore' || landControl.disabled) throw new Error(`${viewport.name}: no Land control against the shore (${JSON.stringify(landControl)})`);
+    await screenshot(`${viewport.name}-aground`);
+    await evaluate(`Object.assign(${S}.player, { heading: 128 }), true`);
+    await until('the ship sailing away', `!${S}.player.aground && !${S}.player.onFoot`);
 
-    // Land: the ship sails onto the Panama coast and asks to disembark.
+    // Land: the ship sails onto the Panama coast and G puts a party ashore.
     await open('landing');
-    await until('the disembark prompt', `${dialogTitle} === 'Disembark?'`);
-    await press('y');
+    await until('the ship stopped by the shore', `${S}.player.aground && !${S}.paused`);
+    await press('g');
     await until('the party ashore', `${S}.player.onFoot && !${S}.paused`);
     const ashore = await evaluate(`({ ship: ${S}.player.ship, landing: ${S}.player.landing, label: document.querySelector('[data-hold="left"]').getAttribute('aria-label') })`);
     if (ashore.label !== 'Walk west') throw new Error(`${viewport.name}: on-foot controls not relabelled (${ashore.label})`);
     if (ashore.ship.y <= ashore.landing.y) throw new Error(`${viewport.name}: the ship should wait south of the landing spot`);
     await screenshot(`${viewport.name}-ashore`);
+
+    // Running ashore beside a town's trigger cells enters the town.
+    await open('shore-town');
+    await until('the approach to Port Royale', `${dialogTitle} === 'Port Royale'`, 30000);
+    await open('landing');
+    await until('the ship stopped by the shore', `${S}.player.aground && !${S}.paused`);
+    await evaluate(`document.querySelector('#dock-button').click(), true`);
+    await until('the party ashore by the Land control', `${S}.player.onFoot && !${S}.paused`);
 
     // Every direction button lights while held, by pointer or by its arrow key.
     const directionButtons = { west: '[data-hold="left"]', east: '[data-hold="right"]', north: '#raise-sails-button', south: '#lower-sails-button' };

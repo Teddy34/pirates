@@ -415,6 +415,28 @@ export function nearestTriggerTown(triggers, cellX, cellY) {
   return bestTown;
 }
 
+// DEPARTURE from the original (entering_towns.md §0 has no proximity zone):
+// a ship that runs onto land next to a town's trigger cells enters that
+// town instead of being stopped by the shore. The trigger cells are often a
+// strip only two cells wide (Port Royale), so a ship aimed at the town
+// beached a few pixels beside it. Returns the town index of a trigger cell
+// within one cell (8-neighbourhood) of the land cell, the closest first, or -1.
+// `harbour(townIndex)` limits it to towns a ship can enter: a landlocked
+// town's cells are reached only on foot.
+export function shoreTriggerTown(triggers, cellX, cellY, harbour = () => true) {
+  let bestTown = -1;
+  let bestDistance = Infinity;
+  for (const [x, y, townIndex] of triggers) {
+    if (Math.abs(x - cellX) > 1 || Math.abs(y - cellY) > 1 || !harbour(townIndex)) continue;
+    const distance = Math.abs(x - cellX) + Math.abs(y - cellY);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestTown = townIndex;
+    }
+  }
+  return bestTown;
+}
+
 // 0x19B9E: the ship starts on the centre of the town's departure cell
 // (cell·16 + 8 px) facing departure_heading[w28]; inland towns have none.
 export function departurePose(departure) {
@@ -1322,6 +1344,19 @@ export const SHIP_NAME_MAX_LENGTH = 24;
 export function cleanShipName(text) {
   const name = String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, SHIP_NAME_MAX_LENGTH).trim();
   return name || null;
+}
+
+// Choosing the flagship outside a battle (a port addition): the chosen ship
+// moves to slot 0 and the others keep their order, as when a ship is picked
+// to command before a sea battle (sea_battles.md §1, "the ship you pick
+// becomes the flagship"). Crew, cannon and cargo belong to the fleet and
+// do not move.
+export function chooseFlagship(player, slot) {
+  if (!Number.isInteger(slot) || slot < 0 || slot >= player.ships.length) throw new Error('no such ship');
+  if (slot === 0) return player;
+  const ships = [...player.ships];
+  const [chosen] = ships.splice(slot, 1);
+  return { ...player, ships: [chosen, ...ships] };
 }
 
 // Abandoning a ship for lack of crew keeps the whole cargo (0x1F748 calls

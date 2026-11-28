@@ -21,8 +21,33 @@ history.
   the arrows or "Take everything that fits". "Finish looting" still leaves
   the rest by choice.
 
+### Added
+
+- The fleet page has a "Make flagship" button on every ship but the
+  flagship. The chosen ship leads the fleet: she is drawn on the sailing
+  map, offered first when a sea battle begins, and kept when the plunder is
+  divided. The other ships keep their order, and crew, cannon and cargo stay
+  with the fleet. The original changes the flagship only when you pick the
+  ship to command before a battle; the result is the same.
+- Title music: Praetorius's "Spagnoletta" (*Terpsichore*, 1612) plays on the
+  start screen from the first click or key press, on period instruments
+  (recorders, tenor viols, harpsichord, bass viol) through a SoundFont
+  synthesizer with reverb and chorus (SpessaSynth, vendored, Apache-2.0, with
+  FluidR3 samples, MIT). It fades out when a voyage begins. Departure from the
+  original: its own soundtrack is not used.
+- Settings on the start screen, with a music volume kept per browser.
+- Credits on the start screen, naming every outside source of music, samples,
+  code and fonts, with their licences.
+
 ### Fixed
 
+- A ship that runs onto the shore right beside a harbour town now enters
+  that town. Some towns are entered only through a strip of coast two cells
+  wide (Port Royale from the south-west), so a ship aimed at the town often
+  beached a few pixels off it. Departure from the original, which enters a
+  town only on its exact trigger cells: land touching one of a coastal
+  town's trigger cells (8 neighbours) counts too. Landlocked towns are still
+  reached only on foot.
 - Losing a boarding fight or the storming of a town's walls by yielding no
   longer costs a tenth of your gold as ransom: as in the original, you are
   captured (pirate or not). You are wounded and imprisoned in the town whose
@@ -35,6 +60,12 @@ history.
 
 ### Changed
 
+- Sailing onto land no longer stops the voyage with a "Disembark?" prompt.
+  The shore simply stops the ship, a notice says so, and the brass control
+  next to the chart becomes a Land button (key G) that puts a party ashore
+  on the spot; turning away sails on. Departure from the original's
+  "Disembark (Y/N)" prompt; the landing itself (half a day, the party
+  walking on inland) is unchanged.
 - The sword fight's fencers are sharper: their bodies were regenerated with
   flat colours and clearer faces, and are now pixelated by keeping each
   area's main colour and its outline instead of averaging, which had blurred
