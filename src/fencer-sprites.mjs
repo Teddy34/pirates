@@ -7,7 +7,7 @@
 // strike keeps its pose. Until the sheet loads, a code-drawn body stands in.
 // Nothing here comes from the original game's sprites.
 
-import { createArt, rasterize } from './pixel-art.mjs';
+import { OUTLINE, createArt, rasterize } from './pixel-art.mjs';
 import { MOVE, MOVE_FRAMES } from './sword-mechanics.mjs';
 
 export const FENCER_ART = { width: 64, height: 64, anchorX: 26, groundY: 61 };
@@ -21,6 +21,7 @@ const STEEL = '#e3e7ea';
 const STEEL_DARK = '#8f989f';
 const GOLD = '#d8b04a';
 const BOOT = '#3a2618';
+const CUFF = '#efe6cf';
 
 // Blade length in art pixels by weapon index (rapier, longsword, cutlass).
 const BLADE_LENGTH = [21, 18, 14];
@@ -51,7 +52,7 @@ export const BODY_ROWS = ['player', 'captain', 'guard', 'villain', 'sailor'];
 export const BODY_POSES = ['guard', 'lunge', 'walk-a', 'walk-b', 'back', 'kneel'];
 // The front shoulder of each body pose, from the anchor (art pixels, y down):
 // where the sword arm starts.
-const BODY_SHOULDER = { guard: [3, -30], lunge: [7, -25], 'walk-a': [1, -31], 'walk-b': [1, -31], back: [0, -30], kneel: [4, -21] };
+const BODY_SHOULDER = { guard: [3, -28], lunge: [8, -24], 'walk-a': [1, -28], 'walk-b': [0, -28], back: [1, -27], kneel: [4, -20] };
 // Alpha marks in the sheet: a coat and a headscarf to recolour.
 const COAT_ALPHA = 254;
 const CAP_ALPHA = 253;
@@ -338,14 +339,29 @@ export function paintFencer({ move = 0, frame = 0, look = LOOKS.player, weapon =
     : [torsoX + 2, shoulderY + 2];
   const hand = [shoulder[0] + arm.hand[0], shoulder[1] - arm.hand[1]];
   const elbow = [(shoulder[0] + hand[0]) / 2, (shoulder[1] + hand[1]) / 2 + 2];
-  thickLine(art, shoulder, elbow, coat);
-  thickLine(art, elbow, hand, coat);
+  if (body) {
+    // Over a generated body the arm needs its own ink to stand off the coat
+    // behind it: an outline round a lit sleeve with a shaded underside, and
+    // a pale cuff at the wrist.
+    const sleeve = (dy, colour) => {
+      thickLine(art, [shoulder[0], shoulder[1] + dy], [elbow[0], elbow[1] + dy], colour);
+      thickLine(art, [elbow[0], elbow[1] + dy], [hand[0], hand[1] + dy], colour);
+    };
+    sleeve(-1, OUTLINE); sleeve(2, OUTLINE);
+    sleeve(1, coatDark); sleeve(0, coat);
+    const cuff = [hand[0] + (elbow[0] - hand[0]) * .45, hand[1] + (elbow[1] - hand[1]) * .45];
+    art.rect(Math.floor(cuff[0]), Math.floor(cuff[1]), 2, 2, CUFF);
+  } else {
+    thickLine(art, shoulder, elbow, coat);
+    thickLine(art, elbow, hand, coat);
+  }
   if (pose.kind === 'yield' && pose.kneel) {
     // The sword lies on the ground before him.
     art.line([anchorX + 6, groundY], [anchorX + 6 + BLADE_LENGTH[weapon], groundY], STEEL);
     art.line([anchorX + 6, groundY - 2], [anchorX + 6, groundY + 1], GOLD);
   } else drawBlade(art, hand, arm.angle, BLADE_LENGTH[weapon], weapon);
   art.rect(Math.floor(hand[0]) - 1, Math.floor(hand[1]) - 1, 2, 2, SKIN);
+  if (body) art.set(Math.floor(hand[0]) - 1, Math.floor(hand[1]) + 1, SKIN_DARK);
 
   let pixels = art.pixels;
   if (shade) pixels = pixels.map((color) => (color ? darken(color, shade) : color));

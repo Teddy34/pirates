@@ -28,6 +28,7 @@ as uncertain, and record any small playable assumption beside its code.
 | 11 | Career opening | Done (#35) | Start every career in the town screen of the town nearest the start record's point (`52f5fd3`), play the story for its era and nation, then the sailing master's briefing naming the closest city of each other nation. | `src/opening.mjs`, `0x139E2`, `0x13E3F`, `0x1D858` |
 | 13 | Sword fights | Partial (this change) | Done: the one fight engine of `sword_fights.md` (`src/sword-mechanics.mjs`), with the frame tables read from the executable: weapon choice, skill, reach, parries, hit rolls, morale transfer, yielding, the crews' clash, the edges, and the opponent's pattern AI with its counter-moves. Pixel-art fencers, crews and backdrops (`src/fencer-sprites.mjs`, `src/sword-renderer.mjs`). Boarding, storming the walls after an assault, the mutiny ringleader, the guard when sneaking, the villain and the opening's practice bout are real fights, and the town menu offers practice fencing (+5 hit bonus per bout, up to 30), fought in a town street on the alley backdrop (#140). The voyage HUD is hidden in a fight; the fight's own panel shows both names, one 47-cell tug-of-war morale bar and, in a battle, each side's crew (#148). The scene is a framed picture with everything clipped to it, and each crew closes ranks to fit between its leader and the frame (#149). Left: the land battle before the walls (counted as won until K3), the duel-defeat scene's text (`0x159DF`), capture after a lost boarding (`0x16647`), sound, and art the user approves. | `sword_fights.md`, `sea_battles.md` §7, `fencing_*.asm` |
 | 12 | Scene pictures | Partial (#34, #35) | Done: pictures in the dialogs for the governor, merchant, shipwright, tavern staff and visitors, the town approach and town menu, prizes, an exploding enemy, shipwreck, marooning, dividing the plunder, the career opening, the dig's results (treasure found, nothing found, a relative's reunion and the four lost cities), a sail sighted, boarding, a prisoner's offer, new recruits, the treasure fleet and silver train captures, mutiny, prison, the sword-fight alley, the hall of fame, the four retirement endings, the land and fort assaults, your own ship sinking, a battle ended by outrunning or nightfall, and the title screen's picture. Dialogs are full-screen arcade frames with the picture whole and framed in the page's top left corner at a whole-number scale; buttons carry pixel action icons and the arrow keys move between them by screen position, left and right keeping to the focused button's line (#108). The controls under the map are the same brass pixel buttons, icon only, with their names as tooltips (#136). Real art, with no code-drawn fallback (the picture area stays empty until the image loads): `title-ship`, `harbour-arrival`, `port-quay`, `shore-arrival`, `town-square` and the town assaults `land-attack` and `fort-walls` (one row per period town flag), the sea fights (`boarding`, `hostage-talks`, `prize-plunder`, `enemy-destroyed`, `sinking`, `outrun`, `nightfall`), the lost ships (`shipwreck`, `marooned`), the `mutiny` and the `prison`, the sword-fight alley and the hall of fame (`alley-duel`, `hall-of-fame`), the four retirement endings (`retire-1` to `retire-4`), the sword fights' backdrops (`fight-deck`, `fight-alley`, `fight-walls`), `sail-ho`, the sighted ship per type and period (`sail-nearer`, `assets/vignettes/ships/`) and her colours close at hand (`sail-colours`, `assets/vignettes/colours/`), every career-opening picture (`open-swords`, `open-chart`, `open-buccaneers`, `open-quarterdeck`, `open-court`, `open-plantation`, `open-boarded`, `open-landfall`, `open-prison`, `open-night-raid`, `open-colony`), `tavern`, `divide-plunder`, the courtship scenes (`governor-daughter`, `governor-niece`, `merchant-daughter`) and the `wedding`, `crew-recruits`, the treasure fleet and silver train captures (`treasure-fleet`, `silver-train`), the dig's results (`dig-found`, `dig-nothing`, `reunion` for a woman and for a man, and the four lost cities), the merchant's, shipwright's, barmaid's, bartender's, sailing master's, traveller's, map seller's and villain's portraits (`tools/build_vignette.py`, workflow in `.claude/skills/vignette-art/SKILL.md`). Left: happy-crew, pirate-delivered, ships-news, shipdeck-duel and treasure-trove, plus the optional ship portraits; and real art for the other pictures, each needing the user's rights confirmed first. | `scene-vignettes.md` |
+| 14 | Music | Partial (#165) | Done: the title music, Praetorius's "Spagnoletta" (*Terpsichore*, 1612) on period instruments (recorders, tenor viols, harpsichord, bass viol), played from MIDI by the vendored SpessaSynth synthesizer with a trimmed FluidR3 bank (`src/music.mjs`, `tools/build_music.mjs`, `assets/music/`); a music volume in the start screen's Settings; Credits naming every outside source. Left: music for the other screens (at sea, in town, battles, fights) and sound effects. Departure from the original: public-domain period dances replace the original's soundtrack. | `assets/music/PROVENANCE.md` |
 
 ## Added since the last plan update
 
@@ -101,6 +102,17 @@ evidence for each item. This list collects them in one place.
 
 ### Deliberate
 
+- Sailing onto land stops the ship against the shore instead of asking
+  "Disembark (Y/N)"; the Land control (G) puts the party ashore, and turning
+  away sails on.
+- Running onto land that touches a coastal town's trigger cells enters the
+  town (`shoreTriggerTown`); the original enters only on the trigger cells.
+- The flagship on the sailing map is a sprite-stacked model drawn at 64
+  heading steps (`src/ship-stacks.mjs`) instead of 16 sectors. The rudder
+  keeps the original's rule (±16 only on ticks where `tick & 4` is 0, so a
+  held key turns a quarter turn, then pauses), but the drawn ship turns at a
+  steady rate through the pause and catches up shortly after the key is
+  released; the heading that steers the ship is unchanged.
 - Fast travel (T) runs time twice as fast; the original's fast mode runs it
   five times faster.
 - The manual-based copy protection in the opening is left out, with its penalty
@@ -126,6 +138,10 @@ evidence for each item. This list collects them in one place.
   sea battle (`embarkedForBattle`), eight hands on every other ship, then the
   rest over them in fleet order. Ships can be given names of the captain's choosing, which the
   original does not have; a name survives battles, saves and the refit.
+  Any ship can be made the flagship from this page: she moves to slot 0 and
+  the others keep their order. The original changes the flagship only by
+  picking the ship to command before a sea battle (`flagship_choice.asm`);
+  the effect on the fleet is the same.
 - Coastal towns use the harbour-arrival and port-quay pictures however you
   arrive. Only landlocked towns use shore-arrival and town-square. The original
   picks the arrival picture by how you came.
@@ -213,9 +229,18 @@ evidence for each item. This list collects them in one place.
   the menu only for mode 0xFF (`0x1622F`), which then fights with the rapier
   (`0x16563`): town practice (0xFE) chooses, and the opening's bout (0xFF)
   uses the rapier. The port follows the code; the archive should be corrected.
-- A lost boarding fight costs a tenth of the party's gold as ransom, because
-  capture (`0x16647`) is not ported. As in the original, its crew losses are
-  not deducted (`0x1660E` skips the deduction).
+- A lost boarding fight (yielding, not being driven back) is a capture
+  (`0x16647`, `sword_fights.md` §7a), as is a defeat at the walls: wounds +1,
+  prison in the current town when you fought its nation (else aboard "the
+  ship", where you stay), then the prison of `0x1F803` shared with the
+  last-ship path: months pass, a fresh fleet of the flagship's type, prisoners
+  freed, difficulty −1, the mission dropped, and the CSTR 190 exchange. The
+  binary has no pirate test: every captain is captured. The fight's own
+  penalties (boarding: reputation −2 and alert +16; walls: reputation −1 and
+  favour −1) follow the release, as `0x16205` returns to its caller only
+  then. Crew losses are not deducted (`0x1660E`). Departure: a captain held
+  aboard ship is spared the captivity's monthly crew check (no mutiny while
+  held by the enemy).
 - Quality is held at 1 or more when hull damage would make it zero or less
   (the original would divide by zero when both are zero).
 - The duel-defeat scene (`0x159DF`) has no text yet; each caller's dialog
@@ -227,8 +252,6 @@ evidence for each item. This list collects them in one place.
   and 10+ soldiers) still counts as won without losses: it leaves the
   garrison as it was and adds no march alert. You may still withdraw before
   storming, for alert +16.
-- A defeat at the walls also costs a tenth of the party's gold as ransom
-  instead of capture (`0x16647`), as for a lost boarding.
 
 ### Provisional until the real system exists
 

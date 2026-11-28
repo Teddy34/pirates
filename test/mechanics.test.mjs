@@ -13,8 +13,9 @@ import {
   turnHeadingDownwind, shiftWind, createVoyageClouds, driftClouds,
   nearestCloudDistancePixels, cloudWrapOpacity, applyProvisionalBattleOutcome, stepSailingSpeed,
   applyBoardingOutcome,
+  capturedInTown,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits, seaVictoryTownEffect,
-  triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
+  triggerTownAt, nearestTriggerTown, shoreTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
   assaultBeforeTheWalls,
 } from '../src/mechanics.mjs';
 import { SHIPS, SPEED_TABLE_1560 } from '../src/data.mjs';
@@ -151,12 +152,17 @@ test('provisional capture, defeat, escape, and enemy sinking have distinct outco
 
 test('boarding fight results deduct the fight losses (not on capture) and cost reputation unless won', () => {
   const player = { crew: 40, partyGold: 1000, reputation: 3 };
-  assert.deepEqual(applyBoardingOutcome(player, { result: 'won', casualties: 6 }).player, { ...player, crew: 34 });
-  assert.deepEqual(applyBoardingOutcome(player, { result: 'driven-back', casualties: 5 }).player, { ...player, crew: 35, reputation: 1 });
-  assert.deepEqual(applyBoardingOutcome(player, { result: 'defeated', casualties: 8 }), {
-    player: { crew: 40, partyGold: 900, reputation: 1 }, ransom: 100,
-  });
-  assert.equal(applyBoardingOutcome({ ...player, crew: 3 }, { result: 'driven-back', casualties: 9 }).player.crew, 1);
+  assert.deepEqual(applyBoardingOutcome(player, { result: 'won', casualties: 6 }), { ...player, crew: 34 });
+  assert.deepEqual(applyBoardingOutcome(player, { result: 'driven-back', casualties: 5 }), { ...player, crew: 35, reputation: 1 });
+  // No ransom: a defeat is a capture, and the gold is left to the captivity.
+  assert.deepEqual(applyBoardingOutcome(player, { result: 'defeated', casualties: 8 }), { ...player, reputation: 1 });
+  assert.equal(applyBoardingOutcome({ ...player, crew: 3 }, { result: 'driven-back', casualties: 9 }).crew, 1);
+});
+
+test('a captured captain is held in the town of the nation he fought, pirates included', () => {
+  assert.equal(capturedInTown('spanish', 'spanish'), true);
+  assert.equal(capturedInTown('pirate', 'spanish'), false);
+  assert.equal(capturedInTown('english', 'french'), false);
 });
 
 test('captured ship plunder follows the decoded gold and cargo bounds', () => {
@@ -683,4 +689,16 @@ test('tavern description is prose: atmosphere by prosperity, then any special ch
   assert.match(busy[3], /parchment/);
   // No counters or bookkeeping in the room's description (issue #117).
   for (const line of busy) assert.doesNotMatch(line, /\d|pieces|approached/);
+});
+
+test('land beside a town\'s trigger cells enters that town', () => {
+  // Port Royale 1660: trigger cells (340..341, 266..268), land at (339, 267).
+  const triggers = [[340, 266, 24], [341, 266, 24], [341, 267, 24], [340, 267, 24], [340, 268, 24], [341, 268, 24], [350, 266, 7]];
+  assert.equal(shoreTriggerTown(triggers, 339, 267), 24);
+  assert.equal(shoreTriggerTown(triggers, 339, 269), 24);
+  assert.equal(shoreTriggerTown(triggers, 338, 267), -1);
+  assert.equal(shoreTriggerTown(triggers, 343, 266), -1);
+  assert.equal(shoreTriggerTown(triggers, 349, 267), 7);
+  // A landlocked town is not entered from the sea.
+  assert.equal(shoreTriggerTown(triggers, 339, 267, (index) => index !== 24), -1);
 });
