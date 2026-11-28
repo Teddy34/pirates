@@ -82,6 +82,32 @@ await withBrowser({ name: 'sword', portOffset: 5, screenshotEnv: 'SWORD_SCREENSH
       await until(`${preview} result`, `/Stormed the walls|Failed to capture/.test(document.querySelector('#log').textContent) && Boolean(${dialogTitle})`);
     }
 
+    // Yielding in a battle with crews is a capture (0x16647): wounds +1,
+    // prison, the exchange and a fresh fleet, never a ransom.
+    for (const [preview, start, weapon] of [['boarding', 'Boarding', 'Rapier'], ['fort-walls', 'Attack ', null]]) {
+      await navigate(`/?preview=${preview}`);
+      await until(`${preview} start`, `${dialogTitle}?.startsWith(${JSON.stringify(start)})`);
+      if (!weapon) {
+        await clickButton('Storm the walls');
+        await until(`${preview} weapon choice`, `document.querySelector('#event-dialog[open] #dialog-actions')?.textContent.includes('Cutlass')`);
+      }
+      const before = await evaluate(`JSON.stringify({ wounds: ${S}.player.wounds ?? 0, difficulty: ${S}.difficulty })`).then(JSON.parse);
+      await clickButton(weapon ?? 'Cutlass');
+      await until(`${preview} lost fight`, `${inFight} && globalThis.piratesPreview.settleFight('defeated')`);
+      await until(`${preview} capture`, `${dialogTitle}?.startsWith('Imprisoned')`);
+      // The assaulted town holds the captain.
+      if (!weapon && !await evaluate(`${dialogTitle}.startsWith('Imprisoned in ')`)) throw new Error(`${viewport.name}: the assaulted town does not hold the captain`);
+      await screenshot(`${viewport.name}-${preview}-captured`);
+      if (await evaluate(`${S}.player.wounds`) !== before.wounds + 1) throw new Error(`${viewport.name}: ${preview} capture did not add a wound`);
+      if (await evaluate(`/ransom/i.test(document.querySelector('#log').textContent)`)) throw new Error(`${viewport.name}: ${preview} defeat still pays a ransom`);
+      await clickButton('Continue');
+      await until(`${preview} release`, `/months pass$/.test(${dialogTitle} ?? '')`);
+      if (await evaluate(`${S}.player.ships.length`) !== 1) throw new Error(`${viewport.name}: ${preview} capture did not refit a fresh fleet`);
+      if (await evaluate(`${S}.difficulty`) !== Math.max(0, before.difficulty - 1)) throw new Error(`${viewport.name}: ${preview} capture did not lower the difficulty`);
+      await clickButton('Continue');
+      await until(`${preview} back at sea`, `${S}.mode === 'sailing' && !${dialogTitle} && /Released after|Failed to capture/.test(document.querySelector('#log').textContent)`);
+    }
+
     // Practice raises the hit bonus by 5, won or lost.
     await navigate(`/?preview=sword-practice`);
     await until('the practice offer', `${dialogTitle} === 'Fencing practice'`);

@@ -8,11 +8,11 @@ import {
   clamp, createRng, startFromRecord, targetSailingSpeed, stepSailingSpeed,
   shiftWind, cloudCountForMonth, navigationSkill, turnHeadingDownwind,
   createVoyageClouds, driftClouds, nearestCloudDistancePixels, cloudWrapOpacity,
-  applyBoardingOutcome,
+  applyBoardingOutcome, capturedInTown,
   capturedShipPlunder, capturedTownPlunder, applyTownCapture, capturedShipRecruits, seaVictoryTownEffect,
   acceptsRudderInput,
   consumeDailyFood, foodDays, starvationDesertion, encounterRoll, chooseEncounterTier,
-  triggerTownAt, nearestTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
+  triggerTownAt, nearestTriggerTown, shoreTriggerTown, departurePose, townDistanceCells, alertAfterNearestTownCheck,
   isEncounterHunter, hunterOvertakes, drawHunterCaptain, captainName, captainRenown,
   MISSION, rollGovernorMission, missionPirateId, isMissionPirateId,
   harborAttempt, sneakAttempt, tavernRecruits, morale, prizeMoraleBonus, dividePlunder, beginDivisionRefit, freshFleet,
@@ -74,10 +74,13 @@ import { paintPartySprite } from './party-sprites.mjs';
 import { CLOUD_ART_PIXEL, paintCloudSprite } from './cloud-sprites.mjs';
 import { cachedSprite, devicePixelScale, drawPixelSprite } from './sprite-canvas.mjs';
 import { createChartView } from './chart-view.mjs';
+import { createMusicPlayer } from './music.mjs';
+import { creditsHtml } from './credits.mjs';
 
 const SAVE_KEY = 'fortune-and-freedom-save-v5';
 const LEGACY_SAVE_KEY = 'fortune-and-freedom-save-v1';
 const PREVIOUS_SAVE_KEY = 'fortune-and-freedom-save-v4';
+const SETTINGS_KEY = 'retropirates-settings';
 const HALL_OF_FAME_KEY = 'fortune-and-freedom-hall-of-fame';
 const SAVE_VERSION = 10;
 const SAVE_SLOT_COUNT = 10;
@@ -102,6 +105,8 @@ const startScreen = document.querySelector('#start-screen');
 const form = document.querySelector('#new-game-form');
 const continueButton = document.querySelector('#continue-button');
 const loadSlotButton = document.querySelector('#load-slot-button');
+const settingsButton = document.querySelector('#settings-button');
+const creditsButton = document.querySelector('#credits-button');
 const dialog = document.querySelector('#event-dialog');
 const dialogKicker = document.querySelector('#dialog-kicker');
 const dialogTitle = document.querySelector('#dialog-title');
@@ -362,6 +367,7 @@ function initialDiplomacyNews(diplomacy, calendar) {
 // loop with 1 for every start except a famous expedition, and 0x15B97 sets the
 // location byte to "in a town, arrived by sea". `startTownIndex` asks for that.
 async function startGame(nextState, { startTownIndex = null } = {}) {
+  music.stop(1.5);
   state = nextState;
   state.clouds ??= [];
   // State becomes visible to animation frames before the asynchronous map
@@ -416,6 +422,7 @@ async function startGame(nextState, { startTownIndex = null } = {}) {
   // (landing_and_overland.md §4), although the voyage reset after loading
   // (porting_guide.md §5 step 3) would clear the on-foot flag.
   if (!state.player.onFoot) movePlayerToNavigableCell();
+  state.player.aground = null;
   // Overland and older saves may still lie beside the town's trigger cells.
   state.player.arrivalGuard = true;
   rng = createRng(state.seed);
@@ -985,7 +992,17 @@ function runFleetCheck({ inTown = false, done }) {
 function loseLastShip({ inTown, done, cause = '' }) {
   const town = state.visit ? state.towns[state.visit.townIndex] : nearestTown();
   const lost = state.player.ships[0];
-  const release = inTown ? releaseFromTown(town) : shoreNear(state.player.x, state.player.y);
+  placeAtRelease(inTown ? releaseFromTown(town) : shoreNear(state.player.x, state.player.y));
+  showDialog({
+    vignette: inTown ? 'prison' : 'marooned', kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
+    body: inTown
+      ? `${cause}<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${town.name}.</p>`
+      : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p>`,
+    actions: [{ label: 'Continue', run: () => serveCaptivity({ inTown, town, lost, done }) }],
+  });
+}
+
+function placeAtRelease(release) {
   if (release) {
     state.player.x = release.x + .5;
     state.player.y = release.y + .5;
@@ -995,12 +1012,27 @@ function loseLastShip({ inTown, done, cause = '' }) {
   // 0x33A50: any landing party is gone with its ship; the new voyage starts
   // aboard at the release point.
   clearLandingParty();
+}
+
+// Capture (0x16647, sword_fights.md §7a): a battle fight with crews lost by
+// yielding sends every captain to prison, pirates included. Wounds +1, CSTR
+// 175, release at the town's departure cell when held there, then prison
+// (0x1F803), which also ends the expedition and refits a fresh fleet from
+// the flagship's type exactly as after the last ship is lost. `done` runs
+// after the release; the fight's own penalties come after it (0x16205
+// returns 0 to the caller once the capture is over).
+// `town` is the current town 0x46F82: the one under attack, or at sea the
+// nearest.
+function beginCapture({ nation, town = nearestTown(), done }) {
+  const inTown = capturedInTown(nation, town.nation);
+  state.player.wounds = (state.player.wounds ?? 0) + 1;
+  // Held aboard "the ship", the captain stays where he is (0x16738).
+  placeAtRelease(inTown ? releaseFromTown(town) : null);
+  addLog(inTown ? `Captured and imprisoned in ${town.name}.` : 'Captured and imprisoned aboard the enemy ship.');
   showDialog({
-    vignette: inTown ? 'prison' : 'marooned', kicker: inTown ? 'Imprisoned' : 'Shipwrecked', title: inTown ? `Imprisoned in ${town.name}` : 'Washed ashore',
-    body: inTown
-      ? `${cause}<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${town.name}.</p>`
-      : `${cause}<p>With your last ship gone, you are washed ashore on an uncharted island. The local Indians feed you and help you to regain your strength.</p>`,
-    actions: [{ label: 'Continue', run: () => serveCaptivity({ inTown, town, lost, done }) }],
+    vignette: 'prison', kicker: 'Captured', title: inTown ? `Imprisoned in ${town.name}` : 'Imprisoned aboard ship',
+    body: `<p>Your men flee in panic as the tide of battle turns against them. You fight on, are wounded, and are imprisoned in ${inTown ? town.name : 'the ship'}.</p>`,
+    actions: [{ label: 'Continue', run: () => serveCaptivity({ inTown, town, lost: state.player.ships[0], done, captured: true }) }],
   });
 }
 
@@ -1053,12 +1085,12 @@ function healthNotice() {
 // original then jumps to the division refit (0x1D899 -> 0x184A8) with no
 // ship left. ASSUMED: the port serves the captivity instead, which ends in
 // the decoded fresh fleet.
-function serveCaptivity({ inTown, town, lost, done }) {
+function serveCaptivity({ inTown, town, lost, done, captured = false }) {
   if (captainHealth() < 3) {
-    beginCaptivity({ inTown, town, lost, done });
+    beginCaptivity({ inTown, town, lost, done, captured });
     return;
   }
-  forcedRetirement({ inTown, onReturn: () => beginCaptivity({ inTown, town, lost, done }) });
+  forcedRetirement({ inTown, onReturn: () => beginCaptivity({ inTown, town, lost, done, captured }) });
 }
 
 // CSTR 160, shown by 0x1F1D7 before the retirement driver.
@@ -1186,25 +1218,28 @@ function offerAnotherGame() {
   });
 }
 
-function beginCaptivity({ inTown, town, lost, done }) {
+function beginCaptivity({ inTown, town, lost, done, captured = false }) {
   const player = state.player;
   player.monthsAtSea = -16;
   const before = { ...state.calendar };
   // Each step is one 0x1DD0E call, so on the island its crew check can raise
-  // a mutiny; reputation is re-read before every step.
+  // a mutiny; reputation is re-read before every step. ASSUMED: a captain
+  // captured at sea after a sword fight (held aboard "the ship") is spared
+  // that check, though 0x47ACA is presumably still 0 there: a mutiny against
+  // a captain held by the enemy has no playable meaning.
   const serveStep = (step) => {
     if (!captivityContinues(state.player.reputation, step)) {
-      endCaptivity({ inTown, town, lost, done, before });
+      endCaptivity({ inTown, town, lost, done, before, captured });
       return;
     }
     const monthsCrossed = passCalendarDays(CAPTIVITY_STEP_DAYS);
-    if (inTown) { serveStep(step + 1); return; }
+    if (inTown || captured) { serveStep(step + 1); return; }
     monthEndCrewCheck({ monthsCrossed, aboard: true }, () => serveStep(step + 1));
   };
   serveStep(0);
 }
 
-function endCaptivity({ inTown, town, lost, done, before }) {
+function endCaptivity({ inTown, town, lost, done, before, captured = false }) {
   const months = (state.calendar.year - before.year) * 12 + state.calendar.month - before.month;
   state.player = restartAfterLastShip(state.player, lost, SHIPS);
   // 0x1F803 also abandons any governor mission (0x1F87C).
@@ -1214,12 +1249,15 @@ function endCaptivity({ inTown, town, lost, done, before }) {
   state.difficulty = released.difficulty;
   const health = captainHealth();
   const captainKind = DIFFICULTY_ARTICLES[state.difficulty];
+  // CSTR 190, the exchange, ends every capture and every town prison.
+  const exchanged = inTown || captured;
   addLog(inTown
     ? `Released from prison in ${town.name} after ${months} months; back at sea as ${captainKind} captain.`
-    : `Rescued from an uncharted island after ${months} months; back at sea as ${captainKind} captain.`);
+    : captured ? `Exchanged by your captors after ${months} months; back at sea as ${captainKind} captain.`
+      : `Rescued from an uncharted island after ${months} months; back at sea as ${captainKind} captain.`);
   showDialog({
-    vignette: inTown ? 'prison' : 'marooned', kicker: inTown ? 'Released' : 'Rescued', title: `${months} months pass`,
-    body: `<p>${CAPTIVITY_TEXT[health]}</p><p>${inTown
+    vignette: exchanged ? 'prison' : 'marooned', kicker: exchanged ? 'Released' : 'Rescued', title: `${months} months pass`,
+    body: `<p>${CAPTIVITY_TEXT[health]}</p><p>${exchanged
       ? `Your former comrades take pity on you and trade a captured nobleman for your freedom. They agree to take you back as ${captainKind} captain.`
       : `One day a small ship puts in at the island to resupply, and you recognize some of your former crew. They agree to take you back as ${captainKind} captain.`}</p><p>Backers fund a new ${shipName(lost)} with ${state.player.partyGold.toLocaleString()} gold and ${state.player.crew} hands.</p>`,
     actions: [{ label: 'Continue', run: () => {
@@ -1333,6 +1371,7 @@ function setupClouds() {
 function endVoyage(next = () => {}, { aboard = !state.player.onFoot } = {}) {
   fastTravel = false;
   const player = state.player;
+  player.aground = null;
   const monthsCrossed = passDays(voyageDays(player.voyageTick ?? VOYAGE_START_TICK));
   player.voyageTick = VOYAGE_START_TICK;
   player.cloudDistancePixels = 999;
@@ -1448,11 +1487,14 @@ function stepSimulation() {
   // The land/sea switch tests the single map pixel under the new position;
   // only class 2 is land, so shallows are sailed over (porting_guide.md §6).
   if (!isNavigable(nextX, nextY)) {
-    beginLanding(nextX, nextY, previousPlayerX, previousPlayerY);
+    if (checkShoreArrival(nextX, nextY, previousPlayerX, previousPlayerY)) return;
+    holdAgainstShore(nextX, nextY);
+    finishTick(previousPlayerX, previousPlayerY);
     return;
   }
   player.x = nextX;
   player.y = nextY;
+  player.aground = null;
   finishTick(previousPlayerX, previousPlayerY);
 }
 
@@ -1492,6 +1534,20 @@ function checkTownArrival(attemptedX, attemptedY, previousX, previousY) {
   state.player.x = previousX;
   state.player.y = previousY;
   state.nearestTownIndex = nearestTriggerTown(triggers, touched[0], touched[1]);
+  endVoyage(() => approachTown());
+  return true;
+}
+
+// Running onto land beside a town's trigger cells enters the town
+// (shoreTriggerTown, a deliberate departure from the original).
+function checkShoreArrival(landX, landY, previousX, previousY) {
+  if (state.player.arrivalGuard) return false;
+  const townIndex = shoreTriggerTown(townTriggers(), Math.floor(landX), Math.floor(landY), (index) => Boolean(townDeparture(index)));
+  if (townIndex < 0) return false;
+  state.player.x = previousX;
+  state.player.y = previousY;
+  state.player.aground = null;
+  state.nearestTownIndex = townIndex;
   endVoyage(() => approachTown());
   return true;
 }
@@ -2028,10 +2084,20 @@ function offerBoarding(enemy) {
 }
 
 function resolveBoarding(enemy, outcome) {
-  const { player, ransom } = applyBoardingOutcome(state.player, outcome);
-  state.player = player;
-  // A defeat goes to capture, which does not count the fallen (0x1660E).
-  const losses = outcome.casualties && outcome.result !== FIGHT_RESULT.defeated ? ` We lost ${outcome.casualties} men.` : '';
+  if (outcome.result === FIGHT_RESULT.defeated) {
+    // Capture runs inside the fight (0x16610); the boarding's reputation -2
+    // and alert +16 follow the release. Capture does not count the fallen
+    // (0x1660E).
+    addLog(`Beaten in the boarding fight with the ${enemy.ship}: our men threw down their arms.`);
+    beginCapture({ nation: enemy.flag, done: () => {
+      state.player = applyBoardingOutcome(state.player, outcome);
+      state.alert += 16;
+      endBattleToSailing(`Released after the failed boarding of the ${enemy.ship}.`);
+    } });
+    return;
+  }
+  state.player = applyBoardingOutcome(state.player, outcome);
+  const losses = outcome.casualties ? ` We lost ${outcome.casualties} men.` : '';
   if (outcome.result === FIGHT_RESULT.won) {
     state.battle = null;
     state.mode = 'sailing';
@@ -2041,12 +2107,9 @@ function resolveBoarding(enemy, outcome) {
     return;
   }
   state.alert += 16;
-  const message = outcome.result === FIGHT_RESULT.defeated
-    ? `Beaten in the boarding fight: our men threw down their arms, and we paid ${ransom} gold in ransom.${losses}`
-    : `The boarding party was driven back and broke away.${losses}`;
+  const message = `The boarding party was driven back and broke away.${losses}`;
   showDialog({
-    vignette: { id: 'boarding', flag: enemy.flag }, kicker: 'The boarding fails',
-    title: outcome.result === FIGHT_RESULT.defeated ? 'Your men surrender' : 'Driven back',
+    vignette: { id: 'boarding', flag: enemy.flag }, kicker: 'The boarding fails', title: 'Driven back',
     body: `<p>${message}</p>`,
     actions: [{ label: 'Continue', run: () => endBattleToSailing(message) }],
   });
@@ -2426,42 +2489,37 @@ function convoyArrivalLines(town) {
   return `<p><strong>${line}</strong></p>`;
 }
 
-// Landing (porting_guide.md §8): sailing onto a land pixel stops the ship
-// where it lay at the start of the tick and puts a party ashore on the
-// pixel it touched. The tick rounds up to the next half day. The prompt is
-// "Disembark (Y/N)"; the voyage goes on either way.
-function beginLanding(landX, landY, shipX, shipY) {
+// Landing (porting_guide.md §8). DEPARTURE from the original, which stops
+// the voyage with a "Disembark (Y/N)" prompt whenever the ship touches a
+// land pixel: here the shore simply stops the ship (it stays where it lay at
+// the start of the tick, time running on), and the Land control (G) puts a
+// party ashore on the land pixel it touched; turning away sails on. The
+// landing itself follows the original: the tick rounds up to the next half
+// day and the party starts walking the way the ship sailed.
+function holdAgainstShore(landX, landY) {
   const player = state.player;
+  if (!player.aground) addLog('The shore stops your ship. Press G to land a party, or turn away.');
+  player.aground = { x: landX, y: landY };
+  player.speed = 0;
+}
+
+function landParty() {
+  const player = state.player;
+  if (state.mode !== 'sailing' || state.paused || player.onFoot || !player.aground) return false;
+  const { x: landX, y: landY } = player.aground;
   player.voyageTick = roundUpToHalfDay(player.voyageTick);
   Object.assign(player, {
-    x: landX, y: landY, onFoot: true,
-    ship: { x: shipX, y: shipY, heading: player.heading },
+    ship: { x: player.x, y: player.y, heading: player.heading },
+    x: landX, y: landY, onFoot: true, aground: null,
     landing: { x: landX, y: landY },
     // set_heading (0x1B565) also set the walk vector: the party walks on
     // inland the way the ship sailed.
     walk: walkVectorForHeading(player.heading),
   });
-  state.paused = true;
-  showDialog({
-    kicker: 'Landfall', title: 'Disembark?',
-    body: '<p>Your ship touches the shore and stops. A landing party waits beside it.</p><p>On land the party walks two map cells a day in any terrain, and re-boards only by walking back into the water where it landed. Press <kbd>S</kbd> or Dig to search for treasure.</p>',
-    actions: [
-      { label: 'Yes, go ashore (Y)', key: 'y', run: () => {
-        addLog('A landing party goes ashore; the ship waits offshore.');
-        continueVoyage();
-      } },
-      // 0x315D answered N: the ship is put back and turned round; on_foot
-      // stays set, so the next tick walks the party back into the water at
-      // the landing spot and re-boards it (rounding the time up again).
-      { label: 'No, stay aboard (N)', key: 'n', secondary: true, run: () => {
-        player.x = shipX;
-        player.y = shipY;
-        player.heading = (player.heading + 128) & 0xff;
-        player.walk = walkVectorForHeading(player.heading);
-        continueVoyage();
-      } },
-    ],
-  });
+  addLog('A landing party goes ashore; the ship waits offshore.');
+  resetSailingInterpolation();
+  updateInterface();
+  return true;
 }
 
 // Resume the running voyage after a prompt that is not a voyage event.
@@ -2472,7 +2530,7 @@ function continueVoyage() {
 }
 
 function clearLandingParty() {
-  Object.assign(state.player, { onFoot: false, ship: null, landing: null, walk: null, blockedByWater: false });
+  Object.assign(state.player, { onFoot: false, ship: null, landing: null, walk: null, blockedByWater: false, aground: null });
 }
 
 // The on-foot branch of the tick (0x235A3, porting_guide.md §5 and §8).
@@ -2764,29 +2822,35 @@ function stormTheWalls(town, { yourMen, soldiers }) {
 }
 
 function resolveAssault(town, outcome) {
-  // A defeat goes to capture, which does not count the fallen (0x1660E).
-  if (outcome.result !== FIGHT_RESULT.defeated) state.player.crew = Math.max(1, state.player.crew - outcome.casualties);
-  const losses = outcome.casualties && outcome.result !== FIGHT_RESULT.defeated ? ` We lost ${outcome.casualties} men.` : '';
+  // 0x18F57: reputation -1 and favour -1 with the town's nation on any loss.
+  const repulsed = () => {
+    state.player.reputation -= 1;
+    propagateFavour(town.nation, -1);
+  };
+  if (outcome.result === FIGHT_RESULT.defeated) {
+    // Capture runs inside the fight (0x16205 from 0x18F4B), which does not
+    // count the fallen (0x1660E); the repulse penalty follows the release.
+    addLog(`Failed to capture ${town.name}: our men threw down their arms.`);
+    beginCapture({ nation: town.nation, town, done: () => {
+      repulsed();
+      startVoyage();
+    } });
+    return;
+  }
+  state.player.crew = Math.max(1, state.player.crew - outcome.casualties);
+  const losses = outcome.casualties ? ` We lost ${outcome.casualties} men.` : '';
   if (outcome.result === FIGHT_RESULT.won) {
     town.soldiers = garrisonAfterAssault(outcome.theirMen);
     addLog(`Stormed the walls of ${town.name}.${losses}`);
     captureTown(town);
     return;
   }
-  // 0x18F57: reputation -1 and favour -1 with the town's nation.
-  state.player.reputation -= 1;
-  propagateFavour(town.nation, -1);
-  // ASSUMED: capture (0x16647) is not ported; as for a lost boarding, a
-  // defeat costs a tenth of the party's gold in ransom instead.
-  const ransom = outcome.result === FIGHT_RESULT.defeated ? Math.floor(state.player.partyGold / 10) : 0;
-  state.player.partyGold -= ransom;
-  const message = outcome.result === FIGHT_RESULT.defeated
-    ? `Failed to capture ${town.name}: our men threw down their arms, and we paid ${ransom} gold in ransom.`
-    : `Failed to capture ${town.name}: driven back from the walls.${losses}`;
+  repulsed();
+  const message = `Failed to capture ${town.name}: driven back from the walls.${losses}`;
   addLog(message);
   showDialog({
     vignette: { id: town.forts ? 'fort-walls' : 'land-attack', flag: town.nation, era: state.era }, kicker: 'The assault fails',
-    title: outcome.result === FIGHT_RESULT.defeated ? 'Your men surrender' : 'Driven back',
+    title: 'Driven back',
     body: `<p>${message}</p>`,
     actions: [{ label: 'Continue', run: () => { departFromApproach(); runFleetCheck({ inTown: true, done: startVoyage }); } }],
   });
@@ -4959,6 +5023,7 @@ function updateInterface() {
 function updateControls(inBattle, onFoot) {
   if (inBattle) setControl(dockButton, 'cannon', 'Fire loaded broadside', 'Space');
   else if (onFoot) setControl(dockButton, 'shovel', 'Search for treasure here', 'S');
+  else if (state.player.aground) setControl(dockButton, 'boot', 'Land a party ashore', 'G');
   else setControl(dockButton, 'treasure-map', 'Study your treasure maps', 'M');
   setControl(turnLeftButton, onFoot ? 'back' : 'turn-port', onFoot ? 'Walk west' : 'Turn to port', '← or A');
   setControl(turnRightButton, onFoot ? 'next' : 'turn-starboard', onFoot ? 'Walk east' : 'Turn to starboard', '→ or D');
@@ -5006,7 +5071,8 @@ function updateSailingInterface(player, onFoot) {
   labels.mood.textContent = crewMoodLabel();
   labels.gold.textContent = player.partyGold.toLocaleString();
   labels.nearest.textContent = `${town.name} · ${distance}`;
-  dockButton.disabled = state.paused || state.mode !== 'sailing' || (!onFoot && !state.treasureMaps.some(({ pieces }) => pieces));
+  dockButton.disabled = state.paused || state.mode !== 'sailing' || (!onFoot && !player.aground && !state.treasureMaps.some(({ pieces }) => pieces));
+  dockButton.classList.toggle('ready', !onFoot && Boolean(player.aground) && !dockButton.disabled);
   zoomOutButton.disabled = false;
   zoomInButton.disabled = false;
   logbookButton.disabled = state.mode !== 'sailing';
@@ -5091,6 +5157,7 @@ function render() {
   ctx.restore();
   drawMinimap(width, height, camera, zoom, playerPose);
   if (state.player.onFoot && state.player.blockedByWater && !state.paused) drawBlockedWarning(width);
+  if (!state.player.onFoot && state.player.aground && !state.paused) drawShoreNotice(width);
   if (state.paused && state.mode === 'sailing' && !dialog.open) drawPaused(width, height, 'Voyage paused');
 }
 
@@ -5264,7 +5331,14 @@ function drawMinimap(width, height, camera, zoom, playerPose) {
 // tick the party pushes into water away from its boat, so say so plainly
 // for as long as it lasts, in words as well as colour.
 function drawBlockedWarning(width) {
-  const lines = ['⚠ Water blocks the party: half a day passes every step.', 'Turn inland, or walk back into the water at the rowboat.'];
+  drawNoticeBox(width, ['⚠ Water blocks the party: half a day passes every step.', 'Turn inland, or walk back into the water at the rowboat.']);
+}
+
+function drawShoreNotice(width) {
+  drawNoticeBox(width, ['⚓ The shore stops your ship.', 'Press G or Land to go ashore, or turn away to sail on.']);
+}
+
+function drawNoticeBox(width, lines) {
   const compact = width <= 760;
   ctx.save();
   ctx.font = `${compact ? 14 : 17}px "Source Sans 3", sans-serif`;
@@ -5295,6 +5369,10 @@ form.addEventListener('submit', async (event) => {
 
 continueButton.addEventListener('click', async () => { const saved = loadGame(); if (saved && scenarios) await startGame(saved); });
 loadSlotButton.addEventListener('click', () => { if (scenarios) showLoadSlots(); });
+settingsButton.addEventListener('click', showSettings);
+creditsButton.addEventListener('click', () => showDialog({
+  kicker: 'RetroPirates!', title: 'Credits', body: creditsHtml(), actions: [{ label: 'Done', run: () => {} }],
+}));
 function updatePauseControl() {
   if (state?.paused) setControl(pauseButton, 'play', 'Resume', 'P');
   else setControl(pauseButton, 'pause', 'Pause', 'P');
@@ -5312,6 +5390,7 @@ dockButton.addEventListener('click', () => {
   if (state?.mode === 'sword') return;
   if (state?.mode === 'battle') input.firePressed = true;
   else if (state?.player.onFoot) showDigPrompt();
+  else if (state?.player.aground) landParty();
   else openTreasureMapsAtSea();
 });
 zoomOutButton.addEventListener('click', () => changeZoom(-ZOOM_STEP));
@@ -5481,6 +5560,7 @@ function handleCommandKey(event, key) {
   }
   if (event.key === 'Escape' || key === 'p') togglePause();
   if (key === 'm') openTreasureMapsAtSea();
+  if (key === 'g' && landParty()) flashControl(dockButton);
   if (key === 't' && state?.mode === 'sailing') {
     fastTravel = !fastTravel;
     addLog(fastTravel ? 'Fast travel: time runs twice as fast. Press T again for normal speed.' : 'Fast travel off: time runs at normal speed.');
@@ -5979,6 +6059,14 @@ const PREVIEWS = {
     Object.assign(career.player, { x: 318.5, y: 443.5, heading: 0, speed: 8, sails: 'full' });
     startGame(career);
   },
+  // Port Royale 1660 from the south-west: the ship sails north onto the
+  // shore just west of the town's two-cell-wide strip of trigger cells and
+  // enters the town (shoreTriggerTown).
+  'shore-town': () => {
+    const career = previewState({ era: '1660' });
+    Object.assign(career.player, { x: 339.5, y: 269.5, heading: 0, speed: 8, sails: 'full' });
+    startGame(career);
+  },
   reef: () => {
     // A frigate and a sloop sailing east over a run of shallow pixels in the
     // reefs at (192, 288), 1560.
@@ -6027,6 +6115,47 @@ function openPreview(preview) {
   return true;
 }
 
+// Player settings, kept per browser: only the music volume for now.
+function loadSettings() {
+  try { return { musicVolume: 0.6, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') }; }
+  catch { return { musicVolume: 0.6 }; }
+}
+
+function saveSettings(settings) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* storage unavailable */ }
+}
+
+const music = createMusicPlayer({ volume: loadSettings().musicVolume });
+
+// The title music starts on the first click or key press: browsers keep
+// audio silent until the player interacts with the page, and some keys
+// (Shift, Escape) do not count, so every press tries until audio runs.
+let titleMusicFailed = false;
+function startTitleMusic() {
+  if (music.unlock()) for (const type of ['pointerdown', 'keydown']) removeEventListener(type, startTitleMusic, { capture: true });
+  if (titleMusicFailed || startScreen.classList.contains('hidden')) return;
+  music.play('title').catch((error) => {
+    titleMusicFailed = true;
+    console.warn('Title music unavailable:', error);
+  });
+}
+
+function showSettings() {
+  const volume = Math.round(music.volume * 100);
+  showDialog({
+    kicker: 'RetroPirates!', title: 'Settings',
+    body: `<label class="setting-range">Music volume <output id="music-volume-value">${volume}%</output><input id="music-volume" type="range" min="0" max="100" step="5" value="${volume}"></label>`,
+    actions: [{ label: 'Done', run: () => {} }],
+  });
+  const input = dialogBody.querySelector('#music-volume');
+  input.addEventListener('input', () => {
+    music.volume = input.value / 100;
+    dialogBody.querySelector('#music-volume-value').textContent = `${input.value}%`;
+    saveSettings({ ...loadSettings(), musicVolume: music.volume });
+    startTitleMusic();
+  });
+}
+
 // The title: "Retro" in pixel letters beside the script "Pirates!", over the
 // sloop vignette.
 function paintTitleScreen() {
@@ -6061,6 +6190,7 @@ loadScenarios().then(() => {
   beginButton.disabled = false;
   if (openPreview(new URLSearchParams(location.search).get('preview'))) return;
   refreshSaveButtons();
+  for (const type of ['pointerdown', 'keydown']) addEventListener(type, startTitleMusic, { capture: true });
 }).catch((error) => {
   console.error('Scenario data unavailable:', error);
   beginButton.textContent = 'Scenario data failed to load';

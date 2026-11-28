@@ -167,16 +167,24 @@ export function applyProvisionalBattleOutcome(player, enemy, outcome, shipStats)
 // After the boarding fight (0xF10A, sea_battles.md §7): a loss or being
 // driven back costs 2 reputation (the caller adds alert +16). Your crew's
 // losses are deducted on a win or when driven back; a defeat calls capture
-// (0x16647) and skips the deduction (0x1660E). ASSUMED: capture is not
-// ported, so a defeat costs a tenth of the party's gold in ransom instead.
+// (0x16647, see capturedInTown) inside the fight and skips the deduction
+// (0x1660E), so the caller applies this after the captivity.
 export function applyBoardingOutcome(player, { result, casualties }) {
   const lost = result === 'defeated' ? 0 : casualties;
   const next = { ...player, crew: Math.max(1, player.crew - lost) };
-  if (result === 'won') return { player: next, ransom: 0 };
-  next.reputation -= 2;
-  const ransom = result === 'defeated' ? Math.floor(next.partyGold / 10) : 0;
-  next.partyGold -= ransom;
-  return { player: next, ransom };
+  if (result !== 'won') next.reputation -= 2;
+  return next;
+}
+
+// Capture (0x16647, sword_fights.md §7a) after a battle fight with crews
+// (boarding, storming the walls) is lost by yielding. Every captain goes to
+// prison, pirate or not: the routine has no nation test besides this one.
+// You are held in the current town (0x46F82) when the nation you fought
+// (0x4605C, "most likely" per the doc) is that town's nation, and are
+// released at its departure cell; otherwise you are held aboard "the ship"
+// (CSTN 77[4]) and stay where you are. Both then serve prison (0x1F803).
+export function capturedInTown(fightNation, townNation) {
+  return fightNation === townNation;
 }
 
 function triangularCargoRoll(limit, rng) {
@@ -398,6 +406,28 @@ export function nearestTriggerTown(triggers, cellX, cellY) {
   let bestTown = -1;
   let bestDistance = Infinity;
   for (const [x, y, townIndex] of triggers) {
+    const distance = Math.abs(x - cellX) + Math.abs(y - cellY);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestTown = townIndex;
+    }
+  }
+  return bestTown;
+}
+
+// DEPARTURE from the original (entering_towns.md §0 has no proximity zone):
+// a ship that runs onto land next to a town's trigger cells enters that
+// town instead of being stopped by the shore. The trigger cells are often a
+// strip only two cells wide (Port Royale), so a ship aimed at the town
+// beached a few pixels beside it. Returns the town index of a trigger cell
+// within one cell (8-neighbourhood) of the land cell, the closest first, or -1.
+// `harbour(townIndex)` limits it to towns a ship can enter: a landlocked
+// town's cells are reached only on foot.
+export function shoreTriggerTown(triggers, cellX, cellY, harbour = () => true) {
+  let bestTown = -1;
+  let bestDistance = Infinity;
+  for (const [x, y, townIndex] of triggers) {
+    if (Math.abs(x - cellX) > 1 || Math.abs(y - cellY) > 1 || !harbour(townIndex)) continue;
     const distance = Math.abs(x - cellX) + Math.abs(y - cellY);
     if (distance < bestDistance) {
       bestDistance = distance;

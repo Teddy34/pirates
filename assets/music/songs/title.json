@@ -1,0 +1,17 @@
+{
+ "title": "Spagnoletta",
+ "composer": "Michael Praetorius, Terpsichore (1612)",
+ "source": "MIDI arranged and sequenced by MJ Starke (1995), from https://www.midi-karaoke.info/21751ded.html; the file carries a 1995 notice by MJ Starke and states no licence",
+ "midi": "spagnoletta.mid",
+ "channels": {
+  "1": "recorder",
+  "2": "recorder",
+  "3": "viol-tenor",
+  "4": "viol-tenor",
+  "5": "harpsichord",
+  "6": "harpsichord",
+  "7": "harpsichord",
+  "8": "mute",
+  "9": "viol-bass"
+ }
+}
