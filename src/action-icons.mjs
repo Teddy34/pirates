@@ -139,6 +139,15 @@ const ICONS = {
     '............', '...kk.......', '...kgk......', '...kggk.....', '...kgggk....', '...kggggk...',
     '...kggggk...', '...kgggk....', '...kggk.....', '...kgk......', '...kk.......', '............',
   ],
+  // The start screen's sound toggle (game.mjs).
+  'sound-on': [
+    '............', '....k...k...', '...kk....k..', '..kgk..k..k.', 'kkkgk...k.k.', 'kgggk.k.k.k.',
+    'kgggk.k.k.k.', 'kkkgk...k.k.', '..kgk..k..k.', '...kk....k..', '....k...k...', '............',
+  ],
+  'sound-off': [
+    '............', '....k.......', '...kk.......', '..kgk.......', 'kkkgk.r...r.', 'kgggk..r.r..',
+    'kgggk...r...', 'kkkgk..r.r..', '..kgk.r...r.', '...kk.......', '....k.......', '............',
+  ],
   'zoom-in': [
     '..kkkkk.....', '.kwwwwwk....', 'kwwwkwwwk...', 'kwwwkwwwk...', 'kwkkkkkwk...', 'kwwwkwwwk...',
     'kwwwkwwwk...', '.kwwwwwkk...', '..kkkkkkbk..', '.......kbbk.', '........kbbk', '.........kk.',

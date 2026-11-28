@@ -192,6 +192,14 @@ form .wide-field { grid-column:span 2; }
    clipped at its inner edge; the huge outer shadow fills the 14 px margin. */
 #start-screen { --pixel:#21180f; inset:14px; padding:26px 20px; border:9px double var(--brass); box-shadow:0 0 0 4px var(--pixel),0 0 0 100vmax var(--deep); background:repeating-conic-gradient(rgba(234,216,173,.035) 0 25%,transparent 0 50%) 0 0/4px 4px,radial-gradient(circle at 50% 30%,rgba(41,96,103,.4),transparent 42%),linear-gradient(rgba(4,20,27,.92),rgba(4,20,27,.98)); }
 #start-screen::before { content:none; }
+/* The sound toggle: a brass pixel button pinned to the start screen's top right corner, inside its double border. */
+#sound-toggle { position:fixed; top:34px; right:44px; z-index:2; display:grid; place-items:center; width:48px; height:46px; padding:0; border:3px solid var(--pixel); border-radius:0; background:var(--brass); cursor:pointer; box-shadow:inset -4px -4px 0 #a8742e,inset 4px 4px 0 #f2c55c,4px 4px 0 #000; }
+#sound-toggle .action-icon { width:24px; height:24px; padding:0; border:0; background:transparent; }
+#sound-toggle:hover,#sound-toggle:focus-visible { background:#f2c55c; }
+#sound-toggle:focus-visible { outline:3px solid var(--paper); outline-offset:2px; }
+#sound-toggle:active { transform:translate(2px,2px); box-shadow:inset -4px -4px 0 #a8742e,inset 4px 4px 0 #f2c55c,2px 2px 0 #000; }
+#sound-toggle[aria-pressed="false"] { background:#a8742e; }
+@media (max-width:520px) { #sound-toggle { top:26px; right:26px; width:42px; height:40px; } }
 #start-screen .eyebrow,#start-screen label,#start-screen .era-suggested,#start-screen .primary,#start-screen .secondary { font-family:ui-monospace,"DejaVu Sans Mono","Cascadia Mono",Menlo,monospace; letter-spacing:.14em; text-transform:uppercase; }
 #start-screen label { font-size:11px; }
 .title-logo { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:0 18px; margin:2px 0 14px; line-height:1; }
