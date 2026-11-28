@@ -309,6 +309,8 @@ form .wide-field { grid-column:span 2; }
   box-shadow:inset -4px -4px 0 var(--brass-dark),inset 4px 4px 0 var(--brass-light),5px 5px 0 #000; cursor:pointer; }
 #event-dialog #dialog-actions button.secondary { background:#d9c393; box-shadow:inset -4px -4px 0 #b39a68,inset 4px 4px 0 #f4e6c4,5px 5px 0 #000; }
 #event-dialog #dialog-actions button:hover { background:var(--brass-light); }
+#event-dialog #dialog-actions button[aria-disabled="true"] { cursor:default; opacity:.45; box-shadow:none; transform:none; }
+#event-dialog #dialog-actions button[aria-disabled="true"]:hover { background:var(--brass); }
 #event-dialog #dialog-actions button:focus-visible { background:var(--brass-light); outline:4px solid var(--pixel); outline-offset:3px; }
 @media (min-width:761px) and (min-height:520px) { #dialog-actions { position:sticky; bottom:-28px; } }
 /* Each action's pixel icon sits in a paper slot; the focused button's icon hops. */

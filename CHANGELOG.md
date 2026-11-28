@@ -11,6 +11,16 @@ history.
 
 ## Unreleased
 
+### Changed
+
+- The plunder window now opens with the focus on a new "Take all" button,
+  which takes all the loot into the hold and on the gun decks and finishes
+  looting, so pressing Enter takes the spoils instead of leaving
+  them behind. When the loot does not all fit, "Take all" is greyed out but
+  keeps the focus, so a hasty Enter does nothing: choose what to take with
+  the arrows or "Take everything that fits". "Finish looting" still leaves
+  the rest by choice.
+
 ### Added
 
 - The fleet page has a "Make flagship" button on every ship but the
